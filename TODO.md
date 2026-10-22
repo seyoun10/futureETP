@@ -33,8 +33,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 언어 / 패키지 매니저: TypeScript(strict) + npm (2026-10-23, D-028)
 - [x] 내비게이션: Expo Router, route 파일만 default export 예외 (2026-10-23, D-029)
 - [x] 상태 관리, 데이터 패칭: TanStack Query + Zustand (2026-10-23, D-030)
-- [ ] **[다음 작업]** UI / 스타일링, 차트 라이브러리(log 축·핀치·십자선·햅틱), i18n
-- [ ] Backend / DB / 서버 접근 보호 (자체 서버 vs BaaS, 단일 사용자), 배치 스케줄러·호스팅(CME 달력 소스가 서버 언어에 따라 달라짐)
+- [x] UI / 스타일링, 차트, i18n: StyleSheet + 테마 토큰, Victory Native XL(스파이크로 검증), i18next (2026-10-23, D-031~D-033)
+- [ ] **[다음 작업]** Backend / DB / 서버 접근 보호 (자체 서버 vs BaaS, 단일 사용자), 배치 스케줄러·호스팅(CME 달력 소스가 서버 언어에 따라 달라짐)
 - [ ] 푸시: FCM·APNs 직접 연동 vs 중계 서비스
 - [ ] 테스트 도구, lint / format
 - [ ] 빌드 / 설치 (CI, 본인 기기 설치: iOS 유료 개발자 계정·TestFlight 또는 개발 빌드, Android APK)
@@ -57,5 +57,6 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ## 5. 개발
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
+- [ ] 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱
 - [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정)
 - 적절한 개발 전략 수립 : harness, agent-teams(frontend, backend, db, review, test) 구성

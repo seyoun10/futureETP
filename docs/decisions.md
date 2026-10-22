@@ -397,3 +397,46 @@
   - MMKV는 더 빠르지만 Nitro Modules까지 네이티브 의존성이 2개 늘어난다. 값 2개에는 이점이 없다.
   - 2026-10-23 npm 기준 최신: `@tanstack/react-query` 5.104.5, `zustand` 5.0.16.
 - 후속(TODO 3단계): 15분 배치 뒤 자동 새로고침의 시점 계산(서버가 다음 갱신 시각을 응답에 주는 방식 등), 차트 구간 데이터 로딩, 커브 조회 캐시.
+
+## D-031: UI / 스타일링 — StyleSheet + 테마 토큰
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 테마는 다크 전용이다. 화면의 중심인 C-a~C-c 차트는 Skia로 그려서 색을 JS 값으로 넘겨야 한다. 등락 색(한국식/미국식)은 기기 설정(D-030)에 따라 바뀐다.
+- 선택지: StyleSheet + 테마 토큰 / NativeWind(Tailwind) / Unistyles 3
+- 결정:
+  - React Native 기본 `StyleSheet`와 typed 테마 토큰 모듈(색·간격·글자 크기)을 쓴다. UI 키트는 쓰지 않는다.
+  - 등락 색은 토큰이 아니라 표시 설정에서 고르는 값으로 둔다(차트·목록이 같은 함수로 읽는다).
+  - 바텀 시트(C-b 기준일 선택)와 휠 피커는 개발 단계에서 고른다.
+- 근거:
+  - 다크 전용이라 테마 전환이 없고, 화면 수가 적다. 추가 의존성과 빌드 설정이 없는 쪽이 가장 단순하다.
+  - Skia 차트는 className을 쓸 수 없어 NativeWind를 써도 같은 색을 JS 토큰으로 따로 둬야 한다. NativeWind는 2026-10-23 기준 v4.2.7이 안정판이고 v5는 RC다.
+  - Unistyles 3는 Nitro Modules 네이티브 의존성이 늘고, 장점인 테마·브레이크포인트 전환이 이 앱에 필요 없다.
+
+## D-032: 차트 라이브러리 — Victory Native XL + Skia 커스텀 레이어
+- 날짜: 2026-10-23
+- 상태: 확정 (개발 초기 스파이크로 검증)
+- 맥락: TODO 2단계. C-a는 일봉 봉차트(log y축, 보이는 봉 기준 y 범위 자동 맞춤), 이평선, 이평선을 따라가는 rare-level 밴드 10개, 롤 음영·전환 마커, 우측 y축 라벨 겹침 우선순위, 고가·저가 꼬리표, 핀치·드래그, 길게 누르기 십자선과 봉 스냅 햅틱이 필요하다. '전체'는 2010-06부터라 봉이 약 4,000개다. C-b는 월물 카테고리 x축 선차트와 점 툴팁, C-c는 선 5개 겹침(선형 y축)이다.
+- 선택지: Victory Native XL / 자체 구현(Skia + d3-scale) / TradingView lightweight-charts(WebView)
+- 결정:
+  - `victory-native`(Victory Native XL)를 쓴다. 축·스케일·핀치/드래그(`useChartTransformState`)·길게 누르기(`useChartPressState`)는 라이브러리에 맡긴다.
+  - 라이브러리에 없는 요소(rare-level 밴드 음영, 롤 음영·마커, y축 라벨 겹침 처리, 꼬리표, 상세 박스)는 차트 안에 Skia 커스텀 레이어로 그린다. 햅틱은 press 인덱스가 바뀔 때 `expo-haptics`를 호출한다.
+  - 개발 초기에 C-a 스파이크로 검증한다: log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱. 하나라도 막히면 같은 기반(Skia·Reanimated·Gesture Handler) 위의 자체 구현으로 바꾼다.
+- 근거:
+  - 2026-10-23 확인한 `victory-native` 43.0.1 패키지에 log 축(`AxisScaleType = "linear" | "log"`), `Candlestick`, `AreaRange`, transform·press state가 들어 있다.
+  - 자체 구현과 기반 라이브러리가 같아서, 스파이크가 실패해도 바꾸는 비용이 작다.
+  - lightweight-charts는 log 축·십자선·자동 y 범위를 기본 제공하지만, WebView 브리지와 별도 번들이 필요하다. 햅틱이 브리지를 거쳐 늦게 오고, 시간 축 전용이라 C-b(월물 카테고리 축)에 맞지 않는다.
+- 주의: `victory-native` 43.0.1(2026-10-20)의 peerDependencies는 `@shopify/react-native-skia`가 아니라 무관한 패키지 `react-native-skia`(>=2.15.1)를 가리킨다. 42.0.1은 정상이다. 스캐폴딩할 때 수정판이 나왔는지 확인하고, 없으면 42.x로 고정한다. Skia·Reanimated·Gesture Handler 버전은 `npx expo install`이 SDK에 맞춰 정한 값을 쓴다.
+
+## D-033: i18n — i18next + react-i18next
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. UI는 한국어·영어이고 처음부터 i18n을 적용한다(product.md). 언어 기본값은 기기 언어, 등락 색 기본값은 기기 지역을 따른다. 푸시 문구는 서버가 저장된 언어로 만든다.
+- 선택지: i18next + react-i18next / Lingui
+- 결정:
+  - `i18next` + `react-i18next`를 쓰고, 기기 언어·지역은 `expo-localization`으로 읽는다. 번역 리소스는 앱에 번들로 넣는다(원격 로딩 없음).
+  - 번역 키는 TypeScript 타입 검사(i18next 모듈 확장)로 오타를 막는다.
+  - 숫자·날짜 형식은 `Intl`(Hermes 내장)로 한다. 원자재별 소수 자릿수 규칙은 앱 코드에 둔다.
+- 근거:
+  - React Native·Expo에서 가장 널리 쓰여 자료가 많고, 추가 빌드 단계가 없다. 2026-10-23 npm 기준 최신: `i18next` 26.5.5, `react-i18next` 17.1.2.
+  - Lingui는 번들이 작지만 Babel 매크로와 추출 단계가 늘어난다. 문구가 많지 않은 앱이라 이점이 작다.
+- 후속: 서버도 TypeScript로 정하면 푸시 문구 리소스를 앱과 공유할지 Backend 항목에서 정한다.

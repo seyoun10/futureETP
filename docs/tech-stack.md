@@ -10,9 +10,9 @@
 | 내비게이션 | Expo Router (route 파일만 default export) | D-029 |
 | 상태 관리 | Zustand v5 + persist(`expo-sqlite/kv-store`), 기기별 표시 설정만 | D-030 |
 | 데이터 패칭 | TanStack Query v5 + `fetch` 래퍼, 영속 캐시 없음 | D-030 |
-| UI / 스타일링 | | |
-| 차트 라이브러리 | | |
-| i18n | | |
+| UI / 스타일링 | `StyleSheet` + typed 테마 토큰(다크 전용), UI 키트 없음 | D-031 |
+| 차트 라이브러리 | Victory Native XL + Skia 커스텀 레이어 (개발 초기 스파이크, 실패 시 자체 Skia 구현) | D-032 |
+| i18n | i18next + react-i18next, `expo-localization`, 숫자·날짜는 `Intl` | D-033 |
 | Backend / DB / 서버 접근 보호 | | |
 | 배치 스케줄러 / 호스팅 | | |
 | 푸시 (FCM·APNs 직접 / 중계) | | |
