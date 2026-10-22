@@ -85,11 +85,11 @@
 | SI | KODEX 은선물(H): S&P GSCI Silver | 약 18종. DJCI Silver(미래에셋: GSCI와 같은 2·4·6·8·11월, 5~9영업일) 등 | GSCI 일정 |
 
 - 국내 ETN은 발행사가 많고 기초지수를 한곳에서 조회할 수 없다(KRX 정보데이터시스템은 로그인 필요, 네이버 API에는 ETN 기초지수가 없음). ④에서 발행사별 지수 문서로 전수 확인한다.
-- 확인이 남은 것:
+- 확인이 남은 것 (④에서 모두 해소, `etp-sources.md`: Bloomberg Single·Solactive 금·천연가스 모두 GSCI 일정과 같다):
   - 삼성·신한 "블룸버그" WTI·천연가스 ETN이 BCOM 일정(격월)인지, Bloomberg Single 계열(매월 5~9영업일)인지
   - Solactive 금 지수: 최근월물 추종, 4~5일 롤, 롤 하는 달이 GSCI와 다를 수 있음(Global X HUG 일정은 1·3·5·7·11월)
   - Solactive 천연가스 지수의 롤 일정
-- 이 항목들이 다수를 뒤집을 가능성: CL·NG는 낮다(ETF와 S&P·DJCI·Solactive WTI가 이미 같은 규칙). GC는 미확인 ETN 7종이 모두 Solactive 규칙이면 뒤집힌다.
+- 이 항목들이 다수를 뒤집을 가능성: CL·NG는 낮다(ETF와 S&P·DJCI·Solactive WTI가 이미 같은 규칙). GC는 미확인 ETN 7종이 모두 Solactive 규칙이면 뒤집힌다. → 해소됨(D-013 유지).
 
 ## 데이터 모델에 주는 영향
 - `roll_weight.weight`는 **수량 기준 비중**이다. 서비스 공식이 같은 비중을 분자·분모에 쓰므로 GSCI(CPW·CRW)와 BCOM(WAV 혼합)의 수량 비중과 맞는다. 날짜마다 합이 1이 되게 정규화해 저장한다(혼합 가격이 달러 단위가 되도록).

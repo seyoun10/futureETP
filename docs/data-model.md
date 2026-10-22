@@ -14,7 +14,7 @@
   - `window`(분포 기간 N): `Y3` `Y5` `Y10` `ALL`
   - `direction`: `UP` `DOWN`
 - `rare_level`은 0.1~49.9의 decimal(3,1)이다.
-- 자동 수집 데이터에는 `source`(수집 소스)와 `collected_at`을 둔다. 소스 이름은 리서치 후 정한다.
+- 자동 수집 데이터에는 `source`(수집 소스)와 `collected_at`을 둔다. 소스 이름: `DATABENTO` `MASSIVE` `YAHOO` `NAVER` `KRX` `NASDAQ`(D-012, D-016).
 
 ## 영역 구분
 | 영역 | 테이블 | 갱신 주체 |
@@ -92,8 +92,8 @@ erDiagram
         date trade_date
         decimal last "현재가"
         decimal day_open
-        decimal day_high "소스 제공 시"
-        decimal day_low "소스 제공 시"
+        decimal day_high "Yahoo 당일 고가"
+        decimal day_low "Yahoo 당일 저가"
         bigint volume
         timestamp source_time "소스 기준 시각(지연 표시용)"
     }
@@ -173,7 +173,7 @@ erDiagram
 - **이격도**: `disparity`는 원자재 4 × 기준값 3 × 이평선 4 = 48개 시계열, `disparity_distribution`은 × N 4종 = 192행이다. 일일 정산 배치가 통째로 다시 쓴다. 산출 불가 기간은 `disparity`에 행을 두지 않는다.
 - **오늘 잠정 봉**: 장중 배치가 `index_snapshot`에 쓴다. 알림 판정은 이 고가·저가 이격도를 쓰고, C-a의 오늘 봉은 가장 최근 스냅숏을 쓴다.
 - **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 조회 비용이 문제가 되면 3단계에서 캐시나 materialized view로 바꾼다.
-- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06)부터 영구 보관한다. C-b 기준일 하한도 이 시작일이다(D-020). `intraday_snapshot`·`index_snapshot`의 보관 기간은 3단계에서 정한다(알림 재현과 디버깅에 필요한 만큼, 예: 30일).
+- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06, 첫 거래일은 2010-06-07)부터 영구 보관한다. C-b 기준일 하한은 가장 이른 `trade_date`다(D-020). `intraday_snapshot`·`index_snapshot`의 보관 기간은 3단계에서 정한다(알림 재현과 디버깅에 필요한 만큼, 예: 30일).
 
 ## 4. ETP
 ```mermaid
@@ -222,7 +222,7 @@ erDiagram
 - **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다.
 - **다수 판정 하한**: `aum`이 미국 $10M, 국내 10억 원 미만인 상품은 세지 않는다(D-015).
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 처리하고, `aum`·`avg_trading_value`로 정렬 선택을 처리한다(D-017). 통화는 `market`으로 정해진다(KRX 원, US 달러).
-- **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 최근 30일 일봉(국내 네이버 `siseJson`, 미국 Yahoo `chart`)을 받아 다시 계산해 덮어쓴다. 거래가 없는 날(거래량 0)은 0으로 넣고, 값이 빠진 날은 뺀다.
+- **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 최근 45일 일봉(연휴가 껴도 20거래일을 채우도록)(국내 네이버 `siseJson`, 미국 Yahoo `chart`)을 받아 다시 계산해 덮어쓴다. 거래가 없는 날(거래량 0)은 0으로 넣고, 값이 빠진 날은 뺀다.
 
 ## 5~6. 설정·알림·운영
 > 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 단일 행으로 둔다.
@@ -296,5 +296,5 @@ erDiagram
 | 서버 접근 비밀 값 | 저장 방식은 3단계 |
 
 ## 리서치 후 확정할 항목
-- `daily_bar.open_interest`, `intraday_snapshot.day_high/day_low`: 소스가 주는지에 따라 남기거나 뺀다.
+- `daily_bar.open_interest`: 쓰는 기능이 없다. 소스 제공 여부와 관계없이 2단계에서 뺄지 정한다(`intraday_snapshot.day_high/day_low`는 Yahoo가 주는 것을 확인했다).
 - `etp_series.maturity_date`·`listed_date`(국내 ETN), `etp_product.underlying_index`(국내 ETN): KRX Open API 인증키를 받아 필드를 확인한 뒤 소스를 정한다.

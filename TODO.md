@@ -31,8 +31,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] **[다음 작업]** 프레임워크 구성: Expo vs React Native CLI
 - [ ] 언어 / 패키지 매니저
 - [ ] 내비게이션, 상태 관리, 데이터 패칭
-- [ ] UI / 스타일링
-- [ ] Backend / DB / 서버 접근 보호 (자체 서버 vs BaaS, 단일 사용자)
+- [ ] UI / 스타일링, 차트 라이브러리(log 축·핀치·십자선·햅틱), i18n
+- [ ] Backend / DB / 서버 접근 보호 (자체 서버 vs BaaS, 단일 사용자), 배치 스케줄러·호스팅(CME 달력 소스가 서버 언어에 따라 달라짐)
+- [ ] 푸시: FCM·APNs 직접 연동 vs 중계 서비스
 - [ ] 테스트 도구, lint / format
 - [ ] 빌드 / 설치 (CI, 본인 기기 설치: iOS 유료 개발자 계정·TestFlight 또는 개발 빌드, Android APK)
 - [ ] 결정된 스택 기준으로 CLAUDE.md Key Patterns / Coding Conventions 정리 (default export 금지 규칙과 라우터 요구사항 충돌 여부, API 응답·에러 규약 확정)
@@ -42,6 +43,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 레이어 구성 (UI / 상태 / 데이터 접근)
 - [ ] API 통신 및 에러 처리 규약
 - [ ] 환경 설정 분리 (dev / prod)
+- [ ] 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체, 운영자 실패 알림, 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
