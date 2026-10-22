@@ -18,7 +18,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - Step 2 리서치 진행 순서: ①시세 소스 → ②CME 달력 → ③롤 규칙 → ④ETP 소스 → ⑤외부 연동 문서화
   - ① 시세 소스 (2026-10-22 완료, `docs/research/market-data.md`): 개인용 앱 전환(D-011), 비용 $0 구성과 장중 15분 주기(D-012). 가입 후 확인할 것은 개발 단계로 미룸: Databento 적재 견적, Massive Basic 정산가 필드, Databento·Massive 정산가 일치 여부
   - ② CME 달력 (2026-10-22 완료, `docs/research/cme-calendar.md`): 휴장·조기 마감·공휴일 중간 정지, 최종 거래일 규칙(소스의 계약 정의 값 저장), 금속 상장·활성 월물
-  - Step 2 리서치 항목: 한국형·미국형 롤 규칙, ETP 목록·속성 소스(ETN 후속 시리즈 묶기 기준 포함), 커브 거래량 기준, ETP 순자산(AUM) 수집 가능 여부, 일일 정산 배치 시각(Massive EOD 반영 시각 실측), ETP 원천 갱신 시각, 과거 데이터 보관 범위(C-b 기준일 하한), B 설정의 데이터 출처 문구
+  - ③ 롤 규칙 (2026-10-22 완료, 잠정, `docs/research/roll-rules.md`, D-013): 한국형은 네 원자재 모두 S&P GSCI 일정, 미국형은 CL BCBCLI·나머지 BCOM. 금·은은 두 규칙이 같음. ④에서 국내 ETN 기초지수 전수 확인(삼성·신한 블룸버그 계열, Solactive 금·천연가스)
+  - Step 2 리서치 항목: ETP 목록·속성 소스(ETN 후속 시리즈 묶기 기준, 국내 ETN 기초지수 포함), 커브 거래량 기준, ETP 순자산(AUM) 수집 가능 여부, 일일 정산 배치 시각(Massive EOD 반영 시각 실측), ETP 원천 갱신 시각, 과거 데이터 보관 범위(C-b 기준일 하한), B 설정의 데이터 출처 문구
   - Step 2 데이터 모델 반영(2026-10-22 완료, `docs/data-model.md`): 사용자 시간대(IANA)·언어, 알림 거부 시간, 보류 알림, 알림 발송 기록(중복 방지 키, D-006), 기기별 푸시 토큰, ETP와 ETN 시리즈, 활성 월물 달력, 거래 달력(휴장·조기 마감). D-011로 사용자 테이블을 단일 행 `app_settings`로 정리
   - Step 2 산출물: 데이터 모델(Mermaid erDiagram), 외부 연동, `docs/research/`, `docs/decisions.md` D-010~
 

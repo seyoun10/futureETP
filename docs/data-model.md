@@ -109,7 +109,7 @@ erDiagram
         string basis PK "FRONT/KR/US"
         date trade_date PK
         string contract_symbol PK,FK
-        decimal weight "FRONT는 1.0"
+        decimal weight "수량 기준 비중, 날짜별 합 1. FRONT는 1.0"
     }
     index_bar {
         string commodity_code PK,FK
@@ -163,6 +163,10 @@ erDiagram
 설명
 - **거래일(`trading_day`)**: 정산가가 나오는 날만 행으로 둔다. 미국 공휴일 중간 정지일은 행이 없고, 그 세션은 다음 거래일 행의 `halt_*`로 표현한다. 에너지·금속은 같은 일정이라 거래소 구분 키가 없다(`research/cme-calendar.md`).
 - **월물(`contract`)**: 금속의 비활성 월물도 행은 만들 수 있지만 `is_target=false`로 두고 목록·커브·대표월물 후보에서 뺀다. 활성 월물 달력이 바뀌면 `active_month_rule`에 새 행을 넣고 `is_target`을 다시 계산한다.
+- **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013).
+  - 공통: 영업일 달력(`NYSE`/`BCOM`/`NYMEX`, 기본은 `trading_day`에 예외 날짜를 더해 계산), 롤 영업일 순번과 그날 종가 기준 이전 월물 비중(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정(없음 또는 `{months:[3,9], business_day:1, method:"equal_value"}`)
+  - leg마다: 가치 비중(예: 1 또는 1/3)과 매월 1영업일 보유 월물 표(12칸, 예: GSCI GC `G J J M M Q Q Z Z Z Z G+1`)
+  - `roll_weight`는 이 규칙을 날짜별로 펼친 결과다. 재조정일에 가치 비중을 수량으로 바꾸고(`비중 ÷ 가격`) 그 뒤에는 수량을 유지해 비중 drift를 재현한다.
 - **대표월물 이력**: 별도 테이블 없이 `roll_weight`(basis=`FRONT`, weight=1)로 표현한다. 전환일 마커는 전일과 월물이 바뀐 날이다.
 - **기준값이 없는 원자재**: 그 원자재·basis의 `roll_rule`이 없으면 `roll_weight`·`index_bar`도 없고, API가 `FRONT`로 대신 응답하면서 대체 여부를 함께 알린다.
 - **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 혼합 가격이 0 이하이면 비율을 갱신하지 않는다.
@@ -212,7 +216,7 @@ erDiagram
 - **ETN 후속 시리즈**: 상품(`etp_product`) 하나에 시리즈(`etp_series`) 여러 개다. ETF는 시리즈가 하나다. C-d-a는 `delisted_date`가 없는 시리즈를 모두 나란히 보여 준다.
 - **상장폐지**: 이전 시리즈는 `delisted_date`만 채운다. 모든 시리즈가 폐지되면 `is_active=false`로 목록에서 뺀다. 이력은 지우지 않는다(다시 묶기 판정과 디버깅용).
 - **상장일**: C-d-a의 상장일은 상품의 첫 시리즈 `listed_date`다.
-- **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값의 형식은 롤 규칙 리서치 후 정한다.
+- **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`).
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 모두 처리한다.
 
 ## 5~6. 설정·알림·운영
@@ -287,7 +291,6 @@ erDiagram
 | 서버 접근 비밀 값 | 저장 방식은 3단계 |
 
 ## 리서치 후 확정할 항목
-- `roll_rule.params` 구조: 한국형·미국형 롤 규칙 리서치 결과에 맞춘다.
 - `daily_bar.open_interest`, `intraday_snapshot.day_high/day_low`: 소스가 주는지에 따라 남기거나 뺀다.
 - `etp_product.aum`, `grouping_key`, `roll_rule_ref`: ETP 소스 리서치 결과에 맞춘다.
 - 커브 표시 거래량 기준과 개수 상한: 설정 테이블 대신 서버 상수로 둘지 정한다.
