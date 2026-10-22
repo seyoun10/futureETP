@@ -518,3 +518,25 @@
   - 앱 테스트는 RN 변환이 필요해 jest-expo가 기본이다. 서버·공유 패키지는 TS·ESM을 설정 없이 바로 돌리는 Vitest가 빠르고 단순하다. 전부 Jest로 통일하면 서버 쪽에 별도 변환 설정이 필요하다.
   - pre-commit에 테스트·타입 검사까지 넣으면 커밋마다 느려진다. 바뀐 파일의 lint·format만 강제하고, 나머지는 `npm run check`로 검증 단계에서 돌린다.
 - 후속: E2E(Maestro 등)는 개발 단계에서 필요할 때 검토한다. CI에서 `npm run check`를 돌릴지는 빌드/설치 항목에서 정한다.
+
+## D-039: 빌드·설치·배포 — Android 로컬 빌드, iOS는 가입 전 시뮬레이터만, EAS Update, 서버 스크립트 배포
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 스토어에 배포하지 않고 본인 기기에만 설치한다(D-011). Apple Developer 유료 계정은 최대한 늦게 가입한다(D-037). 로컬 환경(2026-10-23): M1 Pro·16GB, Xcode 27.1 있음, JDK·Android SDK·Docker·gh 없음. 원격 저장소는 앱을 기기에 설치해 쓸 수 있을 때 만든다(TODO 5단계). 서버는 Oracle ARM VM에서 Docker Compose로 돈다(D-034).
+- 선택지
+  - Android: 로컬 빌드 / EAS Build 클라우드
+  - Apple 가입 전 iOS: 시뮬레이터만 / 무료 Apple ID로 실기기 설치
+  - OTA: 쓰지 않음 / EAS Update
+  - CI·서버 배포: 원격 저장소 생성 때 CI + 스크립트 배포 / CI에서 이미지 빌드 후 레지스트리(GHCR)
+- 결정:
+  - Android는 로컬 빌드가 기본이다. Android Studio(SDK·에뮬레이터)와 JDK를 설치한다. 개발 중에는 개발 빌드(`npx expo run:android`)를 쓰고, 평소 사용은 release APK를 adb나 파일로 설치한다. 서명 키(keystore)는 로컬에 두고 저장소 밖에 백업한다. EAS Build(무료: 월 Android 15회·iOS 15회, 낮은 우선순위 대기열)는 로컬 빌드가 막힐 때 쓰는 예비 수단이다.
+  - iOS는 Apple 가입 전에는 시뮬레이터로만 동작을 확인한다. 실기기 설치와 APNs는 가입 뒤에 하고, 그때 설치 방식(Xcode 로컬 Release·ad hoc·TestFlight)을 정한다.
+  - JS 변경은 EAS Update(무료 1,000 MAU)로 배포한다. 로컬 빌드를 쓰므로 `updates.url`·`runtimeVersion`·채널 요청 헤더(`expo-channel-name`)를 앱 설정에 직접 넣는다. `runtimeVersion`은 CNG에 맞춰 fingerprint 정책을 기본으로 하고, 네이티브가 바뀌면 다시 빌드·설치한다.
+  - CI는 원격 저장소(GitHub, private)를 만들 때 GitHub Actions로 `npm run check`(D-038)만 돌린다. 앱 빌드는 CI에서 하지 않는다.
+  - 서버 배포는 저장소의 배포 스크립트로 한다. 스크립트가 rsync로 소스를 VM에 옮기고, VM에서 `docker compose up -d --build`를 실행한다. VM이 ARM이라 VM에서 직접 빌드하면 크로스 빌드가 필요 없고, 로컬에 Docker를 설치하지 않아도 된다.
+- 근거:
+  - Android 에뮬레이터 확인(TODO 4단계)에 어차피 Android Studio가 필요하다. 로컬 빌드는 횟수 제한과 대기가 없다.
+  - 무료 Apple ID 설치는 7일마다 다시 설치해야 하고 푸시 권한도 없다. 가입 전에 실기기에서 얻는 이점이 그 관리 비용보다 작다.
+  - EAS Update: 사용자가 선택했다. 재설치 없이 JS 수정이 반영된다. 대신 Expo 계정과 expo-updates 설정이 필요하다.
+  - CI는 원격 저장소가 없어서 지금 둘 곳이 없다. 1인 개발이라 검증 단계의 `npm run check`가 먼저다. 레지스트리 방식은 재현성이 좋지만 CI가 먼저 있어야 한다.
+- 주의: EAS Update 번들은 Expo 서버에 올라간다. 서버 접근 비밀 값을 빌드 환경 변수로 JS 번들에 넣으면 업데이트 번들에도 들어가므로, 비밀 값 전달 방식(TODO 3단계, D-036 후속)을 정할 때 함께 고려한다.

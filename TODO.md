@@ -37,8 +37,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] Backend / DB / 서버 접근 보호, 배치 스케줄러·호스팅: TypeScript + PostgreSQL, Oracle Always Free VM + croner, HTTPS + Bearer 토큰 (2026-10-23, D-034~D-036)
 - [x] 푸시: FCM·APNs 직접 연동, Android 먼저·APNs는 Apple 가입 뒤 (2026-10-23, D-037)
 - [x] 테스트 도구, lint / format: ESLint + Prettier, jest-expo + Vitest, pre-commit lint·format (2026-10-23, D-038)
-- [ ] **[다음 작업]** 빌드 / 설치 (CI, 본인 기기 설치: iOS 유료 개발자 계정·TestFlight 또는 개발 빌드, Android APK. Apple 가입은 최대한 늦게 할 예정 — 가입 전 iOS는 무료 Apple ID 개발 빌드(7일 만료, 푸시 불가), D-037)
-- [ ] 결정된 스택 기준으로 CLAUDE.md Key Patterns / Coding Conventions 정리 (API 응답·에러 규약 확정. default export 예외는 D-029로 반영 완료)
+- [x] 빌드 / 설치: Android 로컬 빌드(EAS 예비), iOS는 Apple 가입 전 시뮬레이터만, EAS Update, CI는 원격 저장소 생성 때, 서버는 스크립트 배포 (2026-10-23, D-039)
+- [ ] **[다음 작업]** 결정된 스택 기준으로 CLAUDE.md Key Patterns / Coding Conventions 정리 (API 응답·에러 규약 확정. default export 예외는 D-029로 반영 완료)
 
 ## 3. Architecture 결정
 - [ ] 디렉터리 구조
@@ -51,12 +51,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
 - [ ] 프로젝트 스캐폴딩
 - [ ] lint / format / test 설정
-- [ ] Android / iOS 시뮬레이터에서 실행 확인
+- [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)
+- [ ] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
 - [ ] CLAUDE.md 갱신 (Tech Stack, Architecture, Commands)
 - [ ] SessionStart hook(~/.claude/hooks/swift-env.sh)에 Node 버전 주입 추가 (package.json 존재 시)
 
 ## 5. 개발
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
 - [ ] 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱
-- [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정)
+- [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)
+- [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
 - 적절한 개발 전략 수립 : harness, agent-teams(frontend, backend, db, review, test) 구성
