@@ -88,7 +88,7 @@ erDiagram
     }
     intraday_snapshot {
         string contract_symbol PK,FK
-        timestamp captured_at PK "1시간 배치 시각"
+        timestamp captured_at PK "15분 배치 시각"
         date trade_date
         decimal last "현재가"
         decimal day_open
