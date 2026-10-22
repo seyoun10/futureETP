@@ -20,6 +20,7 @@ futureETP: 2026-10-22 기준 기획 단계 (Step 1 기획·교차 검증 완료,
 
 - `TODO.md`: 단계별 진행 체크리스트
 - `docs/product.md`: 서비스 기획 (개요, MVP 범위, 사용자 흐름, 데이터 모델, 외부 연동)
+- `docs/data-model.md`: 서버 DB 논리 모델 (Mermaid erDiagram)
 - `docs/tech-stack.md`: 확정된 기술 스택 (결과만)
 - `docs/architecture.md`: 디렉터리 구조, 레이어, API/에러 규약, 환경 분리
 - `docs/decisions.md`: 결정 기록과 근거 (D-xxx)

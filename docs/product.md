@@ -337,7 +337,7 @@ flowchart TD
 [`wireframes/screens.md`](wireframes/screens.md) (ASCII)
 
 ## 데이터 모델 초안
-> Step 2에서 작성
+[`data-model.md`](data-model.md) (Mermaid erDiagram, 논리 모델)
 
 ## 외부 연동 요구사항
 > Step 2에서 작성(리서치 결과 포함)
