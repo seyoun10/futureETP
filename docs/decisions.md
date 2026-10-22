@@ -485,3 +485,19 @@
   - Tailscale은 서버를 인터넷에 노출하지 않아 더 안전하지만, 폰에서 VPN이 켜져 있어야 앱이 동작한다. 매번 켜야 하는 불편이 크다.
   - 데이터는 공개 시세 기반 계산값이라 유출 피해가 작다. 비밀 값이 새면 교체하면 된다.
 - 후속(TODO 3단계): 비밀 값을 앱에 넣는 방식(빌드 환경 변수 / 첫 실행 때 입력해 SecureStore 저장)과 교체 절차.
+
+## D-037: 푸시 — FCM·APNs 직접 연동, Android 먼저
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 알림은 rare 레벨·ETP 새 후보·다수 판정 변경이다. 등록된 모든 기기로 보내고, 무효 토큰이면 기기를 지우며, 모든 기기에 실패하면 다음 주기에 1회 다시 보낸다(D-023). 사용자는 Apple Developer 유료 계정을 최대한 늦게 가입할 예정이다. 서버는 TypeScript다(D-035).
+- 선택지: FCM·APNs 직접 연동 / Expo Push 중계
+- 결정:
+  - 앱은 `expo-notifications`의 `getDevicePushTokenAsync`로 네이티브 토큰(Android FCM, iOS APNs)을 받아 플랫폼과 함께 서버에 등록한다.
+  - 서버는 Android에 `firebase-admin`(FCM HTTP v1), iOS에 `@parse/node-apn`(.p8 토큰 키)으로 보낸다. 두 경로는 같은 발송 인터페이스 뒤에 둔다.
+  - Android를 먼저 구현한다. APNs 경로는 Apple Developer 가입 뒤에 추가한다.
+  - 2026-10-23 npm 기준 최신: `firebase-admin` 14.5.0, `@parse/node-apn` 8.1.0.
+- 근거:
+  - 직접 연동은 발송 응답에서 바로 결과를 받는다(FCM `UNREGISTERED`, APNs 410). D-023의 무효 토큰 삭제·다음 주기 재시도를 한 번의 호출 결과로 처리할 수 있다.
+  - Expo Push는 서버 코드가 가장 적지만, 결과가 ticket과 약 15분 뒤 receipt 두 단계로 나뉜다. receipt는 24시간 뒤 지워진다. 이 때문에 재시도·토큰 삭제 처리가 늘어나고, Expo 서비스와 Expo 계정에 의존하게 된다.
+  - 어느 방식이든 iOS 푸시는 Apple 유료 계정의 APNs 키가 필요하다. 따라서 가입 전에는 Android만 동작한다는 점은 같다.
+- 후속: Firebase 프로젝트 생성과 `google-services.json` 설정(config plugin), 서비스 계정 키는 서버 환경 변수로 둔다(개발 단계). Apple 가입 전에는 iOS를 무료 Apple ID 개발 빌드로만 설치할 수 있어 7일마다 다시 설치해야 하고 푸시를 쓸 수 없다(빌드/설치 항목에서 반영).
