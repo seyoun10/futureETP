@@ -13,11 +13,12 @@
 |---|---|
 | 정규 세션 | 일~금 17:00 ~ 익일 16:00 CT, 매일 16:00~17:00 CT 휴식 |
 | 전일 휴장 | 새해 첫날, Good Friday, 크리스마스 |
-| 공휴일 중간 정지 | MLK, Presidents', Memorial, Juneteenth, Independence, Thanksgiving: 13:30 CT 정지, 17:00 CT 재개(다음 거래일 세션). 2022년 이전에는 12:00 CT |
-| 조기 마감 | Labor Day 12:00 CT, 추수감사절 다음 날 12:45 CT |
+| 공휴일 중간 정지 | MLK, Presidents', Memorial, Juneteenth, Independence, Thanksgiving: 13:30 CT 정지, 17:00 CT 재개(다음 거래일 세션). 2022년 이전에는 12:00 CT. Labor Day: 12:00 CT 정지, 같은 방식(교차 검증에서 정정) |
+| 조기 마감 | 추수감사절 다음 날 12:45 CT |
 
 - 위 표는 `pandas_market_calendars` 5.2.4의 `CMEGlobex_EnergyAndMetals` 달력 정의를 읽고 정리한 것이다. 에너지와 금속을 같은 달력으로 다룬다.
 - 2026 MLK 일정(DTN): 에너지·금속은 13:30 CT 정지, 17:00 CT에 다음 거래일(화) 세션으로 재개한다.
+- Labor Day는 처음에 조기 마감(그날 정산 있음)으로 적었지만 공휴일 중간 정지가 맞다. 2025년 DTN 일정에서 일요일 17:00 개장이 화요일 거래일 몫이고(월요일은 거래일 아님), AMP 공지상 정지 시각은 12:00 CT(증거금 마감 11:45)다. 정지 시각은 해마다 CME 공지로 확인한다.
 - 크리스마스이브 같은 날의 TAS(Trading at Settlement) 조기 마감 시각은 상품별로 다르지만, 이 서비스는 TAS를 쓰지 않는다.
 - 라이브러리는 규칙을 코드에 내장하고 있어 CME가 일정을 바꾸면 반영이 늦을 수 있다. 연 1회 CME 휴일 공지와 대조해 `trading_day`를 고친다.
 
@@ -56,6 +57,7 @@
 ## 출처
 - [CME Group Holiday and Trading Hours](https://cmegroup.com/tools-information/holiday-calendar.html)
 - [DTN: Martin Luther King Jr. holiday hours 2026](https://iqhelp.dtn.com/martin-luther-kind-jr-holiday-hours-2026/)
+- [DTN: Labor Day 2025 holiday hours](https://iqhelp.dtn.com/?p=3068), [AMP Futures: Labor Day holiday trading schedule](https://www.ampfutures.com/news/holiday-trading-schedule-labor-day)
 - [investingLive: Why Globex still opens on the night before a US market holiday](https://investinglive.com/education/why-globex-still-opens-on-the-night-before-a-us-market-holiday/)
 - [pandas_market_calendars](https://docsearch.algolia.com/mcp/docs/repo/rsheftel/pandas_market_calendars) (`calendars/cme_globex_energy_and_metals.py`, 5.2.4)
 - [CME Henry Hub Natural Gas contract specs](https://cmegroup.com/trading/energy/natural-gas/natural-gas_contractSpecs_futures.html)
