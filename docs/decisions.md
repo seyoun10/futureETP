@@ -353,7 +353,7 @@
 - 선택지: Expo + CNG(Continuous Native Generation) / Expo + 네이티브 폴더 커밋 / React Native CLI
 - 결정: Expo를 쓴다. 개발 빌드(development build)로 실행하고, `ios/`·`android/`는 prebuild로 생성하며 커밋하지 않는다. 네이티브 수정이 필요하면 config plugin으로 한다. 빌드는 EAS 무료 등급 또는 로컬 빌드로 $0을 유지한다(세부는 빌드/설치 항목).
 - 근거:
-  - React Native 공식 문서는 새 앱에 프레임워크(Expo)를 권장한다. 2026-10 기준 공식 확인된 최신은 Expo SDK 56(RN 0.85). 실제 SDK 버전은 스캐폴딩 시점의 최신으로 정한다.
+  - React Native 공식 문서는 새 앱에 프레임워크(Expo)를 권장한다. 2026-10-22 웹 검색으로는 SDK 56(RN 0.85)까지만 확인됐으나, 2026-10-23 npm 기준 `expo` 최신은 58.0.17이다. 실제 SDK 버전은 스캐폴딩 시점의 최신으로 정한다.
   - 필요한 네이티브 기능은 모두 개발 빌드로 쓸 수 있다: Skia·Reanimated·Gesture Handler(차트), `expo-haptics`, `expo-screen-orientation`, `expo-notifications`의 `getDevicePushTokenAsync`(Expo 중계 없이 FCM·APNs 토큰 직접 사용 가능), `expo-localization`.
   - 혼자 관리하는 앱에서 RN 업그레이드 부담이 가장 작다. RN CLI의 이점(네이티브 코드 직접 관리)이 필요한 요구가 없다.
 - 후속: Expo Router를 쓰면 route 파일에 default export가 필수라 CLAUDE.md의 "default export 금지"와 충돌한다. 내비게이션 항목에서 정한다.
@@ -382,3 +382,18 @@
 - 근거:
   - Expo Router는 URL 기반 딥링크를 기본 제공해 알림 → C-a 이동이 간단하다. `create-expo-app` 기본값이고 내부가 React Navigation이라 C의 상단 탭도 구성할 수 있다.
   - Expo 문서상 `app/` 아래 파일은 default export가 필수다(`_layout` 포함). 예외를 route 파일로 한정하면 나머지 코드는 named export 규칙을 지킨다.
+
+## D-030: 상태 관리와 데이터 패칭 — TanStack Query + Zustand
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 앱 데이터는 대부분 서버 조회다. 이격도차트·알림 설정은 서버에 한 벌 저장하고 모든 기기가 공유한다. 표시 설정(언어, 등락 색)만 기기마다 저장한다. 오프라인은 지원하지 않고, 오류는 다시 시도 화면을 보여 준다. A·C는 당겨서 새로고침과 장중 배치(15분) 뒤 자동 새로고침을 한다.
+- 선택지: TanStack Query + Zustand / TanStack Query + React Context / TanStack Query + Zustand + react-native-mmkv
+- 결정:
+  - 서버 상태(조회 데이터, 서버 저장 설정)는 TanStack Query v5로 다룬다. 요청은 내장 `fetch` 래퍼로 하고, 에러는 `AppError`로 통일한다. 앱 복귀 시 재조회는 `focusManager` + `AppState`로 연결한다. 오프라인 미지원이라 조회 결과를 기기에 영속 저장하지 않는다.
+  - 클라이언트 상태(표시 설정)는 Zustand v5 + `persist` 미들웨어로 다룬다. 저장소는 `expo-sqlite/kv-store`의 동기 API를 써서 앱 시작 때 언어·색이 바뀌며 깜빡이지 않게 한다.
+- 근거:
+  - 서버 상태가 대부분이라 캐시·재시도·새로고침·뮤테이션 후 무효화를 TanStack Query에 맡기는 것이 코드가 가장 적다.
+  - 표시 설정은 값이 2개라 Context로도 되지만, `persist`로 저장·복원 코드를 직접 쓰지 않아도 된다.
+  - MMKV는 더 빠르지만 Nitro Modules까지 네이티브 의존성이 2개 늘어난다. 값 2개에는 이점이 없다.
+  - 2026-10-23 npm 기준 최신: `@tanstack/react-query` 5.104.5, `zustand` 5.0.16.
+- 후속(TODO 3단계): 15분 배치 뒤 자동 새로고침의 시점 계산(서버가 다음 갱신 시각을 응답에 주는 방식 등), 차트 구간 데이터 로딩, 커브 조회 캐시.

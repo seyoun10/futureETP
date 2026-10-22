@@ -8,8 +8,8 @@
 | 프레임워크 (Expo / RN CLI) | Expo(개발 빌드, CNG: 네이티브 폴더는 prebuild로 생성·미커밋) | D-027 |
 | 언어 / 패키지 매니저 | TypeScript(strict) / npm | D-028 |
 | 내비게이션 | Expo Router (route 파일만 default export) | D-029 |
-| 상태 관리 | | |
-| 데이터 패칭 | | |
+| 상태 관리 | Zustand v5 + persist(`expo-sqlite/kv-store`), 기기별 표시 설정만 | D-030 |
+| 데이터 패칭 | TanStack Query v5 + `fetch` 래퍼, 영속 캐시 없음 | D-030 |
 | UI / 스타일링 | | |
 | 차트 라이브러리 | | |
 | i18n | | |
