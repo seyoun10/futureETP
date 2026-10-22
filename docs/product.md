@@ -336,7 +336,7 @@ flowchart TD
 | 과거 일봉 | 만기 월물 포함 정산가·거래량 1회 적재(2010-06~) | Databento GLBX.MDP3 과거 데이터 API | API 키, 무료 크레딧 $125(가입 후 6개월) | $0 | 개발 단계 1회 | 적재 스크립트 재실행 |
 | 일일 정산 | 정산가·거래량·월물 정의(최종 거래일) | Massive Basic REST | API 키, 분당 5회 | $0 | 18:30 CT(D-019) | 1회 재시도, 실패 중에는 알림 판정 중지. 정산가 필드가 없으면 Yahoo 일봉으로 대신(정확도 검증) |
 | 장중 시세 | 월물 현재가·당일 고가·저가 | Yahoo Finance 비공식 chart API(약 10분 지연) | 키 없음, 비공식 | $0 | 15분, CME 거래 시간만 | 마지막 정산가 표시. 계속 막히면 Massive Starter($29/월) |
-| CME 달력 | 휴장·조기 마감·공휴일 중간 정지 | `pandas_market_calendars`(서버가 Python일 때) 또는 CME 휴일 공지를 보고 직접 입력. 월물·최종 거래일은 시세 소스의 계약 정의(`research/cme-calendar.md`) | - | $0 | 연 1회와 CME 공지 때 | 이전 달력 유지, 직접 수정 |
+| CME 달력 | 휴장·조기 마감·공휴일 중간 정지 | CME 휴일 공지를 보고 직접 입력(서버는 TypeScript, D-035). 월물·최종 거래일은 시세 소스의 계약 정의(`research/cme-calendar.md`) | - | $0 | 연 1회와 CME 공지 때 | 이전 달력 유지, 직접 수정 |
 | 국내 ETP | 목록·속성·순자산·거래대금 | 네이버 모바일 API·`siseJson`(비공식), KRX Open API(ETN 만기일·기초지수, 개발 단계 확인) | KRX는 무료 인증키 | $0 | 08:30 KST | 마지막 성공 목록 유지 |
 | 미국 ETP | 후보 발견·속성·거래대금 | Nasdaq ETF 스크리너, Yahoo quoteSummary·chart(비공식). 배수·규칙은 매핑표(D-016) | 키 없음 | $0 | 08:30 KST | 마지막 성공 목록 유지 |
 

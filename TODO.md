@@ -34,8 +34,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 내비게이션: Expo Router, route 파일만 default export 예외 (2026-10-23, D-029)
 - [x] 상태 관리, 데이터 패칭: TanStack Query + Zustand (2026-10-23, D-030)
 - [x] UI / 스타일링, 차트, i18n: StyleSheet + 테마 토큰, Victory Native XL(스파이크로 검증), i18next (2026-10-23, D-031~D-033)
-- [ ] **[다음 작업]** Backend / DB / 서버 접근 보호 (자체 서버 vs BaaS, 단일 사용자), 배치 스케줄러·호스팅(CME 달력 소스가 서버 언어에 따라 달라짐)
-- [ ] 푸시: FCM·APNs 직접 연동 vs 중계 서비스
+- [x] Backend / DB / 서버 접근 보호, 배치 스케줄러·호스팅: TypeScript + PostgreSQL, Oracle Always Free VM + croner, HTTPS + Bearer 토큰 (2026-10-23, D-034~D-036)
+- [ ] **[다음 작업]** 푸시: FCM·APNs 직접 연동 vs 중계 서비스
 - [ ] 테스트 도구, lint / format
 - [ ] 빌드 / 설치 (CI, 본인 기기 설치: iOS 유료 개발자 계정·TestFlight 또는 개발 빌드, Android APK)
 - [ ] 결정된 스택 기준으로 CLAUDE.md Key Patterns / Coding Conventions 정리 (API 응답·에러 규약 확정. default export 예외는 D-029로 반영 완료)

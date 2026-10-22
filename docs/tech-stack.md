@@ -13,8 +13,8 @@
 | UI / 스타일링 | `StyleSheet` + typed 테마 토큰(다크 전용), UI 키트 없음 | D-031 |
 | 차트 라이브러리 | Victory Native XL + Skia 커스텀 레이어 (개발 초기 스파이크, 실패 시 자체 Skia 구현) | D-032 |
 | i18n | i18next + react-i18next, `expo-localization`, 숫자·날짜는 `Intl` | D-033 |
-| Backend / DB / 서버 접근 보호 | | |
-| 배치 스케줄러 / 호스팅 | | |
+| Backend / DB / 서버 접근 보호 | TypeScript(Node) + Hono·zod·Drizzle, PostgreSQL, npm workspaces로 앱과 공유 패키지 / Caddy HTTPS + Bearer 비밀 토큰 | D-035, D-036 |
+| 배치 스케줄러 / 호스팅 | 프로세스 내 `croner`(작업별 IANA 시간대) / Oracle Always Free ARM VM 1대 + Docker Compose(PAYG 전환) | D-034 |
 | 푸시 (FCM·APNs 직접 / 중계) | | |
 | 테스트 / lint / format | | |
 | 빌드 / 배포 | | |
