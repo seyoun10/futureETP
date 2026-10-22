@@ -38,7 +38,6 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
-- [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push
 - [ ] 프로젝트 스캐폴딩
 - [ ] lint / format / test 설정
 - [ ] Android / iOS 시뮬레이터에서 실행 확인
@@ -47,4 +46,5 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ## 5. 개발
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
+- [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 배포할 수 있는 시점에 진행 (2026-10-22 결정)
 - 적절한 개발 전략 수립 : harness, agent-teams(frontend, backend, db, review, test) 구성
