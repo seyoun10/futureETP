@@ -4,7 +4,7 @@
 
 ## 핵심 결론
 - 국내 ETN 기초지수 전수 확인: 확인된 지수 계열 4개(S&P GSCI, DJCI, Bloomberg Single, Solactive 5-Day Roll)는 네 원자재 모두 **월물 일정과 비중 변경 시점이 같다**. 기초지수를 확인하지 못한 ETN도 이 계열 중 하나로 보이므로 한국형 = GSCI 일정(D-013)이 유지된다.
-- 미국 금에 ③에서 빠뜨린 DB 금 ETN 3종(DGP·DGZ·DZZ, DBIQ Optimum Yield Gold)이 있다. 상품 수만 세면 미국형 GC의 다수가 BCOM(2종)에서 Optimum Yield(3종)로 바뀐다. 그런데 DGZ·DZZ는 순자산이 각각 약 $1M이다 → 다수 판정 규칙 보완이 필요하다(아래 "결정 필요").
+- 미국 금에 ③에서 빠뜨린 DB 금 ETN 3종(DGP·DGZ·DZZ, DBIQ Optimum Yield Gold)이 있다. 상품 수만 세면 미국형 GC의 다수가 BCOM(2종)에서 Optimum Yield(3종)로 바뀐다. DGZ·DZZ는 순자산이 각각 약 $1M이라 최소 순자산 하한(D-015)으로 제외해 BCOM을 유지한다.
 - 국내 목록·속성: 네이버 모바일 API로 ETF·ETN 목록, ETF 순자산·보수·운용사를 받을 수 있다. ETN의 기초지수·만기일은 무료 공개 소스에서 찾지 못했다(KRX 정보데이터시스템은 로그인 필요).
 - 미국 목록·속성: Nasdaq ETF 스크리너(이름만)로 후보를 찾고, Yahoo quoteSummary로 순자산·운용사·보수·설정일을 받는다. 기초지수·선물 기반 여부는 구조화된 필드가 없다.
 - ETN 후속 시리즈 묶기: (발행사, 원자재, 배수, 환헤지)로 묶으면 현재 국내 목록에서 겹치는 조합은 실제 시리즈 짝 하나뿐이다.
@@ -74,9 +74,10 @@
 - 현재 목록에서 겹치는 조합은 삼성 2X WTI(530031 무표기, 530133 B) 하나이고, 기사로 같은 기초지수임을 확인했다. 이름은 "블룸버그" 유무와 띄어쓰기가 달라 이름 비교로는 묶이지 않는다.
 - 한 발행사가 같은 조건으로 지수만 다른 상품을 동시에 내면 잘못 묶인다. 그때 기초지수가 있으면 키에 넣는다.
 
-## 결정 필요
-1. 다수 판정 보완 (미국 GC): 상품 수 기준에 최소 순자산을 둘지, 순자산 기준으로 바꿀지
-2. 미국 상품 분류: 완전 자동 대신 후보 자동 발견 + 분류 매핑표 확인으로 할지
+## 결정
+- D-015: 상품 수 기준을 유지하고 순자산 미국 $10M, 국내 10억 원 미만 상품은 세지 않는다. 미국형 GC는 BCOM으로 남는다.
+- D-016: 미국은 후보 발견·속성은 자동, 배수·규칙 분류는 심볼 매핑표. 매핑표에 없는 새 후보는 목록에서 빼고 확인 알림.
+- ETP 배치 시각: 08:30 KST(KRX Open API 08:00 갱신 뒤, 미국 전일 마감 뒤).
 
 ## 출처
 - [Bloomberg Single Commodity, Leveraged, and Inverse Index Methodology](https://assets.bbhub.io/professional/sites/27/Bloomberg-Single-Commodity-Leveraged-and-Inverse-Index-Methodology.pdf)

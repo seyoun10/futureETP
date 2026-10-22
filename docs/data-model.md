@@ -195,8 +195,9 @@ erDiagram
         string underlying_index "분류 근거 필드"
         decimal expense_ratio "총보수 %"
         string issuer_url
-        decimal aum "수집 가능하면, 리서치 후"
-        string grouping_key "ETN 시리즈 묶기 기준, 리서치 후"
+        decimal aum "순자산. 국내 ETF totalNav, ETN 시가총액, 미국 totalAssets"
+        string grouping_key "발행사|원자재|배수|환헤지 (ETN 시리즈 묶기)"
+        bool needs_review "미국 새 후보, 매핑 전까지 목록 제외"
         string roll_rule_ref "한국형·미국형 다수 판정용"
         bool is_active "모든 시리즈가 상장폐지되면 false"
         string source
@@ -217,6 +218,8 @@ erDiagram
 - **상장폐지**: 이전 시리즈는 `delisted_date`만 채운다. 모든 시리즈가 폐지되면 `is_active=false`로 목록에서 뺀다. 이력은 지우지 않는다(다시 묶기 판정과 디버깅용).
 - **상장일**: C-d-a의 상장일은 상품의 첫 시리즈 `listed_date`다.
 - **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`).
+- **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다.
+- **다수 판정 하한**: `aum`이 미국 $10M, 국내 10억 원 미만인 상품은 세지 않는다(D-015).
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 모두 처리한다.
 
 ## 5~6. 설정·알림·운영
@@ -292,5 +295,5 @@ erDiagram
 
 ## 리서치 후 확정할 항목
 - `daily_bar.open_interest`, `intraday_snapshot.day_high/day_low`: 소스가 주는지에 따라 남기거나 뺀다.
-- `etp_product.aum`, `grouping_key`, `roll_rule_ref`: ETP 소스 리서치 결과에 맞춘다.
+- `etp_series.maturity_date`·`listed_date`(국내 ETN), `etp_product.underlying_index`(국내 ETN): KRX Open API 인증키를 받아 필드를 확인한 뒤 소스를 정한다.
 - 커브 표시 거래량 기준과 개수 상한: 설정 테이블 대신 서버 상수로 둘지 정한다.

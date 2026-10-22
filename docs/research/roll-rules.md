@@ -73,7 +73,7 @@
 |---|---|---|---|
 | CL | BCBCLI (3) | UCO $462M, SCO, OILK $246M | USO, USL, DBO 각 1 |
 | NG | BCOM NG (2) | BOIL $311M, KOLD | UNG, UNL 각 1 |
-| GC | BCOM GC (2) | UGL $717M, GLL | - (SHNY·DULL은 GLD 기초라 범위 밖) |
+| GC | BCOM GC (2) | UGL $717M, GLL | DGP·DGZ·DZZ(DBIQ Optimum Yield, 3종이지만 DGZ·DZZ 순자산 약 $1M이라 하한 미달, D-015). SHNY·DULL은 GLD 기초라 범위 밖 |
 | SI | BCOM SI (2) | AGQ $1,136M, ZSL | - |
 
 ### 한국 (KRX 상장, 네이버 증권 목록 2026-10-22)
@@ -81,7 +81,7 @@
 |---|---|---|---|
 | CL | KODEX WTI원유선물(H)·인버스, TIGER 원유선물인버스: S&P GSCI Crude Oil. TIGER 원유선물Enhanced: GSCI Enhanced | 약 20종. S&P(KB·하나), Solactive WTI(미래에셋, 5~9영업일), 블룸버그(삼성·신한) 등 | GSCI 일정 |
 | NG | 없음 | 약 23종. DJCI(미래에셋·삼성, 5~9영업일), Bloomberg NG Single(미래에셋 1.5X, 5~9영업일), 블룸버그(신한), Solactive(KB·하나·메리츠) | GSCI 일정 |
-| GC | KODEX 골드선물(H)·인버스, TIGER 골드선물(H), ACE 골드선물 레버리지: S&P GSCI Gold | 약 14종. Solactive 7종(메리츠·KB·한투), 나머지 7종 미확인 | GSCI 일정 |
+| GC | KODEX 골드선물(H)·인버스, TIGER 골드선물(H), ACE 골드선물 레버리지: S&P GSCI Gold | 14종. Solactive 7종(메리츠·KB·한투), 나머지는 ④에서 4계열 모두 GSCI 일정 확인(`etp-sources.md`) | GSCI 일정 |
 | SI | KODEX 은선물(H): S&P GSCI Silver | 약 18종. DJCI Silver(미래에셋: GSCI와 같은 2·4·6·8·11월, 5~9영업일) 등 | GSCI 일정 |
 
 - 국내 ETN은 발행사가 많고 기초지수를 한곳에서 조회할 수 없다(KRX 정보데이터시스템은 로그인 필요, 네이버 API에는 ETN 기초지수가 없음). ④에서 발행사별 지수 문서로 전수 확인한다.
