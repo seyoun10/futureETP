@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-22 기준 기획 단계 (Step 1 기획·교차 검증 완료, 다음은 Step 2 데이터 모델·리서치. 소스 코드 없음). 진행 현황은 `TODO.md`
+futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서치 완료, 다음은 2단계 Tech Stack. 소스 코드 없음). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 

@@ -82,7 +82,7 @@ Yahoo 실측 (2026-10-22 13:30 UTC)
 | 은(SI) | 13:24~13:25 |
 
 - cmegroup.com 반영은 예정 시각에서 최대 10분 늦어질 수 있고, 조기 마감일에는 바뀐다.
-- 일일 정산 배치는 금속·에너지 정산이 모두 끝난 뒤로 잡는다. 확정(final) 정산가 반영 시각은 선택한 소스에서 실측해 정한다.
+- 일일 정산 배치는 금속·에너지 정산이 모두 끝난 뒤로 잡는다. CME 최종 정산가 게시(18:00 CT) 뒤인 18:30 CT로 정했다(D-019, `curve-settlement.md`). 소스 반영 시각은 가입 후 실측한다.
 
 ## 출처
 - [CME January 2026 Market Data Fee List](https://www.cmegroup.com/market-data/files/january-2026-market-data-fee-list.pdf)

@@ -172,8 +172,8 @@ erDiagram
 - **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 혼합 가격이 0 이하이면 비율을 갱신하지 않는다.
 - **이격도**: `disparity`는 원자재 4 × 기준값 3 × 이평선 4 = 48개 시계열, `disparity_distribution`은 × N 4종 = 192행이다. 일일 정산 배치가 통째로 다시 쓴다. 산출 불가 기간은 `disparity`에 행을 두지 않는다.
 - **오늘 잠정 봉**: 장중 배치가 `index_snapshot`에 쓴다. 알림 판정은 이 고가·저가 이격도를 쓰고, C-a의 오늘 봉은 가장 최근 스냅숏을 쓴다.
-- **커브**: 테이블을 두지 않는다. `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 조회 비용이 문제가 되면 3단계에서 캐시나 materialized view로 바꾼다.
-- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 영구 보관한다. `intraday_snapshot`·`index_snapshot`의 보관 기간은 3단계에서 정한다(알림 재현과 디버깅에 필요한 만큼, 예: 30일).
+- **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 조회 비용이 문제가 되면 3단계에서 캐시나 materialized view로 바꾼다.
+- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06)부터 영구 보관한다. C-b 기준일 하한도 이 시작일이다(D-020). `intraday_snapshot`·`index_snapshot`의 보관 기간은 3단계에서 정한다(알림 재현과 디버깅에 필요한 만큼, 예: 30일).
 
 ## 4. ETP
 ```mermaid
@@ -298,4 +298,3 @@ erDiagram
 ## 리서치 후 확정할 항목
 - `daily_bar.open_interest`, `intraday_snapshot.day_high/day_low`: 소스가 주는지에 따라 남기거나 뺀다.
 - `etp_series.maturity_date`·`listed_date`(국내 ETN), `etp_product.underlying_index`(국내 ETN): KRX Open API 인증키를 받아 필드를 확인한 뒤 소스를 정한다.
-- 커브 표시 거래량 기준과 개수 상한: 설정 테이블 대신 서버 상수로 둘지 정한다.
