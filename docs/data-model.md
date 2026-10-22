@@ -23,7 +23,7 @@
 | 2. 시세 원천 | `daily_bar`, `intraday_snapshot` | 일일 정산 배치, 장중 배치 |
 | 3. 계산 결과 | `roll_rule`, `roll_weight`, `index_bar`, `index_scale`, `disparity`, `disparity_distribution`, `index_snapshot` | 일일 정산 배치, 장중 배치 |
 | 4. ETP | `etp_product`, `etp_series` | ETP 목록 배치 |
-| 5. 사용자·알림 | `app_user`, `apple_credential`, `user_settings`, `device`, `alert_record` | API, 장중 배치, 지연 발송 배치 |
+| 5. 설정·알림 | `app_settings`, `device`, `alert_record` | API, 장중 배치, 지연 발송 배치 |
 | 6. 운영 | `batch_run` | 모든 배치 |
 
 ## 1~3. 시장 데이터와 계산 결과
@@ -212,32 +212,15 @@ erDiagram
 - **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값의 형식은 롤 규칙 리서치 후 정한다.
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 모두 처리한다.
 
-## 5~6. 사용자·알림·운영
+## 5~6. 설정·알림·운영
+> 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 단일 행으로 둔다.
+
 ```mermaid
 erDiagram
-    app_user ||--|| user_settings : "설정"
-    app_user ||--o| apple_credential : "Apple만"
-    app_user ||--o{ device : "로그인 기기"
-    app_user ||--o{ alert_record : "판정·발송 기록"
-
-    app_user {
-        uuid id PK
-        string provider "APPLE/GOOGLE"
-        string provider_sub "UK(provider, provider_sub)"
-        string locale "ko/en, 푸시 문구용"
+    app_settings {
+        int id PK "항상 1(단일 행)"
+        string locale "ko/en, 푸시 문구용. 마지막으로 바꾼 기기의 값"
         string timezone "IANA, 알림 거부 시간 계산용"
-        bool ad_free "MVP 이후, 기본 false"
-        timestamp created_at
-        timestamp last_seen_at
-    }
-    apple_credential {
-        uuid user_id PK,FK
-        bytes refresh_token_enc "암호화, 키 관리는 3단계"
-        string key_version
-        timestamp updated_at
-    }
-    user_settings {
-        uuid user_id PK,FK
         string basis "기본 FRONT"
         int ma_period "기본 100"
         string window "기본 Y10"
@@ -249,7 +232,6 @@ erDiagram
     }
     device {
         uuid id PK
-        uuid user_id FK
         string platform "IOS/ANDROID"
         string push_token "UK"
         string app_version
@@ -257,7 +239,6 @@ erDiagram
     }
     alert_record {
         uuid id PK
-        uuid user_id FK
         string commodity_code "중복 방지 키 1"
         string basis "키 2"
         int ma_period "키 3"
@@ -284,26 +265,23 @@ erDiagram
 ```
 
 설명
-- **식별**: `(provider, provider_sub)`가 유니크다. 이메일은 저장하지 않는다. Apple 계정과 Google 계정은 다른 `app_user`다.
-- **Apple refresh token**: 노출 범위를 줄이려고 `app_user`와 분리한다. 계정 삭제 때 revoke한 뒤 함께 지운다.
-- **설정**: 로그인할 때 `user_settings`가 없으면 기기 설정으로 만들고, 있으면 DB 값을 쓴다. 알림 거부 시간은 기기 현지 시각을 자정 기준 분으로 저장하고 `app_user.timezone`으로 해석한다. 앱 실행 때 시간대가 바뀌었으면 `timezone`만 갱신한다.
-- **기기·푸시 토큰**: 로그아웃하면 그 기기의 `device` 행을 지운다. 토큰이 다른 사용자로 다시 등록되면 기존 행을 옮긴다(`push_token` 유니크). 발송 결과가 "유효하지 않은 토큰"이면 행을 지운다.
+- **단일 사용자**: 로그인·계정이 없어 사용자 식별 컬럼을 두지 않는다. 서버 접근은 단일 비밀 값으로 막는다(방식은 3단계).
+- **설정**: `app_settings`는 처음 배포할 때 기본값 한 행으로 만든다. 알림 거부 시간은 현지 시각을 자정 기준 분으로 저장하고 `app_settings.timezone`으로 해석한다. 시간대는 앱 실행 때 기기가 보고한 값으로, 마지막으로 실행한 기기의 값을 쓴다.
+- **기기·푸시 토큰**: 앱 실행 때 등록·갱신한다(`push_token` 유니크). 발송 결과가 "유효하지 않은 토큰"이면 행을 지운다.
 - **`alert_record`**: 중복 방지 기록과 보류 큐를 한 테이블로 처리한다.
-  - 중복 방지 키(D-006) 7개 + `user_id`에 유니크 제약을 건다. 같은 키의 두 번째 판정은 insert가 실패하므로 다시 보내지 않는다.
+  - 중복 방지 키(D-006) 7개에 유니크 제약을 건다. 같은 키의 두 번째 판정은 insert가 실패하므로 다시 보내지 않는다.
   - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `FAILED`: 모든 기기에 발송 실패.
   - 세 상태 모두 "그날 보낸 것"으로 쳐서 중복 방지에 쓴다.
-  - 지연 발송 배치는 거부 시간이 끝난 사용자의 `HELD`를 방향별로 묶어 가장 드문 1건을 `SENT`로, 나머지를 `SUPPRESSED`로 바꾼다.
+  - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 방향별로 묶어 가장 드문 1건을 `SENT`로, 나머지를 `SUPPRESSED`로 바꾼다.
   - 보관 기간은 3단계에서 정한다(중복 방지에는 당일 기록만 필요).
 - **`batch_run`**: 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지"를 이 테이블로 판단한다.
-- **계정 삭제**: `app_user`를 지우면 `user_settings`, `apple_credential`, `device`, `alert_record`가 함께 지워진다(cascade).
 
 ## 서버에 두지 않는 데이터 (기기 저장)
 | 데이터 | 비고 |
 |---|---|
-| 게스트의 이격도차트 설정 | 로그인 시 DB로 옮김. 로그아웃 시 마지막 값을 기기에 남김 |
-| 표시 설정(언어, 등락 색) | 로그인 사용자의 언어는 `app_user.locale`로도 보냄 |
-| 고지 확인 여부, 기간 버튼 선택 | 계정 삭제 후에도 유지 |
-| 로그인 세션 토큰 | 저장 방식은 3단계 |
+| 표시 설정(언어, 등락 색) | 언어는 `app_settings.locale`로도 보냄 |
+| 기간 버튼 선택 | |
+| 서버 접근 비밀 값 | 저장 방식은 3단계 |
 
 ## 리서치 후 확정할 항목
 - `roll_rule.params` 구조: 한국형·미국형 롤 규칙 리서치 결과에 맞춘다.

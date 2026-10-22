@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-React Native 기반 Android/iOS 앱. 서비스 상세는 `docs/product.md`
+React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 미배포, D-011). 서비스 상세는 `docs/product.md`
 
 ## Project status
 
@@ -24,6 +24,7 @@ futureETP: 2026-10-22 기준 기획 단계 (Step 1 기획·교차 검증 완료,
 - `docs/tech-stack.md`: 확정된 기술 스택 (결과만)
 - `docs/architecture.md`: 디렉터리 구조, 레이어, API/에러 규약, 환경 분리
 - `docs/decisions.md`: 결정 기록과 근거 (D-xxx)
+- `docs/research/`: Step 2 리서치 결과 (소스 비교, 비용, 출처)
 
 ## Tech Stack
 
