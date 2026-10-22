@@ -357,3 +357,15 @@
   - 필요한 네이티브 기능은 모두 개발 빌드로 쓸 수 있다: Skia·Reanimated·Gesture Handler(차트), `expo-haptics`, `expo-screen-orientation`, `expo-notifications`의 `getDevicePushTokenAsync`(Expo 중계 없이 FCM·APNs 토큰 직접 사용 가능), `expo-localization`.
   - 혼자 관리하는 앱에서 RN 업그레이드 부담이 가장 작다. RN CLI의 이점(네이티브 코드 직접 관리)이 필요한 요구가 없다.
 - 후속: Expo Router를 쓰면 route 파일에 default export가 필수라 CLAUDE.md의 "default export 금지"와 충돌한다. 내비게이션 항목에서 정한다.
+
+## D-028: 언어와 패키지 매니저 — TypeScript(strict) + npm
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. Expo(D-027) 기준으로 정한다. 로컬 환경은 Node v26.12.1·npm 11.20만 설치돼 있다(pnpm·bun·yarn·corepack 없음).
+- 선택지: npm / pnpm / bun
+- 결정: 앱 언어는 TypeScript(`strict: true`). 패키지 매니저는 npm(lock 파일 `package-lock.json`).
+- 근거:
+  - TypeScript는 `create-expo-app` 기본 템플릿이다.
+  - npm은 이미 설치돼 있고 `create-expo-app`·EAS 기본값이라 추가 설정이 없다. pnpm은 Expo에서 hoisted linker(`.npmrc`)가 기본이고(SDK 54부터 isolated 지원) 1인 프로젝트에서 디스크 절약·엄격한 의존성의 이점이 작다.
+  - 서버도 TypeScript로 정해 같은 저장소에 두게 되면 npm workspaces로 충분하다(Backend 항목에서 결정).
+- 후속: Node 26은 2026-10 말 LTS 전환 예정. Expo 지원 Node 버전은 스캐폴딩 시점에 확인해 `.nvmrc`/`engines`로 고정한다.
