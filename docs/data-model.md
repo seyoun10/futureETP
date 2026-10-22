@@ -55,7 +55,7 @@ erDiagram
         string commodity_code FK
         string contract_month "YYYY-MM"
         date first_trade_date
-        date last_trade_date "최종 거래일"
+        date last_trade_date "최종 거래일, 소스의 계약 정의 값"
         bool is_target "대상 월물 여부(금속은 활성 월물만)"
     }
     active_month_rule {
@@ -66,8 +66,10 @@ erDiagram
     }
     trading_day {
         date trade_date PK "CME 거래일"
-        timestamp session_open_at "전일 17:00 CT"
+        timestamp session_open_at "직전 세션 재개 17:00 CT(주말·공휴일이면 그 이전)"
         timestamp session_close_at "16:00 CT 또는 조기 마감"
+        timestamp halt_start_at "공휴일 중간 정지 시작(예: 13:30 CT), 없으면 null"
+        timestamp halt_end_at "중간 정지 후 재개(17:00 CT), 없으면 null"
         bool is_early_close
         string note "휴장·조기 마감 사유"
     }
@@ -159,6 +161,7 @@ erDiagram
 ```
 
 설명
+- **거래일(`trading_day`)**: 정산가가 나오는 날만 행으로 둔다. 미국 공휴일 중간 정지일은 행이 없고, 그 세션은 다음 거래일 행의 `halt_*`로 표현한다. 에너지·금속은 같은 일정이라 거래소 구분 키가 없다(`research/cme-calendar.md`).
 - **월물(`contract`)**: 금속의 비활성 월물도 행은 만들 수 있지만 `is_target=false`로 두고 목록·커브·대표월물 후보에서 뺀다. 활성 월물 달력이 바뀌면 `active_month_rule`에 새 행을 넣고 `is_target`을 다시 계산한다.
 - **대표월물 이력**: 별도 테이블 없이 `roll_weight`(basis=`FRONT`, weight=1)로 표현한다. 전환일 마커는 전일과 월물이 바뀐 날이다.
 - **기준값이 없는 원자재**: 그 원자재·basis의 `roll_rule`이 없으면 `roll_weight`·`index_bar`도 없고, API가 `FRONT`로 대신 응답하면서 대체 여부를 함께 알린다.
@@ -286,6 +289,5 @@ erDiagram
 ## 리서치 후 확정할 항목
 - `roll_rule.params` 구조: 한국형·미국형 롤 규칙 리서치 결과에 맞춘다.
 - `daily_bar.open_interest`, `intraday_snapshot.day_high/day_low`: 소스가 주는지에 따라 남기거나 뺀다.
-- `trading_day`: 금속·에너지의 조기 마감 시각이 다르면 `(trade_date, exchange)` 키로 바꾼다.
 - `etp_product.aum`, `grouping_key`, `roll_rule_ref`: ETP 소스 리서치 결과에 맞춘다.
 - 커브 표시 거래량 기준과 개수 상한: 설정 테이블 대신 서버 상수로 둘지 정한다.
