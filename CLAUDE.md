@@ -36,7 +36,7 @@ futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서�
 
 ## Key Patterns
 
-> 아래 Key Patterns·Coding Conventions는 잠정 규칙이다. TODO 2단계(Tech Stack)에서 확정한다. 예: Expo Router의 route 파일은 default export가 필수라 "default export 금지"와 충돌한다.
+> 아래 Key Patterns·Coding Conventions는 잠정 규칙이다. TODO 2단계(Tech Stack)에서 확정한다.
 
 - API error는 'AppError' class로 통일
 
@@ -44,7 +44,7 @@ futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서�
 - component: PascalCase
 - util/hook: camelCase
 - commit message: Conventional Commits ('feat:', 'fix:', 'chore:')
-- React component는 named export 사용 (default export 금지)
+- React component는 named export 사용 (default export 금지). 예외: `app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029)
 - API response은 항상 '{ success, data, error }' 형태로 통일
 
 ## Architecture

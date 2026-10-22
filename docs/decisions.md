@@ -369,3 +369,16 @@
   - npm은 이미 설치돼 있고 `create-expo-app`·EAS 기본값이라 추가 설정이 없다. pnpm은 Expo에서 hoisted linker(`.npmrc`)가 기본이고(SDK 54부터 isolated 지원) 1인 프로젝트에서 디스크 절약·엄격한 의존성의 이점이 작다.
   - 서버도 TypeScript로 정해 같은 저장소에 두게 되면 npm workspaces로 충분하다(Backend 항목에서 결정).
 - 후속: Node 26은 2026-10 말 LTS 전환 예정. Expo 지원 Node 버전은 스캐폴딩 시점에 확인해 `.nvmrc`/`engines`로 고정한다.
+
+## D-029: 내비게이션 — Expo Router, route 파일만 default export 예외
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 푸시를 누르면 원자재 화면(C)의 이격도차트(C-a) 탭을 열어야 한다. C는 C-a~C-c 탭을 가진다. CLAUDE.md 잠정 규칙 "default export 금지"는 Expo Router의 route 파일 요구사항과 충돌한다.
+- 선택지: Expo Router / React Navigation 직접 구성
+- 결정:
+  - Expo Router(파일 기반 라우팅, typed routes)를 쓴다.
+  - React 컴포넌트는 named export가 원칙이다. 예외로 `app/` 아래 route 파일(`_layout` 포함)은 Expo Router 요구에 따라 default export만 한다.
+  - route 파일은 얇게 유지한다. 화면 구현은 `app/` 밖의 named export 컴포넌트에 두고 route 파일은 다시 내보내기만 한다. 예: `export { CommodityScreen as default } from '@/features/commodity/CommodityScreen'`
+- 근거:
+  - Expo Router는 URL 기반 딥링크를 기본 제공해 알림 → C-a 이동이 간단하다. `create-expo-app` 기본값이고 내부가 React Navigation이라 C의 상단 탭도 구성할 수 있다.
+  - Expo 문서상 `app/` 아래 파일은 default export가 필수다(`_layout` 포함). 예외를 route 파일로 한정하면 나머지 코드는 named export 규칙을 지킨다.

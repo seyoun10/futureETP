@@ -7,7 +7,7 @@
 |---|---|---|
 | 프레임워크 (Expo / RN CLI) | Expo(개발 빌드, CNG: 네이티브 폴더는 prebuild로 생성·미커밋) | D-027 |
 | 언어 / 패키지 매니저 | TypeScript(strict) / npm | D-028 |
-| 내비게이션 | | |
+| 내비게이션 | Expo Router (route 파일만 default export) | D-029 |
 | 상태 관리 | | |
 | 데이터 패칭 | | |
 | UI / 스타일링 | | |
