@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 앱. 서비스 상세는 `docs/product.md`
 
 ## Project status
 
-futureETP: 2026-10-21 기준 기획 단계 (소스 코드 없음, git 초기화 완료). 진행 현황은 `TODO.md`
+futureETP: 2026-10-22 기준 기획 단계 (Step 1 기획·교차 검증 완료, 다음은 Step 2 데이터 모델·리서치. 소스 코드 없음). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -32,6 +32,8 @@ futureETP: 2026-10-21 기준 기획 단계 (소스 코드 없음, git 초기화 
 - Infra:
 
 ## Key Patterns
+
+> 아래 Key Patterns·Coding Conventions는 잠정 규칙이다. TODO 2단계(Tech Stack)에서 확정한다. 예: Expo Router의 route 파일은 default export가 필수라 "default export 금지"와 충돌한다.
 
 - API error는 'AppError' class로 통일
 
