@@ -77,7 +77,7 @@
 | SI | BCOM SI (2) | AGQ $1,136M, ZSL | - |
 
 ### 한국 (KRX 상장, 네이버 증권 목록 2026-10-22)
-| 원자재 | ETF (기초지수 확인) | ETN | 다수 규칙(잠정) |
+| 원자재 | ETF (기초지수 확인) | ETN | 다수 규칙 |
 |---|---|---|---|
 | CL | KODEX WTI원유선물(H)·인버스, TIGER 원유선물인버스: S&P GSCI Crude Oil. TIGER 원유선물Enhanced: GSCI Enhanced | 약 20종. S&P(KB·하나), Solactive WTI(미래에셋, 5~9영업일), 블룸버그(삼성·신한) 등 | GSCI 일정 |
 | NG | 없음 | 약 23종. DJCI(미래에셋·삼성, 5~9영업일), Bloomberg NG Single(미래에셋 1.5X, 5~9영업일), 블룸버그(신한), Solactive(KB·하나·메리츠) | GSCI 일정 |
