@@ -100,9 +100,11 @@ erDiagram
     roll_rule {
         string commodity_code PK,FK
         string basis PK "KR/US"
-        date valid_from PK
+        string rule_id "적용 규칙 GSCI/BCOM/BCBCLI"
         json params "롤 기간, 대상 월물, 일별 비중 이동"
         string adopted_from "규칙을 가져온 ETP·근거"
+        string majority_rule_id "ETP 배치의 최근 다수 판정(D-024)"
+        timestamp majority_checked_at
     }
     roll_weight {
         string commodity_code PK,FK
@@ -163,7 +165,7 @@ erDiagram
 설명
 - **거래일(`trading_day`)**: 정산가가 나오는 날만 행으로 둔다. 미국 공휴일 중간 정지일은 행이 없고, 그 세션은 다음 거래일 행의 `halt_*`로 표현한다. 에너지·금속은 같은 일정이라 거래소 구분 키가 없다(`research/cme-calendar.md`).
 - **월물(`contract`)**: 금속의 비활성 월물도 행은 만들 수 있지만 `is_target=false`로 두고 목록·커브·대표월물 후보에서 뺀다. 활성 월물 달력이 바뀌면 `active_month_rule`에 새 행을 넣고 `is_target`을 다시 계산한다.
-- **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013).
+- **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013). 이력은 두지 않는다. 규칙을 바꾸면 그 원자재·기준값의 계산 결과를 처음부터 다시 만든다(D-024).
   - 공통: 영업일 달력(`NYSE`/`BCOM`/`NYMEX`, 기본은 `trading_day`에 예외 날짜를 더해 계산), 롤 영업일 순번과 그날 종가 기준 이전 월물 비중(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정(없음 또는 `{months:[3,9], business_day:1, method:"equal_value"}`)
   - leg마다: 가치 비중(예: 1 또는 1/3)과 매월 1영업일 보유 월물 표(12칸, 예: GSCI GC `G J J M M Q Q Z Z Z Z G+1`)
   - `roll_weight`는 이 규칙을 날짜별로 펼친 결과다. 재조정일에 가치 비중을 수량으로 바꾸고(`비중 ÷ 가격`) 그 뒤에는 수량을 유지해 비중 drift를 재현한다.
@@ -180,7 +182,6 @@ erDiagram
 erDiagram
     commodity ||--o{ etp_product : "추종"
     etp_product ||--|{ etp_series : "종목코드(ETN 시리즈)"
-    roll_rule |o--o{ etp_product : "채택 규칙"
 
     etp_product {
         uuid id PK
@@ -199,6 +200,7 @@ erDiagram
         decimal avg_trading_value "최근 20거래일 평균 거래대금(종가×거래량, 시리즈 합산)"
         string grouping_key "발행사|원자재|배수|환헤지 (ETN 시리즈 묶기)"
         bool needs_review "미국 새 후보, 매핑 전까지 목록 제외"
+        timestamp review_notified_at "새 후보 알림 1회(D-025)"
         string roll_rule_ref "한국형·미국형 다수 판정용"
         bool is_active "모든 시리즈가 상장폐지되면 false"
         string source
@@ -218,8 +220,8 @@ erDiagram
 - **ETN 후속 시리즈**: 상품(`etp_product`) 하나에 시리즈(`etp_series`) 여러 개다. ETF는 시리즈가 하나다. C-d-a는 `delisted_date`가 없는 시리즈를 모두 나란히 보여 준다.
 - **상장폐지**: 이전 시리즈는 `delisted_date`만 채운다. 모든 시리즈가 폐지되면 `is_active=false`로 목록에서 뺀다. 이력은 지우지 않는다(다시 묶기 판정과 디버깅용).
 - **상장일**: C-d-a의 상장일은 상품의 첫 시리즈 `listed_date`다.
-- **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`).
-- **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다.
+- **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`). `roll_rule.rule_id`와 같은 체계지만 FK는 아니다. 다수가 `rule_id`와 다르면 `majority_rule_id`에 기록하고 알린다(D-024).
+- **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다. 알림은 처음 발견한 배치에서 1회 보내고 `review_notified_at`에 남긴다(D-025).
 - **다수 판정 하한**: `aum`이 미국 $10M, 국내 10억 원 미만인 상품은 세지 않는다(D-015).
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 처리하고, `aum`·`avg_trading_value`로 정렬 선택을 처리한다(D-017). 통화는 `market`으로 정해진다(KRX 원, US 달러).
 - **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 최근 45일 일봉(연휴가 껴도 20거래일을 채우도록)(국내 네이버 `siseJson`, 미국 Yahoo `chart`)을 받아 다시 계산해 덮어쓴다. 거래가 없는 날(거래량 0)은 0으로 넣고, 값이 빠진 날은 뺀다.
@@ -258,7 +260,7 @@ erDiagram
         string direction "키 5 UP/DOWN"
         decimal rare_level "키 6"
         date trade_date "키 7 CME 거래일"
-        string status "SENT/HELD/SUPPRESSED/FAILED"
+        string status "SENT/HELD/SUPPRESSED/RETRY/FAILED"
         decimal disparity "판정 이격도(고가·저가 기준)"
         timestamp detected_at "판정 시각"
         timestamp sent_at "지연 발송이면 detected_at과 다름"
@@ -282,11 +284,11 @@ erDiagram
 - **기기·푸시 토큰**: 앱 실행 때 등록·갱신한다(`push_token` 유니크). 발송 결과가 "유효하지 않은 토큰"이면 행을 지운다.
 - **`alert_record`**: 중복 방지 기록과 보류 큐를 한 테이블로 처리한다.
   - 중복 방지 키(D-006) 7개에 유니크 제약을 건다. 같은 키의 두 번째 판정은 insert가 실패하므로 다시 보내지 않는다.
-  - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `FAILED`: 모든 기기에 발송 실패.
-  - 세 상태 모두 "그날 보낸 것"으로 쳐서 중복 방지에 쓴다.
+  - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `RETRY`: 모든 기기에 발송 실패, 다음 주기에 1회 다시 보냄(그사이 같은 방향의 더 드문 레벨을 보냈으면 `SUPPRESSED`). `FAILED`: 재시도도 실패(D-023).
+  - 모든 상태가 유니크 키를 차지하므로 "그날 보낸 것"으로 쳐서 중복 방지에 쓴다.
   - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 방향별로 묶어 가장 드문 1건을 `SENT`로, 나머지를 `SUPPRESSED`로 바꾼다.
   - 보관 기간은 3단계에서 정한다(중복 방지에는 당일 기록만 필요).
-- **`batch_run`**: 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지"를 이 테이블로 판단한다.
+- **`batch_run`**: 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지", 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
 
 ## 서버에 두지 않는 데이터 (기기 저장)
 | 데이터 | 비고 |
