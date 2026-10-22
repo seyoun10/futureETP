@@ -38,14 +38,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 푸시: FCM·APNs 직접 연동, Android 먼저·APNs는 Apple 가입 뒤 (2026-10-23, D-037)
 - [x] 테스트 도구, lint / format: ESLint + Prettier, jest-expo + Vitest, pre-commit lint·format (2026-10-23, D-038)
 - [x] 빌드 / 설치: Android 로컬 빌드(EAS 예비), iOS는 Apple 가입 전 시뮬레이터만, EAS Update, CI는 원격 저장소 생성 때, 서버는 스크립트 배포 (2026-10-23, D-039)
-- [ ] **[다음 작업]** 결정된 스택 기준으로 CLAUDE.md Key Patterns / Coding Conventions 정리 (API 응답·에러 규약 확정. default export 예외는 D-029로 반영 완료)
+- [x] 결정된 스택 기준으로 CLAUDE.md Tech Stack / Key Patterns / Coding Conventions 정리 (2026-10-23). API 응답 형태는 3단계에서 확정
 
 ## 3. Architecture 결정
-- [ ] 디렉터리 구조
+- [ ] **[다음 작업]** 디렉터리 구조 (npm workspaces: 앱·서버·공유 패키지, D-035)
 - [ ] 레이어 구성 (UI / 상태 / 데이터 접근)
-- [ ] API 통신 및 에러 처리 규약
+- [ ] API 통신 및 에러 처리 규약 (CLAUDE.md 잠정 규칙 `{ success, data, error }` 확정 포함)
 - [ ] 환경 설정 분리 (dev / prod)
-- [ ] 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체, 운영자 실패 알림, 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
+- [ ] 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체(EAS Update 번들 노출 주의, D-039), 운영자 실패 알림, 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)

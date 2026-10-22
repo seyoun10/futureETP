@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서치 완료, 다음은 2단계 Tech Stack. 소스 코드 없음). 진행 현황은 `TODO.md`
+futureETP: 2026-10-23 기준 설계 단계 (TODO 1단계 기획·2단계 Tech Stack 완료, 다음은 3단계 Architecture. 소스 코드 없음). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -29,23 +29,30 @@ futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서�
 
 ## Tech Stack
 
-- Frontend: Expo (개발 빌드, CNG) — D-027
-- Backend:
-- DB:
-- Infra:
+상세·버전은 `docs/tech-stack.md`, 근거는 `docs/decisions.md`.
+
+- App: Expo(개발 빌드, CNG) + TypeScript strict + npm, Expo Router, TanStack Query + Zustand, StyleSheet + 테마 토큰(다크 전용), Victory Native XL + Skia, i18next(ko/en) — D-027~D-033
+- Server: TypeScript(Node) + Hono·zod·Drizzle, 배치는 프로세스 내 croner(작업별 IANA 시간대), 앱과 npm workspaces로 공유 패키지 — D-034, D-035
+- DB: PostgreSQL — D-035
+- Infra: Oracle Always Free ARM VM 1대 + Docker Compose + Caddy(HTTPS), Bearer 비밀 토큰 — D-034, D-036
+- Push: FCM·APNs 직접 연동(Android 먼저) — D-037
+- Test/Lint: jest-expo(앱)·Vitest(서버·공유), ESLint + Prettier, pre-commit lint·format — D-038
+- Build: Android 로컬 빌드, iOS는 Apple 가입 전 시뮬레이터만, EAS Update — D-039
 
 ## Key Patterns
 
-> 아래 Key Patterns·Coding Conventions는 잠정 규칙이다. TODO 2단계(Tech Stack)에서 확정한다.
-
-- API error는 'AppError' class로 통일
+- 앱 API 호출은 `fetch` 래퍼 + TanStack Query, 에러는 `AppError` class로 통일 (D-030)
+- 서버 상태는 TanStack Query, 기기별 표시 설정(언어·등락 색)만 Zustand persist (D-030)
+- 차트에 쓰는 색은 테마 토큰에서, 등락 색은 표시 설정에서 읽는다 (D-031)
+- 사용자에게 보이는 문구는 i18n 키로만 쓴다 (D-033)
+- 커밋 전 `npm run check`(타입 검사·lint·테스트) 통과 (D-038)
 
 ## Coding Conventions
 - component: PascalCase
 - util/hook: camelCase
 - commit message: Conventional Commits ('feat:', 'fix:', 'chore:')
 - React component는 named export 사용 (default export 금지). 예외: `app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029)
-- API response은 항상 '{ success, data, error }' 형태로 통일
+- API response은 항상 '{ success, data, error }' 형태로 통일 (잠정: TODO 3단계 API·에러 규약에서 확정)
 
 ## Architecture
 
