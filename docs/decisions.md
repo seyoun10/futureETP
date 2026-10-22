@@ -345,3 +345,15 @@
 - 근거:
   - 만기 직전 월물은 거래량이 빠지는 것이 정상이다. 이 월물 때문에 커브 전체가 끊기면 안 된다.
   - 지연 발송을 먼저 하면, 보류된 덜 드문 레벨 뒤에 새로 닿은 더 드문 레벨이 나가는 순서가 "같은 날 더 드문 레벨이면 다시 보냄" 규칙과 맞는다.
+
+## D-027: 프레임워크 구성 — Expo + CNG
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계 첫 항목. 차트(log 축·핀치·십자선·햅틱), FCM·APNs 기기 토큰 등록, C-a~C-c 가로 전환, 다국어(한국어·영어)가 필요하다. 스토어에 배포하지 않고 본인 기기에만 설치한다(D-011).
+- 선택지: Expo + CNG(Continuous Native Generation) / Expo + 네이티브 폴더 커밋 / React Native CLI
+- 결정: Expo를 쓴다. 개발 빌드(development build)로 실행하고, `ios/`·`android/`는 prebuild로 생성하며 커밋하지 않는다. 네이티브 수정이 필요하면 config plugin으로 한다. 빌드는 EAS 무료 등급 또는 로컬 빌드로 $0을 유지한다(세부는 빌드/설치 항목).
+- 근거:
+  - React Native 공식 문서는 새 앱에 프레임워크(Expo)를 권장한다. 2026-10 기준 공식 확인된 최신은 Expo SDK 56(RN 0.85). 실제 SDK 버전은 스캐폴딩 시점의 최신으로 정한다.
+  - 필요한 네이티브 기능은 모두 개발 빌드로 쓸 수 있다: Skia·Reanimated·Gesture Handler(차트), `expo-haptics`, `expo-screen-orientation`, `expo-notifications`의 `getDevicePushTokenAsync`(Expo 중계 없이 FCM·APNs 토큰 직접 사용 가능), `expo-localization`.
+  - 혼자 관리하는 앱에서 RN 업그레이드 부담이 가장 작다. RN CLI의 이점(네이티브 코드 직접 관리)이 필요한 요구가 없다.
+- 후속: Expo Router를 쓰면 route 파일에 default export가 필수라 CLAUDE.md의 "default export 금지"와 충돌한다. 내비게이션 항목에서 정한다.

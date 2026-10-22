@@ -29,7 +29,7 @@ futureETP: 2026-10-22 기준 기획 단계 (TODO 1단계 기획·Step 2 리서�
 
 ## Tech Stack
 
-- Frontend:
+- Frontend: Expo (개발 빌드, CNG) — D-027
 - Backend:
 - DB:
 - Infra:
