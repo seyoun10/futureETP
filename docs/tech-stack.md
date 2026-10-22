@@ -16,5 +16,5 @@
 | Backend / DB / 서버 접근 보호 | TypeScript(Node) + Hono·zod·Drizzle, PostgreSQL, npm workspaces로 앱과 공유 패키지 / Caddy HTTPS + Bearer 비밀 토큰 | D-035, D-036 |
 | 배치 스케줄러 / 호스팅 | 프로세스 내 `croner`(작업별 IANA 시간대) / Oracle Always Free ARM VM 1대 + Docker Compose(PAYG 전환) | D-034 |
 | 푸시 (FCM·APNs 직접 / 중계) | 직접 연동: 앱 `getDevicePushTokenAsync`, 서버 `firebase-admin`(FCM v1)·`@parse/node-apn`(APNs). Android 먼저, APNs는 Apple 가입 뒤 | D-037 |
-| 테스트 / lint / format | | |
+| 테스트 / lint / format | 앱 jest-expo + RNTL, 서버·공유 Vitest / ESLint(eslint-config-expo, typescript-eslint, no-default-export `app/**` 예외) + Prettier / husky + lint-staged(pre-commit lint·format), `npm run check` | D-038 |
 | 빌드 / 배포 | | |

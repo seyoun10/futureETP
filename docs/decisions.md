@@ -501,3 +501,20 @@
   - Expo Push는 서버 코드가 가장 적지만, 결과가 ticket과 약 15분 뒤 receipt 두 단계로 나뉜다. receipt는 24시간 뒤 지워진다. 이 때문에 재시도·토큰 삭제 처리가 늘어나고, Expo 서비스와 Expo 계정에 의존하게 된다.
   - 어느 방식이든 iOS 푸시는 Apple 유료 계정의 APNs 키가 필요하다. 따라서 가입 전에는 Android만 동작한다는 점은 같다.
 - 후속: Firebase 프로젝트 생성과 `google-services.json` 설정(config plugin), 서비스 계정 키는 서버 환경 변수로 둔다(개발 단계). Apple 가입 전에는 iOS를 무료 Apple ID 개발 빌드로만 설치할 수 있어 7일마다 다시 설치해야 하고 푸시를 쓸 수 없다(빌드/설치 항목에서 반영).
+
+## D-038: 테스트·lint·format — ESLint + Prettier, jest-expo + Vitest, pre-commit은 lint·format만
+- 날짜: 2026-10-23
+- 상태: 확정
+- 맥락: TODO 2단계. 저장소에 앱(Expo)·서버(Node)·공유 패키지가 있다(D-035). 지수·이평선·분포·롤 비중 같은 핵심 계산은 서버·공유 패키지에 있고, 앱은 화면 코드가 대부분이다. 전역 지침은 작은 단위 작업 → 테스트 → 커밋이다. CLAUDE.md는 default export를 금지하고 `app/` route 파일만 예외로 둔다(D-029).
+- 선택지: lint/format은 ESLint + Prettier / Biome. 테스트는 앱 jest-expo + 서버·공유 Vitest / 전부 Jest. 커밋 hook은 lint·format만 / 전부 / 없음
+- 결정:
+  - lint: ESLint flat config. 앱은 `eslint-config-expo`(`npx expo lint`) 기반이고, 앱·서버 공통으로 `typescript-eslint` 타입 기반 규칙(`no-floating-promises` 등)과 `import/no-default-export`(`app/**` 예외)를 건다.
+  - format: Prettier. ESLint와 서식 규칙이 겹치지 않게 한다.
+  - 테스트: 앱은 `jest-expo` + React Native Testing Library, 서버·공유 패키지는 Vitest. 핵심 계산은 공유·서버 쪽 단위 테스트로 검증한다.
+  - Git hook: husky + lint-staged로 pre-commit에서 바뀐 파일만 `eslint --fix`·`prettier --write`. 타입 검사·lint 전체·테스트는 루트 `npm run check` 한 줄로 묶어 커밋 전에 실행한다.
+  - 2026-10-23 npm 기준 최신: `eslint` 10.13.0, `eslint-config-expo` 58.0.4, `typescript-eslint` 8.72.0, `prettier` 3.9.10, `jest-expo` 58.0.12(jest 30), `@testing-library/react-native` 14.1.0, `vitest` 5.0.5, `husky` 9.1.7, `lint-staged` 17.6.0. 실제 버전은 스캐폴딩 때 `npx expo install`과 최신 안정판으로 정한다.
+- 근거:
+  - ESLint + Prettier는 Expo 기본 경로다. Hooks·Expo 전용 규칙과 타입 기반 규칙이 가장 충실하다. Biome은 빠르고 도구가 하나지만 Expo 전용·타입 기반 규칙이 약하다. 이 규모에서는 속도 차이가 문제 되지 않는다.
+  - 앱 테스트는 RN 변환이 필요해 jest-expo가 기본이다. 서버·공유 패키지는 TS·ESM을 설정 없이 바로 돌리는 Vitest가 빠르고 단순하다. 전부 Jest로 통일하면 서버 쪽에 별도 변환 설정이 필요하다.
+  - pre-commit에 테스트·타입 검사까지 넣으면 커밋마다 느려진다. 바뀐 파일의 lint·format만 강제하고, 나머지는 `npm run check`로 검증 단계에서 돌린다.
+- 후속: E2E(Maestro 등)는 개발 단계에서 필요할 때 검토한다. CI에서 `npm run check`를 돌릴지는 빌드/설치 항목에서 정한다.
