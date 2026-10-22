@@ -196,6 +196,7 @@ erDiagram
         decimal expense_ratio "총보수 %"
         string issuer_url
         decimal aum "순자산. 국내 ETF totalNav, ETN 시가총액, 미국 totalAssets"
+        decimal avg_trading_value "최근 20거래일 평균 거래대금(종가×거래량, 시리즈 합산)"
         string grouping_key "발행사|원자재|배수|환헤지 (ETN 시리즈 묶기)"
         bool needs_review "미국 새 후보, 매핑 전까지 목록 제외"
         string roll_rule_ref "한국형·미국형 다수 판정용"
@@ -220,7 +221,8 @@ erDiagram
 - **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`).
 - **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다.
 - **다수 판정 하한**: `aum`이 미국 $10M, 국내 10억 원 미만인 상품은 세지 않는다(D-015).
-- **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 모두 처리한다.
+- **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 처리하고, `aum`·`avg_trading_value`로 정렬 선택을 처리한다(D-017). 통화는 `market`으로 정해진다(KRX 원, US 달러).
+- **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 최근 30일 일봉(국내 네이버 `siseJson`, 미국 Yahoo `chart`)을 받아 다시 계산해 덮어쓴다. 거래가 없는 날(거래량 0)은 0으로 넣고, 값이 빠진 날은 뺀다.
 
 ## 5~6. 설정·알림·운영
 > 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 단일 행으로 둔다.
