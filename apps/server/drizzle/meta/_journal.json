@@ -15,6 +15,13 @@
       "when": 1793081181988,
       "tag": "0001_app_settings_row",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793082277430,
+      "tag": "0002_market_seed",
+      "breakpoints": true
     }
   ]
 }
