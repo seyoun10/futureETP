@@ -22,9 +22,9 @@ futureETP/
 │  │     ├─ components/            여러 화면 공용 UI
 │  │     ├─ charts/                Skia 커스텀 레이어·차트 공용 (D-032)
 │  │     ├─ api/                   fetch 래퍼, AppError, query key (D-030)
-│  │     ├─ stores/                Zustand 표시 설정 (D-030)
-│  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031)
-│  │     ├─ i18n/                  i18next 설정, ko/en 리소스 (D-033)
+│  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
+│  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
+│  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
 │  │     ├─ push/                  토큰 등록·알림 탭 처리 (D-037)
 │  │     └─ lib/                   포맷(Intl, 소수 자릿수) 등 순수 유틸
 │  └─ server/

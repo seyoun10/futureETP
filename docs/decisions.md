@@ -1138,3 +1138,22 @@
   - Hermes·RN의 `AbortSignal.timeout`·`AbortSignal.any` 지원이 확실하지 않고, 직접 만들면 Jest fake timer로 그대로 검증된다.
   - Caddy 502·503은 서버 재시작·배포 중에 생기므로 재시도할 가치가 있다. 2xx·4xx인데 봉투가 아니면 계약이 어긋난 것이다.
 - 영향: `architecture.md` "앱 fetch 래퍼와 AppError". 앱 의존성 `@futureetp/shared`·`zod`·`@tanstack/react-query` 5.105.0.
+
+## D-073: 앱 표시 설정·테마 토큰·i18n 세부 — 동기 kv-store, 순위별 rare-level 색, 표시 설정을 따르는 i18n 인스턴스
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 두 번째 항목. D-030·D-031·D-033·D-047이 도구와 범위를 정했지만 저장 값의 형태, 기기 기본값 판정, 등락·차트 색 값, i18n 초기화와 언어 연동 방법은 정하지 않았다.
+- 결정:
+  - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
+  - 저장소는 `expo-sqlite/kv-store`의 `Storage`를 `getItemSync`·`setItemSync`·`removeItemSync`로 감싸 넘긴다. persist 복원이 동기라 첫 렌더부터 저장된 언어·색이다.
+  - 기기 기본값: 첫 기기 언어가 `ko`면 한국어, 그 밖은 영어. 첫 기기 지역이 `KR`이면 한국식, 그 밖은 미국식.
+  - 테마 토큰(`src/theme/tokens.ts`)은 `colors`(배경·표면·글자·차트: 격자·눈금·십자선·현재가 회색·이평선 노랑·rare-level 5색)·`spacing`·`fontSize`다. rare-level 색은 연보라 → 진보라 5단계를 순위(0 = 가장 덜 드묾)로 고른다. 정확한 값은 차트 본 구현 때 실기기에서 조정한다.
+  - 등락 색(`src/theme/upDownColor.ts`): 한국식 상승 `#ef5350`·하락 `#42a5f5`, 미국식 상승 `#26a69a`·하락 `#ef5350`, 0·NaN은 `colors.neutral`. 차트·목록은 `changeColor(change, palette)`와 `useUpDownPalette()`로 읽는다.
+  - i18n은 `createInstance()` 인스턴스를 `setupI18n()`(루트 `_layout`에서 호출)으로 동기 초기화(`initAsync: false`)한다. 언어는 표시 설정을 따르고 store를 구독해 바꾼다. fallback은 `ko`.
+  - 번역 기준은 `locales/ko.ts`이고 i18next 모듈 확장으로 키를 타입 검사한다. `en`은 `ko`와 같은 구조의 `Translation` 타입이라 키가 빠지면 타입 오류다. `errors`는 `Record<AppErrorCode, string>`이라 코드가 늘면 문구 누락이 타입 오류다.
+  - Jest는 `apps/mobile/jest.setup.ts`에서 `expo-sqlite/kv-store`를 메모리 Map으로 mock한다.
+- 근거:
+  - 비동기 저장소면 복원 전 첫 렌더가 기기 기본값으로 그려져 언어·색이 깜빡인다(D-030의 이유). kv-store는 동기 API를 같은 객체에 갖고 있다.
+  - 전역 기본 인스턴스 대신 `createInstance()`를 쓰면 default import의 멤버 접근 lint 경고가 없고, 테스트에서 같은 함수로 초기화된다.
+  - 서버에 보내는 언어(푸시 문구용)는 설정 API가 생기는 5-6 B 화면에서 연결한다.
+- 영향: `architecture.md` 앱 디렉터리, `tech-stack.md` 상태 관리·i18n 행. 앱 의존성 `zustand` 5.0.16, `expo-sqlite`, `expo-localization`, `i18next` 26.5.11, `react-i18next` 17.1.9.

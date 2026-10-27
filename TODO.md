@@ -115,7 +115,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
 - [x] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (2026-10-27, D-072)
-- [ ] 테마 토큰·등락 색, i18n(ko/en, `errors.<code>`), Zustand persist 표시 설정 (D-031, D-033, D-047)
+- [x] 테마 토큰·등락 색, i18n(ko/en, `errors.<code>`), Zustand persist 표시 설정 (2026-10-27, D-073)
+  - [ ] 5-6 B 화면에서 언어 변경을 서버 설정(푸시 문구용)에도 PATCH
 - [ ] 라우트 골격: A, C 하단 탭(C-a~C-d)·`etp/[id]`, B·B-a·B-b·데이터 출처, 가로 전환 (D-047)
 - [ ] 공용 UI: 기준 시각 줄(freshness), 로딩·오류·[다시 시도] 화면, `nextUpdateAt` 자동 새로고침 hook
 - [ ] 접근 키 B-b: QR(`futureetp-key:v1:`)·붙여넣기, `GET /v1/settings`로 확인 후 SecureStore, `UNAUTHORIZED` 시 B-b 이동, `scripts/` 키 생성·QR (D-044)

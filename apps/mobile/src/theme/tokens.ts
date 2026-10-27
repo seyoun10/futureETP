@@ -1,0 +1,37 @@
+// 테마 토큰(D-031). 다크 전용이라 테마 전환은 없다. Skia 차트도 같은 값을 JS로 읽는다.
+export const colors = {
+  background: '#000000',
+  surface: '#1e1e1e',
+  surfaceSelected: '#3a3a6a',
+  border: '#2a2a2a',
+  text: '#e0e0e0',
+  textSecondary: '#9e9e9e',
+  // 등락 0, 데이터 없음 등 방향이 없는 값
+  neutral: '#9e9e9e',
+  chart: {
+    grid: '#2a2a2a',
+    tick: '#9e9e9e',
+    crosshair: '#ffffff',
+    crosshairText: '#000000',
+    currentPrice: '#9e9e9e',
+    // 노랑은 이평선 전용(screens.md C-a)
+    movingAverage: '#ffd54f',
+    // rare-level 선은 레벨 값이 아니라 순위로 고른다. 0 = 가장 덜 드문 레벨(옅음) → 4 = 가장 드문 레벨(진함)
+    rareLevels: ['#4a3d66', '#62508a', '#7c62b0', '#9a72d8', '#b884ff'],
+  },
+} as const;
+
+export const spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+} as const;
+
+export const fontSize = {
+  caption: 12,
+  body: 14,
+  title: 17,
+  headline: 22,
+} as const;
