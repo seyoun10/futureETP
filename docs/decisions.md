@@ -540,3 +540,21 @@
   - EAS Update: 사용자가 선택했다. 재설치 없이 JS 수정이 반영된다. 대신 Expo 계정과 expo-updates 설정이 필요하다.
   - CI는 원격 저장소가 없어서 지금 둘 곳이 없다. 1인 개발이라 검증 단계의 `npm run check`가 먼저다. 레지스트리 방식은 재현성이 좋지만 CI가 먼저 있어야 한다.
 - 주의: EAS Update 번들은 Expo 서버에 올라간다. 서버 접근 비밀 값을 빌드 환경 변수로 JS 번들에 넣으면 업데이트 번들에도 들어가므로, 비밀 값 전달 방식(TODO 3단계, D-036 후속)을 정할 때 함께 고려한다.
+
+## D-040: 디렉터리 구조 — apps/ + packages/ 모노레포, 공유 패키지는 API 계약만
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 3단계 첫 항목. 앱(Expo)·서버(Hono·배치)·공유 패키지를 한 저장소에서 npm workspaces로 관리한다(D-035). 계산은 모두 서버에서 미리 하고 앱은 조회만 한다(product.md). route 파일은 `app/` 아래에 얇게 두고 화면은 `app/` 밖 named export로 둔다(D-029). 서버는 VM에서 Docker로 빌드한다(D-039).
+- 선택지
+  - 최상위: `apps/` + `packages/` / 루트에 Expo 앱 + `server/`·`shared/` 하위 workspace
+  - 공유 패키지 범위: API 계약만 / 계약 + 계산 순수 함수
+- 결정:
+  - 최상위는 `apps/mobile`(Expo), `apps/server`(API + 배치), `packages/shared`(공유), `infra/`(Compose·Caddyfile), `scripts/`(배포·1회성 적재)로 나눈다. 루트 `package.json`은 workspaces(`apps/*`, `packages/*`)와 `npm run check`만 둔다.
+  - `packages/shared`에는 zod 응답 스키마, 공용 타입·enum, 푸시 문구 리소스만 둔다. 빌드 없이 TS 소스를 직접 export한다. 지수·롤 비중·이평선·이격도·분포·커브 계산은 `apps/server/src/calc`에 둔다.
+  - 앱은 화면 단위 `features/`와 공용 계층(`components`·`charts`·`api`·`stores`·`theme`·`i18n`·`push`·`lib`)으로 나눈다. 서버는 역할 단위(`api`·`jobs`·`calc`·`sources`·`push`·`db`)로 나누고, `jobs`는 진입점만 두고 로직은 다른 계층을 호출한다.
+  - 의존 방향은 mobile → shared, server → shared만 허용한다.
+  - 세부 트리와 규칙은 `architecture.md` "디렉터리 구조"에 둔다.
+- 근거:
+  - Expo 공식 모노레포 가이드(https://docs.expo.dev/guides/monorepos/, 2026-10-27 확인)가 `apps/` + `packages/` 구조를 쓰고, `expo/metro-config`가 npm workspaces를 자동 지원한다. 루트에 앱을 두면 루트 `package.json`에 앱 의존성과 workspace 설정이 섞이고, 서버 Docker 빌드 문맥에 앱 파일이 들어간다.
+  - 앱이 계산을 쓰지 않으므로 계산 코드를 공유 패키지에 두면 앱 번들 의존만 늘어난다. 공유는 앱·서버 사이의 계약(스키마·타입·문구)으로 충분하다.
+- 후속(4단계 스캐폴딩 때 확인): `create-expo-app` 기본 템플릿의 route 폴더 위치(`app/` 또는 `src/app/`), 서버 실행 방식(Node 타입 스트리핑 / tsdown 번들)과 shared 소스 직접 참조 호환성, React Native 중복 설치 시 npm `overrides`.

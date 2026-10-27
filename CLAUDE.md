@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-23 기준 설계 단계 (TODO 1단계 기획·2단계 Tech Stack 완료, 다음은 3단계 Architecture. 소스 코드 없음). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech Stack 완료, 3단계 Architecture 진행 중. 소스 코드 없음). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -57,6 +57,10 @@ futureETP: 2026-10-23 기준 설계 단계 (TODO 1단계 기획·2단계 Tech St
 ## Architecture
 
 <!-- 여러 파일을 읽어야 이해되는 큰 구조 -->
+상세는 `docs/architecture.md`.
+
+- npm workspaces: `apps/mobile`(Expo), `apps/server`(API + 배치 한 프로세스), `packages/shared`(zod 스키마·타입·푸시 문구만). 의존은 앱·서버 → shared만 (D-040)
+- 계산은 서버 `src/calc`에만 둔다. 앱 화면은 `src/features/` 아래 named export
 
 ## Domain Context
 
