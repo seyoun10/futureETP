@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { parseAccessKey, useHasAccessKey } from '@/api/accessToken';
+import {
+  clearKeyRejected,
+  parseAccessKey,
+  useAccessKeyStore,
+  useHasAccessKey,
+} from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -19,11 +24,15 @@ type Notice = 'badFormat' | 'notKeyQr' | 'cameraUnavailable';
 export function AccessKeyScreen() {
   const { t } = useTranslation();
   const hasKey = useHasAccessKey();
+  const rejected = useAccessKeyStore((state) => state.rejected);
   const [input, setInput] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
   const [scanning, setScanning] = useState(false);
   const [, requestCameraPermission] = useCameraPermissions();
   const save = useSaveAccessKey();
+
+  // 거절돼서 왔다가 새 키 없이 떠나면 표시를 지운다. 옛 키가 다시 거절되면 또 이 화면으로 온다.
+  useEffect(() => clearKeyRejected, []);
 
   const verifyAndSave = (key: string) => {
     save.mutate(key, {
@@ -68,7 +77,11 @@ export function AccessKeyScreen() {
     setNotice('cameraUnavailable');
   };
 
-  const errorMessage = notice ? t(`accessKey.${notice}`) : saveErrorMessage(save.error, t);
+  // 거절돼서 왔으면 새 키를 확인하기 전까지 "키가 맞지 않습니다"를 보여 준다.
+  const errorMessage = notice
+    ? t(`accessKey.${notice}`)
+    : (saveErrorMessage(save.error, t) ??
+      (rejected && !save.isPending ? t('accessKey.rejected') : null));
 
   return (
     <View style={styles.container}>

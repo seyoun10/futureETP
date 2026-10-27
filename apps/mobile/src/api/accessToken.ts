@@ -1,5 +1,6 @@
 import { getItem, setItemAsync } from 'expo-secure-store';
 import { create } from 'zustand';
+import { AppError } from './AppError';
 import { devApiToken } from './config';
 
 // QR 내용 접두사와 키 형식(D-044): 32바이트 난수 base64url(패딩 없음) = 43자.
@@ -26,8 +27,11 @@ function readStoredKey() {
   }
 }
 
-export const useAccessKeyStore = create<{ key: string | null }>(() => ({
+// rejected: 저장된 키를 서버가 거절함(UNAUTHORIZED). 루트 레이아웃이 보고 B-b로 보낸다(D-044).
+// 키는 새 키를 확인할 때까지 지우지 않는다.
+export const useAccessKeyStore = create<{ key: string | null; rejected: boolean }>(() => ({
   key: readStoredKey() ?? devApiToken,
+  rejected: false,
 }));
 
 export const useHasAccessKey = () => useAccessKeyStore((state) => state.key !== null);
@@ -40,5 +44,17 @@ export function getAccessToken(): Promise<string | null> {
 // 서버에서 확인한 키만 넘긴다(D-044). 저장에 성공해야 메모리 값도 바꾼다.
 export async function saveAccessToken(key: string) {
   await setItemAsync(STORE_KEY, key);
-  useAccessKeyStore.setState({ key });
+  useAccessKeyStore.setState({ key, rejected: false });
+}
+
+// query·mutation 캐시의 onError에서 부른다. 저장된 키로 보낸 요청의 UNAUTHORIZED만 거절로 본다.
+export function reportAuthError(error: unknown) {
+  if (error instanceof AppError && error.code === 'UNAUTHORIZED') {
+    useAccessKeyStore.setState({ rejected: true });
+  }
+}
+
+// B-b를 떠나면 지운다. 옛 키로 다시 거절되면 다시 B-b로 온다.
+export function clearKeyRejected() {
+  useAccessKeyStore.setState({ rejected: false });
 }

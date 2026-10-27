@@ -1,13 +1,22 @@
-import { focusManager, QueryClient } from '@tanstack/react-query';
+import { focusManager, MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
 import { AppState, Platform } from 'react-native';
+import { reportAuthError } from './accessToken';
 import { isRetryable } from './AppError';
 
 const MAX_RETRIES = 2;
 
 // 재시도 규칙(D-042): NETWORK·TIMEOUT·INTERNAL만 최대 2회, mutation은 자동 재시도하지 않는다.
 // 오프라인을 지원하지 않아 캐시를 기기에 저장하지 않는다(D-030).
+// UNAUTHORIZED는 캐시 onError에서 한곳에 모아 B-b로 보낸다(D-044). 저장 전 새 키를 확인하는
+// mutation(meta.checksNewKey)은 저장된 키의 거절이 아니므로 뺀다.
 export function createQueryClient() {
   return new QueryClient({
+    queryCache: new QueryCache({ onError: reportAuthError }),
+    mutationCache: new MutationCache({
+      onError: (error, _variables, _result, mutation) => {
+        if (mutation.meta?.checksNewKey !== true) reportAuthError(error);
+      },
+    }),
     defaultOptions: {
       queries: {
         retry: (failureCount, error) => failureCount < MAX_RETRIES && isRetryable(error),

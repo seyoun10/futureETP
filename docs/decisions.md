@@ -1236,3 +1236,17 @@
   - 녹화를 하지 않으므로 마이크 권한은 요청 이유가 없다.
 - 영향: Android 권한 `CAMERA`, iOS `NSCameraUsageDescription`. 네이티브 모듈이라 재빌드가 필요하다.
 
+## D-079: 저장된 키 거절(`UNAUTHORIZED`) — 캐시 `onError`가 store에 표시, 루트 레이아웃이 B-b로 이동
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 접근 키 B-b 셋째 단계(D-044, D-077 후속). D-044·architecture는 어느 화면에서든 `UNAUTHORIZED`면 B-b로 보내고 저장된 키는 지우지 않는다고 정했지만, 이동을 어디서 하고 B-b 안의 새 키 확인 실패와 어떻게 구분할지는 정하지 않았다.
+- 선택지: 캐시 `onError`에서 `router`로 바로 이동 / 캐시는 store에 거절 표시만 하고 루트 레이아웃이 이동 / 화면마다 `ErrorView`에서 이동
+- 결정:
+  - `createQueryClient`가 `QueryCache`·`MutationCache`의 `onError`로 `reportAuthError`를 부른다. `UNAUTHORIZED`면 접근 키 store(`useAccessKeyStore`)의 `rejected`를 true로 한다. 키는 지우지 않는다.
+  - 루트 레이아웃이 키가 있고 `rejected`면 `router.navigate('/settings/access-key')`. 이미 B-b면 그대로다. B-b는 `rejected`인 동안 "키가 맞지 않습니다."를 보여 준다(확인 중에는 숨김).
+  - B-b의 새 키 확인 mutation은 `meta: { checksNewKey: true }`로 빼서 저장된 키 거절로 보지 않는다(오류 줄만).
+  - `rejected`는 새 키 저장(`saveAccessToken`)이나 B-b를 떠날 때(언마운트) 지운다. 새 키 없이 [←]로 떠나면 옛 키가 다시 거절될 때 또 B-b로 온다.
+- 근거:
+  - 이동을 한곳에 모으면 화면마다 처리하지 않아도 된다. `src/api`는 라우터를 모르고 store만 바꾸므로 레이어 방향(route → 화면 → query → `src/api`)을 지킨다.
+  - 여러 query가 한꺼번에 거절돼도 표시는 하나라 이동은 한 번이다.
+- 영향: `UNAUTHORIZED`는 재시도 대상이 아니므로(D-042) 이동 뒤 반복 요청은 없다. 네이티브 변경 없음.

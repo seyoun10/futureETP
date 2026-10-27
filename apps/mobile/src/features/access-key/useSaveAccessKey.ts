@@ -11,6 +11,8 @@ export function useSaveAccessKey() {
       await verifyAccessKey(key);
       await saveAccessToken(key);
     },
+    // 새 키의 거절은 B-b 안의 오류 줄로만 보여 준다(캐시 onError의 B-b 이동 제외).
+    meta: { checksNewKey: true },
     onSuccess: () => queryClient.invalidateQueries(),
   });
 }

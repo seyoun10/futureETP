@@ -1,7 +1,8 @@
 import { getItemAsync } from 'expo-secure-store';
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
+import { queryClient } from '@/api/queryClient';
 import { verifyAccessKey } from '@/api/verifyAccessKey';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
@@ -15,7 +16,8 @@ const KEY = 'k'.repeat(43);
 
 beforeEach(() => {
   useDisplaySettings.getState().setLanguage('ko');
-  useAccessKeyStore.setState({ key: null });
+  useAccessKeyStore.setState({ key: null, rejected: false });
+  queryClient.clear();
   mockVerify.mockReset().mockResolvedValue(undefined);
   mockRequestCameraPermission.mockClear().mockResolvedValue({ granted: true });
 });
@@ -129,6 +131,61 @@ describe('B-b 접근 키', () => {
 
       expect(screen.queryByLabelText('QR 카메라')).not.toBeOnTheScreen();
       expect(screen.getByRole('alert')).toHaveTextContent(/카메라를 쓸 수 없습니다/);
+    });
+  });
+
+  describe('저장된 키 거절', () => {
+    // 화면의 조회가 저장된 키로 UNAUTHORIZED를 받은 경우
+    const failQuery = (code: 'UNAUTHORIZED' | 'NOT_FOUND') =>
+      act(() =>
+        queryClient.prefetchQuery({
+          queryKey: ['test', code],
+          queryFn: () => Promise.reject(new AppError(code)),
+        }),
+      );
+
+    it('어느 화면에서든 B-b로 와서 오류 줄을 보여 주고, 키는 지우지 않는다', async () => {
+      useAccessKeyStore.setState({ key: 'old-key' });
+      await renderApp('/commodity/CL/curve');
+      await failQuery('UNAUTHORIZED');
+
+      expect(screen).toHavePathname('/settings/access-key');
+      expect(screen.getByRole('alert')).toHaveTextContent('키가 맞지 않습니다.');
+      expect(useAccessKeyStore.getState().key).toBe('old-key');
+
+      // 새 키 없이 [←]로 떠나면 들어온 화면이고, 다시 거절되면 또 B-b로 온다.
+      await fireEvent.press(screen.getByLabelText('뒤로'));
+      expect(screen).toHavePathname('/commodity/CL/curve');
+      await failQuery('UNAUTHORIZED');
+      expect(screen).toHavePathname('/settings/access-key');
+    });
+
+    it('새 키를 저장하면 오류 줄을 지우고 들어온 화면으로 돌아간다', async () => {
+      useAccessKeyStore.setState({ key: 'old-key' });
+      await renderApp('/commodity/GC');
+      await failQuery('UNAUTHORIZED');
+      await enterKey(KEY);
+
+      expect(screen).toHavePathname('/commodity/GC');
+      expect(useAccessKeyStore.getState()).toMatchObject({ key: KEY, rejected: false });
+    });
+
+    it('UNAUTHORIZED가 아니면 이동하지 않는다', async () => {
+      useAccessKeyStore.setState({ key: 'old-key' });
+      await renderApp('/commodity/GC');
+      await failQuery('NOT_FOUND');
+
+      expect(screen).toHavePathname('/commodity/GC');
+    });
+
+    it('B-b에서 새 키가 거절된 것은 저장된 키 거절로 보지 않는다', async () => {
+      useAccessKeyStore.setState({ key: 'old-key' });
+      mockVerify.mockRejectedValue(new AppError('UNAUTHORIZED'));
+      await renderApp('/settings/access-key');
+      await enterKey(KEY);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('키가 맞지 않습니다.');
+      expect(useAccessKeyStore.getState()).toMatchObject({ key: 'old-key', rejected: false });
     });
   });
 });

@@ -1,9 +1,10 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useHasAccessKey } from '@/api/accessToken';
+import { useAccessKeyStore, useHasAccessKey } from '@/api/accessToken';
 import { queryClient, setupFocusManager } from '@/api/queryClient';
 import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
 import { setupI18n } from '@/i18n';
@@ -21,6 +22,11 @@ export const unstable_settings = { anchor: 'index' };
 export default function RootLayout() {
   // 접근 키가 없으면 A 대신 B-b만 띄운다. 저장하면 스택으로 바뀐다(screens.md B-b, D-044).
   const hasKey = useHasAccessKey();
+  // 저장된 키를 서버가 거절하면 어느 화면에서든 B-b로 보낸다(screens.md B-b, D-044).
+  const rejected = useAccessKeyStore((state) => state.rejected);
+  useEffect(() => {
+    if (hasKey && rejected) router.navigate('/settings/access-key');
+  }, [hasKey, rejected]);
 
   return (
     <QueryClientProvider client={queryClient}>
