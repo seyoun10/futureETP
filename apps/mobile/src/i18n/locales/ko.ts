@@ -1,4 +1,4 @@
-import type { CommodityCode } from '@futureetp/shared';
+import type { CommodityCode, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
 
 // 번역 리소스의 기준 언어. en은 이 구조를 그대로 따라야 한다(키 누락은 타입 오류).
@@ -14,6 +14,16 @@ export const ko = {
     CL: '원유',
     NG: '천연가스',
   } satisfies Record<CommodityCode, string>,
+  freshness: {
+    asOf: '{{time}} 기준',
+    tradeDate: '거래일 {{date}}',
+    delayed: '지연',
+    marketState: {
+      OPEN: '장중',
+      CLOSED: '휴장',
+      SETTLEMENT_PENDING: '정산 대기',
+    } satisfies Record<MarketState, string>,
+  },
   commodity: {
     rotate: '가로/세로 전환',
     tabs: {

@@ -126,6 +126,7 @@ type ApiResponse<T> =
 
 ### 데이터 기준 정보(freshness)
 A와 C 화면의 조회 응답 `data`에는 상단 기준 시각 줄과 자동 새로고침에 쓰는 `freshness`를 넣는다.
+스키마는 shared `freshnessSchema`, 앱 표시는 `src/components/FreshnessLine.tsx`(포맷은 `src/lib/formatDateTime.ts`)다.
 
 ```ts
 type Freshness = {

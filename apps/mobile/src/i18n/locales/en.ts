@@ -12,6 +12,16 @@ export const en: Translation = {
     CL: 'Crude Oil',
     NG: 'Natural Gas',
   },
+  freshness: {
+    asOf: 'As of {{time}}',
+    tradeDate: 'Trade date {{date}}',
+    delayed: 'Delayed',
+    marketState: {
+      OPEN: 'Open',
+      CLOSED: 'Closed',
+      SETTLEMENT_PENDING: 'Settlement pending',
+    },
+  },
   commodity: {
     rotate: 'Rotate screen',
     tabs: {
