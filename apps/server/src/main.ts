@@ -1,5 +1,3 @@
-import { envelopeSchema } from '@futureetp/shared';
-import { z } from 'zod';
+import { config } from './config.ts';
 
-const parsed = envelopeSchema(z.object({ ok: z.boolean() })).parse({ success: true, data: { ok: true } });
-console.log(JSON.stringify(parsed));
+console.log(`futureETP server: port ${config.PORT}, scheduler ${config.SCHEDULER_ENABLED ? 'on' : 'off'}`);

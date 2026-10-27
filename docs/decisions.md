@@ -769,3 +769,22 @@
 - 검증(2026-10-27): `expo config --type public`으로 두 변형의 이름·ID·scheme·`extra` 확인, prod 평가 때는 `.env.local`이 있어도 `devApiToken`이 빠짐. `prebuild:dev`(Android) 결과 `applicationId` `.dev`, 앱 이름 `futureETP Dev`, 평문 HTTP는 `debug`·`debugOptimized` 매니페스트에만 허용(release는 기본 차단). `prebuild:prod`(iOS) 결과 bundle ID 기본값, ATS는 Expo 기본(`NSAllowsArbitraryLoads` false, `NSAllowsLocalNetworking` true). 앱 `tsc --noEmit` 통과.
 - 후속: expo-updates 설치·`eas init`(projectId)·`updates.url`·`runtimeVersion` 설정은 Expo 계정을 만들고 첫 release APK를 빌드할 때 한다(D-039).
 - 영향: `architecture.md` 앱 변형 절.
+
+## D-053: 서버 환경 변수와 마이그레이션 실행 — zod `config.ts`, 선택 키는 비워도 시작, 코드 `migrate()`, Postgres 18
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 4단계 스캐폴딩, D-043·D-048 후속. 서버 환경 변수 이름과 검증, Drizzle 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`)을 정한다.
+- 결정
+  - 환경 변수(`apps/server/src/config.ts`): 필수 `NODE_ENV`(`development`·`production`), `DATABASE_URL`(postgres URL), `API_TOKEN`(32자 이상), `SCHEDULER_ENABLED`(zod `stringbool`). 기본값 `PORT` 3000, `LOG_LEVEL` info. 비워도 시작하는 것 `DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`·`FCM_SERVICE_ACCOUNT_PATH`·`HEALTHCHECKS_PING_KEY`·`BACKUP_DIR`. 빈 문자열은 미설정으로 본다.
+  - 선택 값이 없으면 그 값을 쓰는 작업이 실행될 때 실패한다(배치 실패 → 운영 알림, D-045). dev에서 가입하지 않은 소스 키 때문에 서버가 뜨지 않는 일을 막는다.
+  - Healthchecks.io는 작업별 ping URL 대신 프로젝트 ping key 하나(`HEALTHCHECKS_PING_KEY`)와 slug URL(`https://hc-ping.com/<key>/<작업 이름>`)을 쓴다. check slug를 작업 이름과 같게 만든다.
+  - `parseConfig(env)`는 순수 함수로 두어 테스트하고, 모듈의 `config`는 import 때 검증해 실패하면 오류 목록(`z.prettifyError`)을 출력하고 exit 1 한다.
+  - 마이그레이션: SQL 생성은 dev에서 `drizzle-kit generate`(`npm run db:generate -w apps/server`, 출력 `apps/server/drizzle/`, 커밋함)만 쓴다. 적용은 `src/db/migrate.ts`가 `drizzle-orm/node-postgres/migrator`의 `migrate()`로 한다(`npm run db:migrate`, `.env`가 있으면 읽음). prod 배포 스크립트는 새 이미지의 일회성 컨테이너에서 `node src/db/migrate.ts`를 실행한다(D-048).
+  - 라이브러리: `drizzle-orm` 0.45.4(1.0은 RC라 안정판), `drizzle-kit` 0.31.11, 드라이버 `pg` 8.x(node-postgres).
+  - Postgres major는 18로 한다. dev는 Homebrew `postgresql@18`(keg-only, `brew services`로 상시 실행, DB `futureetp`), prod Compose 이미지는 `postgres:18`, 서버 이미지의 `pg_dump`도 18(D-045).
+- 근거
+  - 코드 `migrate()`는 런타임 의존성(`drizzle-orm`·`pg`)만 써서 prod 이미지에 `drizzle-kit`(dev 도구, esbuild 포함)을 넣지 않아도 된다. 서버와 같은 `config`로 DB에 붙으므로 접속 설정이 한 곳이다.
+  - Postgres 18은 2026-10-27 기준 최신 major(18.6)다. 새로 시작하는 프로젝트라 옮길 데이터가 없다.
+- 검증(2026-10-27): 빈 환경·잘못된 값에서 항목별 오류와 exit 1, `.env.example` 값으로 정상 시작. 임시 테이블로 `db:generate` → `db:migrate` 적용, 재실행 시 중복 적용 없음(`drizzle.__drizzle_migrations` 1행). 확인 뒤 임시 테이블·마이그레이션 파일은 지웠다. 서버 `tsc --noEmit` 통과.
+- 주의: `drizzle/` 폴더가 아직 없어서 첫 스키마를 generate하기 전에는 `db:migrate`가 실패한다. drizzle 1.0 정식판이 나오면 마이그레이션 폴더 구조가 바뀌므로 올릴 때 확인한다.
+- 영향: `architecture.md` 서버 환경 변수·dev 표·prod 배포, `tech-stack.md` Backend 행.

@@ -50,16 +50,16 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
-- [ ] **[다음 작업]** 프로젝트 스캐폴딩. 결정 기록에 흩어진 "스캐폴딩 때 확인" 항목:
+- [x] 프로젝트 스캐폴딩 (2026-10-27). 결정 기록에 흩어진 "스캐폴딩 때 확인" 항목:
   - [x] Expo 지원 Node 버전 확인 후 `.nvmrc`·`engines` 고정 (D-028) → Node 26 (D-050)
   - [x] `victory-native` 43.x peerDependencies 수정판 확인, 없으면 42.x 고정 (D-032) → 42.0.1, 설치는 C-a 스파이크 때 (D-050)
   - [x] `create-expo-app` 템플릿의 route 폴더 위치(`app/`/`src/app/`), React Native 중복 설치 시 npm `overrides` (D-040) → `src/app/`, 루트 `overrides`로 react·react-native 고정 (D-050)
   - [x] 서버 실행 방식(Node 타입 스트리핑 / tsdown 번들)과 shared TS 소스 직접 참조 호환성 (D-040) → 타입 스트리핑, `packages/shared`·`apps/server` 최소 골격 생성 (D-051)
   - [x] 기본 앱 ID 확정(`io.github.seyoon.futureetp`, D-050 완료), `app.config.ts`의 `APP_VARIANT` 두 변형과 prebuild·빌드 스크립트 (D-043) → D-052
   - [x] `eas update`가 로컬 `.env`를 읽는지, EAS 환경 변수(`--environment`)가 필요한지 (D-043) → `--environment` 필수, 주면 `.env` 무시 (D-052)
-  - [ ] 서버 환경 변수 이름 확정, `config.ts` zod 검증, `.env.example` (D-043)
-  - [ ] Drizzle 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`) (D-048)
-- [ ] lint / format / test 설정
+  - [x] 서버 환경 변수 이름 확정, `config.ts` zod 검증, `.env.example` (D-043) → D-053
+  - [x] Drizzle 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`) (D-048) → 생성은 drizzle-kit, 적용은 코드 `migrate()`, 로컬 Postgres 18 설치 (D-053)
+- [ ] **[다음 작업]** lint / format / test 설정 (`config.ts`의 `parseConfig` 단위 테스트 포함)
 - [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)
 - [ ] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
 - [ ] CLAUDE.md 갱신 (Tech Stack, Architecture, Commands)

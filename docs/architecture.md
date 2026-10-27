@@ -174,7 +174,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 | 구분 | dev | prod |
 |---|---|---|
 | 서버 실행 | Mac에서 Node 직접 실행(`npm run dev -w apps/server`) | VM Docker Compose(D-034) |
-| DB | Mac 로컬 Postgres(Homebrew 등, prod 이미지와 같은 major 버전) | Compose의 Postgres 컨테이너 |
+| DB | Mac 로컬 Postgres 18(Homebrew `postgresql@18`, DB `futureetp`) | Compose의 `postgres:18` 컨테이너 |
 | 서버 주소 | 에뮬레이터 `http://10.0.2.2:<port>`, iOS 시뮬레이터 `http://localhost:<port>`, 실기기 같은 Wi-Fi의 Mac LAN IP | `https://<도메인>`(Caddy, D-036) |
 | 배치 스케줄러 | 꺼짐(`SCHEDULER_ENABLED=false`). 작업 하나를 CLI로 1회 실행 | 켜짐 |
 | 데이터 | prod 덤프 복원(prod 가동 전에는 적재 스크립트로 직접) | 배치·적재 스크립트 |
@@ -183,7 +183,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 
 ### 서버 환경 변수
 - `process.env`는 `apps/server/src/config.ts`에서만 읽는다. 시작할 때 zod로 검증하고, 빠지거나 틀린 값이 있으면 바로 종료한다. 다른 모듈은 검증된 `config` 객체를 import한다.
-- 항목(이름은 스캐폴딩 때 확정): `NODE_ENV`(`development`·`production`), `PORT`, `DATABASE_URL`, `API_TOKEN`(D-036), `SCHEDULER_ENABLED`, 소스 키(`DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`), FCM 서비스 계정 키 파일 경로, Healthchecks.io ping URL(작업별, dev는 비움, D-045), 백업 폴더 경로, `LOG_LEVEL`. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
+- 항목(D-053, 예시는 `apps/server/.env.example`): 필수 `NODE_ENV`(`development`·`production`), `DATABASE_URL`, `API_TOKEN`(32자 이상, D-036), `SCHEDULER_ENABLED`. 기본값 있음 `PORT`(3000), `LOG_LEVEL`(info). 비워도 시작 `DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`·`FCM_SERVICE_ACCOUNT_PATH`·`HEALTHCHECKS_PING_KEY`(dev는 비움, D-045)·`BACKUP_DIR`. 비워도 시작하는 값은 그 값을 쓰는 작업이 실행될 때 없으면 그 작업이 실패한다. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
 - dev: `apps/server/.env`(커밋 안 함)를 Node 내장 `--env-file`로 읽는다. 저장소에는 키 이름과 예시 값만 담은 `apps/server/.env.example`을 둔다.
 - prod: VM의 `infra/.env`(권한 600)를 Compose `env_file`로 넘긴다. 이 파일과 서비스 계정 키는 저장소에 넣지 않고, 배포 스크립트의 rsync에서도 제외해 VM에서 직접 관리한다. 서비스 계정 키는 컨테이너에 읽기 전용으로 마운트한다.
 - 외부 소스 키는 dev와 prod가 같은 키를 쓴다(Massive Basic 분당 5회 등 한도가 키 단위). 그래서 dev는 스케줄러를 끄고, 수동 실행도 필요한 작업만 한다. 테스트는 녹화한 응답(fixture)과 가짜 `sources`를 쓰고 실제 소스를 호출하지 않는다(D-038).
@@ -200,7 +200,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ### prod 배포(D-048)
 - `scripts/`의 배포 스크립트가 ① rsync(`infra/.env`·키 파일 제외) ② VM에서 이미지 빌드 ③ `pg_dump` 덤프 ④ 새 이미지의 일회성 컨테이너로 Drizzle 마이그레이션 ⑤ `docker compose up -d`로 서버 교체 순서로 진행한다. ④가 실패하면 ⑤를 하지 않고 이전 서버를 그대로 둔다.
 - 서버는 시작할 때 마이그레이션하지 않는다. 문제가 생기면 ③ 덤프로 복원한다. 컬럼 삭제처럼 되돌리기 어려운 변경은 "추가 → 코드 배포 → 삭제" 두 번의 배포로 나눈다.
-- 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`)은 스캐폴딩 때 정한다.
+- 마이그레이션 SQL은 dev에서 `npm run db:generate -w apps/server`(drizzle-kit)로 만들어 `apps/server/drizzle/`에 커밋한다. 적용은 `src/db/migrate.ts`(코드 `migrate()`)이고 dev는 `npm run db:migrate -w apps/server`, prod는 ④의 일회성 컨테이너에서 `node src/db/migrate.ts`다. prod 이미지에는 drizzle-kit을 넣지 않는다(D-053).
 
 ### 앱 변형(app variant)
 - `apps/mobile/app.config.ts`가 `APP_VARIANT`(`development`·`production`, 기본 `production`)로 설정을 바꾼다. Expo 공식 app variant 방식(https://docs.expo.dev/build-reference/variants/).
@@ -235,7 +235,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ### 운영자 실패 알림(D-045)
 - 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 문구는 shared 푸시 문구 리소스에 둔다.
-- Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
+- Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. URL은 프로젝트 ping key와 작업 이름 slug로 만든다(`https://hc-ping.com/<HEALTHCHECKS_PING_KEY>/<작업 이름>`, D-053). 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
 - dev는 ping URL을 비워 신호를 보내지 않는다. ping 실패는 배치 결과에 영향을 주지 않는다(로그만 남김).
 
 ### 백업(D-045)
