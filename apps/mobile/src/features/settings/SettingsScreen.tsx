@@ -11,6 +11,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { RareLevelsInput } from './RareLevelsInput';
 import { useSettings, useUpdateSettings } from './useSettings';
 
 // B 설정(screens.md B). 표시 설정은 기기에, 이격도차트·알림 설정은 서버에 한 벌 저장한다(D-011, D-047).
@@ -119,6 +120,10 @@ function DisparitySection({
         }))}
         value={settings?.window}
         onChange={(window) => onChange({ window })}
+      />
+      <RareLevelsInput
+        levels={settings?.rareLevels}
+        onSave={(rareLevels) => onChange({ rareLevels })}
       />
       <LinkRow
         label={t('settings.alerts')}

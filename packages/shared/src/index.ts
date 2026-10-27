@@ -13,6 +13,7 @@ export {
   RARE_LEVEL_COUNT,
   RARE_LEVEL_MAX,
   RARE_LEVEL_MIN,
+  rareLevelSchema,
   settingsPatchSchema,
   settingsSchema,
   type Settings,

@@ -116,3 +116,62 @@ describe('B 설정', () => {
     expect(await screen.findByRole('radio', { name: '대표월물', checked: true })).toBeOnTheScreen();
   });
 });
+
+describe('B rare-level 입력', () => {
+  const field = (index: number) => screen.getByLabelText(`rare-level ${index}`);
+  const edit = async (index: number, text: string) => {
+    await fireEvent.changeText(field(index), text);
+    await fireEvent(field(index), 'endEditing');
+  };
+
+  it('서버 값을 칸에 보여 주고 범위를 안내한다', async () => {
+    await renderSettings();
+
+    expect(await screen.findByDisplayValue('25')).toBeOnTheScreen();
+    expect(field(1)).toHaveDisplayValue('5');
+    expect(screen.getByText('0.1~49.9, 소수 첫째 자리, 서로 다른 5개')).toBeOnTheScreen();
+  });
+
+  it('칸을 벗어날 때 맞는 값이면 정렬해 저장한다', async () => {
+    await renderSettings();
+    await screen.findByDisplayValue('25');
+    await edit(1, '30,5');
+
+    await waitFor(() =>
+      expect(mockPatch).toHaveBeenCalledWith({ rareLevels: [10, 15, 20, 25, 30.5] }),
+    );
+    await waitFor(() => expect(field(1)).toHaveDisplayValue('10'));
+    expect(field(5)).toHaveDisplayValue('30.5');
+  });
+
+  it.each([
+    ['범위 밖', '50', '0.1~49.9 사이 값을 소수 첫째 자리까지 입력해 주세요.'],
+    ['소수 둘째 자리', '5.05', '0.1~49.9 사이 값을 소수 첫째 자리까지 입력해 주세요.'],
+    ['빈 칸', '', '0.1~49.9 사이 값을 소수 첫째 자리까지 입력해 주세요.'],
+    ['중복', '10', '서로 다른 값 5개를 입력해 주세요.'],
+  ])('%s이면 오류를 보여 주고 저장하지 않는다', async (_case, text, message) => {
+    await renderSettings();
+    await screen.findByDisplayValue('25');
+    await edit(1, text);
+
+    expect(screen.getByText(message)).toBeOnTheScreen();
+    expect(field(1)).toHaveDisplayValue(text);
+    expect(mockPatch).not.toHaveBeenCalled();
+
+    // 고치면 오류가 사라지고 저장된다
+    await edit(1, '1');
+    expect(screen.queryByText(message)).not.toBeOnTheScreen();
+    await waitFor(() =>
+      expect(mockPatch).toHaveBeenCalledWith({ rareLevels: [1, 10, 15, 20, 25] }),
+    );
+  });
+
+  it('값이 그대로면 저장하지 않는다', async () => {
+    await renderSettings();
+    await screen.findByDisplayValue('25');
+    await edit(1, '5.0');
+
+    expect(mockPatch).not.toHaveBeenCalled();
+    expect(field(1)).toHaveDisplayValue('5');
+  });
+});

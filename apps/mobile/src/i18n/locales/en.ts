@@ -56,6 +56,11 @@ export const en: Translation = {
     window: 'Distribution period (years)',
     windowALL: 'All',
     alertOff: 'Off',
+    rareLevels: 'Rare levels (%)',
+    rareLevelField: 'Rare level {{index}}',
+    rareLevelHint: '{{min}}–{{max}}, 1 decimal place, {{count}} distinct values',
+    rareLevelInvalid: 'Enter a value from {{min}} to {{max}} with at most 1 decimal place.',
+    rareLevelDuplicate: 'Enter {{count}} distinct values.',
     saveFailed: 'Could not save. {{reason}}',
   },
   accessKey: {

@@ -29,7 +29,7 @@ const timezoneSchema = z.string().refine((timeZone) => {
 }, 'Invalid IANA time zone');
 
 // 소수 첫째 자리까지. 부동소수 오차(0.3 = 0.30000000000000004 등)는 허용한다.
-const rareLevelSchema = z
+export const rareLevelSchema = z
   .number()
   .min(RARE_LEVEL_MIN)
   .max(RARE_LEVEL_MAX)

@@ -59,6 +59,11 @@ export const ko = {
     window: '분포 기간(년)',
     windowALL: '전체',
     alertOff: '끔',
+    rareLevels: 'rare-level(%)',
+    rareLevelField: 'rare-level {{index}}',
+    rareLevelHint: '{{min}}~{{max}}, 소수 첫째 자리, 서로 다른 {{count}}개',
+    rareLevelInvalid: '{{min}}~{{max}} 사이 값을 소수 첫째 자리까지 입력해 주세요.',
+    rareLevelDuplicate: '서로 다른 값 {{count}}개를 입력해 주세요.',
     saveFailed: '저장하지 못했습니다. {{reason}}',
   },
   accessKey: {
