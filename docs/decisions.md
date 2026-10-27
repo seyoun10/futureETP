@@ -1028,3 +1028,25 @@
   - 종가 뒤 비중으로 맞추면 맞춤 지수의 최신 값이 내일 보유할 월물 혼합 가격과 같아, 장중 맞춤 지수가 `Σ w(t)·현재가`와 정확히 같다.
   - 시작값을 혼합 가격으로 두면 원래 지수도 달러 단위 근처라 비율이 1 근처에 머문다.
 - 영향: `data-model.md` `roll_weight`·`index_bar`·`index_scale` 설명. 재계산 파이프라인(5-3)이 FRONT 행을 `nextFrontSymbol(t)`로 넣는다.
+
+## D-067: 이평선·이격도·분포 calc — 유효일만 이은 이평선, numpy 선형 보간, N년 경계, 역보간 꼬리 백분위
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-2 이평선·이격도·분포. product.md는 "산출 불가 기간은 이평선·이격도·분포에서 뺀다", "백분위는 선형 보간", "최근 N년", "가까운 꼬리 기준 상위·하위 p%"만 정해, 이평선 창에 산출 불가일이 끼는 경우, 보간 방식(정의가 여러 개), N년 경계, 현재 이격도를 백분위로 바꾸는 방법이 정해지지 않았다.
+- 결정
+  - `apps/server/src/calc/disparity.ts`. 지수는 맞춤 전 원래 지수(`index_bar.close`)를 쓴다. 이격도는 비율이라 맞춤 비율과 무관하다.
+  - `buildDisparitySeries(bars, maPeriod)`: 입력은 거래일 오름차순 `{ tradeDate, close: number | null }`(null = 산출 불가). 산출 불가일은 행을 내지 않고 시계열에서 뺀다. 이평선은 그날까지 **유효 종가 K개**의 단순평균이다(창이 산출 불가일을 건너뛰어 이어짐, 다시 초기 기간을 두지 않음). 처음 유효일부터 K−1개는 `ma`·`disparity` 모두 null.
+  - 이격도 = `(close / ma − 1) × 100`.
+  - `windowStartExclusive(asOf, window)`: Y3/Y5/Y10은 기준 거래일에서 N년 뺀 날(2월 29일은 2월 28일), 그 날 **초과**인 거래일만 쓴다. ALL은 제한 없음.
+  - `buildDistribution(series, asOfTradeDate, window)`: 기준 거래일 이하이고 경계 초과인 null 아닌 이격도를 오름차순으로 모은다. `actualStartDate` = 쓴 첫 표본의 거래일, `sampleCount` = 표본 수. 표본이 없으면 null(행 없음).
+  - `percentile(sorted, q)`(q 0~100): numpy 기본 linear(`h = q/100 × (n−1)`, `v[⌊h⌋] + (h−⌊h⌋)(v[⌊h⌋+1] − v[⌊h⌋])`, Excel PERCENTILE.INC와 같음). 표본 1개면 그 값.
+  - `rareLevelDisparity(sorted, direction, p)`: UP = `percentile(100 − p)`, DOWN = `percentile(p)`. `rareLevelPrice(ma, levelDisparity)` = `ma × (1 + levelDisparity / 100)`.
+  - `percentileRank(sorted, x)`: `percentile`의 역함수(0~100). 값과 같은 표본이 여러 개면 그 순위 구간의 가운데, 범위 밖은 0 또는 100으로 자른다. 표본 1개면 50.
+  - `tailPercentile(sorted, x)`: 가까운 꼬리 표시값. 순위 r > 50이면 `{ side: 'UP', pct: 100 − r }`(상위), 그 밖은 `{ side: 'DOWN', pct: r }`(하위).
+  - `liveDisparity(prevCloses, price, maPeriod)`: 오늘 잠정 이격도. `prevCloses`는 직전 유효 종가(오래된 순)이고 마지막 K−1개 + 오늘 가격으로 이평선을 만든다. K−1개보다 적거나 가격·이평선이 0 이하이면 null. 알림 판정의 고가·저가 이격도도 같은 함수에 고가·저가를 넣는다(D-002).
+- 근거
+  - 유효일만 이으면 2020-04 같은 짧은 산출 불가 구간 뒤에 이평선이 K일 동안 사라지지 않는다. 산출 불가일은 몇 거래일뿐이라 창이 조금 길어지는 영향은 작다.
+  - numpy 기본 보간은 가장 흔한 정의이고 표본 최솟값·최댓값을 0·100 백분위로 둔다.
+  - 꼬리 백분위를 보간의 역함수로 구하면 rare-level 선에 닿은 가격이 정확히 그 레벨(예: 상위 5%)로 표시되어 차트 밴드와 좌하단 표시가 어긋나지 않는다.
+  - 경계 초과로 두면 표본 기간이 정확히 N년이고 같은 날짜가 양쪽 끝에 들어가지 않는다.
+- 영향: 재계산 파이프라인(5-3)이 `disparity`·`disparity_distribution`을 이 함수로 채운다. 장중 배치(5-7)·알림 판정은 `liveDisparity`·`rareLevelDisparity`를 쓴다.
