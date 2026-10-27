@@ -707,3 +707,12 @@
   - Apple 가입 전 iOS 시뮬레이터처럼 토큰이 없는 기기에서도 시간대가 서버에 올라가야 거부 시간이 맞다.
   - 공식 지수 일별 이력은 무료로 구하기 어렵고, ETP 일일 수익률은 이미 수집하는 소스(네이버·Yahoo)로 받을 수 있다. 실제로 사용자가 투자하는 대상과 비교하는 것이 서비스 목적에 맞다.
 - 영향: product.md, wireframes/screens.md, architecture.md(freshness·엔드포인트·운영·배포), data-model.md(`batch_run`, `trading_day`), TODO 5단계.
+
+## D-049: 월물 심볼 표준형과 소스별 변환
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: `contract.symbol`은 하나인데 소스마다 표기가 다르다. Yahoo는 `CLZ26.NYM`·`GCZ26.CMX`, Databento(Globex raw symbol)는 연도 1자리 `CLZ6`이고, Massive 형식은 가입 후 확인한다.
+- 선택지: 소스별 심볼 컬럼을 `contract`에 둠 / 표준형만 저장하고 수집기에서 변환
+- 결정: DB·API·화면은 표준형(루트 + 월 코드 + 연도 2자리, 예: `CLZ26`)만 쓴다. 소스별 표기는 `apps/server/src/sources`의 각 수집기가 변환 함수로 만든다. Databento의 연도 1자리는 계약 정의의 만기일로 연도를 정한다.
+- 근거: 표기가 모두 규칙으로 정해져 컬럼을 두면 같은 정보를 소스 수만큼 중복 저장한다. 변환이 수집기 안에 있으면 소스를 바꿔도 DB가 바뀌지 않고, 변환 함수는 단위 테스트하기 쉽다.
+- 영향: `data-model.md` `contract.symbol`, `architecture.md` 디렉터리 규칙.

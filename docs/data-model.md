@@ -51,7 +51,7 @@ erDiagram
         bool uses_active_months "금속 true"
     }
     contract {
-        string symbol PK "예: CLZ26"
+        string symbol PK "표준 심볼 예: CLZ26(루트+월 코드+연도 2자리), D-049"
         string commodity_code FK
         string contract_month "YYYY-MM"
         date first_trade_date

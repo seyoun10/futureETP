@@ -51,6 +51,7 @@ futureETP/
 - `packages/shared`는 빌드 없이 TS 소스를 직접 export한다. 계산 코드는 넣지 않는다(앱은 계산하지 않음).
 - 앱 `@/` 별칭은 `apps/mobile/src`를 가리킨다. 화면 구현은 `src/features/` 아래 named export로 둔다.
 - 화면 전용 코드는 해당 feature 안에 두고, 두 곳 이상에서 쓰게 되면 공용 계층(`components`·`charts`·`lib` 등)으로 옮긴다.
+- 월물 심볼은 DB·API·화면에서 표준형(`CLZ26`)만 쓴다. 소스별 표기(Yahoo `CLZ26.NYM`·`GCZ26.CMX`, Databento `CLZ6`, Massive는 가입 후 확인)는 `sources/`의 각 수집기가 변환한다(D-049).
 - 서버 `jobs/`는 스케줄과 실행 기록(`batch_run`)만 맡고, 수집·계산·저장·발송은 `sources`·`calc`·`db`·`push`를 호출한다. `calc/`는 DB·네트워크에 의존하지 않아 Vitest 단위 테스트의 핵심 대상이다(D-038).
 - 스캐폴딩 때 확인할 것(D-040 후속): 기본 템플릿의 route 폴더 위치(`app/`/`src/app/`), 서버 실행 방식과 shared 소스 직접 참조 호환성, React Native 중복 설치 시 npm `overrides`.
 

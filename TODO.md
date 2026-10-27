@@ -46,11 +46,19 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] API 통신 및 에러 처리 규약: 응답 봉투 + HTTP 상태, 앱 zod 검증, freshness로 자동 새로고침 (2026-10-27, D-042)
 - [x] 환경 설정 분리: dev는 로컬 Mac(스케줄러 꺼짐·prod 덤프 복원), prod는 VM, 앱은 `APP_VARIANT` 두 변형 (2026-10-27, D-043)
 - [x] 1단계에서 미룬 항목 (2026-10-27): 접근 키 첫 실행 QR·붙여넣기 + SecureStore(D-044), 운영 푸시 + Healthchecks.io·매일 덤프 + Mac 내려받기(D-045), 차트 전체 1회 로딩·스냅숏 90일·커브 조회 시 calc(D-046)
-- [x] 3단계 교차 검증 (2026-10-27): 문서 간 불일치 정리(D-047), 설계 공백 7건 결정(D-048)
+- [x] 3단계 교차 검증 (2026-10-27): 문서 간 불일치 정리(D-047), 설계 공백 7건 결정(D-048), 심볼 표준형(D-049)·흩어진 후속 항목을 4·5단계로 모음
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
-- [ ] **[다음 작업]** 프로젝트 스캐폴딩
+- [ ] **[다음 작업]** 프로젝트 스캐폴딩. 결정 기록에 흩어진 "스캐폴딩 때 확인" 항목:
+  - [ ] Expo 지원 Node 버전 확인 후 `.nvmrc`·`engines` 고정 (D-028)
+  - [ ] `victory-native` 43.x peerDependencies 수정판 확인, 없으면 42.x 고정 (D-032)
+  - [ ] `create-expo-app` 템플릿의 route 폴더 위치(`app/`/`src/app/`), React Native 중복 설치 시 npm `overrides` (D-040)
+  - [ ] 서버 실행 방식(Node 타입 스트리핑 / tsdown 번들)과 shared TS 소스 직접 참조 호환성 (D-040)
+  - [ ] 기본 앱 ID 확정, `app.config.ts`의 `APP_VARIANT` 두 변형과 prebuild·빌드 스크립트 (D-043)
+  - [ ] `eas update`가 로컬 `.env`를 읽는지, EAS 환경 변수(`--environment`)가 필요한지 (D-043)
+  - [ ] 서버 환경 변수 이름 확정, `config.ts` zod 검증, `.env.example` (D-043)
+  - [ ] Drizzle 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`) (D-048)
 - [ ] lint / format / test 설정
 - [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)
 - [ ] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
@@ -61,6 +69,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
 - [ ] 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱
 - [ ] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교
+- [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Firebase 프로젝트·`google-services.json`(D-037), Healthchecks.io check(D-045), 배포 스크립트(D-048)
+- [ ] 소스 가입 후 실측: Massive Basic 정산가 필드·반영 시각·티커 형식, Databento 적재 견적, Yahoo 다중 심볼 quote·당일 고가·저가 누적 시작 시각, KRX Open API ETN 필드 (product.md 외부 연동)
+- [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039)
 - [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)
 - [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
 - 적절한 개발 전략 수립 : harness, agent-teams(frontend, backend, db, review, test) 구성
