@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 Hono 앱 골격 완료(D-059). 다음은 5-1 배치 러너. 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 배치 러너 완료(D-060). 다음은 5-1 시장 기준 데이터. 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -58,6 +58,7 @@ futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 Hono 앱 골격 완료(D-05
 - React component는 named export 사용 (default export 금지). 예외: `apps/mobile/src/app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `src/app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029, D-050)
 - 서버·shared는 ESM + Node 타입 스트리핑: 상대 import에 `.ts` 확장자, 타입만은 `import type`, TS `enum`·`namespace`·생성자 매개변수 속성 금지(enum 대신 shared 상수 문자열), tsconfig `paths` 별칭 금지(필요하면 `package.json` `imports`의 `#/`) (D-051)
 - 앱은 `@/` = `apps/mobile/src/` 별칭을 쓴다 (D-050)
+- 배치 작업은 `JobHandler(ctx)`로 만들어 `jobs/handlers.ts`의 `JOB_HANDLERS`에 등록한다. 시각은 `ctx.now`만 쓰고, 처리한 CME 거래일은 `ctx.tradeDate`에 채운다 (D-060)
 - 서버 라우트는 `ok(c, data)`로 응답하고 실패는 `ApiException(code, message)`을 던진다(`onError`가 봉투로 바꿈, D-059)
 - API 응답은 항상 `{ success: true, data } | { success: false, error: { code, message } }` + 맞는 HTTP 상태. 앱은 shared zod 스키마로 응답을 검증하고, 사용자 문구는 에러 `code`의 i18n 키로 만든다 (D-042)
 
@@ -83,4 +84,4 @@ futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 Hono 앱 골격 완료(D-05
 - 단일 테스트: 서버·공유(Vitest) `npm test -w apps/server -- src/config.test.ts -t "PORT"`, 앱(Jest) `npm test -w apps/mobile -- CommodityListScreen -t "렌더링"`
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
 - 앱: `npm run start -w apps/mobile`(dev 변형), `npm run android:dev -w apps/mobile`, `npm run ios:dev -w apps/mobile`
-- 서버: `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`
+- 서버: `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`, 작업 1회 실행 `npm run job -w apps/server -- <작업 이름> [기준 시각]`(D-060)

@@ -907,3 +907,24 @@
   - 토큰이 32바이트 이상이라 추측 공격은 사실상 불가능하다. 제한의 목적은 스캐너 소음과 부하를 줄이는 것이라 메모리 계수기로 충분하다(프로세스 하나, D-034).
   - 전역 계수기는 공격자가 사용자 본인까지 막을 수 있어 IP별로 센다. 막힌 IP에서 맞는 토큰을 통과시키면 막힌 동안에도 맞았는지 알 수 있어 모두 막는다. 사용자 본인 IP가 막혀도 15분 뒤 풀리고, 모바일 망은 IP가 자주 바뀐다.
 - 영향: `docs/architecture.md`(API 규약), `packages/shared/src/envelope.ts`, `apps/server/src/api/`.
+
+## D-060: 배치 러너 — 시도마다 `batch_run` 행, 재시도 간격은 작업별, 트리거 순서로 D-026 보장, CLI는 재시도 없음
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-1 배치 러너. 문서는 "실패 시 1회 재시도"·작업 시각(D-019, D-034)만 정했고, 재시도 간격, 기록 방식, 같은 시각 작업의 순서(D-026), 겹침·중단된 실행 처리, `CALENDAR`·`BACKUP` 시각은 정하지 않았다.
+- 결정
+  - 구조: `apps/server/src/jobs/runner.ts`의 `runJob(job, handler, { store, maxAttempts, retryDelayMs, scheduledAt?, asOf? })`를 스케줄러(`scheduler.ts`)와 CLI(`cli.ts`)가 같이 쓴다. 작업은 `JobHandler(ctx)`이고 `ctx.now`(기준 시각)를 받고, 처리한 CME 거래일을 알면 `ctx.tradeDate`에 채운다. 구현된 작업만 `handlers.ts`의 `JOB_HANDLERS`에 등록한다. `batch_run` 접근은 `BatchRunStore` 인터페이스로 주입한다(테스트는 메모리 구현).
+  - 기록: 시도마다 행 하나(`attempt` 1, 2). 시작 때 `RUNNING`으로 넣고 끝날 때 `SUCCESS`/`FAILED`·`finished_at`·`trade_date`·`error`(메시지)를 채운다. 마지막 시도의 `FAILED`가 최종 실패(운영 알림 대상, 5-8·5-10에서 연결)다.
+  - 재시도: 스케줄 실행은 최대 2회 시도. 간격은 `DAILY_SETTLE` 15분(소스 반영이 늦을 때, D-019), `INTRADAY`·`DEFERRED_PUSH` 1분(다음 주기가 곧 옴), `ETP`·`CALENDAR`·`BACKUP` 10분.
+  - 일정(croner, 작업별 IANA 시간대): `DAILY_SETTLE` 평일 18:30 CT, `INTRADAY` 15분, `DEFERRED_PUSH` :00/:30 CT, `ETP` 08:30 KST, `CALENDAR` 16:15 CT, `BACKUP` 16:30 CT(16:00~17:00 CT 일일 정지 시간). 휴장 판단은 각 작업이 한다.
+  - 순서: 트리거 하나에 작업 목록을 두고 적힌 순서대로 차례로 실행한다. :00/:30은 `[DEFERRED_PUSH, INTRADAY]` 한 트리거라 지연 발송이 장중 판정보다 먼저다(D-026). `INTRADAY`의 :15/:45는 따로 둔다.
+  - 겹침: 같은 작업이 실행 중(재시도 대기 포함)이면 이번 차례는 로그만 남기고 건너뛴다. `batch_run` 기록 자체가 실패하면(DB 중단) 로그만 남기고 다음 차례에 다시 돈다.
+  - 중단된 실행: 스케줄러 시작 때 `RUNNING`으로 남은 행을 `FAILED`(`Interrupted by server restart`)로 닫는다. 프로세스가 하나라 이 시점의 `RUNNING`은 모두 이전 프로세스의 것이다(D-034).
+  - CLI: `npm run job -w apps/server -- <작업 이름> [기준 시각]`. 기준 시각은 오프셋이 있는 ISO 형식이고 `ctx.now`가 된다(`started_at`은 실제 시각, `scheduled_at`은 비움). 1회만 시도하고 실패하면 종료 코드 1이다. 등록되지 않은 작업은 기록 없이 종료한다.
+  - `croner` 10.0.1. 2026-10-27 기준 최신은 11.0.0(2026-10-26 출시, 하루 지난 major)이라 10.x를 쓰고, 안정되면 올린다.
+- 근거
+  - 시도마다 행을 두면 `attempt` 컬럼(data-model)과 맞고, 실패 이력·재시도 결과가 덮어쓰이지 않는다. 최종 실패 판단은 "마지막 행이 `attempt = MAX`이고 `FAILED`"로 단순하다.
+  - 소스에 그날 데이터가 아직 없는 실패(D-019)는 바로 다시 해도 같은 결과라 정산은 간격을 둔다. 15분 주기 작업은 간격이 길면 다음 주기와 겹친다.
+  - 트리거 단위 순서는 같은 시각 두 작업의 경쟁을 코드 구조로 없앤다(락·지연 없이).
+  - CLI는 dev 수동 실행이라 기다리는 재시도보다 바로 실패를 보고 다시 실행하는 편이 낫다. 외부 소스 한도를 dev와 prod가 공유한다(D-043).
+- 후속: Healthchecks.io 신호·check 일정(5-10), 최종 실패 운영 알림(5-8·5-10)은 `runJob` 결과(`status`·`attempt`·`runId`)에 붙인다.

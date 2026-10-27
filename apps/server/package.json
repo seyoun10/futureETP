@@ -8,12 +8,14 @@
     "dev": "node --env-file=.env --watch src/main.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env src/db/migrate.ts",
+    "job": "node --env-file-if-exists=.env src/jobs/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "@futureetp/shared": "*",
     "@hono/node-server": "^2.1.5",
+    "croner": "^10.0.1",
     "drizzle-orm": "^0.45.4",
     "hono": "^4.13.14",
     "pg": "^8.23.1",

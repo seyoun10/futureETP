@@ -1,7 +1,10 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './api/app.ts';
 import { config } from './config.ts';
-import { pingDb } from './db/client.ts';
+import { db, pingDb } from './db/client.ts';
+import { createBatchRunStore } from './jobs/batchRunStore.ts';
+import { JOB_HANDLERS } from './jobs/handlers.ts';
+import { startScheduler } from './jobs/scheduler.ts';
 
 const app = createApp({ token: config.API_TOKEN, checkDb: pingDb });
 
@@ -10,3 +13,7 @@ serve({ fetch: app.fetch, port: config.PORT }, (info) => {
     `futureETP server: port ${info.port}, scheduler ${config.SCHEDULER_ENABLED ? 'on' : 'off'}`,
   );
 });
+
+if (config.SCHEDULER_ENABLED) {
+  await startScheduler({ handlers: JOB_HANDLERS, store: createBatchRunStore(db) });
+}

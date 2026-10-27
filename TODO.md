@@ -83,8 +83,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 ### 5-1. 서버 기반
 - [x] DB 스키마: 영역 1~3·5·6 Drizzle 정의 + 첫 마이그레이션 + `app_settings` 기본 행 (ETP 테이블은 5-9에서) (2026-10-27, D-058)
 - [x] Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`) (2026-10-27, D-059)
-- [ ] **[다음 작업]** 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`)
-- [ ] 시장 기준 데이터: `commodity` 시드, `active_month_rule`, `trading_day` 생성 스크립트(연 1회 입력용), 표준 심볼 유틸(D-049)
+- [x] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`) (2026-10-27, D-060)
+- [ ] **[다음 작업]** 시장 기준 데이터: `commodity` 시드, `active_month_rule`, `trading_day` 생성 스크립트(연 1회 입력용), 표준 심볼 유틸(D-049)
 
 ### 5-2. calc 순수 함수 (Vitest, product.md 계산 정의를 테스트로 먼저)
 - [ ] 거래일·장 상태: CME 거래일 판정, 장중/휴장/정산 대기, `nextUpdateAt` (D-022, D-048)

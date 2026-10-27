@@ -32,7 +32,7 @@ futureETP/
 │     └─ src/
 │        ├─ main.ts                API + 스케줄러 한 프로세스 (D-034)
 │        ├─ api/                   Hono 라우트·미들웨어(Bearer 검사, 횟수 제한, D-036)
-│        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·달력 점검·백업)
+│        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·달력 점검·백업), 러너·CLI (D-060)
 │        ├─ calc/                  지수·롤 비중·이평선·이격도·분포·커브 순수 함수
 │        ├─ sources/               외부 수집기(Databento·Massive·Yahoo·Naver·KRX·Nasdaq)
 │        ├─ push/                  FCM·APNs 발송 인터페이스 (D-037)
@@ -191,8 +191,9 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 외부 소스 키는 dev와 prod가 같은 키를 쓴다(Massive Basic 분당 5회 등 한도가 키 단위). 그래서 dev는 스케줄러를 끄고, 수동 실행도 필요한 작업만 한다. 테스트는 녹화한 응답(fixture)과 가짜 `sources`를 쓰고 실제 소스를 호출하지 않는다(D-038).
 
 ### 배치 수동 실행
-- `jobs/`의 작업은 스케줄러와 CLI가 같은 함수를 부른다. `npm run job -w apps/server -- <작업 이름>`이 그 작업을 1회 실행하고 `batch_run`에 기록한 뒤 종료한다. 작업 이름은 스케줄러 등록 이름과 같다.
-- 시각 의존 작업(정산 대기·휴장 판정)은 CLI에서 기준 시각을 인자로 넘길 수 있게 한다(`calc`가 현재 시각을 인자로 받는 규칙, D-041).
+- `jobs/`의 작업은 스케줄러와 CLI가 같은 함수(`runJob`)를 부른다. `npm run job -w apps/server -- <작업 이름> [기준 시각]`이 그 작업을 1회 실행(재시도 없음)하고 `batch_run`에 기록한 뒤 종료한다. 실패하면 종료 코드 1이다. 작업 이름은 스케줄러 등록 이름과 같다.
+- 시각 의존 작업(정산 대기·휴장 판정)은 CLI의 기준 시각(오프셋이 있는 ISO, 예: `2026-10-27T18:30:00-05:00`)을 `ctx.now`로 받는다(`calc`가 현재 시각을 인자로 받는 규칙, D-041).
+- 스케줄 실행은 실패 시 작업별 간격 뒤 1회 재시도하고, 시도마다 `batch_run` 행을 만든다. 일정·재시도 간격·같은 시각 작업 순서는 `jobs/scheduler.ts`의 `TRIGGERS`·`RETRY_DELAY_MS`(D-060).
 
 ### dev 데이터 복원
 - `scripts/`의 복원 스크립트가 VM에서 `pg_dump`(custom 형식)를 받아 로컬 dev DB에 `pg_restore`한다. 받은 덤프 파일은 VM 밖 보관 사본도 겸한다(D-034 백업 후속).
