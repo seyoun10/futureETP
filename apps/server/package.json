@@ -13,7 +13,8 @@
     "recompute": "node --env-file-if-exists=.env src/jobs/recomputeCli.ts",
     "databento:download": "node --env-file-if-exists=.env src/sources/databentoDownload.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "databento:import": "node --env-file-if-exists=.env src/sources/databentoImport.ts"
   },
   "dependencies": {
     "@futureetp/shared": "*",

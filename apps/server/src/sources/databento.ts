@@ -10,8 +10,9 @@ import { MONTH_CODES } from '../calc/contractSymbol.ts';
 
 const BASE_URL = 'https://hist.databento.com/v0';
 export const DATASET = 'GLBX.MDP3';
-// 적재에 쓰는 스키마: 정산가·확정 거래량(statistics), 시가·고가·저가(ohlcv-1d), 만기(definition)
-export const LOAD_SCHEMAS = ['statistics', 'ohlcv-1d', 'definition'] as const;
+// 적재에 쓰는 스키마: 정산가·확정 거래량·시가·고가·저가(statistics), 만기(definition).
+// ohlcv-1d는 UTC 날짜로 잘려 CME 거래일과 맞지 않아 쓰지 않는다(D-088)
+export const LOAD_SCHEMAS = ['statistics', 'definition'] as const;
 export type LoadSchema = (typeof LOAD_SCHEMAS)[number];
 
 // 단일 월물 Globex 심볼(연도 1자리, 예: CLZ6). 같은 심볼이 10년마다 다시 쓰이지만 raw_symbol은
@@ -19,6 +20,14 @@ export type LoadSchema = (typeof LOAD_SCHEMAS)[number];
 export function outrightRawSymbols(code: CommodityCode): string[] {
   return MONTH_CODES.flatMap((month) =>
     Array.from({ length: 10 }, (_, year) => `${code}${month}${year}`),
+  );
+}
+
+// 연도 2자리 단일 월물(예: CLF30, NGZ26). 연도 1자리로 10년 안에서 구분되지 않는 먼 월물이 이 형식이고,
+// NG는 2025년부터 모든 월물이 이 형식이다(D-088)
+export function twoDigitRawSymbols(code: CommodityCode): string[] {
+  return MONTH_CODES.flatMap((month) =>
+    Array.from({ length: 30 }, (_, i) => `${code}${month}${10 + i}`),
   );
 }
 
@@ -71,7 +80,8 @@ export function createDatabentoClient(apiKey: string, fetchFn: typeof fetch = fe
     },
 
     // CSV(zstd 압축)로 받아 path에 쓴다. 받는 중 실패하면 path는 생기지 않는다(.part만 남음).
-    // 요청할 때마다 과금되므로 호출자가 이미 받은 파일이면 부르지 않는다
+    // 요청할 때마다 과금되므로 호출자가 이미 받은 파일이면 부르지 않는다.
+    // .part가 이미 있으면(다른 프로세스가 받는 중) 섞어 쓰지 않고 실패한다. 남은 .part는 지우고 다시 실행한다
     async downloadCsv(r: RangeRequest, path: string): Promise<void> {
       const form = rangeForm(r);
       form.set('encoding', 'csv');
@@ -84,7 +94,7 @@ export function createDatabentoClient(apiKey: string, fetchFn: typeof fetch = fe
       const part = `${path}.part`;
       await pipeline(
         Readable.fromWeb(response.body as WebReadableStream<Uint8Array>),
-        createWriteStream(part),
+        createWriteStream(part, { flags: 'wx' }),
       );
       await rename(part, path);
     },
