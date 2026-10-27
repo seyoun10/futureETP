@@ -63,6 +63,22 @@ export const en: Translation = {
     rareLevelDuplicate: 'Enter {{count}} distinct values.',
     saveFailed: 'Could not save. {{reason}}',
   },
+  dataSources: {
+    sections: {
+      futures: 'Futures prices',
+      etp: 'ETP',
+    },
+    rows: {
+      exchange: { label: 'Exchange', value: 'CME Group (NYMEX·COMEX)' },
+      settlement: { label: 'Settlement & volume', value: 'Massive, after close' },
+      intraday: { label: 'Intraday', value: 'Yahoo Finance, ~10 min delayed' },
+      history: { label: 'History', value: 'Databento (since 2010-06)' },
+      etpKr: { label: 'KR', value: 'Naver Finance, KRX' },
+      etpUs: { label: 'US', value: 'Nasdaq, Yahoo Finance' },
+    },
+    notice:
+      'Roll-adjusted values are computed by this app from S&P GSCI and Bloomberg index methodologies. For personal reference only; accuracy not guaranteed; not investment advice.',
+  },
   accessKey: {
     guide:
       'Enter the server access key. Scan the QR shown by the key script on your Mac, or paste the key.',

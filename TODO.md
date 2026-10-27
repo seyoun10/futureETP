@@ -133,13 +133,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `scripts/` 키 생성·QR 표시(`npm run access-key`, 기존 키는 `--show`에 stdin) (2026-10-27, D-080)
 
 ### 5-6. 화면 수직 슬라이스 (API + 화면 + 테스트)
-- [ ] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면
+- [x] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면
   - [x] `GET·PATCH /v1/settings` + shared 스키마(rare 레벨 검증·정렬, 거부 시간, 시간대 IANA) + 앱 `getSettings`·`patchSettings` (2026-10-27, D-081)
   - [x] B 화면(이격도차트 설정·언어 PATCH·등락 색), 앱 실행 때 시간대 PATCH
     - [x] 언어·등락 색·기준값·이평선·분포 기간·알림 행(낙관적 PATCH, 실패 시 되돌림·오류 줄) (2026-10-27, D-082)
     - [x] rare-level 입력(범위 안내·오류·저장 막기·정렬) (2026-10-27, D-083)
     - [x] 앱 실행 때 시간대 PATCH(설정 조회마다 비교, 시간대당 1회) (2026-10-27, D-084)
-  - [ ] 데이터 출처 화면
+  - [x] 데이터 출처 화면(screens.md 문구, ko·en) (2026-10-27)
+    - [ ] 기기에서 긴 값 줄바꿈·가로 화면 확인
 - [ ] A 원자재 목록: `GET /v1/commodities` + 화면(당겨서 새로고침, 대표월물·알림 표시)
 - [ ] C-a 이격도차트: `GET /v1/commodities/:code/disparity`(기준값 없는 원자재 대체 표시 포함) + 차트 본 구현(스파이크 이관, `src/charts/`), 롤 마커·음영, rare-level 밴드·특수 라벨, 십자선 상세, 기간 버튼(Zustand), 스파이크 삭제
 - [ ] C-b 월물커브: `GET /v1/commodities/:code/curve`(조회 시 calc, D-046) + 화면(기준일 −/+/0, 날짜 시트·휴장일 직전 거래일, D-021)

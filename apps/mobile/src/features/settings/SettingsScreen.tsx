@@ -12,6 +12,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { RareLevelsInput } from './RareLevelsInput';
+import { SectionHeader } from './SectionHeader';
 import { useSettings, useUpdateSettings } from './useSettings';
 
 // B 설정(screens.md B). 표시 설정은 기기에, 이격도차트·알림 설정은 서버에 한 벌 저장한다(D-011, D-047).
@@ -139,14 +140,6 @@ function DisparitySection({
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
-  return (
-    <Text accessibilityRole="header" style={styles.sectionHeader}>
-      {title}
-    </Text>
-  );
-}
-
 function LinkRow({ label, value, href }: { label: string; value?: string; href: Href }) {
   return (
     <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={styles.row}>
@@ -168,13 +161,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.caption,
     backgroundColor: colors.surface,
-  },
-  sectionHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xs,
-    color: colors.textSecondary,
-    fontSize: fontSize.caption,
   },
   divider: {
     height: spacing.lg,

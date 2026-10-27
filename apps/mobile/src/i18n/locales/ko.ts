@@ -66,6 +66,22 @@ export const ko = {
     rareLevelDuplicate: '서로 다른 값 {{count}}개를 입력해 주세요.',
     saveFailed: '저장하지 못했습니다. {{reason}}',
   },
+  dataSources: {
+    sections: {
+      futures: '선물 시세',
+      etp: 'ETP',
+    },
+    rows: {
+      exchange: { label: '거래소', value: 'CME Group (NYMEX·COMEX)' },
+      settlement: { label: '정산가·거래량', value: 'Massive · 장 마감 후 반영' },
+      intraday: { label: '장중 시세', value: 'Yahoo Finance · 약 10분 지연' },
+      history: { label: '과거 일봉', value: 'Databento (2010-06~)' },
+      etpKr: { label: '국내', value: '네이버 증권, KRX' },
+      etpUs: { label: '미국', value: 'Nasdaq, Yahoo Finance' },
+    },
+    notice:
+      '롤 규칙: S&P GSCI·Bloomberg 지수 방법론을 따라 앱이 계산한 값입니다. 개인 참고용이며 정확성을 보장하지 않고, 투자 권유가 아닙니다.',
+  },
   accessKey: {
     guide: '서버 접근 키를 넣어 주세요. Mac에서 키 스크립트가 띄운 QR을 읽거나 키를 붙여넣으세요.',
     pastePlaceholder: '키 붙여넣기',
