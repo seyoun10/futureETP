@@ -592,3 +592,26 @@
   - 수치를 number로 보내는 이유: 앱은 계산하지 않고 표시만 한다(D-041). 표시 자릿수(최대 소수 3자리)에서 double 오차가 보이지 않는다.
   - `nextUpdateAt`을 서버가 주면 휴장·정산 대기·조기 마감 판단을 앱이 다시 할 필요가 없다.
 - 후속: `UNAUTHORIZED` 화면 처리는 비밀 값 저장·교체 항목에서 정한다. 차트 구간 로딩·커브 캐시는 3단계 남은 항목에서 정한다.
+
+## D-043: 환경 분리 — dev는 로컬 Mac, prod는 VM, 앱은 두 변형
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 3단계. 서버는 Oracle Always Free VM 1대(D-034), 로컬에는 Docker를 두지 않는다(D-039). 외부 소스 한도(Massive Basic 분당 5회 등)는 API 키 단위다(D-012). 평소에는 release APK를 쓰고 개발 중에는 개발 빌드를 쓴다(D-039). 앱 JS는 EAS Update로 배포한다.
+- 선택지
+  - dev 서버: 로컬 Mac / VM에 dev Compose 스택 추가 / dev 서버 없이 prod 사용
+  - 앱: dev·prod 두 변형(다른 앱 ID) / 앱 ID 하나
+  - dev 배치: 기본 꺼짐 + 수동 실행 / prod와 같은 스케줄
+  - dev 데이터: prod 덤프 복원 / 적재 스크립트 재실행 / 시드 데이터만
+- 결정(모두 사용자가 선택):
+  - dev 서버는 로컬 Mac에서 Node와 로컬 Postgres로 돌린다. prod는 VM Compose 하나다. staging은 두지 않는다.
+  - 앱은 `app.config.ts`의 `APP_VARIANT`로 dev(`.dev` 앱 ID, `futureETP Dev`)와 prod 두 변형을 만들어 한 기기에 함께 설치한다. 서버 주소는 변형별로 app config `extra`에 넣는다. dev 변형은 EAS Update를 받지 않는다.
+  - dev는 스케줄러를 끄고(`SCHEDULER_ENABLED=false`) 작업 하나를 CLI로 1회 실행한다. 테스트는 fixture와 가짜 `sources`를 쓴다.
+  - dev 데이터는 prod `pg_dump`를 복원해 채운다. 복원 뒤 `device`와 보류 알림을 비운다. 덤프 파일은 VM 밖 백업 사본을 겸한다.
+  - 서버 설정은 `src/config.ts`에서 zod로 한 번 검증하고, dev·prod 차이는 모두 환경 변수로 준다. dev는 `apps/server/.env`, prod는 VM의 `infra/.env`(저장소·rsync 제외)다.
+  - 세부는 `architecture.md` "환경 설정 분리 (dev / prod)"에 둔다.
+- 근거:
+  - 로컬 dev는 VM 무료 자원(2 OCPU·12GB)과 유휴 회수 판정에 영향을 주지 않고, 로컬 Docker도 필요 없다. 실기기는 같은 Wi-Fi에서만 dev 서버에 닿지만, 개발 빌드를 Metro로 쓰는 동안은 어차피 같은 망에 있다.
+  - 두 변형으로 나누면 개발 빌드가 평소 쓰는 release 앱을 덮어쓰지 않는다. Expo 공식 app variant 방식이고(https://docs.expo.dev/build-reference/variants/, 2026-10-27 확인), 변형에 따라 이름·앱 ID만 바뀐다.
+  - 소스 한도가 키 단위라 dev 스케줄이 돌면 prod 정산(약 40분)이 늦어지고 알림이 밀릴 수 있다.
+  - prod 덤프를 복원하면 실제 데이터(봉 4,000개, 실제 분포)로 화면을 확인하고, 복원 절차도 함께 검증된다. `device`를 비우지 않으면 dev 서버가 prod 기기로 푸시를 보낼 수 있다.
+- 후속: 기본 앱 ID와 prod 도메인(스캐폴딩·빌드 때), `eas update`의 환경 변수 읽기 방식 확인(스캐폴딩 때), DB 백업 주기·보관 위치(TODO 3단계 남은 항목).

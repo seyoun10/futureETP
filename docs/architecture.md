@@ -156,3 +156,49 @@ type Freshness = {
 | `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준), 시간대는 `app_settings.timezone` 갱신 |
 
 ## 환경 설정 분리 (dev / prod)
+
+D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 않는다.
+
+| 구분 | dev | prod |
+|---|---|---|
+| 서버 실행 | Mac에서 Node 직접 실행(`npm run dev -w apps/server`) | VM Docker Compose(D-034) |
+| DB | Mac 로컬 Postgres(Homebrew 등, prod 이미지와 같은 major 버전) | Compose의 Postgres 컨테이너 |
+| 서버 주소 | 에뮬레이터 `http://10.0.2.2:<port>`, iOS 시뮬레이터 `http://localhost:<port>`, 실기기 같은 Wi-Fi의 Mac LAN IP | `https://<도메인>`(Caddy, D-036) |
+| 배치 스케줄러 | 꺼짐(`SCHEDULER_ENABLED=false`). 작업 하나를 CLI로 1회 실행 | 켜짐 |
+| 데이터 | prod 덤프 복원(prod 가동 전에는 적재 스크립트로 직접) | 배치·적재 스크립트 |
+| 앱 | dev 변형(개발 빌드 + Metro) | prod 변형(release APK + EAS Update) |
+| 푸시 | dev DB에 등록된 dev 기기에만 | prod 기기 |
+
+### 서버 환경 변수
+- `process.env`는 `apps/server/src/config.ts`에서만 읽는다. 시작할 때 zod로 검증하고, 빠지거나 틀린 값이 있으면 바로 종료한다. 다른 모듈은 검증된 `config` 객체를 import한다.
+- 항목(이름은 스캐폴딩 때 확정): `NODE_ENV`(`development`·`production`), `PORT`, `DATABASE_URL`, `API_TOKEN`(D-036), `SCHEDULER_ENABLED`, 소스 키(`DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`), FCM 서비스 계정 키 파일 경로, `LOG_LEVEL`. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
+- dev: `apps/server/.env`(커밋 안 함)를 Node 내장 `--env-file`로 읽는다. 저장소에는 키 이름과 예시 값만 담은 `apps/server/.env.example`을 둔다.
+- prod: VM의 `infra/.env`(권한 600)를 Compose `env_file`로 넘긴다. 이 파일과 서비스 계정 키는 저장소에 넣지 않고, 배포 스크립트의 rsync에서도 제외해 VM에서 직접 관리한다. 서비스 계정 키는 컨테이너에 읽기 전용으로 마운트한다.
+- 외부 소스 키는 dev와 prod가 같은 키를 쓴다(Massive Basic 분당 5회 등 한도가 키 단위). 그래서 dev는 스케줄러를 끄고, 수동 실행도 필요한 작업만 한다. 테스트는 녹화한 응답(fixture)과 가짜 `sources`를 쓰고 실제 소스를 호출하지 않는다(D-038).
+
+### 배치 수동 실행
+- `jobs/`의 작업은 스케줄러와 CLI가 같은 함수를 부른다. `npm run job -w apps/server -- <작업 이름>`이 그 작업을 1회 실행하고 `batch_run`에 기록한 뒤 종료한다. 작업 이름은 스케줄러 등록 이름과 같다.
+- 시각 의존 작업(정산 대기·휴장 판정)은 CLI에서 기준 시각을 인자로 넘길 수 있게 한다(`calc`가 현재 시각을 인자로 받는 규칙, D-041).
+
+### dev 데이터 복원
+- `scripts/`의 복원 스크립트가 VM에서 `pg_dump`(custom 형식)를 받아 로컬 dev DB에 `pg_restore`한다. 받은 덤프 파일은 VM 밖 보관 사본도 겸한다(D-034 백업 후속).
+- 복원 직후 `device`(prod 기기 푸시 토큰)와 보류 알림을 비운다. dev 서버가 prod 기기로 푸시를 보내지 않게 하기 위해서다.
+- 복원은 수동으로 필요할 때만 한다. 스키마가 덤프보다 앞서 있으면 복원 뒤 Drizzle 마이그레이션을 적용한다.
+
+### 앱 변형(app variant)
+- `apps/mobile/app.config.ts`가 `APP_VARIANT`(`development`·`production`, 기본 `production`)로 설정을 바꾼다. Expo 공식 app variant 방식(https://docs.expo.dev/build-reference/variants/).
+
+| 항목 | development | production |
+|---|---|---|
+| 앱 이름 | `futureETP Dev` | `futureETP` |
+| Android package / iOS bundle ID | `<기본 ID>.dev` | `<기본 ID>`(스캐폴딩 때 확정) |
+| 아이콘 | 구분 표시가 있는 아이콘 | 기본 |
+| 서버 주소 | `DEV_API_URL`(로컬 `.env.local`, 없으면 에뮬레이터 주소) | prod 도메인(app config에 커밋) |
+| HTTP | 로컬 서버라 평문 HTTP 허용(개발 빌드) | HTTPS만 |
+| EAS Update | 받지 않음(Metro로 개발) | 채널 `production` |
+
+- 서버 주소는 비밀 값이 아니므로 app config `extra`에 넣고 앱은 `expo-constants`로 읽는다. 읽는 곳은 `src/api`의 설정 모듈 하나다. 서버 접근 비밀 값은 여기에 넣지 않는다(EAS Update 번들 노출, D-039 주의. 전달 방식은 TODO 3단계 남은 항목).
+- 같은 기기에 두 변형을 함께 설치한다. 평소 쓰는 release 앱은 개발 빌드를 설치해도 지워지지 않는다.
+- 변형을 바꿀 때는 `APP_VARIANT=<변형> npx expo prebuild --clean` 뒤에 빌드한다(CNG, D-027). 루트 또는 앱 `package.json` 스크립트로 묶어 변형을 빠뜨리지 않게 한다.
+- EAS Update는 `APP_VARIANT=production`으로 app config를 평가해야 한다. 발행 명령도 스크립트로 묶는다. 스캐폴딩 때 `eas update`가 로컬 `.env` 파일을 읽는지, EAS 환경 변수(`--environment`)가 필요한지 확인한다(EAS Build는 `.env`를 읽지 않음, Expo 문서).
+- 푸시: Firebase 프로젝트 하나에 두 package의 Android 앱을 함께 등록한다. 내려받은 `google-services.json` 하나에 두 앱 정보가 모두 들어가므로 서버 서비스 계정 키도 하나로 dev·prod 양쪽에 보낸다.

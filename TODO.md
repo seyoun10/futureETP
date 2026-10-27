@@ -44,8 +44,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 디렉터리 구조: `apps/mobile`·`apps/server`·`packages/shared`(API 계약만) (2026-10-27, D-040)
 - [x] 레이어 구성: 앱 route·UI·상태·데이터 접근, 서버 진입점(api·jobs) → calc·sources·push·db (2026-10-27, D-041)
 - [x] API 통신 및 에러 처리 규약: 응답 봉투 + HTTP 상태, 앱 zod 검증, freshness로 자동 새로고침 (2026-10-27, D-042)
-- [ ] **[다음 작업]** 환경 설정 분리 (dev / prod)
-- [ ] 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체(EAS Update 번들 노출 주의, D-039), 운영자 실패 알림, 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
+- [x] 환경 설정 분리: dev는 로컬 Mac(스케줄러 꺼짐·prod 덤프 복원), prod는 VM, 앱은 `APP_VARIANT` 두 변형 (2026-10-27, D-043)
+- [ ] **[다음 작업]** 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체(EAS Update 번들 노출 주의, D-039), 운영자 실패 알림, DB 백업 주기·보관 위치(D-034, D-043), 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
