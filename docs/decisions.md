@@ -414,7 +414,7 @@
 
 ## D-032: 차트 라이브러리 — Victory Native XL + Skia 커스텀 레이어
 - 날짜: 2026-10-23
-- 상태: 확정 (개발 초기 스파이크로 검증)
+- 상태: 확정 (개발 초기 스파이크로 검증 → 통과, D-056)
 - 맥락: TODO 2단계. C-a는 일봉 봉차트(log y축, 보이는 봉 기준 y 범위 자동 맞춤), 이평선, 이평선을 따라가는 rare-level 밴드 10개, 롤 음영·전환 마커, 우측 y축 라벨 겹침 우선순위, 고가·저가 꼬리표, 핀치·드래그, 길게 누르기 십자선과 봉 스냅 햅틱이 필요하다. '전체'는 2010-06부터라 봉이 약 4,000개다. C-b는 월물 카테고리 x축 선차트와 점 툴팁, C-c는 선 5개 겹침(선형 y축)이다.
 - 선택지: Victory Native XL / 자체 구현(Skia + d3-scale) / TradingView lightweight-charts(WebView)
 - 결정:
@@ -834,3 +834,30 @@
 - 검증(2026-10-27): `npm run android:dev -w apps/mobile` 첫 빌드 5분 52초(Gradle 9.4.1) 성공, dev 변형(`io.github.seyoon.futureetp.dev`) 설치·실행, JS 번들 실행(`Running "main"`, Fabric) 확인, 크래시 없음.
 - 참고: prebuild가 `apps/mobile/.gitignore`(`expo-env.d.ts`)를 만들어 함께 커밋한다(지우면 다시 생긴다).
 - iOS 시뮬레이터(같은 날 추가): Expo prebuild가 `pod install`을 실행하므로 CocoaPods 1.17.0을 Homebrew로 설치했다(시스템 Ruby 2.6에 gem 설치는 피함). Xcode 27.1, 시뮬레이터 iPhone 17(iOS 27.1)에서 `npm run ios:dev -w apps/mobile -- --device "iPhone 17"`로 빌드 성공, Pod 110개, dev 변형 설치·JS 번들 실행 확인, 크래시 없음.
+
+## D-056: C-a 차트 스파이크 결과 — Victory Native XL 유지, y 맞춤·x축·범위 제한은 직접 구현
+- 날짜: 2026-10-27
+- 상태: 확정 (핀치 손동작·햅틱 촉감은 수동 확인 대기, 실기기 성능은 기기 설치 때 재확인)
+- 맥락: TODO 5단계 첫 작업, D-032 검증 항목 5개. 스파이크 화면은 `apps/mobile/src/features/chart-spike/`(dev route `futureetp-dev://dev/chart-spike`, 시드 고정 합성 일봉 4,000개).
+- 결과
+  - log 축: 통과. `axisOptions.axisScales.yAxisScale: 'log'`. 꼬리는 `wickStrokeWidth={0}`(Skia 헤어라인)이라 변환 행렬로 확대해도 1px로 유지된다.
+  - x축만 핀치·드래그: 통과. `transformConfig`의 `dimensions: 'x'`. 단 라이브러리에 범위 제한이 없어 직접 넣었다(축소는 '전체'까지, 확대는 최소 20봉, 이동은 데이터 시작~끝).
+  - 보이는 봉 기준 y 자동 맞춤: 라이브러리 기능은 없지만 구현 가능. 행렬이 바뀔 때마다 UI 스레드 `useAnimatedReaction`이 보이는 봉의 고가·저가 픽셀로 y 배율·이동을 다시 써 넣는다(`fitTransform`). log 축도 픽셀 공간에서는 선형이라 배율·이동만으로 맞는다. 봉 4,000개 순회 비용은 측정에서 차이가 없었다.
+  - 봉 4,000개 성능: 통과(에뮬레이터 기준). 아래 측정.
+  - 십자선 스냅 햅틱: 통과. `useChartPressState` + `chartPressConfig.pan.activateAfterLongPress`(300ms). 십자선은 press 위치(변환 전 좌표)를 행렬로 바꿔 UI 스레드 파생값으로만 그린다. `matchedIndex`가 바뀔 때 `expo-haptics` `selectionAsync`를 부른다(호출 횟수로 확인, 촉감은 실기기 필요).
+- 직접 구현이 필요한 것(본 구현에 반영)
+  - x축: 라이브러리 x축 라벨은 y 스케일 도메인 하단에 놓여서 y를 다시 맞추면 화면 밖으로 밀린다. x축은 끄고(`font: null`) 보이는 봉의 월 경계로 눈금을 고르는 Skia 레이어로 그린다(`monthTicks`, 1월은 연도).
+  - y축 눈금은 `enableRescaling: true`여야 보이는 범위 기준으로 다시 계산된다. d3 log 눈금이라 범위에 따라 위쪽 라벨이 비는 구간이 있다. 실제 화면은 현재가·이평선·rare-level 라벨을 직접 그리므로(screens.md C-a) 영향이 작다.
+  - 한글: Skia `matchFont`는 시스템 글꼴 대체(fallback)를 하지 않아 '월' 같은 한글이 □로 나온다. 차트 글자는 한글 글꼴을 번들해 `useFont`로 쓰거나 Skia Paragraph를 쓴다(본 구현 때 결정).
+  - '전체'(k=1)에서 드래그하면 제스처가 x를 바꾸고 보정이 되돌리는 쓰기 충돌로 FPS가 47~55로 떨어진다. 본 구현에서는 k=1이면 이동 제스처를 막는다.
+- 성능 측정(디버그·release 빌드 같은 경향, UI 스레드 `useFrameCallback` 1초 평균, adb 스와이프 연속 입력)
+
+  | 조건 | 드래그 중 FPS |
+  |---|---|
+  | 12M·4Y(데이터 4,000봉) | 57~60 |
+  | 봉 500개 / y 맞춤 끔 | 57~60 (차이 없음) |
+  | '전체' 드래그 | 47~55 (위 쓰기 충돌) |
+  | 정지 | 60 |
+
+- 주의: 에뮬레이터 `Pixel_API_36`은 기본이 `hw.gpu.enabled=no`라 SwiftShader(CPU 렌더링)로 돈다. 이때는 무엇을 하든 다시 그릴 때 약 25~30fps로 묶여 차트 성능을 잴 수 없다. 성능을 볼 때는 `emulator -avd Pixel_API_36 -gpu host`로 띄운다(M1 Pro GPU, `dumpsys SurfaceFlinger`의 GLES가 Apple이면 정상).
+- 근거: 검증 항목 5개가 모두 라이브러리 위에서 해결됐고, 직접 구현한 부분(y 맞춤·x축·범위 제한·십자선)도 같은 기반(Skia·Reanimated·Gesture Handler)이라 D-032의 자체 구현 전환은 필요 없다. D-046의 열 배열 전환은 스파이크가 합성 데이터라 판단하지 못했다. API 연동 때 실제 응답으로 파싱 시간을 재서 정한다.

@@ -1,6 +1,7 @@
 import { matchFont } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
@@ -32,7 +33,7 @@ const PERIODS = [
   { label: '3M', bars: 63 },
   { label: '12M', bars: 252 },
   { label: '4Y', bars: 1008 },
-  { label: 'ALL', bars: BAR_COUNT },
+  { label: 'ALL', bars: Number.MAX_SAFE_INTEGER },
 ] as const;
 
 const font = matchFont({
@@ -79,7 +80,18 @@ function CandleLayer({ points, chartBounds, geom }: CandleLayerProps) {
 }
 
 export function ChartSpikeScreen() {
-  const bars = useMemo(() => makeSyntheticBars(BAR_COUNT), []);
+  // 성능 비교용 딥링크 파라미터: ?bars=500, ?fit=0(y 맞춤 끔)
+  const params = useLocalSearchParams<{
+    bars?: string;
+    fit?: string;
+    outside?: string;
+    yaxis?: string;
+  }>();
+  const barCount = Number(params.bars) || BAR_COUNT;
+  const fitEnabled = params.fit !== '0';
+  const outsideEnabled = params.outside !== '0';
+  const yAxisEnabled = params.yaxis !== '0';
+  const bars = useMemo(() => makeSyntheticBars(barCount), [barCount]);
   const dates = useMemo(() => bars.map((b) => b.date), [bars]);
   const { state: transform } = useChartTransformState();
   const geom = useSharedValue<CandleGeom | null>(null);
@@ -127,7 +139,7 @@ export function ChartSpikeScreen() {
     () => transform.matrix.get(),
     (m) => {
       const g = geom.get();
-      if (!g) return;
+      if (!g || !fitEnabled) return;
       const c = getTransformComponents(m);
       const t = fitTransform(g, c.scaleX, c.translateX);
       if (
@@ -150,6 +162,12 @@ export function ChartSpikeScreen() {
     },
   );
 
+  // 화면 캡처 없이 측정할 수 있게 로그로도 남긴다.
+  const reportFps = (v: { avg: number; worst: number }) => {
+    setFps(v);
+    console.log(`[spike-fps] ${v.avg} fps, worst ${v.worst} ms`);
+  };
+
   // UI 스레드 프레임 간격으로 1초마다 평균 FPS와 가장 긴 프레임을 잰다.
   const frameStats = useSharedValue({ frames: 0, elapsed: 0, worst: 0 });
   useFrameCallback(({ timeSincePreviousFrame }) => {
@@ -159,7 +177,7 @@ export function ChartSpikeScreen() {
     s.elapsed += timeSincePreviousFrame;
     s.worst = Math.max(s.worst, timeSincePreviousFrame);
     if (s.elapsed >= 1000) {
-      scheduleOnRN(setFps, {
+      scheduleOnRN(reportFps, {
         avg: Math.round((s.frames * 1000) / s.elapsed),
         worst: Math.round(s.worst),
       });
@@ -189,7 +207,7 @@ export function ChartSpikeScreen() {
           padding={{ bottom: 24 }}
           yAxis={[
             {
-              font,
+              font: yAxisEnabled ? font : null,
               axisSide: 'right',
               labelColor: '#9e9e9e',
               lineColor: '#2a2a2a',
@@ -198,27 +216,29 @@ export function ChartSpikeScreen() {
               formatYLabel: (v) => v.toFixed(2),
             },
           ]}
-          renderOutside={({ points, chartBounds }) => (
-            <>
-              <XAxisLayer
-                dates={dates}
-                chartBounds={chartBounds}
-                x0={points.high[0]?.x ?? 0}
-                dx={(points.high[1]?.x ?? 0) - (points.high[0]?.x ?? 0)}
-                font={font}
-                labelColor="#9e9e9e"
-                gridColor="#2a2a2a"
-              />
-              <CrosshairLayer
-                press={press}
-                transform={transform}
-                chartBounds={chartBounds}
-                dates={dates}
-                font={font}
-                color="#bdbdbd"
-              />
-            </>
-          )}
+          renderOutside={({ points, chartBounds }) =>
+            outsideEnabled && (
+              <>
+                <XAxisLayer
+                  dates={dates}
+                  chartBounds={chartBounds}
+                  x0={points.high[0]?.x ?? 0}
+                  dx={(points.high[1]?.x ?? 0) - (points.high[0]?.x ?? 0)}
+                  font={font}
+                  labelColor="#9e9e9e"
+                  gridColor="#2a2a2a"
+                />
+                <CrosshairLayer
+                  press={press}
+                  transform={transform}
+                  chartBounds={chartBounds}
+                  dates={dates}
+                  font={font}
+                  color="#bdbdbd"
+                />
+              </>
+            )
+          }
         >
           {({ points, chartBounds }) => (
             <CandleLayer points={points} chartBounds={chartBounds} geom={geom} />
