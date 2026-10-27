@@ -54,6 +54,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-sqlite',
     // 기본값으로 Android 자동 백업에서 SecureStore 값을 뺀다(복원된 암호문은 읽을 수 없음)
     'expo-secure-store',
+    // 접근 키 QR 읽기만 쓴다(D-044). 녹화를 하지 않으므로 마이크 권한은 넣지 않는다.
+    [
+      'expo-camera',
+      {
+        cameraPermission: 'Allow $(PRODUCT_NAME) to scan the server access key QR code.',
+        microphonePermission: false,
+        recordAudioAndroid: false,
+      },
+    ],
     ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
     [
       'expo-splash-screen',

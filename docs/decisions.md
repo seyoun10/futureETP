@@ -1219,3 +1219,20 @@
   - Expo Router `Stack.Protected`는 보호할 화면을 모두 나열해야 하고, 막혔을 때 어느 화면으로 가는지가 덜 명확하다. 루트에서 바꿔 그리면 경로 목록을 따로 관리하지 않는다.
   - `TextInput` 붙여넣기는 네이티브 모듈을 늘리지 않고, 키를 화면에 보여 주지 않는다.
 - 후속: 5-6에서 `GET /v1/settings`가 생기기 전에는 실서버 확인이 `NOT_FOUND`로 실패한다(dev 변형은 `DEV_API_TOKEN`으로 건너뜀).
+
+## D-078: 접근 키 QR 읽기 — `expo-camera` `CameraView`를 B-b 안에, 마이크 권한 없음, 카메라를 못 열면 붙여넣기 안내
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 접근 키 B-b 둘째 단계(D-044, D-077 후속). D-044는 QR 입력과 권한 거부·카메라 없음 때 붙여넣기 안내를 정했지만, 스캐너 방식과 권한 범위는 정하지 않았다. iOS 시뮬레이터에는 카메라가 없고, `CameraView.isAvailableAsync()`는 웹 전용이다.
+- 선택지: `CameraView` 화면 안 미리보기 / `CameraView.launchScanner()` 시스템 스캐너(iOS 16+ `DataScannerViewController`, Android Google 코드 스캐너)
+- 결정:
+  - `expo-camera` ~58.0.12(`npx expo install`). 플러그인은 `cameraPermission` 문구만 주고 `microphonePermission: false`·`recordAudioAndroid: false`로 마이크 권한을 넣지 않는다.
+  - [QR 읽기]를 누르면 `useCameraPermissions`의 요청 함수로 권한을 받고, 허용되면 B-b 안에 `CameraView`(`barcodeTypes: ['qr']`, 정사각형)와 [취소]를 띄운다(`QrScanner`). 거부되거나 요청이 실패하면 "카메라를 쓸 수 없습니다. 키를 붙여넣어 주세요."를 보여 준다.
+  - `onMountError`(카메라 없음)도 카메라를 닫고 같은 안내를 띄운다. 붙여넣기는 언제나 쓸 수 있다.
+  - 읽은 내용은 `parseAccessKey(data, { requirePrefix: true })`로 거른다. 접두사·형식이 아니면 "접근 키 QR이 아닙니다."를 보여 주고 계속 읽는다. 받아들인 QR은 ref로 한 번만 넘겨(카메라는 QR이 보이는 동안 이벤트를 계속 보냄) 카메라를 닫고 붙여넣기와 같은 확인·저장 흐름을 탄다.
+  - Jest는 `jest.setup.ts`에서 `CameraView`를 props를 그대로 받는 `View`로, 권한 요청을 기본 허용으로 mock한다(`mockRequestCameraPermission`으로 결과를 바꿈).
+- 근거:
+  - 시스템 스캐너는 기기·Play 서비스 지원 여부에 따라 달라지고 모달 생명주기를 따로 다뤄야 한다. 화면 안 미리보기는 두 플랫폼에서 같은 흐름이고 Jest로 이벤트를 그대로 검증한다.
+  - 녹화를 하지 않으므로 마이크 권한은 요청 이유가 없다.
+- 영향: Android 권한 `CAMERA`, iOS `NSCameraUsageDescription`. 네이티브 모듈이라 재빌드가 필요하다.
+

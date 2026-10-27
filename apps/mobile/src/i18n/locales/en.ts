@@ -5,6 +5,7 @@ export const en: Translation = {
     retry: 'Retry',
     loading: 'Loading',
     back: 'Back',
+    cancel: 'Cancel',
   },
   commodities: {
     GC: 'Gold',
@@ -53,6 +54,10 @@ export const en: Translation = {
     badFormat: 'The key format is invalid.',
     rejected: 'The key was not accepted.',
     saved: 'Set',
+    scanQr: 'Scan QR',
+    scannerLabel: 'QR camera',
+    notKeyQr: 'This QR is not an access key.',
+    cameraUnavailable: 'The camera is unavailable. Paste the key instead.',
   },
   alertSettings: {
     title: 'Alert settings',

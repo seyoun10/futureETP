@@ -126,7 +126,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 접근 키 B-b: QR(`futureetp-key:v1:`)·붙여넣기, `GET /v1/settings`로 확인 후 SecureStore, `UNAUTHORIZED` 시 B-b 이동, `scripts/` 키 생성·QR (D-044)
   - [x] SecureStore 저장·붙여넣기 입력·첫 실행 B-b(키 없으면 스택 대신)·B 목록 `설정됨` (2026-10-27, D-077)
     - [ ] 5-6 `GET /v1/settings` 뒤 키 확인 응답을 설정 스키마로 바꾸고 실서버로 확인
-  - [ ] QR 읽기(`expo-camera`, 권한 거부·카메라 없음 안내)
+  - [x] QR 읽기(`expo-camera`, 권한 거부·카메라 없음 안내) (2026-10-27, D-078)
+    - [ ] 재빌드 후 Android 기기에서 권한 요청·QR 읽기 확인
   - [ ] `UNAUTHORIZED` 시 어느 화면에서든 B-b로 이동 + 오류 줄
   - [ ] `scripts/` 키 생성·QR 표시
 

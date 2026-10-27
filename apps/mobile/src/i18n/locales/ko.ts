@@ -7,6 +7,7 @@ export const ko = {
     retry: '다시 시도',
     loading: '불러오는 중',
     back: '뒤로',
+    cancel: '취소',
   },
   commodities: {
     GC: '금',
@@ -54,6 +55,10 @@ export const ko = {
     badFormat: '키 형식이 맞지 않습니다.',
     rejected: '키가 맞지 않습니다.',
     saved: '설정됨',
+    scanQr: 'QR 읽기',
+    scannerLabel: 'QR 카메라',
+    notKeyQr: '접근 키 QR이 아닙니다.',
+    cameraUnavailable: '카메라를 쓸 수 없습니다. 키를 붙여넣어 주세요.',
   },
   alertSettings: {
     title: '알림 설정',

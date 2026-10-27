@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -6,22 +7,25 @@ import { parseAccessKey, useHasAccessKey } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { QrScanner } from './QrScanner';
 import { useSaveAccessKey } from './useSaveAccessKey';
 
+// 서버에 묻기 전에 앱이 거른 경우의 안내
+type Notice = 'badFormat' | 'notKeyQr' | 'cameraUnavailable';
+
 // B-b 접근 키(screens.md B-b, D-044). 키가 없으면 루트 레이아웃이 스택 대신 이 화면을 띄운다([←] 없음).
-// 저장하면 첫 실행은 루트가 스택으로 바꾸고, 그 밖에는 들어온 화면으로 돌아간다. QR 읽기는 다음 단계에서 붙인다.
+// 저장하면 첫 실행은 루트가 스택으로 바꾸고, 그 밖에는 들어온 화면으로 돌아간다.
+// QR이 기본이고, 카메라를 못 쓰면(권한 거부·시뮬레이터) 붙여넣기만 쓰라고 안내한다.
 export function AccessKeyScreen() {
   const { t } = useTranslation();
   const hasKey = useHasAccessKey();
   const [input, setInput] = useState('');
-  const [badFormat, setBadFormat] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [, requestCameraPermission] = useCameraPermissions();
   const save = useSaveAccessKey();
 
-  const submit = () => {
-    const key = parseAccessKey(input);
-    setBadFormat(key === null);
-    save.reset();
-    if (key === null) return;
+  const verifyAndSave = (key: string) => {
     save.mutate(key, {
       onSuccess: () => {
         if (hasKey) router.back();
@@ -29,13 +33,65 @@ export function AccessKeyScreen() {
     });
   };
 
-  const errorMessage = badFormat ? t('accessKey.badFormat') : saveErrorMessage(save.error, t);
+  const submit = () => {
+    const key = parseAccessKey(input);
+    setNotice(key === null ? 'badFormat' : null);
+    save.reset();
+    if (key !== null) verifyAndSave(key);
+  };
+
+  const startScan = async () => {
+    setNotice(null);
+    save.reset();
+    const granted = await requestCameraPermission().then(
+      (permission) => permission.granted,
+      () => false,
+    );
+    if (granted) setScanning(true);
+    else setNotice('cameraUnavailable');
+  };
+
+  const onScanned = (data: string) => {
+    const key = parseAccessKey(data, { requirePrefix: true });
+    if (key === null) {
+      setNotice('notKeyQr');
+      return false;
+    }
+    setNotice(null);
+    setScanning(false);
+    verifyAndSave(key);
+    return true;
+  };
+
+  const onCameraUnavailable = () => {
+    setScanning(false);
+    setNotice('cameraUnavailable');
+  };
+
+  const errorMessage = notice ? t(`accessKey.${notice}`) : saveErrorMessage(save.error, t);
 
   return (
     <View style={styles.container}>
       <ScreenHeader title={t('settings.accessKey')} showBack={hasKey} />
       <View style={styles.body}>
         <Text style={styles.guide}>{t('accessKey.guide')}</Text>
+        {scanning ? (
+          <QrScanner
+            onScanned={onScanned}
+            onUnavailable={onCameraUnavailable}
+            onCancel={() => setScanning(false)}
+          />
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: save.isPending }}
+            disabled={save.isPending}
+            onPress={() => void startScan()}
+            style={styles.button}
+          >
+            <Text style={styles.buttonText}>{t('accessKey.scanQr')}</Text>
+          </Pressable>
+        )}
         <TextInput
           value={input}
           onChangeText={setInput}

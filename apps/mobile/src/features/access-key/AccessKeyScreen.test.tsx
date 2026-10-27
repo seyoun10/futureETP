@@ -7,6 +7,9 @@ import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/verifyAccessKey', () => ({ verifyAccessKey: jest.fn() }));
 const mockVerify = jest.mocked(verifyAccessKey);
+const { mockRequestCameraPermission } = jest.requireMock<{
+  mockRequestCameraPermission: jest.Mock<Promise<{ granted: boolean }>, []>;
+}>('expo-camera');
 
 const KEY = 'k'.repeat(43);
 
@@ -14,6 +17,7 @@ beforeEach(() => {
   useDisplaySettings.getState().setLanguage('ko');
   useAccessKeyStore.setState({ key: null });
   mockVerify.mockReset().mockResolvedValue(undefined);
+  mockRequestCameraPermission.mockClear().mockResolvedValue({ granted: true });
 });
 
 const renderApp = (initialUrl = '/') =>
@@ -22,6 +26,11 @@ const renderApp = (initialUrl = '/') =>
 const enterKey = async (input: string) => {
   await fireEvent.changeText(screen.getByLabelText('키 붙여넣기'), input);
   await fireEvent.press(screen.getByRole('button', { name: '확인' }));
+};
+
+const openScanner = async () => {
+  await fireEvent.press(screen.getByRole('button', { name: 'QR 읽기' }));
+  return screen.getByLabelText('QR 카메라');
 };
 
 describe('B-b 접근 키', () => {
@@ -69,5 +78,57 @@ describe('B-b 접근 키', () => {
 
     expect(screen).toHavePathname('/settings');
     expect(useAccessKeyStore.getState().key).toBe(KEY);
+  });
+
+  describe('QR 읽기', () => {
+    it('접두사가 있는 QR을 읽으면 한 번만 확인하고 저장한다', async () => {
+      await renderApp();
+      const camera = await openScanner();
+      await fireEvent(camera, 'barcodeScanned', { data: `futureetp-key:v1:${KEY}` });
+      await fireEvent(camera, 'barcodeScanned', { data: `futureetp-key:v1:${KEY}` });
+
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+      expect(mockVerify).toHaveBeenCalledWith(KEY);
+      expect(await screen.findByText('원유 / CL')).toBeOnTheScreen();
+    });
+
+    it('접두사가 없는 QR은 받지 않고 계속 읽는다', async () => {
+      await renderApp();
+      const camera = await openScanner();
+      await fireEvent(camera, 'barcodeScanned', { data: KEY });
+
+      expect(screen.getByRole('alert')).toHaveTextContent('접근 키 QR이 아닙니다.');
+      expect(mockVerify).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('QR 카메라')).toBeOnTheScreen();
+    });
+
+    it('[취소]하면 카메라를 닫는다', async () => {
+      await renderApp();
+      await openScanner();
+      await fireEvent.press(screen.getByRole('button', { name: '취소' }));
+
+      expect(screen.queryByLabelText('QR 카메라')).not.toBeOnTheScreen();
+    });
+
+    it('권한이 거부되면 붙여넣기를 안내하고, 붙여넣기는 그대로 쓴다', async () => {
+      mockRequestCameraPermission.mockResolvedValue({ granted: false });
+      await renderApp();
+      await fireEvent.press(screen.getByRole('button', { name: 'QR 읽기' }));
+
+      expect(screen.queryByLabelText('QR 카메라')).not.toBeOnTheScreen();
+      expect(screen.getByRole('alert')).toHaveTextContent(/카메라를 쓸 수 없습니다/);
+
+      await enterKey(KEY);
+      expect(mockVerify).toHaveBeenCalledWith(KEY);
+    });
+
+    it('카메라를 열지 못하면(시뮬레이터) 닫고 붙여넣기를 안내한다', async () => {
+      await renderApp();
+      const camera = await openScanner();
+      await fireEvent(camera, 'mountError', { message: 'no camera' });
+
+      expect(screen.queryByLabelText('QR 카메라')).not.toBeOnTheScreen();
+      expect(screen.getByRole('alert')).toHaveTextContent(/카메라를 쓸 수 없습니다/);
+    });
   });
 });

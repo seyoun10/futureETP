@@ -33,6 +33,18 @@ jest.mock('expo-secure-store', () => {
   };
 });
 
+// expo-camera도 네이티브 모듈이다. 카메라는 props를 그대로 받는 View로 두고(테스트가 이벤트를 보냄),
+// 권한 요청은 기본으로 허용한다. 테스트는 mockRequestCameraPermission으로 결과를 바꾼다.
+jest.mock('expo-camera', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const requestPermission = jest.fn(() => Promise.resolve({ granted: true }));
+  return {
+    CameraView: View,
+    useCameraPermissions: () => [null, requestPermission, jest.fn()],
+    mockRequestCameraPermission: requestPermission,
+  };
+});
+
 // Jest에는 app config extra가 없다. 키가 없는 prod 변형으로 둔다(테스트가 필요하면 키를 직접 넣음).
 jest.mock('@/api/config', () => ({
   isDevVariant: false,
