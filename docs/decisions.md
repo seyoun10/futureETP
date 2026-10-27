@@ -1066,3 +1066,23 @@
   - M2를 넣고도 뒤를 이으면 미달 월물을 건너뛴 셈이 되어 "처음 미달하면 멈춘다"(D-018 연속 구간)와 어긋난다.
   - 0 이하 가격에서는 비율이 의미 없다. 커브 점 자체는 실제 가격이라 그대로 그린다.
 - 영향: 커브 라우트(5-6)가 `trading_day`·`daily_bar`·`intraday_snapshot`·FRONT `roll_weight`를 읽어 이 함수들을 부른다.
+
+## D-069: 알림 판정 calc — 닿음은 경계 포함, 판정마다 방향별 1건, 더 드문 레벨이 덮음, 재시도·지연 발송 계획
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-2 알림 판정. D-006·D-007·D-023·D-026은 규칙만 정해, 레벨에 "닿음"의 경계, 설정을 바꿔 새 레벨이 생겼을 때 같은 날 이미 보낸 더 드문 레벨과의 관계, 재시도를 어느 배치가 하는지, 재시도 시각이 거부 시간일 때, 지연 발송을 묶는 단위가 정해지지 않았다.
+- 결정
+  - `apps/server/src/calc/alert.ts`. DB 조회·발송·`ctx.tradeDate`는 호출자(5-8 `INTRADAY`·`DEFERRED_PUSH`) 몫이다. 레벨 p는 작을수록 드물다.
+  - `touchedLevels(sorted, levels, direction, disparity)`: UP은 고가 이격도 ≥ `rareLevelDisparity(UP, p)`, DOWN은 저가 이격도 ≤ `rareLevelDisparity(DOWN, p)`이면 닿음(경계 포함). 닿은 레벨을 드문 순(p 오름차순)으로 돌려준다. 이격도가 null이거나 분포가 비면 빈 배열.
+  - `isQuietTime(now, timeZone, startMin, endMin)`: `now`의 그 시간대 현지 자정 기준 분 m으로 판정. start < end면 `start ≤ m < end`, start > end(자정 넘김)면 `m ≥ start || m < end`. 둘 중 하나라도 null이면 false.
+  - 덮음(covered): 같은 조건(원자재·기준값·이평선·N·CME 거래일)·방향에서 더 드문 레벨의 기록이 `SENT`·`HELD`·`RETRY` 중 하나이면 그 레벨은 덮였다. `HELD`는 곧 보낼 것이고 `RETRY`는 다시 보낼 것이라 함께 센다. `SUPPRESSED`·`FAILED`는 세지 않는다.
+  - `planDetections({ sorted, levels, highDisparity, lowDisparity, existing, quiet })`: `existing`은 같은 조건·거래일의 기록(방향·레벨·상태). 방향별로 닿은 레벨 중 가장 드문 r이 기록이 없고 덮이지 않았으면 r을 `SEND`(거부 시간이면 `HELD`)로, 닿았지만 기록 없는 나머지 레벨은 모두 `SUPPRESSED`로 넣는다. r이 이미 기록됐거나 덮였으면 기록 없는 닿은 레벨을 모두 `SUPPRESSED`로 넣는다. 결과 행마다 판정 이격도(UP 고가, DOWN 저가)를 붙인다.
+    - 설정을 바꿔 새로 생긴 덜 드문 레벨은 그날 더 드문 레벨을 이미 보냈으면 보내지 않는다. 키가 다르면 새 조건이라는 D-006 규칙은 원자재·기준값·이평선·N 변경에만 그대로 적용된다.
+  - `planRetries(retries, existing, quiet)`: `RETRY` 기록마다 덮였으면 `SUPPRESSED`, 아니면 `SEND`(거부 시간이면 `HELD`). 같은 조건·방향에 `RETRY`가 여럿이면 더 드문 `RETRY`가 덜 드문 것을 덮으므로 가장 드문 1건만 보낸다. 재시도는 `RETRY`가 생긴 뒤 처음 도는 `INTRADAY`·`DEFERRED_PUSH` 중 먼저 오는 배치가 한다(같은 시각이면 D-026 순서대로 `DEFERRED_PUSH`). 장 상태와 무관하게 30분 안에 다시 보낸다.
+  - `statusAfterSend(delivered, isRetry)`: 한 기기라도 성공하면 `SENT`, 모두 실패면 첫 발송은 `RETRY`, 재시도는 `FAILED`(D-023). 지연 발송도 첫 발송으로 친다.
+  - `planDeferred(held, quiet)`: 거부 시간이면 아무것도 하지 않는다. 아니면 `HELD`를 원자재·방향으로 묶어 가장 드문 1건을 `SEND`, 나머지를 `SUPPRESSED`로 한다. 같은 레벨이면 `detectedAt`이 늦은 쪽을 보낸다. CME 거래일·기준값·이평선·N은 묶음 기준이 아니다(보류 중 거래일이 바뀌어도 방향별 1건, product.md).
+- 근거
+  - 레벨 선에 꼬리가 "닿으면" 알림이라 같은 값도 닿은 것이다. rare-level 선과 꼬리 백분위가 같은 보간을 써서(D-067) 차트와 판정이 어긋나지 않는다.
+  - 상위 5%를 받은 날 같은 방향으로 새로 추가한 12% 알림이 뒤늦게 오면 정보 없이 소음만 늘어난다. D-023의 재시도 억제와 같은 규칙으로 맞춘다.
+  - 재시도를 `INTRADAY`에만 맡기면 정산 대기·휴장으로 몇 시간 밀릴 수 있다.
+- 영향: product.md 6절(닿음 경계·새 레벨), data-model.md `alert_record` 설명(덮음 상태). 5-8에서 `INTRADAY`·`DEFERRED_PUSH`가 이 함수를 쓴다.
