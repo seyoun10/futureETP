@@ -1,0 +1,1456 @@
+{
+  "id": "1271e309-a03b-4449-9db7-cea310d6b472",
+  "prevId": "1025d5fb-e472-47d1-ac38-486d3af95fb1",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.active_month_rule": {
+      "name": "active_month_rule",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_from": {
+          "name": "valid_from",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valid_to": {
+          "name": "valid_to",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "months": {
+          "name": "months",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "active_month_rule_commodity_code_commodity_code_fk": {
+          "name": "active_month_rule_commodity_code_commodity_code_fk",
+          "tableFrom": "active_month_rule",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "active_month_rule_commodity_code_valid_from_pk": {
+          "name": "active_month_rule_commodity_code_valid_from_pk",
+          "columns": [
+            "commodity_code",
+            "valid_from"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.alert_record": {
+      "name": "alert_record",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ma_period": {
+          "name": "ma_period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window": {
+          "name": "window",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "direction": {
+          "name": "direction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rare_level": {
+          "name": "rare_level",
+          "type": "numeric(3, 1)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "disparity": {
+          "name": "disparity",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detected_at": {
+          "name": "detected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "alert_record_status_index": {
+          "name": "alert_record_status_index",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "alert_record_commodity_code_commodity_code_fk": {
+          "name": "alert_record_commodity_code_commodity_code_fk",
+          "tableFrom": "alert_record",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "alert_record_dedup_key": {
+          "name": "alert_record_dedup_key",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "ma_period",
+            "window",
+            "direction",
+            "rare_level",
+            "trade_date"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.app_settings": {
+      "name": "app_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "default": 1
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ko'"
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Asia/Seoul'"
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'FRONT'"
+        },
+        "ma_period": {
+          "name": "ma_period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 100
+        },
+        "window": {
+          "name": "window",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Y10'"
+        },
+        "rare_levels": {
+          "name": "rare_levels",
+          "type": "numeric(3, 1)[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{5,10,15,20,25}'"
+        },
+        "alert_commodity": {
+          "name": "alert_commodity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quiet_start_min": {
+          "name": "quiet_start_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quiet_end_min": {
+          "name": "quiet_end_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "app_settings_alert_commodity_commodity_code_fk": {
+          "name": "app_settings_alert_commodity_commodity_code_fk",
+          "tableFrom": "app_settings",
+          "columnsFrom": [
+            "alert_commodity"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "app_settings_single_row": {
+          "name": "app_settings_single_row",
+          "value": "\"app_settings\".\"id\" = 1"
+        },
+        "app_settings_quiet_time": {
+          "name": "app_settings_quiet_time",
+          "value": "(\"app_settings\".\"quiet_start_min\" IS NULL AND \"app_settings\".\"quiet_end_min\" IS NULL) OR (\n        \"app_settings\".\"quiet_start_min\" BETWEEN 0 AND 1410 AND \"app_settings\".\"quiet_start_min\" % 30 = 0\n        AND \"app_settings\".\"quiet_end_min\" BETWEEN 0 AND 1410 AND \"app_settings\".\"quiet_end_min\" % 30 = 0\n        AND \"app_settings\".\"quiet_start_min\" <> \"app_settings\".\"quiet_end_min\")"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.batch_run": {
+      "name": "batch_run",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "job": {
+          "name": "job",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scheduled_at": {
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attempt": {
+          "name": "attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ops_notified_at": {
+          "name": "ops_notified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "batch_run_job_started_at_index": {
+          "name": "batch_run_job_started_at_index",
+          "columns": [
+            {
+              "expression": "job",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "started_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.commodity": {
+      "name": "commodity",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name_ko": {
+          "name": "name_ko",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_en": {
+          "name": "name_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "exchange": {
+          "name": "exchange",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price_decimals": {
+          "name": "price_decimals",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uses_active_months": {
+          "name": "uses_active_months",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.contract": {
+      "name": "contract",
+      "schema": "",
+      "columns": {
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contract_month": {
+          "name": "contract_month",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_trade_date": {
+          "name": "first_trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_trade_date": {
+          "name": "last_trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_target": {
+          "name": "is_target",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "contract_commodity_code_last_trade_date_index": {
+          "name": "contract_commodity_code_last_trade_date_index",
+          "columns": [
+            {
+              "expression": "commodity_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "last_trade_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "contract_commodity_code_commodity_code_fk": {
+          "name": "contract_commodity_code_commodity_code_fk",
+          "tableFrom": "contract",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.daily_bar": {
+      "name": "daily_bar",
+      "schema": "",
+      "columns": {
+        "contract_symbol": {
+          "name": "contract_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "open": {
+          "name": "open",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high": {
+          "name": "high",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "settle": {
+          "name": "settle",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "volume": {
+          "name": "volume",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "collected_at": {
+          "name": "collected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revised_at": {
+          "name": "revised_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "daily_bar_trade_date_index": {
+          "name": "daily_bar_trade_date_index",
+          "columns": [
+            {
+              "expression": "trade_date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "daily_bar_contract_symbol_contract_symbol_fk": {
+          "name": "daily_bar_contract_symbol_contract_symbol_fk",
+          "tableFrom": "daily_bar",
+          "columnsFrom": [
+            "contract_symbol"
+          ],
+          "tableTo": "contract",
+          "columnsTo": [
+            "symbol"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "daily_bar_contract_symbol_trade_date_pk": {
+          "name": "daily_bar_contract_symbol_trade_date_pk",
+          "columns": [
+            "contract_symbol",
+            "trade_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.device": {
+      "name": "device",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "platform": {
+          "name": "platform",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "push_token": {
+          "name": "push_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "app_version": {
+          "name": "app_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "device_pushToken_unique": {
+          "name": "device_pushToken_unique",
+          "columns": [
+            "push_token"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.disparity": {
+      "name": "disparity",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ma_period": {
+          "name": "ma_period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ma": {
+          "name": "ma",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disparity": {
+          "name": "disparity",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "disparity_commodity_code_commodity_code_fk": {
+          "name": "disparity_commodity_code_commodity_code_fk",
+          "tableFrom": "disparity",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "disparity_commodity_code_basis_ma_period_trade_date_pk": {
+          "name": "disparity_commodity_code_basis_ma_period_trade_date_pk",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "ma_period",
+            "trade_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.disparity_distribution": {
+      "name": "disparity_distribution",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ma_period": {
+          "name": "ma_period",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window": {
+          "name": "window",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "as_of_trade_date": {
+          "name": "as_of_trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actual_start_date": {
+          "name": "actual_start_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sample_count": {
+          "name": "sample_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sorted_values": {
+          "name": "sorted_values",
+          "type": "double precision[]",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "disparity_distribution_commodity_code_commodity_code_fk": {
+          "name": "disparity_distribution_commodity_code_commodity_code_fk",
+          "tableFrom": "disparity_distribution",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "disparity_distribution_commodity_code_basis_ma_period_window_pk": {
+          "name": "disparity_distribution_commodity_code_basis_ma_period_window_pk",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "ma_period",
+            "window"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.index_bar": {
+      "name": "index_bar",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "open": {
+          "name": "open",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high": {
+          "name": "high",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "close": {
+          "name": "close",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "blended_price": {
+          "name": "blended_price",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_valid": {
+          "name": "is_valid",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "in_roll_period": {
+          "name": "in_roll_period",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "index_bar_commodity_code_commodity_code_fk": {
+          "name": "index_bar_commodity_code_commodity_code_fk",
+          "tableFrom": "index_bar",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "index_bar_commodity_code_basis_trade_date_pk": {
+          "name": "index_bar_commodity_code_basis_trade_date_pk",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "trade_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.index_scale": {
+      "name": "index_scale",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ratio": {
+          "name": "ratio",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "index_scale_commodity_code_commodity_code_fk": {
+          "name": "index_scale_commodity_code_commodity_code_fk",
+          "tableFrom": "index_scale",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "index_scale_commodity_code_basis_pk": {
+          "name": "index_scale_commodity_code_basis_pk",
+          "columns": [
+            "commodity_code",
+            "basis"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.index_snapshot": {
+      "name": "index_snapshot",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "open": {
+          "name": "open",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high": {
+          "name": "high",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last": {
+          "name": "last",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "disparity_by_ma": {
+          "name": "disparity_by_ma",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "index_snapshot_captured_at_index": {
+          "name": "index_snapshot_captured_at_index",
+          "columns": [
+            {
+              "expression": "captured_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "index_snapshot_commodity_code_commodity_code_fk": {
+          "name": "index_snapshot_commodity_code_commodity_code_fk",
+          "tableFrom": "index_snapshot",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "index_snapshot_commodity_code_basis_captured_at_pk": {
+          "name": "index_snapshot_commodity_code_basis_captured_at_pk",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "captured_at"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.intraday_snapshot": {
+      "name": "intraday_snapshot",
+      "schema": "",
+      "columns": {
+        "contract_symbol": {
+          "name": "contract_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "captured_at": {
+          "name": "captured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last": {
+          "name": "last",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day_open": {
+          "name": "day_open",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "day_high": {
+          "name": "day_high",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "day_low": {
+          "name": "day_low",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "volume": {
+          "name": "volume",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_time": {
+          "name": "source_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "intraday_snapshot_captured_at_index": {
+          "name": "intraday_snapshot_captured_at_index",
+          "columns": [
+            {
+              "expression": "captured_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "intraday_snapshot_contract_symbol_contract_symbol_fk": {
+          "name": "intraday_snapshot_contract_symbol_contract_symbol_fk",
+          "tableFrom": "intraday_snapshot",
+          "columnsFrom": [
+            "contract_symbol"
+          ],
+          "tableTo": "contract",
+          "columnsTo": [
+            "symbol"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "intraday_snapshot_contract_symbol_captured_at_pk": {
+          "name": "intraday_snapshot_contract_symbol_captured_at_pk",
+          "columns": [
+            "contract_symbol",
+            "captured_at"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.roll_rule": {
+      "name": "roll_rule",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "params": {
+          "name": "params",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "adopted_from": {
+          "name": "adopted_from",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "majority_rule_id": {
+          "name": "majority_rule_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "majority_checked_at": {
+          "name": "majority_checked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "roll_rule_commodity_code_commodity_code_fk": {
+          "name": "roll_rule_commodity_code_commodity_code_fk",
+          "tableFrom": "roll_rule",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "roll_rule_commodity_code_basis_pk": {
+          "name": "roll_rule_commodity_code_basis_pk",
+          "columns": [
+            "commodity_code",
+            "basis"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.roll_weight": {
+      "name": "roll_weight",
+      "schema": "",
+      "columns": {
+        "commodity_code": {
+          "name": "commodity_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "basis": {
+          "name": "basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contract_symbol": {
+          "name": "contract_symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "weight": {
+          "name": "weight",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "roll_weight_commodity_code_commodity_code_fk": {
+          "name": "roll_weight_commodity_code_commodity_code_fk",
+          "tableFrom": "roll_weight",
+          "columnsFrom": [
+            "commodity_code"
+          ],
+          "tableTo": "commodity",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "roll_weight_contract_symbol_contract_symbol_fk": {
+          "name": "roll_weight_contract_symbol_contract_symbol_fk",
+          "tableFrom": "roll_weight",
+          "columnsFrom": [
+            "contract_symbol"
+          ],
+          "tableTo": "contract",
+          "columnsTo": [
+            "symbol"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "roll_weight_commodity_code_basis_trade_date_contract_symbol_pk": {
+          "name": "roll_weight_commodity_code_basis_trade_date_contract_symbol_pk",
+          "columns": [
+            "commodity_code",
+            "basis",
+            "trade_date",
+            "contract_symbol"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.trading_day": {
+      "name": "trading_day",
+      "schema": "",
+      "columns": {
+        "trade_date": {
+          "name": "trade_date",
+          "type": "date",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_open_at": {
+          "name": "session_open_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_close_at": {
+          "name": "session_close_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halt_start_at": {
+          "name": "halt_start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "halt_end_at": {
+          "name": "halt_end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_early_close": {
+          "name": "is_early_close",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
