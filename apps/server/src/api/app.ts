@@ -6,11 +6,14 @@ import type { AuthFailureLimit } from './auth.ts';
 import { clientIp as defaultClientIp } from './clientIp.ts';
 import { ApiException } from './errors.ts';
 import { fail, ok } from './response.ts';
+import { settingsRoutes } from './settings.ts';
+import type { SettingsStore } from './settings.ts';
 
 export type AppOptions = {
   token: string;
   // health에서 DB 연결을 확인한다. 실패하면 throw한다.
   checkDb: () => Promise<void>;
+  settings: SettingsStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   now?: () => number;
@@ -68,6 +71,7 @@ export function createApp(options: AppOptions) {
     '*',
     bearerAuth({ token: options.token, limiter, clientIp: options.clientIp ?? defaultClientIp }),
   );
+  v1.route('/settings', settingsRoutes(options.settings));
 
   app.route('/v1', v1);
   return app;

@@ -2,11 +2,16 @@ import { serve } from '@hono/node-server';
 import { createApp } from './api/app.ts';
 import { config } from './config.ts';
 import { db, pingDb } from './db/client.ts';
+import { createSettingsStore } from './db/settingsStore.ts';
 import { createBatchRunStore } from './jobs/batchRunStore.ts';
 import { JOB_HANDLERS } from './jobs/handlers.ts';
 import { startScheduler } from './jobs/scheduler.ts';
 
-const app = createApp({ token: config.API_TOKEN, checkDb: pingDb });
+const app = createApp({
+  token: config.API_TOKEN,
+  checkDb: pingDb,
+  settings: createSettingsStore(db),
+});
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(

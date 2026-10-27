@@ -10,6 +10,10 @@ function setup(checkDb: () => Promise<void> = async () => {}) {
   const app = createApp({
     token: TOKEN,
     checkDb,
+    settings: {
+      get: () => Promise.reject(new Error('unused')),
+      update: () => Promise.reject(new Error('unused')),
+    },
     dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,

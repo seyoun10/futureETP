@@ -1264,3 +1264,19 @@
   - 키를 명령 인자로 받으면 셸 기록·프로세스 목록에 남는다.
   - 생성한 QR을 이미지로 그려 macOS CoreImage로 읽어 내용이 같음을 확인했다.
 - 영향: ESLint Node 전역을 `scripts/**`에도 건다. 앱·서버 코드 변경 없음.
+
+## D-081: 설정 API — shared 스키마 하나로 검증, `quietTime` 객체, 부분 PATCH, 전체 설정 응답
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-6 설정 첫 단계. product.md는 설정 값의 범위(rare 레벨 0.1~49.9·소수 첫째 자리·서로 다른 5개·저장 때 오름차순, 거부 시간 30분 단위·자정 넘김)만 정했고, architecture는 `GET·PATCH /v1/settings`만 적었다. 응답 모양, PATCH 범위, 검증 위치가 정해지지 않았다.
+- 선택지: PATCH 범위 — 전체 교체(PUT) / 바꿀 필드만(부분). 거부 시간 — DB처럼 두 필드 / `quietTime: { startMin, endMin } | null`. 검증 — 서버만 / shared 스키마를 앱·서버가 함께
+- 결정:
+  - `packages/shared/src/settings.ts`: 응답 `settingsSchema`(`locale`·`timezone`·`basis`·`maPeriod`·`window`·`rareLevels`·`alertCommodity`·`quietTime`)와 본문 `settingsPatchSchema`(모든 필드 선택, 모르는 필드 거절, rare 레벨 정렬 transform). 범위 상수(`RARE_LEVEL_*`·`QUIET_*`)도 내보낸다.
+  - 시간대는 `Intl.DateTimeFormat`이 받는 IANA 이름만 받는다. `updatedAt`은 응답에 넣지 않는다.
+  - 서버 `api/settings.ts`의 `settingsRoutes(store)`를 `createApp`의 `settings` 옵션으로 연결한다. DB 구현은 `db/settingsStore.ts`(id=1 행 갱신 + `updatedAt`, `quietTime` ↔ 두 컬럼). PATCH는 바꾼 뒤의 전체 설정을 돌려준다. JSON이 아니거나 스키마 실패면 `VALIDATION_FAILED`(메시지 `z.prettifyError`).
+  - 앱 `src/api/settings.ts`에 `getSettings`·`patchSettings`, B-b 키 확인(`verifyAccessKey`)은 응답을 `settingsSchema`로 검증한다.
+- 근거:
+  - 시간대(앱 실행)·언어(B)·이격도차트 설정(B)·알림 설정(B-a)을 서로 다른 화면이 따로 바꾸므로 부분 PATCH가 맞다. 전체 교체는 다른 기기가 바꾼 값을 덮는다.
+  - `quietTime`을 객체로 두면 "둘 다 null이거나 둘 다 있음"(DB check)을 타입이 지킨다.
+  - 같은 스키마로 앱 입력 오류를 그 자리에서 보이고(product.md) 서버도 같은 규칙으로 막는다.
+- 영향: dev DB와 임시 dev 서버(curl)로 조회·부분 변경·정렬·거절을 확인했다. 네이티브 변경 없음.
