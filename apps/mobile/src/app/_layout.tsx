@@ -10,6 +10,9 @@ import { colors } from '@/theme/tokens';
 setupFocusManager();
 setupI18n();
 
+// 알림 탭 등으로 C에 바로 들어와도 스택을 A → C로 만들어 [←]가 A로 가게 한다(screens.md X).
+export const unstable_settings = { anchor: 'index' };
+
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>

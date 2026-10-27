@@ -1,3 +1,4 @@
+import type { CommodityCode } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
 
 // 번역 리소스의 기준 언어. en은 이 구조를 그대로 따라야 한다(키 누락은 타입 오류).
@@ -5,12 +6,38 @@ export const ko = {
   common: {
     retry: '다시 시도',
     loading: '불러오는 중',
+    back: '뒤로',
+  },
+  commodities: {
+    GC: '금',
+    SI: '은',
+    CL: '원유',
+    NG: '천연가스',
+  } satisfies Record<CommodityCode, string>,
+  commodity: {
+    rotate: '가로/세로 전환',
+    tabs: {
+      disparity: '이격도차트',
+      curve: '월물커브',
+      contracts: '월물차트',
+      etps: 'ETP',
+    },
+  },
+  etp: {
+    detailTitle: 'ETP 상세',
   },
   settings: {
+    title: '설정',
+    alerts: '알림',
+    accessKey: '접근 키',
+    dataSources: '데이터 출처',
     language: '언어',
     upDownStyle: '등락 색',
     upDownStyleKR: '한국식',
     upDownStyleUS: '미국식',
+  },
+  alertSettings: {
+    title: '알림 설정',
   },
   // 에러 code별 사용자 문구(D-042). 서버 message는 보여 주지 않는다.
   errors: {

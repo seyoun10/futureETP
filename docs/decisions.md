@@ -1157,3 +1157,21 @@
   - 전역 기본 인스턴스 대신 `createInstance()`를 쓰면 default import의 멤버 접근 lint 경고가 없고, 테스트에서 같은 함수로 초기화된다.
   - 서버에 보내는 언어(푸시 문구용)는 설정 API가 생기는 5-6 B 화면에서 연결한다.
 - 영향: `architecture.md` 앱 디렉터리, `tech-stack.md` 상태 관리·i18n 행. 앱 의존성 `zustand` 5.0.16, `expo-sqlite`, `expo-localization`, `i18next` 26.5.11, `react-i18next` 17.1.9.
+
+## D-074: 앱 라우트 골격 — 탭 그룹 + 탭 밖 스택, JS 하단 탭, `anchor`로 A → C 스택, 레이아웃도 features에
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 세 번째 항목. D-029·D-047이 Expo Router·하단 탭·탭 밖 C-d-a를 정했지만 파일 배치, 탭 구현, 알림·딥 링크로 바로 들어올 때의 스택, C [←] 동작, 테스트 방법은 정하지 않았다.
+- 결정:
+  - 경로: A `/`, B `/settings`, B-a `/settings/alerts`, B-b `/settings/access-key`, 데이터 출처 `/settings/data-sources`, C `/commodity/[code]`(C-a), `/curve`(C-b), `/contracts`(C-c), `/etps`(C-d), C-d-a `/commodity/[code]/etp/[id]`.
+  - C는 `commodity/[code]/_layout`(Stack) 아래 `(tabs)` 그룹(하단 탭 4개)과 `etp/[id]`(탭 밖 스택)를 둔다.
+  - 하단 탭은 `expo-router/js-tabs`(JS 탭)다. `expo-router`의 `Tabs`는 SDK 58에서 deprecated이고, 네이티브 탭은 title-bar를 탭 위에 직접 그리고 가로 모드에서 높이를 줄이기 어렵다. 탭 아이콘 없이 문구만, `backBehavior="none"`.
+  - 바로 들어온 경우(푸시 탭·딥 링크)에도 스택을 A → C, C 탭 → C-d-a로 만들도록 루트는 `unstable_settings.anchor = 'index'`, C 스택은 `anchor = '(tabs)'`다(SDK 58에서 `initialRouteName`은 deprecated).
+  - C title-bar [←]는 `router.dismissTo('/')`로 탭 이력과 상관없이 A로 간다. 스택 화면 header는 공용 `ScreenHeader`([←] = `router.back()`).
+  - 레이아웃 컴포넌트도 화면처럼 `src/features/`에 named export로 두고 route 파일은 재내보내기만 한다(D-029·D-050 규칙을 `_layout`에도 적용). 루트 `_layout`은 앱 전체 provider라 예외로 둔다.
+  - 이동 테스트는 `expo-router/testing-library`의 `renderRouter({ appDir: 'src/app', overrides })`로 실제 route 트리를 쓴다. Skia를 불러오는 스파이크 route만 override로 뺀다. Jest 기기 언어는 영어라 테스트에서 표시 설정 언어를 `ko`로 고정한다.
+  - A의 원자재 이름 행, 각 화면 내용은 임시이고 5-6 이후 수직 슬라이스에서 채운다. 아이콘은 글리프 문자(`←`·`⚙︎`)로 두고 아이콘 세트는 디자인 단계에서 정한다.
+- 근거:
+  - 탭 그룹을 스택 안에 두면 C-d-a에서 하단 탭이 사라지고 [←]가 직전 탭으로 돌아온다(screens.md C-d-a).
+  - mock 컴포넌트 대신 실제 route 트리로 테스트하면 파일 이름·그룹 배치 실수도 잡힌다.
+- 영향: `architecture.md` 앱 디렉터리 route 줄. 가로 전환([⟲], C-a~C-c)은 별도 커밋(네이티브 모듈 설치·재빌드 필요).

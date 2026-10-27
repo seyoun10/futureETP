@@ -14,8 +14,8 @@ futureETP/
 │  │     ├─ app/                   Expo Router route 파일만 (default export 재내보내기, D-029, D-050)
 │  │     │  ├─ _layout.tsx
 │  │     │  ├─ index.tsx           A 원자재 목록
-│  │     │  ├─ settings/           B 설정(index), B-a 알림 설정, B-b 접근 키, 데이터 출처
-│  │     │  └─ commodity/[code]/   C 하단 탭 그룹(C-a~C-d), 탭 밖 스택 etp/[id] = C-d-a (D-047)
+│  │     │  ├─ settings/           B 설정(index), B-a alerts, B-b access-key, data-sources (D-074)
+│  │     │  └─ commodity/[code]/   Stack: (tabs)/ 하단 탭 index(C-a)·curve·contracts·etps, 탭 밖 etp/[id] = C-d-a (D-047, D-074)
 │  │     ├─ features/              화면 단위: 화면·전용 컴포넌트·query hook
 │  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
