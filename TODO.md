@@ -69,7 +69,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Android 에뮬레이터: dev 변형 빌드·설치·실행 (2026-10-27, D-055)
   - [x] iOS 시뮬레이터: CocoaPods 설치, iPhone 17(iOS 27.1)에서 dev 변형 빌드·설치·실행
 - [x] CLAUDE.md 갱신 (Tech Stack, Architecture, Commands, 2026-10-27): D-050~D-055 결과(버전, 서버 ESM import 규칙, `@/` 별칭, 변형·`extra` 읽는 곳, 마이그레이션, RNTL `await render`) 반영
-- [x] SessionStart hook(~/.claude/hooks/swift-env.sh)에 Node 버전 주입 추가 (package.json 존재 시, 2026-10-27): Node·npm·`.nvmrc`·macOS·Xcode 버전 한 줄
+- [x] SessionStart hook(~/.claude/hooks/dev-env.sh, 기존 swift-env.sh에서 이름 변경)에 Node 버전 주입 추가 (package.json 존재 시, 2026-10-27): Node·npm·`.nvmrc`·macOS·Xcode 버전 한 줄
 
 ## 5. 개발
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
