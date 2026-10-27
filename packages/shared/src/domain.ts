@@ -25,3 +25,7 @@ export type Platform = (typeof PLATFORMS)[number];
 // 장 상태(D-022, architecture.md freshness)
 export const MARKET_STATES = ['OPEN', 'CLOSED', 'SETTLEMENT_PENDING'] as const;
 export type MarketState = (typeof MARKET_STATES)[number];
+
+// 커브 상태(M1→M2로 판정, product.md 월물커브)
+export const CURVE_STATES = ['CONTANGO', 'BACKWARDATION', 'FLAT'] as const;
+export type CurveState = (typeof CURVE_STATES)[number];

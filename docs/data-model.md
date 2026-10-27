@@ -174,7 +174,7 @@ erDiagram
 - **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 첫 유효일 지수는 그날 혼합 가격이다. 지수나 혼합 가격이 0 이하인 날은 산출 불가이고, 비율은 마지막 유효일의 `blended_price / close`다(D-066).
 - **이격도**: `disparity`는 원자재 4 × 기준값 3 × 이평선 4 = 48개 시계열, `disparity_distribution`은 × N 4종 = 192행이다. 일일 정산 배치가 통째로 다시 쓴다. 산출 불가 기간은 `disparity`에 행을 두지 않고, 이평선은 유효 종가만 이어 K개로 계산한다. 분포는 기준 거래일 − N년 초과인 날의 이격도이고 `actual_start_date`는 쓴 첫 표본의 거래일이다(D-067).
 - **오늘 잠정 봉**: 장중 배치가 `index_snapshot`에 쓴다. 알림 판정은 이 고가·저가 이격도를 쓰고, C-a의 오늘 봉은 가장 최근 스냅숏을 쓴다.
-- **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 캐시나 materialized view는 두지 않는다. 커브 라우트만 원천값을 읽어 `calc` 함수로 만든다(D-046).
+- **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 캐시나 materialized view는 두지 않는다. 커브 라우트만 원천값을 읽어 `calc` 함수로 만든다(D-046, D-068).
 - **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06, 첫 거래일은 2010-06-07)부터 영구 보관한다. C-b 기준일 하한은 가장 이른 `trade_date`다(D-020). `intraday_snapshot`·`index_snapshot`은 90일, `alert_record`·`batch_run`은 1년 보관한다(D-046).
 
 ## 4. ETP

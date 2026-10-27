@@ -1050,3 +1050,19 @@
   - 꼬리 백분위를 보간의 역함수로 구하면 rare-level 선에 닿은 가격이 정확히 그 레벨(예: 상위 5%)로 표시되어 차트 밴드와 좌하단 표시가 어긋나지 않는다.
   - 경계 초과로 두면 표본 기간이 정확히 N년이고 같은 날짜가 양쪽 끝에 들어가지 않는다.
 - 영향: 재계산 파이프라인(5-3)이 `disparity`·`disparity_distribution`을 이 함수로 채운다. 장중 배치(5-7)·알림 판정은 `liveDisparity`·`rareLevelDisparity`를 쓴다.
+
+## D-068: 커브 calc — 거래량 창, M2 미달 처리, 값 없는 월물, 0 이하 가격
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-2 커브. D-018·D-026은 월물 선택 기준만 정해, 커브 날짜의 M1이 `roll_weight`의 어느 행인지, M2가 거래량 미달일 때 그 뒤를 이을지, 그날 값이 없는 월물, 가격이 0 이하인 날(2020-04 CL)의 변화율·롤 수익률이 정해지지 않았다.
+- 결정
+  - `apps/server/src/calc/curve.ts`. 상수 `CURVE_MIN_AVG_VOLUME`(100)·`CURVE_VOLUME_DAYS`(20)·`CURVE_MAX_CONTRACTS`(24).
+  - `volumeWindow(tradingDays, curveDate, settled)`: 커브 날짜까지 마지막 20거래일. 그날 정산이 없으면(D가 장중·정산 대기) 그날을 뺀다. `averageVolume`은 창 안에 일봉이 있는 날만 평균하고 없으면 0이다(`research/curve-settlement.md`).
+  - `selectCurve(candidates, curveDate, frontSymbol)`: 대상이고 `last_trade_date >= curveDate`이며 그날 값(정산가, 없으면 최근 스냅숏)이 있는 월물을 만기순으로 잇는다. M1 앞 월물과 M1은 거래량 무관, M2는 항상 넣되 M2가 미달이면 M2에서 멈춘다. M3부터는 처음 미달한 월물을 빼고 멈춘다. 대표월물이 후보에 없으면 처음부터 거래량으로 판정하고 M1·M2는 없다.
+  - `frontSymbol`은 커브 날짜에 보유한 대표월물 = 그 전 거래일의 FRONT `roll_weight` 행이다(D-066: 행 t는 다음 거래일 대표월물).
+  - `compareCurves(base, current)`: 월물로 합쳐 만기순. 변화율은 두 커브에 모두 있고 기준일 값이 0보다 클 때만이다. 한쪽에만 있는 월물은 기간 중 만기·신규 상장뿐 아니라 거래량 기준으로 한쪽 커브에서 빠진 경우도 포함한다.
+  - `curveSummary(m1, m2)`: 상태(shared `CURVE_STATES`: M2 > M1 `CONTANGO`, M2 < M1 `BACKWARDATION`, 같으면 `FLAT`), 스프레드 `(M2/M1 − 1) × 100`, 연환산 롤 수익률, 최종 거래일 사이 달력 일수. M1·M2가 없거나 가격이 0 이하이면 null(화면은 수치 요약 대신 "산출 불가").
+- 근거
+  - M2를 넣고도 뒤를 이으면 미달 월물을 건너뛴 셈이 되어 "처음 미달하면 멈춘다"(D-018 연속 구간)와 어긋난다.
+  - 0 이하 가격에서는 비율이 의미 없다. 커브 점 자체는 실제 가격이라 그대로 그린다.
+- 영향: 커브 라우트(5-6)가 `trading_day`·`daily_bar`·`intraday_snapshot`·FRONT `roll_weight`를 읽어 이 함수들을 부른다.
