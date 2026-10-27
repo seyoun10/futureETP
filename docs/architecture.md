@@ -145,7 +145,11 @@ type Freshness = {
 - 앱은 화면이 보이는 동안 `nextUpdateAt` + 여유 1분에 해당 query를 다시 조회한다(D-030 후속). `null`이면 자동 새로고침하지 않고 당겨서 새로고침과 앱 복귀 재조회만 한다.
 
 ### 앱 fetch 래퍼와 AppError
-- `src/api`의 래퍼가 인증 헤더, 타임아웃(15초, `AbortSignal.timeout`), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.
+- `src/api`의 래퍼가 인증 헤더, 타임아웃(15초), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.
+- 래퍼는 `apiRequest(path, schema, { method, query, body, auth, signal })` 하나다(`src/api/client.ts`). 엔드포인트 함수(`src/api/health.ts` 등)가 이것을 부르고, query key는 `src/api/queryKeys.ts`, query client는 `src/api/queryClient.ts`에 둔다(D-072).
+  - 접근 키는 `src/api/accessToken.ts` `getAccessToken()`에서만 읽는다(지금은 dev 토큰, SecureStore는 D-044 항목에서). 키가 없으면 요청하지 않고 `UNAUTHORIZED`를 던진다.
+  - 타임아웃은 내부 `AbortController` + `setTimeout`으로 만들고 호출자 `signal`(TanStack Query 취소)을 연결한다. 호출자 취소는 `AppError`로 바꾸지 않고 그대로 던진다.
+  - 봉투가 아닌 응답(프록시 502 HTML 등)은 HTTP 5xx면 `INTERNAL`(재시도), 그 밖은 `SCHEMA_MISMATCH`다. 모르는 에러 `code`도 `SCHEMA_MISMATCH`다.
 - `AppError`는 `code`(서버 코드 + 앱 코드 `NETWORK`·`TIMEOUT`·`SCHEMA_MISMATCH`), `status?`(HTTP), `cause?`를 가진다. 화면은 `code`만 보고 문구를 고른다.
 - 재시도(TanStack Query `retry`): `NETWORK`·`TIMEOUT`·`INTERNAL`만 최대 2회. 4xx와 `SCHEMA_MISMATCH`는 재시도하지 않는다. mutation은 자동 재시도하지 않는다.
 - 화면 표시: 처음 로딩 실패는 오류 화면 + [다시 시도]. 이미 데이터가 있는 상태의 새로고침 실패는 기존 데이터를 유지하고 기준 시각 줄로 오래됨을 알린다(product.md 배치 실패 시).

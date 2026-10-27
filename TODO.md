@@ -114,7 +114,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [ ] 18:30 CT에 일부 월물 정산가가 빠지는지 실측(① 부분 응답 허용, D-071)
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
-- [ ] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (D-030, D-042)
+- [x] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (2026-10-27, D-072)
 - [ ] 테마 토큰·등락 색, i18n(ko/en, `errors.<code>`), Zustand persist 표시 설정 (D-031, D-033, D-047)
 - [ ] 라우트 골격: A, C 하단 탭(C-a~C-d)·`etp/[id]`, B·B-a·B-b·데이터 출처, 가로 전환 (D-047)
 - [ ] 공용 UI: 기준 시각 줄(freshness), 로딩·오류·[다시 시도] 화면, `nextUpdateAt` 자동 새로고침 hook

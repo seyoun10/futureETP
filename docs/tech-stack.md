@@ -9,7 +9,7 @@
 | 언어 / 패키지 매니저 | TypeScript(strict, 앱은 SDK가 고정한 ~6.0) / npm, Node 26(`.nvmrc`·`engines`) | D-028, D-050 |
 | 내비게이션 | Expo Router (route 파일만 default export) | D-029 |
 | 상태 관리 | Zustand v5 + persist(`expo-sqlite/kv-store`), 기기별 UI 설정(언어·등락 색·기간 선택)만 | D-030, D-047 |
-| 데이터 패칭 | TanStack Query v5 + `fetch` 래퍼, 영속 캐시 없음 | D-030 |
+| 데이터 패칭 | TanStack Query v5(`@tanstack/react-query` 5.105.0) + `fetch` 래퍼(`src/api`, 응답은 shared zod 스키마로 검증), 영속 캐시 없음 | D-030, D-042, D-072 |
 | UI / 스타일링 | `StyleSheet` + typed 테마 토큰(다크 전용), UI 키트 없음 | D-031 |
 | 차트 라이브러리 | Victory Native XL(`victory-native` 42.0.1 고정) + Skia 커스텀 레이어 (C-a 스파이크 통과: y 맞춤·x축·범위 제한은 직접 구현) | D-032, D-050, D-056 |
 | i18n | i18next + react-i18next, `expo-localization`, 숫자·날짜는 `Intl` | D-033 |

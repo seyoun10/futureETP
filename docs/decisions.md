@@ -1120,3 +1120,21 @@
   - 따라잡기가 없으면 하루 정산이 끝내 실패한 뒤 다음 날 재계산이 보유 월물 정산가 누락으로 계속 실패한다(D-070).
   - 정정을 확인하지 못한 이평선·분포로 알림을 보내지 않는다(product.md 배치 실패 규칙). 최종 실패만 보지 않고 마지막 실행으로 판정해 재시도 대기 중에도 보수적으로 멈춘다. 장중 고가·저가가 세션 누적이라 늦게 감지할 뿐 놓치지 않는다.
 - 영향: `data-model.md` `batch_run`, `constants.ts` `JOB_NAMES`·`SOURCES`. Healthchecks.io check가 `SETTLE_REVISION` 하나 늘어난다(5-10). 5-4에서 실소스의 일부 월물 누락이 보유 월물에 생기는지 확인한다(생기면 ① 재계산이 실패해 드러남).
+
+## D-072: 앱 API 클라이언트 세부 — 토큰 getter 한 곳, 직접 만든 타임아웃, 봉투 아닌 응답은 HTTP 상태로
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 첫 항목 `src/api`. D-042가 래퍼의 책임(인증 헤더·15초 타임아웃·봉투·data 검증·`AppError`·재시도 규칙)을 정했지만, 접근 키를 SecureStore에 두기 전(5-5 마지막 항목) 주입 방법, RN 런타임에서 `AbortSignal.timeout`을 믿을 수 있는지, 봉투가 아닌 응답의 코드, 키가 없을 때의 동작이 정해지지 않았다.
+- 결정:
+  - 접근 키는 `src/api/accessToken.ts`의 async `getAccessToken()` 한 곳에서 읽는다. 지금은 dev 변형의 `devApiToken`을 돌려주고, D-044 항목에서 SecureStore 메모리 캐시로 바꾼다.
+  - 키가 없는데 인증이 필요한 요청이면 보내지 않고 `AppError('UNAUTHORIZED')`를 던진다. B-b 이동은 같은 코드로 처리된다.
+  - 타임아웃은 `AbortController` + `setTimeout`(15초)으로 만들고 호출자 `signal`을 연결한다. 호출자 취소는 원래 오류 그대로 던져 TanStack Query 취소 처리에 맡긴다.
+  - 봉투가 아닌 응답은 HTTP 5xx면 `INTERNAL`(재시도 대상), 그 밖은 `SCHEMA_MISMATCH`. 모르는 에러 코드(서버가 더 새 버전)도 봉투 불일치로 `SCHEMA_MISMATCH`다.
+  - 재시도 판정 `isRetryable`은 `AppError`만 대상이다. 그 밖의 예외(코드 버그)는 재시도하지 않는다.
+  - query key는 `['commodities', code, ...]` 접두 계층이라 원자재 단위로 무효화한다. `focusManager` + `AppState`는 `queryClient.ts`의 `setupFocusManager()`를 루트 `_layout`에서 부른다.
+  - shared에 `healthSchema`를 두고 `GET /v1/health`를 래퍼의 첫 엔드포인트(`auth: false`)로 쓴다.
+- 근거:
+  - 키 읽는 곳이 하나면 SecureStore 전환 때 래퍼·테스트를 바꾸지 않는다. 키 없이 보내면 서버 인증 실패 횟수 제한(D-059)만 쌓인다.
+  - Hermes·RN의 `AbortSignal.timeout`·`AbortSignal.any` 지원이 확실하지 않고, 직접 만들면 Jest fake timer로 그대로 검증된다.
+  - Caddy 502·503은 서버 재시작·배포 중에 생기므로 재시도할 가치가 있다. 2xx·4xx인데 봉투가 아니면 계약이 어긋난 것이다.
+- 영향: `architecture.md` "앱 fetch 래퍼와 AppError". 앱 의존성 `@futureetp/shared`·`zod`·`@tanstack/react-query` 5.105.0.
