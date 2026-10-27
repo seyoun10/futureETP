@@ -116,7 +116,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
 - [x] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (2026-10-27, D-072)
 - [x] 테마 토큰·등락 색, i18n(ko/en, `errors.<code>`), Zustand persist 표시 설정 (2026-10-27, D-073)
-  - [ ] 5-6 B 화면에서 언어 변경을 서버 설정(푸시 문구용)에도 PATCH
+  - [x] 5-6 B 화면에서 언어 변경을 서버 설정(푸시 문구용)에도 PATCH (2026-10-27, D-082)
 - [x] 라우트 골격: A, C 하단 탭(C-a~C-d)·`etp/[id]`, B·B-a·B-b·데이터 출처, 가로 전환 (D-047)
   - [x] 라우트·placeholder 화면·C title-bar·하단 탭·이동 테스트 (2026-10-27, D-074)
   - [x] [⟲] 가로 전환(C-a~C-c, ETP 탭에서 세로 복귀, 가로에서 title-bar·tab-bar 높이 줄임) (2026-10-27, D-076)
@@ -136,6 +136,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면
   - [x] `GET·PATCH /v1/settings` + shared 스키마(rare 레벨 검증·정렬, 거부 시간, 시간대 IANA) + 앱 `getSettings`·`patchSettings` (2026-10-27, D-081)
   - [ ] B 화면(이격도차트 설정·언어 PATCH·등락 색), 앱 실행 때 시간대 PATCH
+    - [x] 언어·등락 색·기준값·이평선·분포 기간·알림 행(낙관적 PATCH, 실패 시 되돌림·오류 줄) (2026-10-27, D-082)
+    - [ ] rare-level 입력(범위 안내·오류·저장 막기·정렬)
+    - [ ] 앱 실행 때 시간대 PATCH
   - [ ] 데이터 출처 화면
 - [ ] A 원자재 목록: `GET /v1/commodities` + 화면(당겨서 새로고침, 대표월물·알림 표시)
 - [ ] C-a 이격도차트: `GET /v1/commodities/:code/disparity`(기준값 없는 원자재 대체 표시 포함) + 차트 본 구현(스파이크 이관, `src/charts/`), 롤 마커·음영, rare-level 밴드·특수 라벨, 십자선 상세, 기간 버튼(Zustand), 스파이크 삭제

@@ -1,0 +1,80 @@
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, fontSize, spacing } from '@/theme/tokens';
+
+type Option<T> = { value: T; label: string };
+
+type Props<T extends string | number> = {
+  label: string;
+  options: readonly Option<T>[];
+  // 아직 값을 모르면(설정 조회 중) 아무것도 고르지 않은 채로 둔다
+  value: T | undefined;
+  onChange: (value: T) => void;
+};
+
+// 설정 행: 이름 + [a|b|c] 중 하나 고르기. 고른 값을 다시 누르면 아무것도 하지 않는다.
+export function SegmentedControl<T extends string | number>({
+  label,
+  options,
+  value,
+  onChange,
+}: Props<T>) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.label}>{label}</Text>
+      <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.group}>
+        {options.map((option) => {
+          const selected = option.value === value;
+          return (
+            <Pressable
+              key={option.value}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: selected }}
+              onPress={() => {
+                if (!selected) onChange(option.value);
+              }}
+              style={[styles.segment, selected && styles.selected]}
+            >
+              <Text style={styles.segmentText}>{option.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: 44,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  label: {
+    flex: 1,
+    color: colors.text,
+    fontSize: fontSize.body,
+  },
+  group: {
+    flexDirection: 'row',
+    borderRadius: spacing.sm,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  segment: {
+    minHeight: 36,
+    minWidth: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  selected: {
+    backgroundColor: colors.surfaceSelected,
+  },
+  segmentText: {
+    color: colors.text,
+    fontSize: fontSize.body,
+  },
+});

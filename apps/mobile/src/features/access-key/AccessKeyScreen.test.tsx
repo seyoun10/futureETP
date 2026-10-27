@@ -7,6 +7,21 @@ import { verifyAccessKey } from '@/api/verifyAccessKey';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/verifyAccessKey', () => ({ verifyAccessKey: jest.fn() }));
+// B가 설정을 조회하므로 서버에 가지 않게 막는다(B 화면 테스트는 SettingsScreen.test).
+jest.mock('@/api/settings', () => ({
+  getSettings: () =>
+    Promise.resolve({
+      locale: 'ko',
+      timezone: 'Asia/Seoul',
+      basis: 'FRONT',
+      maPeriod: 100,
+      window: 'Y10',
+      rareLevels: [5, 10, 15, 20, 25],
+      alertCommodity: null,
+      quietTime: null,
+    }),
+  patchSettings: jest.fn(),
+}));
 const mockVerify = jest.mocked(verifyAccessKey);
 const { mockRequestCameraPermission } = jest.requireMock<{
   mockRequestCameraPermission: jest.Mock<Promise<{ granted: boolean }>, []>;

@@ -1,28 +1,144 @@
+import { BASES, MA_PERIODS, WINDOWS } from '@futureetp/shared';
+import type { Settings, SettingsPatch } from '@futureetp/shared';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useHasAccessKey } from '@/api/accessToken';
+import { AppError } from '@/api/AppError';
+import { ErrorView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { SegmentedControl } from '@/components/SegmentedControl';
+import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { useSettings, useUpdateSettings } from './useSettings';
 
-// B 설정. 표시·이격도차트 설정 항목은 5-6에서 채우고, 지금은 하위 화면으로 가는 행만 둔다.
+// B 설정(screens.md B). 표시 설정은 기기에, 이격도차트·알림 설정은 서버에 한 벌 저장한다(D-011, D-047).
 export function SettingsScreen() {
   const { t } = useTranslation();
   const hasKey = useHasAccessKey();
+  const settings = useSettings();
+  const update = useUpdateSettings();
+  const save = (patch: SettingsPatch) => update.mutate(patch);
 
   return (
     <View style={styles.container}>
       <ScreenHeader title={t('settings.title')} />
-      <LinkRow label={t('settings.alerts')} href="/settings/alerts" />
-      <LinkRow
-        label={t('settings.accessKey')}
-        // 키 값은 보여 주지 않는다(screens.md B-b)
-        value={hasKey ? t('accessKey.saved') : undefined}
-        href="/settings/access-key"
-      />
-      <LinkRow label={t('settings.dataSources')} href="/settings/data-sources" />
+      <ScrollView>
+        {update.isError && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {t('settings.saveFailed', { reason: errorText(t, update.error) })}
+          </Text>
+        )}
+        <DisplaySection onLanguageChange={(locale) => save({ locale })} />
+        <SectionHeader title={t('settings.sectionDisparity')} />
+        {settings.isError && settings.data === undefined ? (
+          <ErrorView error={settings.error} onRetry={() => void settings.refetch()} />
+        ) : (
+          <DisparitySection settings={settings.data} onChange={save} />
+        )}
+        <View style={styles.divider} />
+        <LinkRow
+          label={t('settings.accessKey')}
+          value={hasKey ? t('accessKey.saved') : undefined}
+          href="/settings/access-key"
+        />
+        <LinkRow label={t('settings.dataSources')} href="/settings/data-sources" />
+      </ScrollView>
     </View>
+  );
+}
+
+const errorText = (t: ReturnType<typeof useTranslation>['t'], error: unknown) =>
+  t(`errors.${error instanceof AppError ? error.code : 'INTERNAL'}`);
+
+// 언어·등락 색은 기기 설정이다. 언어는 푸시 문구에 쓰므로 서버에도 보낸다(마지막으로 바꾼 기기의 값).
+function DisplaySection({
+  onLanguageChange,
+}: {
+  onLanguageChange: (locale: Settings['locale']) => void;
+}) {
+  const { t } = useTranslation();
+  const { language, upDownStyle, setLanguage, setUpDownStyle } = useDisplaySettings();
+  const languageLabels = { ko: t('settings.languageKo'), en: t('settings.languageEn') };
+
+  return (
+    <>
+      <SectionHeader title={t('settings.sectionDisplay')} />
+      <SegmentedControl
+        label={t('settings.language')}
+        options={LANGUAGES.map((value) => ({ value, label: languageLabels[value] }))}
+        value={language}
+        onChange={(value) => {
+          setLanguage(value);
+          onLanguageChange(value);
+        }}
+      />
+      <SegmentedControl
+        label={t('settings.upDownStyle')}
+        options={UP_DOWN_STYLES.map((value) => ({
+          value,
+          label: t(`settings.upDownStyle${value}`),
+        }))}
+        value={upDownStyle}
+        onChange={setUpDownStyle}
+      />
+    </>
+  );
+}
+
+// 조회 중에는 아무것도 고르지 않은 채로 보여 준다. 알림 행은 B-a로 간다.
+function DisparitySection({
+  settings,
+  onChange,
+}: {
+  settings: Settings | undefined;
+  onChange: (patch: SettingsPatch) => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <>
+      <SegmentedControl
+        label={t('settings.basis')}
+        options={BASES.map((value) => ({ value, label: t(`settings.basis${value}`) }))}
+        value={settings?.basis}
+        onChange={(basis) => onChange({ basis })}
+      />
+      <SegmentedControl
+        label={t('settings.maPeriod')}
+        options={MA_PERIODS.map((value) => ({ value, label: String(value) }))}
+        value={settings?.maPeriod}
+        onChange={(maPeriod) => onChange({ maPeriod })}
+      />
+      <SegmentedControl
+        label={t('settings.window')}
+        options={WINDOWS.map((value) => ({
+          value,
+          label: value === 'ALL' ? t('settings.windowALL') : value.slice(1),
+        }))}
+        value={settings?.window}
+        onChange={(window) => onChange({ window })}
+      />
+      <LinkRow
+        label={t('settings.alerts')}
+        value={
+          settings &&
+          (settings.alertCommodity
+            ? t(`commodities.${settings.alertCommodity}`)
+            : t('settings.alertOff'))
+        }
+        href="/settings/alerts"
+      />
+    </>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <Text accessibilityRole="header" style={styles.sectionHeader}>
+      {title}
+    </Text>
   );
 }
 
@@ -40,6 +156,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  error: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: fontSize.caption,
+    backgroundColor: colors.surface,
+  },
+  sectionHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xs,
+    color: colors.textSecondary,
+    fontSize: fontSize.caption,
+  },
+  divider: {
+    height: spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   row: {
     flexDirection: 'row',
