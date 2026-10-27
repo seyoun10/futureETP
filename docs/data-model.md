@@ -1,6 +1,6 @@
 # 데이터 모델 초안
 
-> TODO 1단계 Step 2 산출물. 서버 DB의 논리 모델이다. DB 종류와 물리 타입(배열·JSON 컬럼, 파티셔닝 등)은 TODO 2단계(Tech Stack)에서 정한다.
+> TODO 1단계 Step 2 산출물. 서버 DB의 논리 모델이다. DB는 PostgreSQL(D-035)이고, 물리 타입(배열·JSON 컬럼 등)은 Drizzle 스키마를 쓸 때 정한다.
 > 계산 규칙은 [`product.md`](product.md)가 기준이고, 여기서는 그 규칙을 담을 테이블만 정의한다. 결정 근거는 `decisions.md` D-010.
 
 ## 공통 규약
@@ -19,7 +19,7 @@
 ## 영역 구분
 | 영역 | 테이블 | 갱신 주체 |
 |---|---|---|
-| 1. 시장 기준 데이터 | `commodity`, `contract`, `active_month_rule`, `trading_day` | 거래일 달력 배치, 일일 정산 배치(월물 상장) |
+| 1. 시장 기준 데이터 | `commodity`, `contract`, `active_month_rule`, `trading_day` | 달력 입력 스크립트(점검은 `CALENDAR` 작업, D-047), 일일 정산 배치(월물 상장) |
 | 2. 시세 원천 | `daily_bar`, `intraday_snapshot` | 일일 정산 배치, 장중 배치 |
 | 3. 계산 결과 | `roll_rule`, `roll_weight`, `index_bar`, `index_scale`, `disparity`, `disparity_distribution`, `index_snapshot` | 일일 정산 배치, 장중 배치 |
 | 4. ETP | `etp_product`, `etp_series` | ETP 목록 배치 |
@@ -81,7 +81,6 @@ erDiagram
         decimal low
         decimal settle "정산가"
         bigint volume
-        bigint open_interest "소스가 주면"
         string source
         timestamp collected_at
         timestamp revised_at "정산가 정정 시"
@@ -294,9 +293,8 @@ erDiagram
 | 데이터 | 비고 |
 |---|---|
 | 표시 설정(언어, 등락 색) | 언어는 `app_settings.locale`로도 보냄 |
-| 기간 버튼 선택 | |
+| 기간 버튼 선택(C-a·C-c 따로) | Zustand persist(D-047) |
 | 서버 접근 키 | `expo-secure-store`, B-b에서 QR·붙여넣기로 입력(D-044) |
 
 ## 리서치 후 확정할 항목
-- `daily_bar.open_interest`: 쓰는 기능이 없다. 소스 제공 여부와 관계없이 2단계에서 뺄지 정한다(`intraday_snapshot.day_high/day_low`는 Yahoo가 주는 것을 확인했다).
 - `etp_series.maturity_date`·`listed_date`(국내 ETN), `etp_product.underlying_index`(국내 ETN): KRX Open API 인증키를 받아 필드를 확인한 뒤 소스를 정한다.

@@ -42,10 +42,10 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1~3단계 기획·Tech Stack·A
 ## Key Patterns
 
 - 앱 API 호출은 `fetch` 래퍼 + TanStack Query, 에러는 `AppError` class로 통일 (D-030)
-- 서버 상태는 TanStack Query, 기기별 표시 설정(언어·등락 색)만 Zustand persist (D-030)
+- 서버 상태는 TanStack Query, 기기별 UI 설정(언어·등락 색·기간 선택)만 Zustand persist (D-030, D-047)
 - 차트에 쓰는 색은 테마 토큰에서, 등락 색은 표시 설정에서 읽는다 (D-031)
 - 사용자에게 보이는 문구는 i18n 키로만 쓴다 (D-033)
-- 서버 접근 키는 SecureStore에만 둔다. 앱 번들·app config·저장소에 넣지 않는다 (D-044)
+- 서버 접근 키는 SecureStore에만 둔다. 앱 번들·app config·저장소에 넣지 않는다. 예외는 dev 변형의 `DEV_API_TOKEN`뿐 (D-043, D-044)
 - 커밋 전 `npm run check`(타입 검사·lint·테스트) 통과 (D-038)
 
 ## Coding Conventions

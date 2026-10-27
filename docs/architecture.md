@@ -13,11 +13,11 @@ futureETP/
 │  │  ├─ app/                      Expo Router route 파일만 (default export 재내보내기, D-029)
 │  │  │  ├─ _layout.tsx
 │  │  │  ├─ index.tsx              A 원자재 목록
-│  │  │  ├─ settings/              B 설정(index), B-a 알림 설정(alerts)
-│  │  │  └─ commodity/[code]/      C (_layout = 상단 탭), C-a~C-d 탭, etp/[id] = C-d-a
+│  │  │  ├─ settings/              B 설정(index), B-a 알림 설정, B-b 접근 키, 데이터 출처
+│  │  │  └─ commodity/[code]/      C 하단 탭 그룹(C-a~C-d), 탭 밖 스택 etp/[id] = C-d-a (D-047)
 │  │  └─ src/
 │  │     ├─ features/              화면 단위: 화면·전용 컴포넌트·query hook
-│  │     │                         commodity-list, settings, alert-settings,
+│  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
 │  │     ├─ components/            여러 화면 공용 UI
 │  │     ├─ charts/                Skia 커스텀 레이어·차트 공용 (D-032)
@@ -32,7 +32,7 @@ futureETP/
 │     └─ src/
 │        ├─ main.ts                API + 스케줄러 한 프로세스 (D-034)
 │        ├─ api/                   Hono 라우트·미들웨어(Bearer 검사, 횟수 제한, D-036)
-│        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·거래일 달력)
+│        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·달력 점검·백업)
 │        ├─ calc/                  지수·롤 비중·이평선·이격도·분포·커브 순수 함수
 │        ├─ sources/               외부 수집기(Databento·Massive·Yahoo·Naver·KRX·Nasdaq)
 │        ├─ push/                  FCM·APNs 발송 인터페이스 (D-037)
@@ -62,12 +62,12 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 
 | 계층 | 위치 | 맡는 일 | 하지 않는 일 |
 |---|---|---|---|
-| route | `app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·상단 탭) | 로직, 데이터 조회 |
+| route | `app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·하단 탭, 스와이프 전환 없음, D-047) | 로직, 데이터 조회 |
 | 화면·컴포넌트(UI) | `src/features/*`, `src/components`, `src/charts` | 렌더링, 사용자 입력, 로딩·오류·빈 상태 표시 | `fetch` 직접 호출, 서버 데이터 복사 저장 |
 | 상태 | `src/features/*/use*Query.ts`·`use*Mutation.ts`(서버 상태), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |
 
-- 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 표시 설정(언어·등락 색)만 둔다(D-030). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
+- 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색·C-a/C-c 기간 선택)만 둔다(D-030, D-047). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
 - 화면 안에서만 쓰는 일시 상태(선택한 기준일, 십자선 위치, 가로 모드 등)는 컴포넌트 상태(`useState`·Reanimated shared value)로 둔다.
 - 순수 계산(가격 포맷, 등락 색 선택, 차트 좌표 변환)은 `src/lib`·`src/theme`·`src/charts`의 함수로 두어 컴포넌트 밖에서 테스트한다.
 
