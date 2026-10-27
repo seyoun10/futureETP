@@ -9,6 +9,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env src/db/migrate.ts",
     "job": "node --env-file-if-exists=.env src/jobs/cli.ts",
+    "calendar:import": "node --env-file-if-exists=.env src/db/importCalendar.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

@@ -1,0 +1,18 @@
+{
+  "year": 2026,
+  "closed": [
+    { "date": "2026-01-01", "note": "New Year's Day" },
+    { "date": "2026-04-03", "note": "Good Friday" },
+    { "date": "2026-12-25", "note": "Christmas Day" }
+  ],
+  "halts": [
+    { "date": "2026-01-19", "at": "13:30", "note": "Martin Luther King Jr. Day" },
+    { "date": "2026-02-16", "at": "13:30", "note": "Presidents' Day" },
+    { "date": "2026-05-25", "at": "13:30", "note": "Memorial Day" },
+    { "date": "2026-06-19", "at": "13:30", "note": "Juneteenth" },
+    { "date": "2026-07-03", "at": "13:30", "note": "Independence Day (observed)" },
+    { "date": "2026-09-07", "at": "12:00", "note": "Labor Day" },
+    { "date": "2026-11-26", "at": "13:30", "note": "Thanksgiving Day" }
+  ],
+  "earlyCloses": [{ "date": "2026-11-27", "at": "12:45", "note": "Day after Thanksgiving" }]
+}

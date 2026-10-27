@@ -84,10 +84,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] DB 스키마: 영역 1~3·5·6 Drizzle 정의 + 첫 마이그레이션 + `app_settings` 기본 행 (ETP 테이블은 5-9에서) (2026-10-27, D-058)
 - [x] Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`) (2026-10-27, D-059)
 - [x] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`) (2026-10-27, D-060)
-- [ ] **[다음 작업]** 시장 기준 데이터: `commodity` 시드, `active_month_rule`, `trading_day` 생성 스크립트(연 1회 입력용), 표준 심볼 유틸(D-049)
+- [x] 시장 기준 데이터: `commodity`·`active_month_rule` 시드 마이그레이션, `trading_day` 생성 함수 + `calendar:import` CLI(2026·2027 입력), 표준 심볼 유틸(D-049) (2026-10-27, D-061)
+  - [ ] CME 2027 공식 휴일 공지가 나오면 `scripts/calendar/2027.json` 대조
 
 ### 5-2. calc 순수 함수 (Vitest, product.md 계산 정의를 테스트로 먼저)
-- [ ] 거래일·장 상태: CME 거래일 판정, 장중/휴장/정산 대기, `nextUpdateAt` (D-022, D-048)
+- [ ] **[다음 작업]** 거래일·장 상태: CME 거래일 판정, 장중/휴장/정산 대기, `nextUpdateAt` (D-022, D-048)
 - [ ] 월물 목록: 대상 월물, 만기순 5개 + 대표월물 6번째 (금속 활성 월물)
 - [ ] 대표월물 전환: 전일 거래량, 되돌아가지 않음, 최종 거래일 안전장치
 - [ ] 롤 비중: `roll_rule.params` 펼치기 — GSCI·BCOM·BCBCLI(1/3 leg·재조정·수량 drift) (D-013)

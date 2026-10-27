@@ -928,3 +928,20 @@
   - 트리거 단위 순서는 같은 시각 두 작업의 경쟁을 코드 구조로 없앤다(락·지연 없이).
   - CLI는 dev 수동 실행이라 기다리는 재시도보다 바로 실패를 보고 다시 실행하는 편이 낫다. 외부 소스 한도를 dev와 prod가 공유한다(D-043).
 - 후속: Healthchecks.io 신호·check 일정(5-10), 최종 실패 운영 알림(5-8·5-10)은 `runJob` 결과(`status`·`attempt`·`runId`)에 붙인다.
+
+## D-061: 시장 기준 데이터 — 원자재·활성 월물은 마이그레이션 시드, 거래일 달력은 연도별 예외 입력 파일 + 생성 함수
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-1 시장 기준 데이터. `commodity`·`active_month_rule`을 넣는 방법, 달력 입력 스크립트(D-047)의 입력 형식·실행 위치·덮어쓰기 범위, 표준 심볼 유틸(D-049) 위치를 정하지 않았다.
+- 결정
+  - `commodity` 4행(이름·거래소·가격 소수 자릿수·순서·활성 월물 사용)과 `active_month_rule`(금 2·4·6·8·10·12월, 은 3·5·7·9·12월, `valid_from` 2010-01-01)은 커스텀 마이그레이션 `0002_market_seed.sql`로 넣는다(`ON CONFLICT DO NOTHING`).
+  - 달력 입력: `scripts/calendar/<연도>.json`에 그해 예외만 적는다 — `closed`(전일 휴장), `halts`(공휴일 중간 정지, 정지 시각 `at` CT), `earlyCloses`(조기 마감 시각 `at` CT). 나머지 평일은 정규 세션(전날 17:00 ~ 당일 16:00 CT)이다.
+  - 생성: `apps/server/src/calc/tradingCalendar.ts`의 `buildTradingDays`(순수 함수)가 행을 만든다. 중간 정지일 다음 거래일은 정지일 전날 17:00에 개장하고, 정지는 정지 시각부터 그 거래일의 정규 개장(전날 17:00)까지다. 금요일 정지면 재개가 일요일 17:00이다. CT → UTC는 `Intl`로 서머타임을 반영한다.
+  - 실행: `npm run calendar:import -w apps/server -- <연도>`가 그 연도 범위를 한 트랜잭션에서 바꾼다(입력에서 빠진 날짜 삭제 + 나머지 upsert). 재실행해도 결과가 같다.
+  - 2026·2027 파일은 `pandas_market_calendars` 5.2.4 `CMEGlobex_EnergyAndMetals` 규칙(크리스마스이브 조기 마감 없음, 1월 1일이 토요일이면 대체 휴일 없음, 노동절 12:00 정지)으로 만들었다. CME 공식 휴일 공지가 나오면 대조해 고친다.
+  - 표준 심볼 유틸은 `apps/server/src/calc/contractSymbol.ts`(`toContractSymbol`·`parseContractSymbol`, 연도 2자리 = 2000년대)다. 소스별 표기(Databento 연도 1자리 등)는 수집기 몫이다(D-049).
+- 근거
+  - 원자재·활성 월물은 거의 바뀌지 않고 모든 환경에 같아야 해서 스키마와 함께 버전 관리되는 마이그레이션이 맞다.
+  - CME 공지는 "휴장·정지·조기 마감 목록" 형태라 예외만 적는 입력이 옮겨 적기 쉽고 틀릴 곳이 적다. 세션·정지 시각 계산은 규칙이라 테스트되는 함수에 둔다.
+  - 연도 범위 교체는 새로 생긴 휴장일(예: 국가 애도일)을 반영하고, 과거 연도 행(Databento 백필, D-048)을 건드리지 않는다.
+- 영향: `architecture.md` `scripts/`, CLAUDE.md Commands, `CALENDAR` 작업(5-10)은 이 행들의 60일 공백을 점검한다.

@@ -40,7 +40,7 @@ futureETP/
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
 ├─ infra/                          docker-compose.yml, Caddyfile
-├─ scripts/                        배포(rsync + compose), Databento 1회 적재, 달력 생성 보조,
+├─ scripts/                        배포(rsync + compose), Databento 1회 적재, 달력 입력 파일(`calendar/<연도>.json`, D-061),
 │                                  백업 내려받기·dev 복원, 접근 키 생성·QR 표시
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`

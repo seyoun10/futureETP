@@ -1,0 +1,18 @@
+{
+  "year": 2027,
+  "closed": [
+    { "date": "2027-01-01", "note": "New Year's Day" },
+    { "date": "2027-03-26", "note": "Good Friday" },
+    { "date": "2027-12-24", "note": "Christmas Day (observed)" }
+  ],
+  "halts": [
+    { "date": "2027-01-18", "at": "13:30", "note": "Martin Luther King Jr. Day" },
+    { "date": "2027-02-15", "at": "13:30", "note": "Presidents' Day" },
+    { "date": "2027-05-31", "at": "13:30", "note": "Memorial Day" },
+    { "date": "2027-06-18", "at": "13:30", "note": "Juneteenth (observed)" },
+    { "date": "2027-07-05", "at": "13:30", "note": "Independence Day (observed)" },
+    { "date": "2027-09-06", "at": "12:00", "note": "Labor Day" },
+    { "date": "2027-11-25", "at": "13:30", "note": "Thanksgiving Day" }
+  ],
+  "earlyCloses": [{ "date": "2027-11-26", "at": "12:45", "note": "Day after Thanksgiving" }]
+}

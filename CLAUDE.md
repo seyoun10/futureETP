@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 배치 러너 완료(D-060). 다음은 5-1 시장 기준 데이터. 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~D-061). 다음은 5-2 calc 거래일·장 상태. 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -84,4 +84,4 @@ futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 배치 러너 완료(D-060)
 - 단일 테스트: 서버·공유(Vitest) `npm test -w apps/server -- src/config.test.ts -t "PORT"`, 앱(Jest) `npm test -w apps/mobile -- CommodityListScreen -t "렌더링"`
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
 - 앱: `npm run start -w apps/mobile`(dev 변형), `npm run android:dev -w apps/mobile`, `npm run ios:dev -w apps/mobile`
-- 서버: `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`, 작업 1회 실행 `npm run job -w apps/server -- <작업 이름> [기준 시각]`(D-060)
+- 서버: `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`, 작업 1회 실행 `npm run job -w apps/server -- <작업 이름> [기준 시각]`(D-060), 거래일 달력 입력 `npm run calendar:import -w apps/server -- <연도>`(`scripts/calendar/<연도>.json`, D-061)
