@@ -1,4 +1,5 @@
 import { matchFont } from '@shopify/react-native-skia';
+import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
@@ -10,11 +11,13 @@ import {
   getTransformComponents,
   setScale,
   setTranslate,
+  useChartPressState,
   useChartTransformState,
 } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { CrosshairLayer } from './CrosshairLayer';
 import { fitTransform, periodTransform } from './fitTransform';
 import type { CandleGeom } from './fitTransform';
 import { makeSyntheticBars } from './syntheticBars';
@@ -23,6 +26,7 @@ import { XAxisLayer } from './XAxisLayer';
 // C-a 차트 스파이크(D-032). 검증용 화면이라 테마 토큰·i18n은 붙이지 않는다.
 const BAR_COUNT = 4000;
 const EPSILON = 1e-3;
+const LONG_PRESS_MS = 300;
 
 const PERIODS = [
   { label: '3M', bars: 63 },
@@ -81,6 +85,23 @@ export function ChartSpikeScreen() {
   const geom = useSharedValue<CandleGeom | null>(null);
   const [period, setPeriod] = useState<number | null>(252);
   const [fps, setFps] = useState({ avg: 0, worst: 0 });
+  const { state: press } = useChartPressState({
+    x: 0,
+    y: { open: 0, high: 0, low: 0, close: 0 },
+  });
+  const [snapCount, setSnapCount] = useState(0);
+
+  // 십자선이 다른 봉에 붙을 때마다 햅틱(D-032). 실기기에서만 느껴진다.
+  const onSnap = () => {
+    setSnapCount((n) => n + 1);
+    void Haptics.selectionAsync();
+  };
+  useAnimatedReaction(
+    () => (press.isActive.get() ? press.matchedIndex.get() : -1),
+    (idx, prev) => {
+      if (idx >= 0 && idx !== prev) scheduleOnRN(onSnap);
+    },
+  );
 
   // 기간 버튼(최초 12M). 제스처로 범위를 바꾸면 선택 표시를 해제한다(screens.md C-a).
   const applyPeriod = (barCount: number) => {
@@ -151,7 +172,7 @@ export function ChartSpikeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>
-        C-a spike · {bars.length} bars · UI {fps.avg} fps · worst {fps.worst} ms
+        C-a spike · {bars.length} bars · UI {fps.avg} fps · worst {fps.worst} ms · snaps {snapCount}
       </Text>
       <View style={styles.chart}>
         <CartesianChart
@@ -161,6 +182,8 @@ export function ChartSpikeScreen() {
           axisOptions={{ axisScales: { yAxisScale: 'log' } }}
           transformState={transform}
           transformConfig={{ pan: { dimensions: 'x' }, pinch: { dimensions: 'x' } }}
+          chartPressState={press}
+          chartPressConfig={{ pan: { activateAfterLongPress: LONG_PRESS_MS } }}
           // 라이브러리 x축은 끄고 XAxisLayer로 그린다. 아래 여백은 라벨 자리.
           xAxis={{ font: null, lineColor: 'transparent' }}
           padding={{ bottom: 24 }}
@@ -176,15 +199,25 @@ export function ChartSpikeScreen() {
             },
           ]}
           renderOutside={({ points, chartBounds }) => (
-            <XAxisLayer
-              dates={dates}
-              chartBounds={chartBounds}
-              x0={points.high[0]?.x ?? 0}
-              dx={(points.high[1]?.x ?? 0) - (points.high[0]?.x ?? 0)}
-              font={font}
-              labelColor="#9e9e9e"
-              gridColor="#2a2a2a"
-            />
+            <>
+              <XAxisLayer
+                dates={dates}
+                chartBounds={chartBounds}
+                x0={points.high[0]?.x ?? 0}
+                dx={(points.high[1]?.x ?? 0) - (points.high[0]?.x ?? 0)}
+                font={font}
+                labelColor="#9e9e9e"
+                gridColor="#2a2a2a"
+              />
+              <CrosshairLayer
+                press={press}
+                transform={transform}
+                chartBounds={chartBounds}
+                dates={dates}
+                font={font}
+                color="#bdbdbd"
+              />
+            </>
           )}
         >
           {({ points, chartBounds }) => (
