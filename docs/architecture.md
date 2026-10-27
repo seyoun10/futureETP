@@ -20,7 +20,7 @@ futureETP/
 │  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
 │  │     ├─ components/            여러 화면 공용 UI(header, `FreshnessLine`, `QueryStateView`, D-075)
-│  │     ├─ charts/                Skia 커스텀 레이어·차트 공용 (D-032)
+│  │     ├─ charts/                Skia 커스텀 레이어·차트 공용 CandleChart (D-032, D-087)
 │  │     ├─ api/                   fetch 래퍼, AppError, query key, `useAutoRefresh` (D-030, D-075)
 │  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)

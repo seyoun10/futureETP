@@ -150,7 +150,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `GET /v1/commodities/:code/disparity?basis&ma&window&levels` + shared 스키마(맞춤 비율·보유 월물·잠정 봉·rare 레벨·꼬리 백분위·대체) (2026-10-27, D-086)
     - [ ] 5-4 적재 뒤 dev DB에서 실제 값·응답 크기·앱 파싱 시간 확인(행 객체 유지 여부, D-046)
     - [ ] `INTRADAY` 구현 때 잠정 봉의 롤 중 판정(롤 첫날 장중) 다시 보기
-  - [ ] 차트 부품(`src/charts/`, 스파이크 이관)
+  - [x] 차트 부품(`src/charts/` `CandleChart`, 스파이크 이관, 한글 Paragraph·선 경로 변환·특수 라벨) (2026-10-27, D-087)
+    - [ ] C-a 연결 뒤 에뮬레이터·실기기에서 한글 라벨·선 굵기·제스처 FPS 확인
   - [ ] C-a 화면(좌상단·좌하단 줄, 꼬리표, 롤 표시, 십자선 상세, 기간 칩)
 - [ ] C-b 월물커브: `GET /v1/commodities/:code/curve`(조회 시 calc, D-046) + 화면(기준일 −/+/0, 날짜 시트·휴장일 직전 거래일, D-021)
 - [ ] C-c 월물차트: `GET /v1/commodities/:code/contracts` + 화면(C-a 차트 공용 부품 재사용)

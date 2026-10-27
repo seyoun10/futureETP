@@ -1,4 +1,4 @@
-// 변환 행렬 보정(D-032 스파이크). 라이브러리 제스처는 x만 바꾸고, 이 함수가
+// 변환 행렬 보정(D-056). 라이브러리 제스처는 x만 바꾸고, 이 함수가
 // x 범위를 제한하고 보이는 봉의 고가·저가로 y 배율·이동을 다시 정한다.
 // log 축도 픽셀 공간에서는 선형이라 y는 배율·이동만으로 맞출 수 있다.
 
@@ -26,15 +26,27 @@ const clamp = (v: number, lo: number, hi: number) => {
   return Math.min(Math.max(v, lo), hi);
 };
 
-// 화면에 보이는 봉의 인덱스 범위 [i0, i1]
+// 화면 [left, right]에 보이는 봉 n개 중 인덱스 범위 [i0, i1]
+export function indexRange(
+  left: number,
+  right: number,
+  x0: number,
+  dx: number,
+  n: number,
+  k: number,
+  tx: number,
+): [number, number] {
+  'worklet';
+  const xb0 = (left - tx) / k;
+  const xb1 = (right - tx) / k;
+  const i0 = clamp(Math.floor((xb0 - x0) / dx), 0, n - 1);
+  const i1 = clamp(Math.ceil((xb1 - x0) / dx), 0, n - 1);
+  return [i0, i1];
+}
+
 export function visibleRange(g: CandleGeom, k: number, tx: number): [number, number] {
   'worklet';
-  const n = g.highY.length;
-  const xb0 = (g.left - tx) / k;
-  const xb1 = (g.right - tx) / k;
-  const i0 = clamp(Math.floor((xb0 - g.x0) / g.dx), 0, n - 1);
-  const i1 = clamp(Math.ceil((xb1 - g.x0) / g.dx), 0, n - 1);
-  return [i0, i1];
+  return indexRange(g.left, g.right, g.x0, g.dx, g.highY.length, k, tx);
 }
 
 export function fitTransform(g: CandleGeom, k0: number, tx0: number): Transform {

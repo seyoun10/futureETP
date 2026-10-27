@@ -82,7 +82,7 @@ describe('rollSegments', () => {
 });
 
 describe('frontSwitches', () => {
-  it('보유 월물이 바뀐 첫 봉에 새 월물을 단다', () => {
+  it('보유 월물이 바뀐 봉의 앞 봉(전환일)에 새 월물을 단다', () => {
     const hold = (contractMonth: string) => ({ holdings: [{ contractMonth, weight: 1 }] });
     const bars = chartBars([
       bar('2026-10-20', 10),
@@ -90,7 +90,7 @@ describe('frontSwitches', () => {
       bar('2026-10-22', 10, hold('2026-12')),
       bar('2026-10-23', 10, hold('2027-02')),
     ]);
-    expect(frontSwitches(bars)).toEqual([{ index: 3, contractMonth: '2027-02' }]);
+    expect(frontSwitches(bars)).toEqual([{ index: 2, contractMonth: '2027-02' }]);
   });
 });
 

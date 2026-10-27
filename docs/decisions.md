@@ -1363,3 +1363,19 @@
   - rare 레벨은 사용자가 바꾸는 값이라 미리 저장할 수 없다. 그래서 커브(D-046)처럼 조회 때 calc를 부르는 예외에 C-a를 더한다. 계산은 정렬된 배열 백분위 몇 번이라 가볍다.
   - 기간별 밴드 10개를 보내면 봉 4,000개에 숫자 40,000개가 늘어 응답이 두 배 가까이 된다. 밴드는 비율 하나를 곱하는 표시 변환이라 앱에 둔다(LC·HC도 보이는 구간 기준이라 앱이 계산한다).
 - 영향: D-041의 "조회 API는 읽기만" 예외가 커브·C-a 두 개가 된다. `createApp`에 `disparity` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_DISPARITY`). shared `settingsPatchSchema.rareLevels`는 `rareLevelsSchema`를 쓴다.
+
+## D-087: 차트 공용 부품(`src/charts/`) — 한글은 Skia Paragraph, 선은 UI 스레드 경로 변환
+- 날짜: 2026-10-27
+- 상태: 확정 (한글 표시·선 굵기·제스처 성능은 C-a 화면 연결 뒤 에뮬레이터·실기기에서 확인)
+- 맥락: TODO 5-6 C-a 둘째 단계. D-056 스파이크가 넘긴 것: 한글 글꼴(번들 `useFont` 또는 Paragraph), y축 특수 라벨, '전체'에서 이동 막기, 스파이크 이관.
+- 결정
+  - 한글: 한글이 들어가는 캔버스 글자(x축 월 라벨, 최고가·최저가 꼬리표, 롤 마커)는 Skia Paragraph로 그린다. `Skia.ParagraphBuilder.Make()`는 시스템 글꼴 관리자에 대체 글꼴을 켜고 만들어(react-native-skia 2.14 `JsiSkParagraphBuilder`의 `enableFontFallback`) 글꼴을 번들하지 않아도 된다. 숫자만 쓰는 y축·십자선 라벨은 `matchFont`로 둔다. 같은 글자·색의 Paragraph는 캐시한다(`chartText.ts`).
+  - 이평선·rare-level 밴드: 변환 그룹 안에서 그리면 x·y 배율만큼 선이 굵어진다. 변환 전 좌표로 경로를 한 번 만들고(`useMemo`), UI 스레드 `useDerivedValue`에서 `PathBuilder.MakeFromPath(path).transform(matrix)`로 화면 좌표로 바꾼다. 봉은 스파이크대로 변환 그룹 안(꼬리 헤어라인)이다.
+  - y 자동 맞춤은 봉 고가·저가가 아니라 봉마다 그날 이평선·밴드까지 포함한 위·아래 끝(`chartEnvelope`)으로 한다(screens.md "보이는 봉과 선이 모두 들어가게"). 이 두 값은 `CartesianChart`의 yKeys(`hi`·`lo`)라 기본 y 범위도 선을 포함한다.
+  - y축 특수 라벨: 우선순위(현재가 → 이평선 → 현재가에 가까운 rare-level) 순으로 겹치지 않는 것만 그리고, 특수 라벨과 겹치는 기본 눈금 텍스트는 숨긴다(격자선 유지). 현재가는 회색 수평 점선을 함께 그린다.
+  - 롤 음영·마커·꼬리표·축은 victory-native 변환 컨텍스트(JS)로 다시 그린다(개수가 적다). '전체'(k=1)에서는 `transformConfig.pan.enabled`를 꺼서 이동 제스처를 막는다.
+  - 십자선 상세 박스는 캔버스가 아니라 RN View로, 봉에 붙을 때(햅틱과 같은 시점) 상태를 바꿔 손가락 반대편 절반에 띄운다. 내용은 화면이 `renderDetail(index)`로 준다(i18n·RN Text 그대로).
+  - `CandleChart`는 C-a·C-c 공용이다. 입력은 OHLC 봉, 위·아래 끝, 선 목록, 특수 라벨, 롤 음영·마커, 기간 봉 수(`PERIOD_BARS`, 월 21·연 252거래일), 보이는 범위 콜백.
+  - 대표월물 전환 마커는 D-086대로 보유 월물이 바뀐 봉의 앞 봉(전환일)에 새 월물명으로 단다.
+- 근거: 글꼴 번들은 한글 글꼴 하나만 수 MB이고 굵기별로 늘어난다. Paragraph는 기기 시스템 글꼴을 그대로 써서 RN Text와 모양도 같다. 경로 변환은 봉 4,000개짜리 선 11개를 제스처 프레임마다 JS에서 다시 만들지 않으려는 것이다.
+- 영향: `formatPrice`가 worklet이 됐다(십자선 가격 라벨이 UI 스레드에서 부른다). 테마 토큰에 `rollShade`·`rollMarker`·`extremeTag`, i18n에 `chart.months`·`chart.highTag`·`chart.lowTag`가 늘었다.

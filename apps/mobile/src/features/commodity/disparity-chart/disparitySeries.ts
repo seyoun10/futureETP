@@ -71,14 +71,15 @@ export function rollSegments(bars: readonly ChartBar[]): [number, number][] {
   return segments;
 }
 
-// 대표월물이 바뀐 첫 봉과 새 월물(대표월물 ▲ 마커). 보유 월물이 바뀐 날이다
+// 대표월물 전환일과 새 월물(대표월물 ▲ 마커, D-086). 봉 t의 보유 월물은 t−1 종가 뒤 비중이라,
+// 보유 월물이 바뀐 봉의 바로 앞 봉(옛 월물의 마지막 날)이 전환일이다
 export function frontSwitches(bars: readonly ChartBar[]) {
   const switches: { index: number; contractMonth: string }[] = [];
   for (let i = 1; i < bars.length; i++) {
     const prev = bars[i - 1].holdings[0]?.contractMonth;
     const cur = bars[i].holdings[0]?.contractMonth;
     if (prev !== undefined && cur !== undefined && prev !== cur)
-      switches.push({ index: i, contractMonth: cur });
+      switches.push({ index: i - 1, contractMonth: cur });
   }
   return switches;
 }
