@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech Stack 완료, 3단계 Architecture 진행 중. 소스 코드 없음). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 설계 단계 (TODO 1~3단계 기획·Tech Stack·Architecture 완료, 다음은 4단계 프로젝트 생성. 소스 코드 없음). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -45,6 +45,7 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech St
 - 서버 상태는 TanStack Query, 기기별 표시 설정(언어·등락 색)만 Zustand persist (D-030)
 - 차트에 쓰는 색은 테마 토큰에서, 등락 색은 표시 설정에서 읽는다 (D-031)
 - 사용자에게 보이는 문구는 i18n 키로만 쓴다 (D-033)
+- 서버 접근 키는 SecureStore에만 둔다. 앱 번들·app config·저장소에 넣지 않는다 (D-044)
 - 커밋 전 `npm run check`(타입 검사·lint·테스트) 통과 (D-038)
 
 ## Coding Conventions
@@ -60,7 +61,7 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech St
 상세는 `docs/architecture.md`.
 
 - npm workspaces: `apps/mobile`(Expo), `apps/server`(API + 배치 한 프로세스), `packages/shared`(zod 스키마·타입·푸시 문구만). 의존은 앱·서버 → shared만 (D-040)
-- 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다 (D-041)
+- 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다. 예외는 커브 조회뿐(원천값 → calc 호출) (D-041, D-046)
 - 앱: route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지 (D-041)
 - 환경: dev는 로컬 Mac(스케줄러 꺼짐, 작업은 CLI 1회 실행), prod는 VM. 앱은 `APP_VARIANT`로 dev(`.dev` ID)·prod 두 변형. 서버는 `process.env`를 `src/config.ts`(zod 검증)에서만 읽는다 (D-043)
 

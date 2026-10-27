@@ -174,8 +174,8 @@ erDiagram
 - **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 혼합 가격이 0 이하이면 비율을 갱신하지 않는다.
 - **이격도**: `disparity`는 원자재 4 × 기준값 3 × 이평선 4 = 48개 시계열, `disparity_distribution`은 × N 4종 = 192행이다. 일일 정산 배치가 통째로 다시 쓴다. 산출 불가 기간은 `disparity`에 행을 두지 않는다.
 - **오늘 잠정 봉**: 장중 배치가 `index_snapshot`에 쓴다. 알림 판정은 이 고가·저가 이격도를 쓰고, C-a의 오늘 봉은 가장 최근 스냅숏을 쓴다.
-- **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 조회 비용이 문제가 되면 3단계에서 캐시나 materialized view로 바꾼다.
-- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06, 첫 거래일은 2010-06-07)부터 영구 보관한다. C-b 기준일 하한은 가장 이른 `trade_date`다(D-020). `intraday_snapshot`·`index_snapshot`의 보관 기간은 3단계에서 정한다(알림 재현과 디버깅에 필요한 만큼, 예: 30일).
+- **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 캐시나 materialized view는 두지 않는다. 커브 라우트만 원천값을 읽어 `calc` 함수로 만든다(D-046).
+- **보관 기간**: `daily_bar`·`index_bar`·`disparity`는 Databento 적재 시작(2010-06-06, 첫 거래일은 2010-06-07)부터 영구 보관한다. C-b 기준일 하한은 가장 이른 `trade_date`다(D-020). `intraday_snapshot`·`index_snapshot`은 90일, `alert_record`·`batch_run`은 1년 보관한다(D-046).
 
 ## 4. ETP
 ```mermaid
@@ -267,7 +267,7 @@ erDiagram
     }
     batch_run {
         uuid id PK
-        string job "DAILY_SETTLE/INTRADAY/DEFERRED_PUSH/ETP/CALENDAR"
+        string job "DAILY_SETTLE/INTRADAY/DEFERRED_PUSH/ETP/CALENDAR/BACKUP"
         date trade_date
         timestamp scheduled_at
         timestamp started_at
@@ -279,7 +279,7 @@ erDiagram
 ```
 
 설명
-- **단일 사용자**: 로그인·계정이 없어 사용자 식별 컬럼을 두지 않는다. 서버 접근은 단일 비밀 값으로 막는다(방식은 3단계).
+- **단일 사용자**: 로그인·계정이 없어 사용자 식별 컬럼을 두지 않는다. 서버 접근은 단일 비밀 값(접근 키)으로 막는다. 키는 서버 환경 변수와 기기 SecureStore에만 있다(D-044).
 - **설정**: `app_settings`는 처음 배포할 때 기본값 한 행으로 만든다. 알림 거부 시간은 현지 시각을 자정 기준 분으로 저장하고 `app_settings.timezone`으로 해석한다. 시간대는 앱 실행 때 기기가 보고한 값으로, 마지막으로 실행한 기기의 값을 쓴다.
 - **기기·푸시 토큰**: 앱 실행 때 등록·갱신한다(`push_token` 유니크). 발송 결과가 "유효하지 않은 토큰"이면 행을 지운다.
 - **`alert_record`**: 중복 방지 기록과 보류 큐를 한 테이블로 처리한다.
@@ -287,7 +287,7 @@ erDiagram
   - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `RETRY`: 모든 기기에 발송 실패, 다음 주기에 1회 다시 보냄(그사이 같은 방향의 더 드문 레벨을 보냈으면 `SUPPRESSED`). `FAILED`: 재시도도 실패(D-023).
   - 모든 상태가 유니크 키를 차지하므로 "그날 보낸 것"으로 쳐서 중복 방지에 쓴다.
   - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 방향별로 묶어 가장 드문 1건을 `SENT`로, 나머지를 `SUPPRESSED`로 바꾼다.
-  - 보관 기간은 3단계에서 정한다(중복 방지에는 당일 기록만 필요).
+  - 보관 기간은 1년이다(중복 방지에는 당일 기록만 필요, D-046).
 - **`batch_run`**: 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지", 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
 
 ## 서버에 두지 않는 데이터 (기기 저장)
@@ -295,7 +295,7 @@ erDiagram
 |---|---|
 | 표시 설정(언어, 등락 색) | 언어는 `app_settings.locale`로도 보냄 |
 | 기간 버튼 선택 | |
-| 서버 접근 비밀 값 | 저장 방식은 3단계 |
+| 서버 접근 키 | `expo-secure-store`, B-b에서 QR·붙여넣기로 입력(D-044) |
 
 ## 리서치 후 확정할 항목
 - `daily_bar.open_interest`: 쓰는 기능이 없다. 소스 제공 여부와 관계없이 2단계에서 뺄지 정한다(`intraday_snapshot.day_high/day_low`는 Yahoo가 주는 것을 확인했다).

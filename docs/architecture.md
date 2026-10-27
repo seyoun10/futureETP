@@ -40,7 +40,8 @@ futureETP/
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
 ├─ infra/                          docker-compose.yml, Caddyfile
-├─ scripts/                        배포(rsync + compose), Databento 1회 적재, 달력 생성 보조
+├─ scripts/                        배포(rsync + compose), Databento 1회 적재, 달력 생성 보조,
+│                                  백업 내려받기·dev 복원, 접근 키 생성·QR 표시
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`
 ```
@@ -81,6 +82,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | 데이터 접근 | `src/db` | Drizzle 스키마와 조회·저장 함수. 별도 repository 추상화는 두지 않는다 |
 
 - 조회 API는 계산하지 않는다. 배치가 미리 계산해 저장한 값을 `db` 조회 함수로 읽어 응답 형태로 바꾸기만 한다(product.md "앱은 자체 백엔드만 조회하고, 계산은 모두 서버에서 미리 한다").
+- 예외(D-046): 커브(C-b) 조회만 저장값 대신 `daily_bar`·`intraday_snapshot` 원천값을 읽어 `calc`의 커브 함수(월물 선택·스프레드·롤 수익률)를 부른다. 기준일이 2010년부터 아무 날이나 될 수 있어 미리 저장하지 않는다(D-010). 계산 코드 자체는 `calc`에만 둔다.
 - `calc`는 `db`·`sources`를 import하지 않는다. 테스트는 `calc`(단위)와 배치 흐름(가짜 `sources`·`push` 주입)을 중심으로 한다(D-038).
 
 ## API 통신 및 에러 처리 규약
@@ -138,10 +140,13 @@ type Freshness = {
 - `AppError`는 `code`(서버 코드 + 앱 코드 `NETWORK`·`TIMEOUT`·`SCHEMA_MISMATCH`), `status?`(HTTP), `cause?`를 가진다. 화면은 `code`만 보고 문구를 고른다.
 - 재시도(TanStack Query `retry`): `NETWORK`·`TIMEOUT`·`INTERNAL`만 최대 2회. 4xx와 `SCHEMA_MISMATCH`는 재시도하지 않는다. mutation은 자동 재시도하지 않는다.
 - 화면 표시: 처음 로딩 실패는 오류 화면 + [다시 시도]. 이미 데이터가 있는 상태의 새로고침 실패는 기존 데이터를 유지하고 기준 시각 줄로 오래됨을 알린다(product.md 배치 실패 시).
-- `UNAUTHORIZED`의 화면 처리는 비밀 값 저장·교체 항목(TODO 3단계)에서 정한다.
+- `UNAUTHORIZED`: 앱은 접근 키 입력 화면(B-b)으로 보내고 "키가 맞지 않습니다"를 보여 준다. 저장된 키는 새 키를 확인할 때까지 지우지 않는다. `RATE_LIMITED`는 잠시 뒤 다시 시도하라는 오류 화면이다(D-044).
 
 ### 엔드포인트 초안
-개발 단계에서 응답 필드를 정하면서 고친다. 차트 구간 로딩·커브 캐시는 TODO 3단계 남은 항목에서 정한다.
+개발 단계에서 응답 필드를 정하면서 고친다.
+
+- 차트 시계열(C-a 지수 일봉, C-c 월물 원가격)은 화면에 들어갈 때 전체를 한 번에 받는다. 핀치·드래그는 받은 데이터 안에서만 처리하고 추가 요청을 하지 않는다. C-a 봉 4,000개는 JSON 약 400KB, Caddy 압축(`encode zstd gzip`) 뒤 약 100KB다. 파싱·렌더링이 느리면 C-a 스파이크(D-032)에서 행 객체 대신 열 배열(`{ dates: [], open: [], … }`)로 바꾼다(D-046).
+- 커브는 캐시하지 않는다(D-046). 기준일 하나에 월물 약 30개 × 20거래일을 읽는다.
 
 | 메서드·경로 | 화면 | 내용 |
 |---|---|---|
@@ -171,7 +176,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 
 ### 서버 환경 변수
 - `process.env`는 `apps/server/src/config.ts`에서만 읽는다. 시작할 때 zod로 검증하고, 빠지거나 틀린 값이 있으면 바로 종료한다. 다른 모듈은 검증된 `config` 객체를 import한다.
-- 항목(이름은 스캐폴딩 때 확정): `NODE_ENV`(`development`·`production`), `PORT`, `DATABASE_URL`, `API_TOKEN`(D-036), `SCHEDULER_ENABLED`, 소스 키(`DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`), FCM 서비스 계정 키 파일 경로, `LOG_LEVEL`. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
+- 항목(이름은 스캐폴딩 때 확정): `NODE_ENV`(`development`·`production`), `PORT`, `DATABASE_URL`, `API_TOKEN`(D-036), `SCHEDULER_ENABLED`, 소스 키(`DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`), FCM 서비스 계정 키 파일 경로, Healthchecks.io ping URL(작업별, dev는 비움, D-045), 백업 폴더 경로, `LOG_LEVEL`. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
 - dev: `apps/server/.env`(커밋 안 함)를 Node 내장 `--env-file`로 읽는다. 저장소에는 키 이름과 예시 값만 담은 `apps/server/.env.example`을 둔다.
 - prod: VM의 `infra/.env`(권한 600)를 Compose `env_file`로 넘긴다. 이 파일과 서비스 계정 키는 저장소에 넣지 않고, 배포 스크립트의 rsync에서도 제외해 VM에서 직접 관리한다. 서비스 계정 키는 컨테이너에 읽기 전용으로 마운트한다.
 - 외부 소스 키는 dev와 prod가 같은 키를 쓴다(Massive Basic 분당 5회 등 한도가 키 단위). 그래서 dev는 스케줄러를 끄고, 수동 실행도 필요한 작업만 한다. 테스트는 녹화한 응답(fixture)과 가짜 `sources`를 쓰고 실제 소스를 호출하지 않는다(D-038).
@@ -197,8 +202,38 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 | HTTP | 로컬 서버라 평문 HTTP 허용(개발 빌드) | HTTPS만 |
 | EAS Update | 받지 않음(Metro로 개발) | 채널 `production` |
 
-- 서버 주소는 비밀 값이 아니므로 app config `extra`에 넣고 앱은 `expo-constants`로 읽는다. 읽는 곳은 `src/api`의 설정 모듈 하나다. 서버 접근 비밀 값은 여기에 넣지 않는다(EAS Update 번들 노출, D-039 주의. 전달 방식은 TODO 3단계 남은 항목).
+- 서버 주소는 비밀 값이 아니므로 app config `extra`에 넣고 앱은 `expo-constants`로 읽는다. 읽는 곳은 `src/api`의 설정 모듈 하나다. prod 접근 키는 여기에 넣지 않는다(EAS Update 번들 노출, D-039). 키는 B-b에서 입력한다(D-044).
+- dev 변형만 `.env.local`의 `DEV_API_TOKEN`을 `extra`에 넣어 키 입력을 건너뛸 수 있다. dev 변형은 EAS Update를 발행하지 않고, prod 변형 config에는 이 값을 넣지 않는다.
 - 같은 기기에 두 변형을 함께 설치한다. 평소 쓰는 release 앱은 개발 빌드를 설치해도 지워지지 않는다.
 - 변형을 바꿀 때는 `APP_VARIANT=<변형> npx expo prebuild --clean` 뒤에 빌드한다(CNG, D-027). 루트 또는 앱 `package.json` 스크립트로 묶어 변형을 빠뜨리지 않게 한다.
 - EAS Update는 `APP_VARIANT=production`으로 app config를 평가해야 한다. 발행 명령도 스크립트로 묶는다. 스캐폴딩 때 `eas update`가 로컬 `.env` 파일을 읽는지, EAS 환경 변수(`--environment`)가 필요한지 확인한다(EAS Build는 `.env`를 읽지 않음, Expo 문서).
 - 푸시: Firebase 프로젝트 하나에 두 package의 Android 앱을 함께 등록한다. 내려받은 `google-services.json` 하나에 두 앱 정보가 모두 들어가므로 서버 서비스 계정 키도 하나로 dev·prod 양쪽에 보낸다.
+
+## 운영 (접근 키·실패 알림·백업·보관)
+
+### 서버 접근 키(D-044)
+- 키는 32바이트 난수를 base64url로 인코딩한 문자열이다. `scripts/`의 키 스크립트가 만들고, QR(`futureetp-key:v1:<키>`)을 터미널에 띄운다.
+- 앱: 처음 실행할 때 키가 없으면 B-b(접근 키 입력)를 먼저 띄운다. 카메라로 QR을 읽고, 카메라를 쓸 수 없으면(iOS 시뮬레이터, 권한 거부) 붙여넣기로 넣는다. 접두사 형식이 아니면 거절한다. 입력한 키로 `GET /v1/settings`를 불러 성공하면 `expo-secure-store`에 저장하고, 그 뒤에 기기 등록(`PUT /v1/devices`)을 한다.
+- `src/api` 래퍼가 SecureStore의 키를 읽어 헤더에 붙인다. 키를 메모리에 한 번 읽어 두고, 바꾸면 갱신한다. TanStack Query 캐시의 `onError`에서 `UNAUTHORIZED`면 B-b로 보낸다.
+- 교체: ① 키 스크립트로 새 키 생성 → ② VM `infra/.env`의 `API_TOKEN` 수정 → ③ `docker compose up -d`로 서버 재시작 → ④ 각 기기가 401을 받아 B-b로 가면 새 QR을 읽는다. 사용자 1명이라 키는 하나만 받는다(교체 중 두 키를 함께 받는 기간을 두지 않음).
+- 키는 저장소와 앱 번들에 넣지 않는다. VM `infra/.env`가 원본이고, 비밀번호 관리자에 사본을 둔다.
+
+### 운영자 실패 알림(D-045)
+- 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음).
+- 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 문구는 shared 푸시 문구 리소스에 둔다.
+- Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
+- dev는 ping URL을 비워 신호를 보내지 않는다. ping 실패는 배치 결과에 영향을 주지 않는다(로그만 남김).
+
+### 백업(D-045)
+- `BACKUP` 작업(croner, 매일 1회)이 서버 컨테이너에서 `pg_dump -Fc`로 덤프를 만든다. VM의 백업 볼륨에 최근 7개만 둔다. 서버 이미지에 Postgres와 같은 major 버전의 클라이언트를 넣는다.
+- Mac: `scripts/`의 백업 내려받기 스크립트가 최신 덤프를 저장소 밖 폴더로 받는다(주 1회 목표, 최근 8개 보관). 받을 때 Healthchecks.io의 내려받기 check(주기 7일 + 여유 2일)에 신호를 보내, 오래 받지 않으면 메일이 온다. dev 복원(D-043)은 이 폴더의 최신 덤프를 쓴다.
+- 일봉 원천은 소스에서 다시 받을 수 있고, 설정은 작아서 며칠치 손실은 감수한다. 서명 키(keystore)·`infra/.env`·서비스 계정 키는 DB 백업과 별도로 저장소 밖에 둔다(D-039).
+
+### 데이터 보관(D-046)
+- `BACKUP` 작업이 덤프 뒤에 오래된 행을 지운다(지우기 전 덤프가 있어야 하므로 이 순서).
+
+| 테이블 | 보관 |
+|---|---|
+| `intraday_snapshot`, `index_snapshot` | 90일 |
+| `alert_record`, `batch_run` | 1년(중복 방지·정산 대기 판단에는 최근 기록만 필요) |
+| `daily_bar`, `index_bar`, `disparity` 등 일봉·계산 결과 | 영구(data-model) |

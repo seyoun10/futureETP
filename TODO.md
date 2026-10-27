@@ -45,11 +45,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 레이어 구성: 앱 route·UI·상태·데이터 접근, 서버 진입점(api·jobs) → calc·sources·push·db (2026-10-27, D-041)
 - [x] API 통신 및 에러 처리 규약: 응답 봉투 + HTTP 상태, 앱 zod 검증, freshness로 자동 새로고침 (2026-10-27, D-042)
 - [x] 환경 설정 분리: dev는 로컬 Mac(스케줄러 꺼짐·prod 덤프 복원), prod는 VM, 앱은 `APP_VARIANT` 두 변형 (2026-10-27, D-043)
-- [ ] **[다음 작업]** 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체(EAS Update 번들 노출 주의, D-039), 운영자 실패 알림, DB 백업 주기·보관 위치(D-034, D-043), 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
+- [x] 1단계에서 미룬 항목 (2026-10-27): 접근 키 첫 실행 QR·붙여넣기 + SecureStore(D-044), 운영 푸시 + Healthchecks.io·매일 덤프 + Mac 내려받기(D-045), 차트 전체 1회 로딩·스냅숏 90일·커브 조회 시 calc(D-046)
 
 ## 4. 프로젝트 생성
 - [x] git init 및 .gitignore (스캐폴딩 시 생성되는 .gitignore와 병합 필요)
-- [ ] 프로젝트 스캐폴딩
+- [ ] **[다음 작업]** 프로젝트 스캐폴딩
 - [ ] lint / format / test 설정
 - [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)
 - [ ] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
