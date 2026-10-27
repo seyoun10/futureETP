@@ -990,3 +990,23 @@
   - 다음 거래일에 거래되지 않는 월물로 옮기면 하루 만에 안전장치로 다시 옮겨진다.
   - 최종 거래일의 현재 월물 거래량은 대개 바닥이라 비교 대상으로 의미가 없다. 비교하면 거래량이 더 많은 먼 월물을 두고 만기순 다음으로 옮기는 경우가 생긴다.
 - 영향: 재계산 파이프라인·`DAILY_SETTLE`(5-3)이 `roll_weight` FRONT 행을 만든다.
+
+## D-065: 롤 비중 calc — `roll_rule.params` 형태, 영업일 달력, BCBCLI 수량(CIM) 재현
+- 날짜: 2026-10-27
+- 상태: 확정 (영업일 예외·BCBCLI 시작 수량은 5-4 지수 재현 검증에서 확인)
+- 맥락: TODO 5-2 롤 비중. `roll_rule.params` 형태가 정해지지 않았고(D-013), BCBCLI 재조정을 "재조정일에 가치 비중을 수량으로" 바꾼다고만 적어 두어 새 수량이 언제 어느 월물에 붙는지, 영업일 달력별 예외를 어떻게 넣는지, 적재 첫 달·첫날을 어떻게 다루는지가 비어 있었다.
+- 결정
+  - `apps/server/src/calc/rollWeight.ts`. `params`(`RollRuleParams`, zod `rollRuleParamsSchema`)는 `{ calendar, rollDays, oldShares, rebalance, legs }`다.
+    - `calendar`: `NYSE`/`BCOM`/`NYMEX`. `rollDays`·`oldShares`: 롤 영업일 순번과 그날 종가 뒤 이전 월물 비중(GSCI·BCOM `[5..9]`·`[0.8,0.6,0.4,0.2,0]`, BCBCLI `[2,3]`·`[0.5,0]`). 첫 롤일 앞은 1, 마지막 롤일 뒤는 마지막 값이다.
+    - `rebalance`: `null` 또는 `{ months, businessDay }`(BCBCLI `{ months: [3, 9], businessDay: 1 }`). `legs`: `{ weight, hold }[]`, `hold`는 매월 1영업일 보유 월물 12칸(`'G'`, `'G+1'` = 다음 해 2월물).
+  - 8개 규칙(원자재 4 × KR·US)은 `ROLL_RULE_SEEDS` 상수로 둔다(`research/roll-rules.md` 표 그대로). DB `roll_rule` 행은 5-3 재계산 파이프라인 때 이 상수로 넣는다.
+  - 영업일: `NYMEX`·`BCOM`은 `trading_day` 그대로, `NYSE`는 `trading_day`에서 NYSE만 쉰 날(`NYSE_ONLY_CLOSED`: 2012-10-29·30 허리케인 샌디, 2018-12-05·2025-01-09 국장일)을 뺀다. BCOM 영업일은 지수 구성 원자재 비중 50% 넘게 거래되는 날이라 CME가 열린 날과 같게 본다. 영업일이 아닌 거래일은 직전 영업일 비중을 그대로 쓴다.
+  - 월 m의 롤: leg마다 이전 월물 = `hold[m]`, 다음 월물 = `hold[m+1]`(12월이면 다음 해 1월 칸). 둘이 다르거나 m이 재조정 달이면 그 leg가 롤한다. 롤하는 leg가 있는 달의 `rollDays` 영업일이 롤 구간(`inRollPeriod`, `index_bar.in_roll_period`)이다.
+  - 수량: leg마다 이전 월물 수량 `qOld`와 다음 월물 수량 `qNew`를 두고, 월물 비중 = Σ leg (share × q)를 날짜별 합 1로 정규화한다. 재조정 달이 아니면 `qNew = qOld`(롤해도 수량 유지, BCOM·BCBCLI의 CIM). 재조정 달은 `businessDay` 종가에 `V = Σ qOld_i × P(다음 월물_i)`, `qNew_i = weight_i × V / P(다음 월물_i)`로 정하고(방법론의 Adjustment Factor), 롤이 끝나면 `qOld := qNew`다. 그래서 다음 월물이 이전 월물과 같은 leg(3월 12월물, 9월 6월물)도 같은 월물 안에서 수량만 옮긴다.
+  - leg가 하나인 규칙(GSCI·BCOM)은 수량이 정규화로 지워지므로 가격을 쓰지 않는다. 여러 leg 규칙에 필요한 가격이 없으면 오류를 던진다.
+  - 적재 첫 달: 입력 첫 거래일보다 앞선 같은 달 평일은 영업일로 센다(2010-06-01~04, 공휴일 없음). 첫날 수량은 그날 종가 뒤 보유 기준 leg 가치가 `weight` 비율이 되게 정한다(실제 지수는 직전 재조정 뒤 drift가 있어 첫 재조정까지 조금 다를 수 있다).
+  - 비중 0인 월물은 결과에서 뺀다. 결과는 월물 오름차순이다.
+- 근거
+  - BCBCLI 방법론(2021-03판, 2020-06-23 게시) "Index Rebalancing": CIM = Target Weight × 100 / 다음 월물 정산가 × AF, AF = Σ 이전 CIM × Roll In 정산가 / 100. WAV·PWAV가 이전 월물에 Lead CIM, 다음 월물에 Next CIM을 쓰고, Table 4(2020-03)에서 12월물 일정도 CLZ0 → CLZ0로 롤한다. 그래서 재조정은 1영업일 종가에 정하고 2~3영업일 롤로 옮겨진다.
+  - NYSE만 쉰 날은 CME가 열렸어도 GSCI는 계산하지 않아 롤 영업일 순번이 밀린다(`research/roll-rules.md` 영업일 달력).
+- 영향: `data-model.md` 롤 규칙 설명, `research/roll-rules.md` BCBCLI 재조정 문구. 재계산 파이프라인(5-3)이 `roll_weight` KR·US 행과 `index_bar.in_roll_period`를 만든다.

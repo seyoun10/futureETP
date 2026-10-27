@@ -165,10 +165,10 @@ erDiagram
 - **거래일(`trading_day`)**: 정산가가 나오는 날만 행으로 둔다. 미국 공휴일 중간 정지일은 행이 없고, 그 세션은 다음 거래일 행의 `halt_*`로 표현한다. 에너지·금속은 같은 일정이라 거래소 구분 키가 없다(`research/cme-calendar.md`).
   - 과거 행(2010-06~)은 Databento 일봉에 정산가가 있는 날짜로 만들고, `pandas_market_calendars`로 1회 대조해 다른 날만 사람이 확인한다. 과거 행은 `trade_date`만 채우고 세션·정지 시각은 비운다(장중 판정에 쓰지 않음). 세션 시각은 운영 시작 이후 행에 넣는다(D-048).
 - **월물(`contract`)**: 금속의 비활성 월물도 행은 만들 수 있지만 `is_target=false`로 두고 목록·커브·대표월물 후보에서 뺀다. 활성 월물 달력이 바뀌면 `active_month_rule`에 새 행을 넣고 `is_target`을 다시 계산한다.
-- **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013). 이력은 두지 않는다. 규칙을 바꾸면 그 원자재·기준값의 계산 결과를 처음부터 다시 만든다(D-024).
-  - 공통: 영업일 달력(`NYSE`/`BCOM`/`NYMEX`, 기본은 `trading_day`에 예외 날짜를 더해 계산), 롤 영업일 순번과 그날 종가 기준 이전 월물 비중(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정(없음 또는 `{months:[3,9], business_day:1, method:"equal_value"}`)
-  - leg마다: 가치 비중(예: 1 또는 1/3)과 매월 1영업일 보유 월물 표(12칸, 예: GSCI GC `G J J M M Q Q Z Z Z Z G+1`)
-  - `roll_weight`는 이 규칙을 날짜별로 펼친 결과다. 재조정일에 가치 비중을 수량으로 바꾸고(`비중 ÷ 가격`) 그 뒤에는 수량을 유지해 비중 drift를 재현한다.
+- **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013, 형태는 D-065). 이력은 두지 않는다. 규칙을 바꾸면 그 원자재·기준값의 계산 결과를 처음부터 다시 만든다(D-024).
+  - 공통: 영업일 달력 `calendar`(`NYSE`/`BCOM`/`NYMEX`, `trading_day`에 NYSE만 쉰 날을 빼서 계산), 롤 영업일 순번 `rollDays`와 그날 종가 뒤 이전 월물 비중 `oldShares`(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정 `rebalance`(`null` 또는 `{months:[3,9], businessDay:1}`)
+  - leg마다(`legs`): 가치 비중 `weight`(예: 1 또는 1/3)와 매월 1영업일 보유 월물 표 `hold`(12칸, 예: GSCI GC `G J J M M Q Q Z Z Z Z G+1`)
+  - `roll_weight`는 이 규칙을 날짜별로 펼친 결과다. leg 수량은 롤해도 유지하고(BCOM·BCBCLI의 CIM), 재조정 달에는 재조정일 종가에 다음 월물 가격으로 새 수량을 정해 롤과 함께 옮긴다(D-065). 그 사이 수량을 유지해 비중 drift를 재현한다.
 - **대표월물 이력**: 별도 테이블 없이 `roll_weight`(basis=`FRONT`, weight=1)로 표현한다. 전환일 마커는 전일과 월물이 바뀐 날이다.
 - **기준값이 없는 원자재**: 그 원자재·basis의 `roll_rule`이 없으면 `roll_weight`·`index_bar`도 없고, API가 `FRONT`로 대신 응답하면서 대체 여부를 함께 알린다.
 - **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 혼합 가격이 0 이하이면 비율을 갱신하지 않는다.
