@@ -750,3 +750,22 @@
 - 검증(2026-10-27): 최소 골격(`packages/shared`의 zod 봉투 스키마, `apps/server/src/main.ts`)으로 `node src/main.ts` 실행, 서버·shared `tsc --noEmit`, 앱에서 shared import 후 `tsc --noEmit`·`expo export --platform android`(번들에 shared 포함) 통과. `--preserve-symlinks`로 실행하면 위 오류로 실패함을 확인했다.
 - 주의: 서버 Dockerfile은 저장소 루트를 문맥으로 workspaces 구조 그대로 `npm ci`해서 shared를 심볼릭 링크로 둔다. shared를 `node_modules` 안으로 복사하거나 `--preserve-symlinks`를 쓰면 실행되지 않는다.
 - 영향: `architecture.md` 디렉터리 구조 규칙, `tech-stack.md` Backend 행.
+
+## D-052: 앱 변형 설정 — `app.config.ts`, 기본 production, 변형별 npm 스크립트, `eas update`는 `.env`를 읽지 않음
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 4단계 스캐폴딩, D-043 후속. `APP_VARIANT` 두 변형을 실제 설정으로 만들고, `eas update`가 로컬 `.env`를 읽는지 확인한다.
+- 결정
+  - `app.json`을 없애고 `apps/mobile/app.config.ts` 하나로 둔다. `APP_VARIANT`가 `development`가 아니면 모두 production이다.
+  - dev 변형: 이름 `futureETP Dev`, ID `io.github.seyoon.futureetp.dev`, scheme `futureetp-dev`(두 앱이 같은 딥 링크를 가로채지 않게), `extra`에 `.env.local`의 `DEV_API_URL`·`DEV_API_TOKEN`. prod 변형 `extra`에는 서버 주소만 넣는다.
+  - prod 서버 주소는 도메인 확정 전까지 `https://futureetp.invalid`로 둔다(첫 서버 배포 때 교체, D-036).
+  - 앱은 `src/api/config.ts`에서만 `extra`를 읽는다. `DEV_API_URL`이 없으면 Android 에뮬레이터 `10.0.2.2`, iOS 시뮬레이터 `localhost`의 3000 포트를 쓴다(서버 `PORT` 기본값도 3000으로 맞춘다).
+  - 앱 스크립트: `start`(dev), `prebuild:dev`·`prebuild:prod`(`--clean`), `android:dev`, `android:release`, `ios:dev`, `update:prod`. 빌드 스크립트는 매번 해당 변형으로 `prebuild --clean` 한 뒤 빌드해서 다른 변형의 네이티브 폴더가 남지 않게 한다. `expo start`도 dev 변형으로 띄운다(개발 빌드는 Metro가 주는 config를 쓰므로).
+  - EAS Update 발행은 `eas update --channel production --environment production`이다. prod config는 `.env`·EAS 환경 변수 어느 것도 쓰지 않으므로 EAS `production` 환경에 변수를 둘 필요가 없다.
+  - dev 아이콘 구분 표시는 아이콘을 만들 때 한다(지금은 이름만 다름).
+- 근거
+  - eas-cli 26.0.0 소스(`build/commands/update/index.js`): SDK 55 이상에서 `--environment`가 없으면 환경을 묻는다(비대화형이면 실패). `--environment`를 주면 EAS 서버의 그 환경 변수를 쓰고 `EXPO_NO_DOTENV=1`로 번들링해 로컬 `.env`·`.env.local`을 읽지 않는다. Expo 문서(https://docs.expo.dev/eas-update/environment-variables/, 2026-10-27 확인)도 `--environment`를 필수로 적는다.
+  - 기본값을 production으로 두면 `eas update`처럼 변수가 없는 경로에서 dev 값이 prod 번들에 섞일 수 없다.
+- 검증(2026-10-27): `expo config --type public`으로 두 변형의 이름·ID·scheme·`extra` 확인, prod 평가 때는 `.env.local`이 있어도 `devApiToken`이 빠짐. `prebuild:dev`(Android) 결과 `applicationId` `.dev`, 앱 이름 `futureETP Dev`, 평문 HTTP는 `debug`·`debugOptimized` 매니페스트에만 허용(release는 기본 차단). `prebuild:prod`(iOS) 결과 bundle ID 기본값, ATS는 Expo 기본(`NSAllowsArbitraryLoads` false, `NSAllowsLocalNetworking` true). 앱 `tsc --noEmit` 통과.
+- 후속: expo-updates 설치·`eas init`(projectId)·`updates.url`·`runtimeVersion` 설정은 Expo 계정을 만들고 첫 release APK를 빌드할 때 한다(D-039).
+- 영향: `architecture.md` 앱 변형 절.

@@ -4,9 +4,13 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "start": "APP_VARIANT=development expo start",
+    "prebuild:dev": "APP_VARIANT=development expo prebuild --clean",
+    "prebuild:prod": "APP_VARIANT=production expo prebuild --clean",
+    "android:dev": "npm run prebuild:dev -- --platform android && APP_VARIANT=development expo run:android",
+    "android:release": "npm run prebuild:prod -- --platform android && APP_VARIANT=production expo run:android --variant release",
+    "ios:dev": "npm run prebuild:dev -- --platform ios && APP_VARIANT=development expo run:ios",
+    "update:prod": "APP_VARIANT=production eas update --channel production --environment production",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -208,17 +208,19 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 | 항목 | development | production |
 |---|---|---|
 | 앱 이름 | `futureETP Dev` | `futureETP` |
-| Android package / iOS bundle ID | `<기본 ID>.dev` | `<기본 ID>`(스캐폴딩 때 확정) |
-| 아이콘 | 구분 표시가 있는 아이콘 | 기본 |
-| 서버 주소 | `DEV_API_URL`(로컬 `.env.local`, 없으면 에뮬레이터 주소) | prod 도메인(app config에 커밋) |
-| HTTP | 로컬 서버라 평문 HTTP 허용(개발 빌드) | HTTPS만 |
+| Android package / iOS bundle ID | `io.github.seyoon.futureetp.dev` | `io.github.seyoon.futureetp` |
+| scheme | `futureetp-dev` | `futureetp` |
+| 아이콘 | 구분 표시가 있는 아이콘(아이콘 제작 때, 지금은 기본과 같음) | 기본 |
+| 서버 주소 | `DEV_API_URL`(`apps/mobile/.env.local`, 없으면 에뮬레이터 주소:3000) | prod 도메인(app config에 커밋, 확정 전 `futureetp.invalid`) |
+| HTTP | 평문 HTTP 허용(Android debug 매니페스트, iOS ATS 로컬 네트워크) | HTTPS만(release는 평문 차단) |
 | EAS Update | 받지 않음(Metro로 개발) | 채널 `production` |
 
 - 서버 주소는 비밀 값이 아니므로 app config `extra`에 넣고 앱은 `expo-constants`로 읽는다. 읽는 곳은 `src/api`의 설정 모듈 하나다. prod 접근 키는 여기에 넣지 않는다(EAS Update 번들 노출, D-039). 키는 B-b에서 입력한다(D-044).
 - dev 변형만 `.env.local`의 `DEV_API_TOKEN`을 `extra`에 넣어 키 입력을 건너뛸 수 있다. dev 변형은 EAS Update를 발행하지 않고, prod 변형 config에는 이 값을 넣지 않는다.
 - 같은 기기에 두 변형을 함께 설치한다. 평소 쓰는 release 앱은 개발 빌드를 설치해도 지워지지 않는다.
-- 변형을 바꿀 때는 `APP_VARIANT=<변형> npx expo prebuild --clean` 뒤에 빌드한다(CNG, D-027). 루트 또는 앱 `package.json` 스크립트로 묶어 변형을 빠뜨리지 않게 한다.
-- EAS Update는 `APP_VARIANT=production`으로 app config를 평가해야 한다. 발행 명령도 스크립트로 묶는다. 스캐폴딩 때 `eas update`가 로컬 `.env` 파일을 읽는지, EAS 환경 변수(`--environment`)가 필요한지 확인한다(EAS Build는 `.env`를 읽지 않음, Expo 문서).
+- 앱 `package.json` 스크립트가 변형을 고정한다(D-052): `start`(dev Metro), `android:dev`·`ios:dev`, `android:release`, `update:prod`. 빌드 스크립트는 매번 해당 변형으로 `expo prebuild --clean` 한 뒤 빌드한다(CNG, D-027). 변형 없이 `expo` 명령을 직접 쓰면 production으로 평가된다.
+- 앱에서 `extra`를 읽는 곳은 `src/api/config.ts` 하나다.
+- EAS Update는 `npm run update:prod`(`eas update --channel production --environment production`)로 발행한다. `--environment`를 주면 eas-cli가 로컬 `.env`를 읽지 않으므로(`EXPO_NO_DOTENV=1`) dev 값이 섞이지 않는다. prod config는 환경 변수를 쓰지 않아 EAS 환경에 둘 변수도 없다(D-052).
 - 푸시: Firebase 프로젝트 하나에 두 package의 Android 앱을 함께 등록한다. 내려받은 `google-services.json` 하나에 두 앱 정보가 모두 들어가므로 서버 서비스 계정 키도 하나로 dev·prod 양쪽에 보낸다.
 
 ## 운영 (접근 키·실패 알림·백업·보관)
