@@ -69,7 +69,11 @@ futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (스캐폴딩·lint
 
 ## Commands
 
-<!-- build / lint / test / 단일 테스트 실행 명령 -->
+모두 저장소 루트에서 실행한다. workspace 하나만 돌릴 때는 `-w apps/mobile`·`-w apps/server`·`-w packages/shared`.
 
-## Build & Test Commands
-
+- `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트 (커밋 전 필수)
+- `npm run lint` / `npm run format` / `npm run typecheck` / `npm test`
+- 단일 테스트: 서버·공유(Vitest) `npm test -w apps/server -- src/config.test.ts -t "PORT"`, 앱(Jest) `npm test -w apps/mobile -- CommodityListScreen -t "렌더링"`
+- pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
+- 앱: `npm run start -w apps/mobile`(dev 변형), `npm run android:dev -w apps/mobile`, `npm run ios:dev -w apps/mobile`
+- 서버: `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`
