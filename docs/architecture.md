@@ -70,7 +70,8 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |
 
 - 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색·C-a/C-c 기간 선택)만 둔다(D-030, D-047). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
-- 화면 안에서만 쓰는 일시 상태(선택한 기준일, 십자선 위치, 가로 모드 등)는 컴포넌트 상태(`useState`·Reanimated shared value)로 둔다.
+- 화면 안에서만 쓰는 일시 상태(선택한 기준일, 십자선 위치 등)는 컴포넌트 상태(`useState`·Reanimated shared value)로 둔다.
+- 가로 모드는 상태로 두지 않는다. `src/lib/orientation.ts`의 잠금 함수로 방향을 바꾸고, 레이아웃은 `useIsLandscape`(창 모양)로 정한다. 앱은 세로로 잠그고 C-a~C-c [⟲]만 가로로 잠근다(D-076).
 - 순수 계산(가격 포맷, 등락 색 선택, 차트 좌표 변환)은 `src/lib`·`src/theme`·`src/charts`의 함수로 두어 컴포넌트 밖에서 테스트한다.
 
 서버 (`apps/server`)

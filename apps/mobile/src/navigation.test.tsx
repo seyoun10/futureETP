@@ -1,9 +1,25 @@
-import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { lockAsync, OrientationLock } from 'expo-screen-orientation';
+import { router } from 'expo-router';
+import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useDisplaySettings } from '@/stores/displaySettings';
+
+jest.mock('expo-screen-orientation', () => ({
+  ...jest.requireActual<typeof import('expo-screen-orientation')>('expo-screen-orientation'),
+  lockAsync: jest.fn(() => Promise.resolve()),
+}));
+
+// 창 모양은 테스트마다 바꾼다(가로 레이아웃 판정).
+const mockWindow = { width: 390, height: 844 };
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ ...mockWindow, scale: 3, fontScale: 1 }),
+}));
 
 // Jest 기기 언어는 영어라 문구 확인을 위해 한국어로 고정한다.
 beforeEach(() => {
   useDisplaySettings.getState().setLanguage('ko');
+  Object.assign(mockWindow, { width: 390, height: 844 });
+  jest.mocked(lockAsync).mockClear();
 });
 
 // 실제 src/app 라우트 트리로 화면 이동을 확인한다. 스파이크 화면은 Skia를 불러오므로 뺀다.
@@ -71,5 +87,39 @@ describe('라우트 골격', () => {
 
     await fireEvent.press(screen.getByText('데이터 출처'));
     expect(screen).toHavePathname('/settings/data-sources');
+  });
+});
+
+describe('가로 전환', () => {
+  it.each([
+    ['세로', { width: 390, height: 844 }, OrientationLock.LANDSCAPE],
+    ['가로', { width: 844, height: 390 }, OrientationLock.PORTRAIT_UP],
+  ])('%s에서 [⟲]를 누르면 반대 방향으로 잠근다', async (_, size, expected) => {
+    Object.assign(mockWindow, size);
+    await renderApp('/commodity/CL/curve');
+    await fireEvent.press(screen.getByLabelText('가로/세로 전환'));
+
+    expect(lockAsync).toHaveBeenLastCalledWith(expected);
+  });
+
+  it('ETP 탭에서는 [⟲]가 없고 세로로 돌아간다', async () => {
+    await renderApp('/commodity/CL/contracts');
+    expect(screen.getByLabelText('가로/세로 전환')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByText('ETP'));
+    expect(screen.queryByLabelText('가로/세로 전환')).not.toBeOnTheScreen();
+    expect(lockAsync).toHaveBeenLastCalledWith(OrientationLock.PORTRAIT_UP);
+  });
+
+  it.each([
+    ['B', () => router.push('/settings')],
+    ['ETP 상세', () => router.push('/commodity/CL/etp/1')],
+    ['A', () => router.dismissTo('/')],
+  ])('C를 떠나 %s로 가면 세로로 돌아간다', async (_, go) => {
+    await renderApp('/commodity/CL');
+    jest.mocked(lockAsync).mockClear();
+
+    await act(() => go());
+    expect(lockAsync).toHaveBeenLastCalledWith(OrientationLock.PORTRAIT_UP);
   });
 });

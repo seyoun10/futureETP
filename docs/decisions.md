@@ -1188,3 +1188,16 @@
 - 근거:
   - 최소 1분 간격이 없으면 서버가 지난 `nextUpdateAt`을 주거나 조회가 계속 실패할 때 바로 다시 부르는 반복이 생긴다. 실패 뒤에도 다시 예약해야 일시적인 네트워크 오류 뒤에 자동 새로고침이 멈추지 않는다.
 - 후속: `UNAUTHORIZED` 시 B-b 이동은 접근 키 항목에서 `ErrorView`·query 오류 처리에 붙인다. `formatToParts`는 Hermes 실기기에서 첫 화면 연결(5-6 A) 때 표시를 확인한다.
+
+## D-076: 가로 전환 — 앱은 세로로 잠그고 [⟲]만 가로로 잠근다, 레이아웃은 창 모양을 따른다
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 라우트 골격의 [⟲] 항목. screens.md는 C-a~C-c에서만 수동 가로 전환, ETP 탭에서 세로 복귀, 가로에서 title-bar·tab-bar 높이 줄임을 정했다. app config `orientation: 'portrait'`이면 iOS Info.plist가 세로만 허용해 가로 잠금이 거부된다.
+- 결정:
+  - `expo-screen-orientation` ~58.0.3(`npx expo install`). app config는 `orientation: 'default'`, 플러그인 `initialOrientation: 'PORTRAIT_UP'`(iOS 시작 방향), `ios.requireFullScreen: true`(iPad 잠금 조건). 루트 `_layout`이 시작할 때 `PORTRAIT_UP`으로 잠근다(Android 시작 방향).
+  - `src/lib/orientation.ts`: `lockPortrait`·`lockLandscape`(실패는 무시), `useIsLandscape`(창 너비 > 높이). [⟲]는 지금 창 모양의 반대 방향으로 잠근다. 가로 레이아웃(title-bar 버튼 높이 32·제목 `body` 크기, tab-bar 높이 32 + 하단 inset)도 잠금 상태가 아니라 창 모양으로 정한다.
+  - [⟲]는 C title-bar에서 현재 탭이 `etps`가 아닐 때만 보인다. ETP 탭 `focus`와 탭 그룹이 포커스를 잃을 때(A·B·C-d-a로 이동) 세로로 잠근다.
+- 근거:
+  - Expo 문서는 iOS 27부터 크기 조절 가능한 앱(iPhone Mirroring·iPad)에서 잠금을 선호값으로만 취급한다고 안내한다. 창 모양으로 레이아웃을 정하면 잠금이 거부돼도 화면이 깨지지 않는다.
+  - Expo Router `Stack.Screen`의 `orientation` 옵션은 화면마다 고정 방향이라, 같은 탭에서 버튼으로 바꾸는 수동 전환에는 맞지 않는다.
+- 후속: Android 에뮬레이터·실기기에서 전환, ETP 탭 복귀, 가로 레이아웃 높이를 눈으로 확인한다(재빌드 필요).

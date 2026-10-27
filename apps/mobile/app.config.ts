@@ -27,13 +27,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: isDev ? 'futureETP Dev' : 'futureETP',
   slug: 'futureetp',
   version: '1.0.0',
-  orientation: 'portrait',
+  // 가로 잠금은 C-a~C-c [⟲]에서만 한다. 'portrait'면 iOS가 가로 잠금을 거부한다(D-076).
+  orientation: 'default',
   icon: './assets/images/icon.png',
   scheme: isDev ? 'futureetp-dev' : 'futureetp',
   userInterfaceStyle: 'dark',
   backgroundColor: '#000000',
   ios: {
     bundleIdentifier: appId,
+    // iPad에서 화면 잠금이 동작하는 조건(expo-screen-orientation)
+    requireFullScreen: true,
   },
   android: {
     package: appId,
@@ -49,6 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-localization',
     'expo-sqlite',
+    ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
     [
       'expo-splash-screen',
       {

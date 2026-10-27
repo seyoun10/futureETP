@@ -6,16 +6,18 @@ type Props = {
   glyph: string;
   label: string;
   onPress: () => void;
+  // 가로 모드처럼 세로 공간이 좁을 때 높이를 줄인다
+  compact?: boolean;
 };
 
-export function HeaderIconButton({ glyph, label, onPress }: Props) {
+export function HeaderIconButton({ glyph, label, onPress, compact = false }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={8}
       onPress={onPress}
-      style={styles.button}
+      style={[styles.button, compact && styles.compact]}
     >
       <Text style={styles.glyph}>{glyph}</Text>
     </Pressable>
@@ -28,6 +30,9 @@ const styles = StyleSheet.create({
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  compact: {
+    minHeight: 32,
   },
   glyph: {
     color: colors.text,
