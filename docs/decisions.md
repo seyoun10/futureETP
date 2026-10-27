@@ -716,3 +716,19 @@
 - 결정: DB·API·화면은 표준형(루트 + 월 코드 + 연도 2자리, 예: `CLZ26`)만 쓴다. 소스별 표기는 `apps/server/src/sources`의 각 수집기가 변환 함수로 만든다. Databento의 연도 1자리는 계약 정의의 만기일로 연도를 정한다.
 - 근거: 표기가 모두 규칙으로 정해져 컬럼을 두면 같은 정보를 소스 수만큼 중복 저장한다. 변환이 수집기 안에 있으면 소스를 바꿔도 DB가 바뀌지 않고, 변환 함수는 단위 테스트하기 쉽다.
 - 영향: `data-model.md` `contract.symbol`, `architecture.md` 디렉터리 규칙.
+
+## D-050: 스캐폴딩 1차 — Expo SDK 58, Node 26, route 폴더 `src/app/`, React 단일 설치, 앱 ID
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 4단계 스캐폴딩. D-028·D-032·D-040·D-043이 "스캐폴딩 때 확인"으로 미룬 항목 가운데 앱 쪽을 확인했다. 2026-10-27 기준 `expo` latest는 58.0.19(RN 0.88.0, React 19.3.0)다.
+- 결정
+  - Expo SDK 58, `create-expo-app` `default@sdk-58` 템플릿에서 예제 화면·웹 의존성(`react-dom`·`react-native-web`·`@expo/ui` 등)을 빼고 시작한다. 웹은 대상이 아니다.
+  - Node: SDK 58 `expo`의 engines가 `^22.13.0 || ^24.3.0 || ^26.0.0 || >=27.0.0`이라 로컬 Node 26을 그대로 쓴다. `.nvmrc`는 `26`, 루트 `engines`는 `>=26.0.0`.
+  - TypeScript: 앱은 템플릿이 고정한 `~6.0.3`을 쓴다(npm latest는 7.x지만 Expo가 SDK에 맞춰 정한 버전을 따른다). 서버·shared 버전은 서버 스캐폴딩 때 정한다.
+  - route 폴더: 템플릿 기본값 `apps/mobile/src/app/`을 쓴다(architecture.md 초안의 `apps/mobile/app/`에서 바꿈). `@/` 별칭은 그대로 `src/`이고, default export 예외 범위는 `src/app/**`다.
+  - React 중복: workspaces 설치에서 `@expo/devtools` 등의 optional peer `react`가 루트에 최신 19.3.1로 올라가고, 앱 안에는 고정 버전 19.3.0이 따로 설치됐다. 루트 `overrides`로 `react`·`react-native`를 앱 버전과 같게 고정했다.
+  - victory-native: 43.0.1의 peerDependencies는 여전히 `react-native-skia`(>=2.15.1)를 가리킨다. 43.x는 고쳐지더라도 SDK 58의 Skia 2.14.0보다 높은 Skia를 요구한다. 42.0.1(peer: Skia `>=2.6.0 <3`, Reanimated `>=3.19.1`, RNGH `>=2`)은 SDK 58의 Skia 2.14.0·Reanimated 4.7.1·RNGH 3.3과 맞으므로 42.0.1로 고정한다. 설치는 C-a 스파이크 때 한다.
+  - 기본 앱 ID: `io.github.seyoon.futureetp`(dev 변형은 `.dev`).
+- 근거: 템플릿 기본 구조를 따르면 Expo 문서·도구(AGENTS.md, typed routes)와 경로가 어긋나지 않는다. React가 두 벌이면 런타임에 hook 오류가 난다.
+- 검증: `tsc --noEmit`, `expo-doctor` 20/20, `expo export --platform android` 번들 생성 통과.
+- 영향: CLAUDE.md Coding Conventions, `architecture.md` 디렉터리 구조·레이어 표, `tech-stack.md`. D-029·D-038·D-041 본문의 `app/`은 `src/app/`으로 읽는다.

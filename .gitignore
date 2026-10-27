@@ -1,4 +1,4 @@
-# 공통 항목만 둔다. Expo / RN CLI 결정 후 스캐폴딩이 생성하는 .gitignore와 병합할 것.
+# 공통 항목 + create-expo-app(SDK 58) 템플릿 항목 병합
 
 # OS / editor
 .DS_Store
@@ -21,3 +21,30 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+
+# TypeScript
+*.tsbuildinfo
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+
+# 네이티브 폴더 (CNG, prebuild로 생성, D-027)
+apps/mobile/ios/
+apps/mobile/android/
+.kotlin/
+*.orig.*
+
+# 서명·인증서·키 (저장소 밖 보관, D-039)
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist

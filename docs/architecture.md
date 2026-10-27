@@ -4,18 +4,18 @@
 
 ## 디렉터리 구조
 
-npm workspaces 모노레포(D-035, D-040). 라우트 세부 파일명은 4단계 스캐폴딩 때 Expo Router 동작에 맞춰 확정한다.
+npm workspaces 모노레포(D-035, D-040). route 폴더는 SDK 58 템플릿 기본값인 `src/app/`이다(D-050). 라우트 세부 파일명은 화면을 만들 때 Expo Router 동작에 맞춰 정한다.
 
 ```
 futureETP/
 ├─ apps/
 │  ├─ mobile/                      Expo 앱
-│  │  ├─ app/                      Expo Router route 파일만 (default export 재내보내기, D-029)
-│  │  │  ├─ _layout.tsx
-│  │  │  ├─ index.tsx              A 원자재 목록
-│  │  │  ├─ settings/              B 설정(index), B-a 알림 설정, B-b 접근 키, 데이터 출처
-│  │  │  └─ commodity/[code]/      C 하단 탭 그룹(C-a~C-d), 탭 밖 스택 etp/[id] = C-d-a (D-047)
 │  │  └─ src/
+│  │     ├─ app/                   Expo Router route 파일만 (default export 재내보내기, D-029, D-050)
+│  │     │  ├─ _layout.tsx
+│  │     │  ├─ index.tsx           A 원자재 목록
+│  │     │  ├─ settings/           B 설정(index), B-a 알림 설정, B-b 접근 키, 데이터 출처
+│  │     │  └─ commodity/[code]/   C 하단 탭 그룹(C-a~C-d), 탭 밖 스택 etp/[id] = C-d-a (D-047)
 │  │     ├─ features/              화면 단위: 화면·전용 컴포넌트·query hook
 │  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
@@ -53,7 +53,8 @@ futureETP/
 - 화면 전용 코드는 해당 feature 안에 두고, 두 곳 이상에서 쓰게 되면 공용 계층(`components`·`charts`·`lib` 등)으로 옮긴다.
 - 월물 심볼은 DB·API·화면에서 표준형(`CLZ26`)만 쓴다. 소스별 표기(Yahoo `CLZ26.NYM`·`GCZ26.CMX`, Databento `CLZ6`, Massive는 가입 후 확인)는 `sources/`의 각 수집기가 변환한다(D-049).
 - 서버 `jobs/`는 스케줄과 실행 기록(`batch_run`)만 맡고, 수집·계산·저장·발송은 `sources`·`calc`·`db`·`push`를 호출한다. `calc/`는 DB·네트워크에 의존하지 않아 Vitest 단위 테스트의 핵심 대상이다(D-038).
-- 스캐폴딩 때 확인할 것(D-040 후속): 기본 템플릿의 route 폴더 위치(`app/`/`src/app/`), 서버 실행 방식과 shared 소스 직접 참조 호환성, React Native 중복 설치 시 npm `overrides`.
+- 루트 `package.json`의 `overrides`로 `react`·`react-native`를 앱과 같은 버전 하나로 고정한다. workspaces에서 peer로 끌어올려진 최신 `react`가 앱의 고정 버전과 따로 설치되는 것을 막는다(D-050). Expo SDK를 올릴 때 함께 고친다.
+- 스캐폴딩 때 확인할 것(D-040 후속): 서버 실행 방식과 shared 소스 직접 참조 호환성.
 
 ## 레이어 구성 (UI / 상태 / 데이터 접근)
 
@@ -63,7 +64,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 
 | 계층 | 위치 | 맡는 일 | 하지 않는 일 |
 |---|---|---|---|
-| route | `app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·하단 탭, 스와이프 전환 없음, D-047) | 로직, 데이터 조회 |
+| route | `src/app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·하단 탭, 스와이프 전환 없음, D-047) | 로직, 데이터 조회 |
 | 화면·컴포넌트(UI) | `src/features/*`, `src/components`, `src/charts` | 렌더링, 사용자 입력, 로딩·오류·빈 상태 표시 | `fetch` 직접 호출, 서버 데이터 복사 저장 |
 | 상태 | `src/features/*/use*Query.ts`·`use*Mutation.ts`(서버 상태), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |

@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 설계 단계 (TODO 1~3단계 기획·Tech Stack·Architecture 완료, 다음은 4단계 프로젝트 생성. 소스 코드 없음). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (앱 스캐폴딩 1차 완료, 서버·shared 미생성). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -52,7 +52,7 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1~3단계 기획·Tech Stack·A
 - component: PascalCase
 - util/hook: camelCase
 - commit message: Conventional Commits ('feat:', 'fix:', 'chore:')
-- React component는 named export 사용 (default export 금지). 예외: `app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029)
+- React component는 named export 사용 (default export 금지). 예외: `apps/mobile/src/app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `src/app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029, D-050)
 - API 응답은 항상 `{ success: true, data } | { success: false, error: { code, message } }` + 맞는 HTTP 상태. 앱은 shared zod 스키마로 응답을 검증하고, 사용자 문구는 에러 `code`의 i18n 키로 만든다 (D-042)
 
 ## Architecture
