@@ -69,11 +69,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Android 에뮬레이터: dev 변형 빌드·설치·실행 (2026-10-27, D-055)
   - [x] iOS 시뮬레이터: CocoaPods 설치, iPhone 17(iOS 27.1)에서 dev 변형 빌드·설치·실행
 - [x] CLAUDE.md 갱신 (Tech Stack, Architecture, Commands, 2026-10-27): D-050~D-055 결과(버전, 서버 ESM import 규칙, `@/` 별칭, 변형·`extra` 읽는 곳, 마이그레이션, RNTL `await render`) 반영
-- [ ] **[다음 작업]** SessionStart hook(~/.claude/hooks/swift-env.sh)에 Node 버전 주입 추가 (package.json 존재 시)
+- [x] SessionStart hook(~/.claude/hooks/swift-env.sh)에 Node 버전 주입 추가 (package.json 존재 시, 2026-10-27): Node·npm·`.nvmrc`·macOS·Xcode 버전 한 줄
 
 ## 5. 개발
 - 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
-- [ ] 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱
+- [ ] **[다음 작업]** 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱
 - [ ] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교
 - [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Firebase 프로젝트·`google-services.json`(D-037), Healthchecks.io check(D-045), 배포 스크립트(D-048)
 - [ ] 소스 가입 후 실측: Massive Basic 정산가 필드·반영 시각·티커 형식, Databento 적재 견적, Yahoo 다중 심볼 quote·당일 고가·저가 누적 시작 시각, KRX Open API ETN 필드 (product.md 외부 연동)

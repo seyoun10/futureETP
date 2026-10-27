@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 4단계 프로젝트 생성 마무리 중 (스캐폴딩·lint·format·test·Android/iOS 실행 확인·CLAUDE.md 갱신 완료, 남은 것은 SessionStart hook의 Node 버전 주입). 그다음 5단계 개발(C-a 차트 스파이크부터). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 4단계 프로젝트 생성 완료. 다음은 5단계 개발(C-a 차트 스파이크부터). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
