@@ -42,8 +42,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ## 3. Architecture 결정
 - [x] 디렉터리 구조: `apps/mobile`·`apps/server`·`packages/shared`(API 계약만) (2026-10-27, D-040)
-- [ ] **[다음 작업]** 레이어 구성 (UI / 상태 / 데이터 접근)
-- [ ] API 통신 및 에러 처리 규약 (CLAUDE.md 잠정 규칙 `{ success, data, error }` 확정 포함)
+- [x] 레이어 구성: 앱 route·UI·상태·데이터 접근, 서버 진입점(api·jobs) → calc·sources·push·db (2026-10-27, D-041)
+- [ ] **[다음 작업]** API 통신 및 에러 처리 규약 (CLAUDE.md 잠정 규칙 `{ success, data, error }` 확정 포함)
 - [ ] 환경 설정 분리 (dev / prod)
 - [ ] 1단계에서 미룬 항목: 서버 접근 비밀 값 저장·교체(EAS Update 번들 노출 주의, D-039), 운영자 실패 알림, 차트 구간 데이터 로딩, `intraday_snapshot`·`index_snapshot`·`alert_record` 보관 기간, 커브 조회 캐시
 

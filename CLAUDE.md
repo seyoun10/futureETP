@@ -60,7 +60,8 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech St
 상세는 `docs/architecture.md`.
 
 - npm workspaces: `apps/mobile`(Expo), `apps/server`(API + 배치 한 프로세스), `packages/shared`(zod 스키마·타입·푸시 문구만). 의존은 앱·서버 → shared만 (D-040)
-- 계산은 서버 `src/calc`에만 둔다. 앱 화면은 `src/features/` 아래 named export
+- 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다 (D-041)
+- 앱: route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지 (D-041)
 
 ## Domain Context
 

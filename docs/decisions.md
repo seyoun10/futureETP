@@ -558,3 +558,16 @@
   - Expo 공식 모노레포 가이드(https://docs.expo.dev/guides/monorepos/, 2026-10-27 확인)가 `apps/` + `packages/` 구조를 쓰고, `expo/metro-config`가 npm workspaces를 자동 지원한다. 루트에 앱을 두면 루트 `package.json`에 앱 의존성과 workspace 설정이 섞이고, 서버 Docker 빌드 문맥에 앱 파일이 들어간다.
   - 앱이 계산을 쓰지 않으므로 계산 코드를 공유 패키지에 두면 앱 번들 의존만 늘어난다. 공유는 앱·서버 사이의 계약(스키마·타입·문구)으로 충분하다.
 - 후속(4단계 스캐폴딩 때 확인): `create-expo-app` 기본 템플릿의 route 폴더 위치(`app/` 또는 `src/app/`), 서버 실행 방식(Node 타입 스트리핑 / tsdown 번들)과 shared 소스 직접 참조 호환성, React Native 중복 설치 시 npm `overrides`.
+
+## D-041: 레이어 구성 — 앱 4계층(route·UI·상태·데이터 접근), 서버는 조회 API와 배치를 분리
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 3단계. 디렉터리 구조(D-040), 서버 상태는 TanStack Query·표시 설정은 Zustand(D-030), route 파일은 재내보내기만(D-029). 계산은 모두 서버 배치가 미리 하고 앱은 조회만 한다(product.md).
+- 선택지: 서버에 service·repository 계층을 따로 둠 / 진입점(api·jobs) → calc·sources·push·db로 바로 호출
+- 결정:
+  - 앱: route(`app/`) → 화면·컴포넌트(`features`·`components`·`charts`) → 상태(feature별 query·mutation hook, `stores`) → 데이터 접근(`api`: 엔드포인트 함수 + `fetch` 래퍼). 컴포넌트는 `fetch`를 직접 부르지 않고, 서버 데이터를 Zustand에 복사하지 않는다. 화면 일시 상태는 컴포넌트 상태로 둔다.
+  - 서버: 진입점(`api` 라우트, `jobs` 배치)이 `calc`(순수 함수)·`sources`·`push`·`db`를 직접 조합한다. service·repository 계층은 두지 않는다. 조회 API는 계산하지 않고 배치가 저장한 값을 읽기만 한다. `calc`는 DB·네트워크·현재 시각에 의존하지 않는다.
+  - 표와 세부 규칙은 `architecture.md` "레이어 구성"에 둔다.
+- 근거:
+  - 사용자 1명·화면 10개 규모라 계층을 더 나누면 파일만 늘어난다. 조회 API가 저장값을 읽기만 하므로 service 계층에 둘 로직이 없다.
+  - 계산을 순수 함수로 분리하면 지수·이평선·분포 같은 핵심 로직을 DB 없이 Vitest로 검증할 수 있다(D-038). 현재 시각을 인자로 받으면 정산 대기·휴장 판정도 시각을 고정해 테스트할 수 있다.
