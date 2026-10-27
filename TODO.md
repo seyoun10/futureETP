@@ -93,17 +93,18 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 월물 목록: 대상 월물, 만기순 5개 + 대표월물 6번째 (금속 활성 월물) (2026-10-27, D-063)
 - [x] 대표월물 전환: 전일 거래량, 되돌아가지 않음, 최종 거래일 안전장치 (2026-10-27, D-064)
 - [x] 롤 비중: `roll_rule.params` 펼치기 — GSCI·BCOM·BCBCLI(1/3 leg·재조정·수량 drift) (2026-10-27, D-065)
-  - [ ] 5-3 재계산 파이프라인 때 `ROLL_RULE_SEEDS`로 `roll_rule` 8행 넣기, 5-4 지수 재현 검증 때 `NYSE_ONLY_CLOSED`·BCBCLI 첫날 수량 확인
+  - [x] `ROLL_RULE_SEEDS`로 `roll_rule` 8행 넣기(마이그레이션 0003, D-070)
+  - [ ] 5-4 지수 재현 검증 때 `NYSE_ONLY_CLOSED`·BCBCLI 첫날 수량 확인
 - [x] 수익률 연결 지수: OHLC 근사, 혼합 가격 0 이하 산출 불가·이어 붙이기, 가격 수준 맞춤 비율 (2026-10-27, D-066)
-  - [ ] 5-3 재계산 파이프라인 때 FRONT `roll_weight` 행 t = `nextFrontSymbol(t)`(다음 거래일 대표월물)로 넣기
+  - [x] FRONT `roll_weight` 행 t = `nextFrontSymbol(t)`(다음 거래일 대표월물)로 넣기(`buildFrontAfterClose`, D-070)
 - [x] 이평선·이격도·분포: 초기 기간 제외, 선형 보간 백분위, 실제 사용 기간, rare-level 선, 가까운 꼬리 백분위 표시값 (2026-10-27, D-067)
 - [x] 커브: 월물 선택(20거래일 평균 100계약, 최대 24, M1·M2 포함, M1 앞 월물, D-018·D-026), 변화율, 스프레드, 연환산 롤 수익률 (2026-10-27, D-068)
 - [x] 알림 판정: 고가·저가 이격도, 가장 드문 레벨 1건, 중복 방지 키, 거부 시간(자정 넘김·경계)·보류·지연 발송 선택, 실패 재시도 규칙 (2026-10-27, D-069)
   - [ ] 5-8에서 `INTRADAY`·`DEFERRED_PUSH` 모두 `RETRY` 재시도(`planRetries`), 기준값 없는 원자재는 대표월물 키로 판정
 
 ### 5-3. 일일 정산 흐름 (가짜 소스로)
-- [ ] **[다음 작업]** 재계산 파이프라인: `daily_bar` → 대표월물·`roll_weight` → `index_bar`·`index_scale` → `disparity`·`disparity_distribution` (원자재·기준값 단위 전체 재계산 함수, D-024 규칙 변경 때도 사용)
-- [ ] `DAILY_SETTLE` 작업: ① 당일 저장·재계산·정산 대기 해제 ② 전일 정정 확인 (D-047), 실패 시 알림 판정 중지 플래그
+- [x] 재계산 파이프라인: `daily_bar` → 대표월물·`roll_weight` → `index_bar`·`index_scale` → `disparity`·`disparity_distribution` (원자재·기준값 단위 전체 재계산 함수, D-024 규칙 변경 때도 사용) (2026-10-27, D-070)
+- [ ] **[다음 작업]** `DAILY_SETTLE` 작업: ① 당일 저장·재계산·정산 대기 해제 ② 전일 정정 확인 (D-047), 실패 시 알림 판정 중지 플래그
 
 ### 5-4. 실데이터 적재와 검증 (외부 가입 필요)
 - [ ] Databento 가입·적재 견적 → `scripts/` 1회 적재(만기 월물 포함 2010-06~, 심볼 변환) → `trading_day` 과거 행 생성·`pandas_market_calendars` 대조 (D-020, D-048)

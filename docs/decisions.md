@@ -1086,3 +1086,20 @@
   - 상위 5%를 받은 날 같은 방향으로 새로 추가한 12% 알림이 뒤늦게 오면 정보 없이 소음만 늘어난다. D-023의 재시도 억제와 같은 규칙으로 맞춘다.
   - 재시도를 `INTRADAY`에만 맡기면 정산 대기·휴장으로 몇 시간 밀릴 수 있다.
 - 영향: product.md 6절(닿음 경계·새 레벨), data-model.md `alert_record` 설명(덮음 상태). 5-8에서 `INTRADAY`·`DEFERRED_PUSH`가 이 함수를 쓴다.
+
+## D-070: 재계산 파이프라인 — 원자재·기준값 단위 전체 재계산, 기준값마다 트랜잭션, 규칙 행은 마이그레이션 시드
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-3 재계산 파이프라인. 5-2 calc 함수(D-064~D-067)를 잇는 순서, 대표월물 마지막 날의 종가 뒤 행, 대표월물의 `in_roll_period`, 계산 범위, 저장 단위와 실패 처리, `roll_rule` 초기 행을 넣는 방법이 정해지지 않았다.
+- 결정
+  - 순수 함수 `apps/server/src/calc/recompute.ts` `recomputeBasis(input)`: `daily_bar` → 롤 비중(FRONT는 `buildFrontAfterClose`, KR·US는 `expandRollWeights`) → `buildIndexBars`·`indexScaleRatio` → 이평선 4종 `buildDisparitySeries` → 마지막 거래일 기준 분포 16개(`buildDistribution`, 표본 없는 조합은 행 없음).
+  - 계산 범위는 `trading_day` 중 그 원자재 일봉 첫날~마지막 날이다. 일봉이 없는 거래일도 넣어 영업일 순번을 세고, 보유 월물 정산가가 없으면 오류다. 거래일이 아닌 날의 일봉도 오류다(달력 누락).
+  - `buildFrontAfterClose`(`frontMonth.ts`): 행 t = `buildFrontSeries`의 t+1 값, 마지막 날은 그날 거래량으로 `nextFrontSymbol`. `switched`(그날 보유 월물과 다름)를 대표월물 `index_bar.in_roll_period`로 둔다(전환 마커, D-066).
+  - 조회·저장 `src/db/recompute.ts`, 흐름 `src/jobs/recompute.ts` `recomputeCommodity(db, code, now)`. 원자재 입력은 한 번 읽고, 기준값마다 한 트랜잭션에서 다섯 테이블(`roll_weight`·`index_bar`·`index_scale`·`disparity`·`disparity_distribution`)의 그 원자재·기준값 행을 지우고 다시 넣는다(5,000행씩). 한 기준값이 실패해도 나머지는 저장하고 실패를 모아 던진다. `roll_rule` 행이 없는 KR·US는 지우기만 한다(API가 FRONT로 대체, data-model.md).
+  - 변경 감지 없이 매번 전체를 다시 쓴다. 규칙 변경(D-024)·정산 정정(D-047)도 같은 경로다. `roll_rule.params`는 읽을 때 `rollRuleParamsSchema`로 검사한다(사람이 고친 행).
+  - `roll_rule` 8행은 커스텀 마이그레이션 `0003_roll_rule_seed.sql`(`ROLL_RULE_SEEDS`에서 생성, `ON CONFLICT DO NOTHING`)로 넣는다. 이후 변경은 DB 행을 직접 고친다(D-024).
+  - 1회 실행 CLI `npm run recompute -w apps/server -- [GC|SI|CL|NG ...]`(인자 없으면 4종).
+- 근거
+  - 원자재당 16년 약 4,000거래일이라 전체 재계산도 메모리·시간이 작다(가짜 CL 205거래일 3기준값 약 250ms). 증분 계산은 이평선 창·분포·이어 붙이기 기준을 따로 맞춰야 해 경로가 늘어난다.
+  - 기준값마다 트랜잭션을 두면 한 규칙의 데이터 문제(예: 먼 월물 정산가 누락)가 대표월물 차트까지 막지 않는다.
+- 영향: `data-model.md` 이격도 설명(통째로 다시 씀)과 같다. `DAILY_SETTLE`(5-3)·적재 뒤 전체 재계산(5-4)이 이 함수를 쓴다.

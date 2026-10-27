@@ -10,6 +10,7 @@
     "db:migrate": "node --env-file-if-exists=.env src/db/migrate.ts",
     "job": "node --env-file-if-exists=.env src/jobs/cli.ts",
     "calendar:import": "node --env-file-if-exists=.env src/db/importCalendar.ts",
+    "recompute": "node --env-file-if-exists=.env src/jobs/recomputeCli.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
