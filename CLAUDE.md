@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~D-061), 5-2 거래일·장 상태(D-062)·월물 목록(D-063)·대표월물 전환(D-064)·롤 비중(D-065)·수익률 연결 지수(D-066)·이평선·이격도·분포(D-067)·커브(D-068)·알림 판정(D-069) 완료(5-2 끝). 5-3 재계산 파이프라인(D-070)·일일 정산 작업(D-071) 완료(5-3 끝). 다음은 5-4 실데이터 적재(가입 필요), 기다리는 동안 5-5 앱 공통 기반 진행 중(`src/api` D-072·테마·i18n·표시 설정 D-073·라우트 골격 D-074·공용 UI D-075·가로 전환 D-076·접근 키 B-b D-077~D-080 완료(기기 확인 남음)). 5-6 화면 수직 슬라이스 진행 중(설정 API D-081·B 선택 항목 D-082·rare-level 입력 D-083·시간대 PATCH D-084·데이터 출처 화면 완료(설정 끝), A 원자재 목록 D-085 완료, 다음은 C-a 이격도차트). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~D-061), 5-2 거래일·장 상태(D-062)·월물 목록(D-063)·대표월물 전환(D-064)·롤 비중(D-065)·수익률 연결 지수(D-066)·이평선·이격도·분포(D-067)·커브(D-068)·알림 판정(D-069) 완료(5-2 끝). 5-3 재계산 파이프라인(D-070)·일일 정산 작업(D-071) 완료(5-3 끝). 다음은 5-4 실데이터 적재(가입 필요), 기다리는 동안 5-5 앱 공통 기반 진행 중(`src/api` D-072·테마·i18n·표시 설정 D-073·라우트 골격 D-074·공용 UI D-075·가로 전환 D-076·접근 키 B-b D-077~D-080 완료(기기 확인 남음)). 5-6 화면 수직 슬라이스 진행 중(설정 API D-081·B 선택 항목 D-082·rare-level 입력 D-083·시간대 PATCH D-084·데이터 출처 화면 완료(설정 끝), A 원자재 목록 D-085 완료, C-a 이격도차트 진행 중(서버 API D-086 완료, 다음은 차트 부품)). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -68,7 +68,7 @@ futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~
 상세는 `docs/architecture.md`.
 
 - npm workspaces: `apps/mobile`(Expo), `apps/server`(API + 배치 한 프로세스), `packages/shared`(zod 스키마·타입·푸시 문구만, TS 소스를 직접 `exports`). 의존은 앱·서버 → shared만 (D-040, D-051)
-- 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다. 예외는 커브 조회뿐(원천값 → calc 호출) (D-041, D-046)
+- 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다. 예외는 커브 조회(원천값 → calc 호출)와 C-a 조회(저장된 분포로 rare 레벨·꼬리 백분위·잠정 봉 calc 호출) (D-041, D-046, D-086)
 - 앱: route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지 (D-041)
 - 환경: dev는 로컬 Mac(스케줄러 꺼짐, 작업은 CLI 1회 실행), prod는 VM. 앱은 `APP_VARIANT`로 dev(`.dev` ID)·prod 두 변형. 서버는 `process.env`를 `src/config.ts`(zod 검증)에서만, 앱은 `extra`(서버 주소·dev 토큰)를 `src/api/config.ts`에서만 읽는다. `APP_VARIANT`가 `development`가 아니면 모두 prod (D-043, D-052)
 - DB 마이그레이션: 생성은 dev의 `drizzle-kit generate`(`apps/server/drizzle/` 커밋), 적용은 코드 `migrate()`(`src/db/migrate.ts`) (D-053). 스키마는 `casing: 'snake_case'`(TS camelCase 속성 → snake_case 컬럼), enum 값은 text + shared·서버 상수 배열 (D-058)

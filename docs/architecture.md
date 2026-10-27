@@ -86,6 +86,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 
 - 조회 API는 계산하지 않는다. 배치가 미리 계산해 저장한 값을 `db` 조회 함수로 읽어 응답 형태로 바꾸기만 한다(product.md "앱은 자체 백엔드만 조회하고, 계산은 모두 서버에서 미리 한다").
 - 예외(D-046): 커브(C-b) 조회만 저장값 대신 `daily_bar`·`intraday_snapshot` 원천값을 읽어 `calc`의 커브 함수(월물 선택·스프레드·롤 수익률)를 부른다. 기준일이 2010년부터 아무 날이나 될 수 있어 미리 저장하지 않는다(D-010). 계산 코드 자체는 `calc`에만 둔다.
+- 예외(D-086): C-a 조회는 저장된 분포·유효 종가로 `calc`의 rare 레벨·꼬리 백분위·오늘 잠정 이평선을 부른다. rare 레벨은 사용자가 바꾸는 값이라 미리 저장할 수 없다. 기간별 rare-level 선은 앱이 `ma(t) × (1 + 레벨 이격도 / 100)`로 그린다.
 - `calc`는 `db`·`sources`를 import하지 않는다. 테스트는 `calc`(단위)와 배치 흐름(가짜 `sources`·`push` 주입)을 중심으로 한다(D-038).
 
 ## API 통신 및 에러 처리 규약
@@ -167,7 +168,7 @@ type Freshness = {
 |---|---|---|
 | `GET /v1/health` | — | 인증 없음, 배포 확인용. DB `select 1`(3초 제한) 실패 시 500 `INTERNAL`(D-059) |
 | `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시, freshness. 스키마는 shared `commodities.ts`, 표시 값 규칙은 `calc/quotes.ts`(D-085) |
-| `GET /v1/commodities/:code/disparity?basis&ma&window` | C-a | 지수 일봉, 이평선, rare-level 밴드, 롤 구간, freshness |
+| `GET /v1/commodities/:code/disparity?basis&ma&window&levels` | C-a | 지수 일봉(맞춤 비율 곱함)·이평선·보유 월물·롤 구간, 오늘 잠정 봉, rare 레벨 10개, 꼬리 백분위, 대체 여부, freshness. 스키마는 shared `disparity.ts`, 조립은 `calc/disparityChart.ts`(D-086) |
 | `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일·현재 커브, 스프레드·롤 수익률, freshness |
 | `GET /v1/commodities/:code/contracts` | C-c | 월물 5개 원가격 시계열, freshness |
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서) |

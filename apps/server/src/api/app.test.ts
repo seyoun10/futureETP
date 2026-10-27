@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app.ts';
-import { UNUSED_COMMODITIES } from './commodities.fixtures.ts';
+import { UNUSED_COMMODITIES, UNUSED_DISPARITY } from './commodities.fixtures.ts';
 import { ApiException } from './errors.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -16,6 +16,7 @@ function setup(checkDb: () => Promise<void> = async () => {}) {
       update: () => Promise.reject(new Error('unused')),
     },
     commodities: UNUSED_COMMODITIES,
+    disparity: UNUSED_DISPARITY,
     dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,

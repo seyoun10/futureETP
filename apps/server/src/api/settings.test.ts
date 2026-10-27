@@ -1,7 +1,7 @@
 import type { Settings } from '@futureetp/shared';
 import { describe, expect, it } from 'vitest';
 import { createApp } from './app.ts';
-import { UNUSED_COMMODITIES } from './commodities.fixtures.ts';
+import { UNUSED_COMMODITIES, UNUSED_DISPARITY } from './commodities.fixtures.ts';
 import type { SettingsStore } from './settings.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -34,6 +34,7 @@ function setup() {
     checkDb: async () => {},
     settings,
     commodities: UNUSED_COMMODITIES,
+    disparity: UNUSED_DISPARITY,
   });
   const request = (method: string, body?: string) =>
     app.request('/v1/settings', {

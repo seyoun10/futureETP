@@ -6,6 +6,8 @@ import type { AuthFailureLimit } from './auth.ts';
 import { clientIp as defaultClientIp } from './clientIp.ts';
 import { commoditiesRoutes } from './commodities.ts';
 import type { CommoditiesStore } from './commodities.ts';
+import { disparityRoutes } from './disparity.ts';
+import type { DisparityStore } from './disparity.ts';
 import { ApiException } from './errors.ts';
 import { fail, ok } from './response.ts';
 import { settingsRoutes } from './settings.ts';
@@ -17,6 +19,7 @@ export type AppOptions = {
   checkDb: () => Promise<void>;
   settings: SettingsStore;
   commodities: CommoditiesStore;
+  disparity: DisparityStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   // 인증 실패 제한·조회 기준 시각(ms)
@@ -75,15 +78,10 @@ export function createApp(options: AppOptions) {
     '*',
     bearerAuth({ token: options.token, limiter, clientIp: options.clientIp ?? defaultClientIp }),
   );
+  const now = () => new Date(options.now?.() ?? Date.now());
   v1.route('/settings', settingsRoutes(options.settings));
-  v1.route(
-    '/commodities',
-    commoditiesRoutes(
-      options.commodities,
-      options.settings,
-      () => new Date(options.now?.() ?? Date.now()),
-    ),
-  );
+  v1.route('/commodities', commoditiesRoutes(options.commodities, options.settings, now));
+  v1.route('/commodities', disparityRoutes(options.disparity, now));
 
   app.route('/v1', v1);
   return app;

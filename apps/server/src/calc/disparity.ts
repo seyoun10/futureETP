@@ -133,7 +133,17 @@ export function liveDisparity(
   price: number,
   maPeriod: number,
 ): number | null {
+  const ma = liveMovingAverage(prevCloses, price, maPeriod);
+  return ma === null ? null : disparityOf(price, ma);
+}
+
+// 오늘 잠정 이평선(liveDisparity의 이평선). 가격·이평선이 0 이하이면 null
+export function liveMovingAverage(
+  prevCloses: readonly number[],
+  price: number,
+  maPeriod: number,
+): number | null {
   if (prevCloses.length < maPeriod - 1 || price <= 0) return null;
   const ma = mean([...prevCloses.slice(prevCloses.length - (maPeriod - 1)), price]);
-  return ma > 0 ? disparityOf(price, ma) : null;
+  return ma > 0 ? ma : null;
 }

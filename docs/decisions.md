@@ -1343,3 +1343,23 @@
   - 장 상태로 값을 나누지 않고 우선순위 하나로 고르면, 마감 뒤 정산 전(그날 마지막 스냅숏)과 정산 뒤(정산가)를 같은 코드가 처리한다(D-048).
   - 대표월물을 "T 이하 최근 행"으로 두면 장중에는 지금 보유 월물을, 주말에는 다음 개장 때 보유할 월물을 보여 준다. C-a 롤 마커와도 같은 행을 쓴다.
 - 영향: `createApp`에 `commodities` 저장소가 필수 인자로 늘었다(테스트는 `api/commodities.fixtures.ts`). 앱 화면은 다음 단계.
+
+## D-086: `GET /v1/commodities/:code/disparity` — 설정은 query로, 잠정 봉·rare 레벨은 조회 때 calc
+- 날짜: 2026-10-27
+- 상태: 확정 (행 객체 유지 여부는 5-4 적재 뒤 실제 응답으로 확인, D-046)
+- 맥락: TODO 5-6 C-a 첫 단계(서버). architecture.md 초안은 `?basis&ma&window`와 "지수 일봉, 이평선, rare-level 밴드, 롤 구간"만 정했다. rare 레벨을 어디서 읽는지, 밴드를 누가 그리는지, 오늘 잠정 봉·대체 기준값·십자선 월물 구성을 어떤 필드로 줄지 정하지 않았다.
+- 결정
+  - query: `basis`·`ma`·`window`·`levels`(쉼표 5개, shared `rareLevelsSchema`로 검증·정렬). 앱이 설정 값을 보낸다. 모르는 원자재는 404 `NOT_FOUND`, 잘못된 query는 400 `VALIDATION_FAILED`.
+  - 응답(shared `disparityChartSchema`): `freshness`, `priceDecimals`, 실제 `basis`와 `fallback`, `maPeriod`·`window`, `distribution`(`actualStartDate`·`sampleCount` 또는 null), `rareLevels`(위 방향 오름차순 → 아래 방향 오름차순, `{ direction, level, disparity, price }`), `currentTail`(마지막 봉 이격도의 가까운 꼬리 백분위), `provisional`, `bars`(행 객체 `{ tradeDate, open, high, low, close, ma, disparity, inRoll, holdings }`).
+  - 가격(OHLC·이평선·rare-level `price`)은 `index_scale.ratio`를 곱한 값이다. 산출 불가일도 봉 행을 두고 OHLC를 null로 준다.
+  - 대체: `basis`가 KR·US인데 그 원자재의 `roll_rule`이 없으면 FRONT로 응답하고 `fallback: true`다.
+  - `holdings`: 봉 t를 만든 보유 월물 = 직전 거래일 `roll_weight`(종가 뒤 비중) 행, 만기순 `{ contractMonth, weight }`. 첫 봉은 빈 배열. 대표월물 전환 마커는 앱이 연속한 두 봉의 `holdings`가 바뀌는 곳(옛 월물의 마지막 날)에서 찾는다.
+  - 오늘 잠정 봉: 기준 거래일 T(`marketStatus`, D-085)의 최근 `index_snapshot`이 저장된 마지막 봉보다 늦은 거래일이고 `last`가 있으면 붙인다(`provisional: true`). 이평선·이격도는 저장된 유효 종가로 `liveMovingAverage`·`liveDisparity`(D-067)를 그 자리에서 부른다. `inRoll`은 보유 월물이 둘 이상인지로 정한다(롤 첫날 장중은 놓친다, INTRADAY 구현 때 다시 본다).
+  - rare 레벨·꼬리 백분위는 저장된 `disparity_distribution.sorted_values`로 조회 때 `rareLevelDisparity`·`tailPercentile`을 부른다. 기간별 rare-level 선은 보내지 않고 앱이 `ma(t) × (1 + disparity / 100)`로 그린다.
+  - `asOf`: 잠정 봉이면 스냅숏 `capturedAt`(`delayed: true`), 아니면 `index_scale.updated_at`(마지막 재계산), 적재 전이면 조회 시각. 적재 전에는 빈 `bars`와 null 분포로 200을 준다.
+  - 조회는 `db/disparityStore.ts`(`DisparityStore`), 조립은 `calc/disparityChart.ts` `buildDisparityChart`와 `api/disparity.ts` `loadDisparityChart`다.
+- 근거
+  - 설정을 query로 받으면 앱 query key(D-072)에 그대로 들어가 B에서 설정을 바꾸면 따로 무효화하지 않아도 다시 조회된다. 서버가 설정을 읽으면 PATCH 뒤 원자재 조회를 모두 무효화해야 한다.
+  - rare 레벨은 사용자가 바꾸는 값이라 미리 저장할 수 없다. 그래서 커브(D-046)처럼 조회 때 calc를 부르는 예외에 C-a를 더한다. 계산은 정렬된 배열 백분위 몇 번이라 가볍다.
+  - 기간별 밴드 10개를 보내면 봉 4,000개에 숫자 40,000개가 늘어 응답이 두 배 가까이 된다. 밴드는 비율 하나를 곱하는 표시 변환이라 앱에 둔다(LC·HC도 보이는 구간 기준이라 앱이 계산한다).
+- 영향: D-041의 "조회 API는 읽기만" 예외가 커브·C-a 두 개가 된다. `createApp`에 `disparity` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_DISPARITY`). shared `settingsPatchSchema.rareLevels`는 `rareLevelsSchema`를 쓴다.

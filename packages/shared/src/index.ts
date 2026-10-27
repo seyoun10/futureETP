@@ -7,6 +7,14 @@ export {
   type ContractQuote,
 } from './commodities.ts';
 export {
+  disparityBarSchema,
+  disparityChartSchema,
+  rareLevelLineSchema,
+  type DisparityBar,
+  type DisparityChart,
+  type RareLevelLine,
+} from './disparity.ts';
+export {
   API_ERROR_CODES,
   envelopeSchema,
   errorSchema,
@@ -22,6 +30,7 @@ export {
   RARE_LEVEL_MAX,
   RARE_LEVEL_MIN,
   rareLevelSchema,
+  rareLevelsSchema,
   settingsPatchSchema,
   settingsSchema,
   type Settings,

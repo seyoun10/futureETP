@@ -5,6 +5,7 @@ import type { TradingDaySession } from '../calc/marketState.ts';
 import type { QuoteBar, QuoteSnapshot } from '../calc/quotes.ts';
 import { createApp } from './app.ts';
 import type { CommoditiesStore } from './commodities.ts';
+import { UNUSED_DISPARITY } from './commodities.fixtures.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
 const at = (iso: string) => new Date(iso);
@@ -106,6 +107,7 @@ function setup(now: string, data: Data) {
     checkDb: async () => {},
     settings,
     commodities: store,
+    disparity: UNUSED_DISPARITY,
     now: () => at(now).getTime(),
   });
   return app.request('/v1/commodities', { headers: { Authorization: `Bearer ${TOKEN}` } });

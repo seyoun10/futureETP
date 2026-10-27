@@ -35,6 +35,13 @@ export const rareLevelSchema = z
   .max(RARE_LEVEL_MAX)
   .refine((level) => Math.abs(level * 10 - Math.round(level * 10)) < 1e-9, 'At most 1 decimal');
 
+// rare 레벨 5개 입력(PATCH 본문, C-a 조회 query). 오름차순으로 정렬한다.
+export const rareLevelsSchema = z
+  .array(rareLevelSchema)
+  .length(RARE_LEVEL_COUNT)
+  .refine((levels) => new Set(levels).size === levels.length, 'Rare levels must be distinct')
+  .transform((levels) => [...levels].sort((a, b) => a - b));
+
 export const settingsSchema = z.object({
   locale: z.enum(LOCALES),
   timezone: z.string(),
@@ -56,12 +63,7 @@ export const settingsPatchSchema = z.strictObject({
   basis: z.enum(BASES).optional(),
   maPeriod: maPeriodSchema.optional(),
   window: z.enum(WINDOWS).optional(),
-  rareLevels: z
-    .array(rareLevelSchema)
-    .length(RARE_LEVEL_COUNT)
-    .refine((levels) => new Set(levels).size === levels.length, 'Rare levels must be distinct')
-    .transform((levels) => [...levels].sort((a, b) => a - b))
-    .optional(),
+  rareLevels: rareLevelsSchema.optional(),
   alertCommodity: z.enum(COMMODITY_CODES).nullable().optional(),
   quietTime: quietTimeSchema.optional(),
 });
