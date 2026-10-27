@@ -88,11 +88,7 @@ beforeEach(() => {
   mockGet.mockReset().mockResolvedValue(DATA);
 });
 
-const renderScreen = () =>
-  renderRouter(
-    { appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } },
-    { initialUrl: '/commodity/GC' },
-  );
+const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
   it('설정 값(기준값·이평선·윈도·rare 레벨)으로 조회한다', async () => {

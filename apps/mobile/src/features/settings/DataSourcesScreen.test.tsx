@@ -13,11 +13,7 @@ beforeEach(() => {
   jest.mocked(getSettings).mockReturnValue(new Promise(() => {}));
 });
 
-const renderDataSources = () =>
-  renderRouter(
-    { appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } },
-    { initialUrl: '/settings/data-sources' },
-  );
+const renderDataSources = () => renderRouter('src/app', { initialUrl: '/settings/data-sources' });
 
 describe('데이터 출처', () => {
   it('출처 줄과 안내 문구를 보여 준다', async () => {

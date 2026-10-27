@@ -35,11 +35,7 @@ beforeEach(() => {
   });
 });
 
-const renderSettings = () =>
-  renderRouter(
-    { appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } },
-    { initialUrl: '/settings' },
-  );
+const renderSettings = () => renderRouter('src/app', { initialUrl: '/settings' });
 
 describe('B 설정', () => {
   it('서버 설정을 고른 상태로 보여 주고, 알림 행에 대상 원자재를 쓴다', async () => {

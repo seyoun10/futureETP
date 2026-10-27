@@ -52,8 +52,7 @@ beforeEach(() => {
   mockRequestCameraPermission.mockClear().mockResolvedValue({ granted: true });
 });
 
-const renderApp = (initialUrl = '/') =>
-  renderRouter({ appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } }, { initialUrl });
+const renderApp = (initialUrl = '/') => renderRouter('src/app', { initialUrl });
 
 const enterKey = async (input: string) => {
   await fireEvent.changeText(screen.getByLabelText('키 붙여넣기'), input);

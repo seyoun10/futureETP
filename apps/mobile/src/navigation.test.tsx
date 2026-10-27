@@ -44,9 +44,8 @@ beforeEach(() => {
   });
 });
 
-// 실제 src/app 라우트 트리로 화면 이동을 확인한다. 스파이크 화면은 Skia를 불러오므로 뺀다.
-const renderApp = (initialUrl = '/') =>
-  renderRouter({ appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } }, { initialUrl });
+// 실제 src/app 라우트 트리로 화면 이동을 확인한다.
+const renderApp = (initialUrl = '/') => renderRouter('src/app', { initialUrl });
 
 describe('라우트 골격', () => {
   it('A에서 원자재를 누르면 C-a 탭이 열리고 title-bar에 원자재명이 보인다', async () => {

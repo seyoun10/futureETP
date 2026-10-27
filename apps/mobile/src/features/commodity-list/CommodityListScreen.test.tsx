@@ -76,11 +76,7 @@ beforeEach(() => {
   jest.mocked(getSettings).mockReturnValue(new Promise(() => {}));
 });
 
-const renderList = () =>
-  renderRouter(
-    { appDir: 'src/app', overrides: { 'dev/chart-spike': () => null } },
-    { initialUrl: '/' },
-  );
+const renderList = () => renderRouter('src/app', { initialUrl: '/' });
 
 describe('A 원자재 목록', () => {
   it('기준 시각 줄과 원자재별 월물 줄을 서버 순서대로 보여 준다', async () => {

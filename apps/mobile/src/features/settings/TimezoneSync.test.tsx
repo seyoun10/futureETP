@@ -41,7 +41,7 @@ const renderApp = () =>
   renderRouter(
     {
       appDir: 'src/app',
-      overrides: { 'dev/chart-spike': () => null, 'settings/index': () => null },
+      overrides: { 'settings/index': () => null },
     },
     { initialUrl: '/settings' },
   );
