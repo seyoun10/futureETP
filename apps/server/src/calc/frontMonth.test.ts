@@ -1,6 +1,7 @@
 // 명세(product.md "계산 정의 > 기준값 > 대표월물", D-004)만 보고 작성한 테스트(D-057).
 import { describe, expect, it } from 'vitest';
 import {
+  buildFrontAfterClose,
   buildFrontSeries,
   initialFrontSymbol,
   nextFrontSymbol,
@@ -310,6 +311,30 @@ describe('buildFrontSeries', () => {
     expect(series(gcTail, days)).toEqual([
       ['2026-10-29', null],
       ['2026-10-30', null],
+    ]);
+  });
+});
+
+describe('buildFrontAfterClose', () => {
+  const contracts = [cl('2026-12', '2026-11-19'), cl('2027-01', '2026-12-17')];
+
+  it('행 t는 다음 날 대표월물이고, 마지막 날은 그날 거래량으로 정한다', () => {
+    const days: FrontDay[] = [
+      { tradeDate: '2026-11-02', volumes: vols({ CLZ26: 100, CLF27: 50 }) },
+      { tradeDate: '2026-11-03', volumes: vols({ CLZ26: 100, CLF27: 50 }) },
+      { tradeDate: '2026-11-04', volumes: vols({ CLZ26: 10, CLF27: 90 }) },
+    ];
+    expect(buildFrontAfterClose(contracts, days)).toEqual([
+      { tradeDate: '2026-11-02', symbol: 'CLZ26', switched: false },
+      { tradeDate: '2026-11-03', symbol: 'CLZ26', switched: false },
+      { tradeDate: '2026-11-04', symbol: 'CLF27', switched: true },
+    ]);
+  });
+
+  it('그날 보유 월물이 null이면 전환이 아니다', () => {
+    const days: FrontDay[] = [{ tradeDate: '2026-12-18', volumes: vols({}) }];
+    expect(buildFrontAfterClose(contracts, days)).toEqual([
+      { tradeDate: '2026-12-18', symbol: null, switched: false },
     ]);
   });
 });

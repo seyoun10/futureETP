@@ -76,3 +76,23 @@ export function buildFrontSeries(
   }
   return series;
 }
+
+// 거래일마다 그날 종가 뒤 보유할 대표월물(roll_weight FRONT 행, D-066). 행 t = buildFrontSeries의 t+1 값이고,
+// 마지막 날은 그날 거래량으로 nextFrontSymbol을 부른다. switched = 그날 보유 월물과 다름(전환 마커)
+export function buildFrontAfterClose(
+  contracts: readonly ListedContract[],
+  days: readonly FrontDay[],
+): { tradeDate: string; symbol: string | null; switched: boolean }[] {
+  const held = buildFrontSeries(contracts, days);
+  return held.map(({ tradeDate, symbol: current }, i) => {
+    let symbol: string | null;
+    if (i + 1 < held.length) symbol = held[i + 1].symbol;
+    else if (current === null) symbol = null;
+    else symbol = nextFrontSymbol(contracts, tradeDate, days[i].volumes, current);
+    return {
+      tradeDate,
+      symbol,
+      switched: current !== null && symbol !== null && symbol !== current,
+    };
+  });
+}
