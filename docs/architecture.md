@@ -129,10 +129,15 @@ type Freshness = {
   tradeDate: string;       // CME 거래일
   delayed: boolean;        // 지연 시세 여부
   marketState: 'OPEN' | 'CLOSED' | 'SETTLEMENT_PENDING';
-  nextUpdateAt: string | null; // 다음 장중 배치 완료 예상 시각, 장중이 아니면 null
+  nextUpdateAt: string | null; // 다음 데이터 갱신 예상 시각(아래), 계산할 수 없으면 null
 };
 ```
 
+- 표시 값: 장중은 최근 스냅숏, 휴장·정산 대기는 최신 값(그 거래일 정산가가 있으면 정산가, 없으면 마지막 스냅숏)이다. `asOf`는 그 값의 시각이다(D-048).
+- `nextUpdateAt`(D-048)
+  - 장중: 다음 장중 배치 완료 예상 시각
+  - 장 마감 뒤 그 거래일 정산 전·정산 대기: 일일 정산 ① 뒤 첫 장중 배치 완료 예상 시각(보통 19:00 CT 배치 뒤). 다시 조회했을 때 아직 대기면 서버가 다음 주기로 미룬 값을 준다.
+  - 그 밖의 휴장(주말·휴장일): 다음 개장 뒤 첫 장중 배치 완료 예상 시각
 - 앱은 화면이 보이는 동안 `nextUpdateAt` + 여유 1분에 해당 query를 다시 조회한다(D-030 후속). `null`이면 자동 새로고침하지 않고 당겨서 새로고침과 앱 복귀 재조회만 한다.
 
 ### 앱 fetch 래퍼와 AppError
@@ -157,8 +162,8 @@ type Freshness = {
 | `GET /v1/commodities/:code/contracts` | C-c | 월물 5개 원가격 시계열, freshness |
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서) |
 | `GET /v1/etps/:id` | C-d-a | ETP 상세 |
-| `GET /v1/settings`, `PATCH /v1/settings` | B, B-a | 이격도차트·알림 설정, 언어(푸시 문구용) |
-| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준), 시간대는 `app_settings.timezone` 갱신 |
+| `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048) |
+| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준). 토큰을 못 받으면 부르지 않는다(D-048) |
 
 ## 환경 설정 분리 (dev / prod)
 
@@ -190,6 +195,11 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 복원 직후 `device`(prod 기기 푸시 토큰)와 보류 알림을 비운다. dev 서버가 prod 기기로 푸시를 보내지 않게 하기 위해서다.
 - 복원은 수동으로 필요할 때만 한다. 스키마가 덤프보다 앞서 있으면 복원 뒤 Drizzle 마이그레이션을 적용한다.
 
+### prod 배포(D-048)
+- `scripts/`의 배포 스크립트가 ① rsync(`infra/.env`·키 파일 제외) ② VM에서 이미지 빌드 ③ `pg_dump` 덤프 ④ 새 이미지의 일회성 컨테이너로 Drizzle 마이그레이션 ⑤ `docker compose up -d`로 서버 교체 순서로 진행한다. ④가 실패하면 ⑤를 하지 않고 이전 서버를 그대로 둔다.
+- 서버는 시작할 때 마이그레이션하지 않는다. 문제가 생기면 ③ 덤프로 복원한다. 컬럼 삭제처럼 되돌리기 어려운 변경은 "추가 → 코드 배포 → 삭제" 두 번의 배포로 나눈다.
+- 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`)은 스캐폴딩 때 정한다.
+
 ### 앱 변형(app variant)
 - `apps/mobile/app.config.ts`가 `APP_VARIANT`(`development`·`production`, 기본 `production`)로 설정을 바꾼다. Expo 공식 app variant 방식(https://docs.expo.dev/build-reference/variants/).
 
@@ -219,7 +229,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 키는 저장소와 앱 번들에 넣지 않는다. VM `infra/.env`가 원본이고, 비밀번호 관리자에 사본을 둔다.
 
 ### 운영자 실패 알림(D-045)
-- 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음).
+- 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 문구는 shared 푸시 문구 리소스에 둔다.
 - Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
 - dev는 ping URL을 비워 신호를 보내지 않는다. ping 실패는 배치 결과에 영향을 주지 않는다(로그만 남김).
