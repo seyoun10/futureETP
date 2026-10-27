@@ -11,6 +11,7 @@
     "job": "node --env-file-if-exists=.env src/jobs/cli.ts",
     "calendar:import": "node --env-file-if-exists=.env src/db/importCalendar.ts",
     "recompute": "node --env-file-if-exists=.env src/jobs/recomputeCli.ts",
+    "databento:download": "node --env-file-if-exists=.env src/sources/databentoDownload.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
