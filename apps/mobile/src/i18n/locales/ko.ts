@@ -1,5 +1,6 @@
 import type { CommodityCode, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
+import type { ChartPeriod } from '@/stores/displaySettings';
 
 // 번역 리소스의 기준 언어. en은 이 구조를 그대로 따라야 한다(키 누락은 타입 오류).
 export const ko = {
@@ -56,6 +57,45 @@ export const ko = {
     },
     highTag: '고가 {{price}}({{pct}}, {{date}})↓',
     lowTag: '↑저가 {{price}}({{pct}}, {{date}})',
+    periods: {
+      '3M': '3M',
+      '6M': '6M',
+      '9M': '9M',
+      '12M': '12M',
+      '2Y': '2Y',
+      '4Y': '4Y',
+      '6Y': '6Y',
+      '8Y': '8Y',
+      '10Y': '10Y',
+      ALL: '전체',
+    } satisfies Record<ChartPeriod, string>,
+    periodsLabel: '기간',
+    scrollPrev: '앞 기간 보기',
+    scrollNext: '뒤 기간 보기',
+  },
+  // C-a 이격도차트 차트 밖 줄과 십자선 상세(screens.md C-a)
+  disparity: {
+    basisFallback: '{{basis}}*',
+    basisInRoll: '{{basis}} (롤 중)',
+    open: '시',
+    high: '고',
+    low: '저',
+    close: '종',
+    disparity: '이격도 {{value}}',
+    tailUP: '상위 {{pct}}%',
+    tailDOWN: '하위 {{pct}}%',
+    fromLow: '저점대비 {{pct}}',
+    fromHigh: '고점대비 {{pct}}',
+    prevChange: '전일 대비 {{change}} ({{pct}})',
+    noData: '표시할 봉이 없습니다.',
+    hint: {
+      FRONT:
+        '대표월물: 거래량이 가장 많은 월물의 실제 가격입니다. 월물이 바뀌는 날 가격이 건너뜁니다.',
+      adjusted:
+        '{{basis}}: 롤 규칙대로 월물을 갈아탄 수익률을 이어 붙인 조정 가격입니다. 실제 월물 가격과 다릅니다.',
+      fallback: '이 원자재에는 {{basis}} 상품이 없어 대표월물로 대신 보여 줍니다.',
+      sameAsKR: '금·은은 미국형이 한국형과 같습니다.',
+    },
   },
   etp: {
     detailTitle: 'ETP 상세',

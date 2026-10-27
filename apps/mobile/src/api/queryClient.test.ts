@@ -42,7 +42,12 @@ describe('queryKeys', () => {
   it('원자재 조회는 원자재 key를 접두로 공유한다', () => {
     const prefix = queryKeys.commodities.detail('GC');
     for (const key of [
-      queryKeys.commodities.disparity('GC', { basis: 'KR', ma: 200, window: 'Y10' }),
+      queryKeys.commodities.disparity('GC', {
+        basis: 'KR',
+        ma: 200,
+        window: 'Y10',
+        levels: [0.5, 1, 2, 5, 10],
+      }),
       queryKeys.commodities.curve('GC', null),
       queryKeys.commodities.contracts('GC'),
       queryKeys.commodities.etps('GC'),
