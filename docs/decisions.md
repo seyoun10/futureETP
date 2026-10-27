@@ -982,10 +982,11 @@
 - 결정
   - `apps/server/src/calc/frontMonth.ts`. `nextFrontSymbol(contracts, tradeDate, volumes, currentSymbol)`이 정산이 끝난 거래일 `tradeDate`의 거래량으로 다음 거래일의 대표월물을 낸다.
   - 후보: `is_target`이고 현재보다 만기순(최종 거래일, 같으면 월물)으로 뒤이며 `last_trade_date > tradeDate`(다음 거래일에도 거래됨)인 월물. 거래량이 현재를 넘는 후보가 있으면 그중 최대로 옮긴다. 거래량 맵에 없는 월물은 0, 동률이면 만기가 가까운 쪽이다.
-  - 안전장치: 현재 월물의 `last_trade_date <= tradeDate`이면 위 규칙의 결과, 없으면 만기순 다음 후보, 그것도 없으면 `null`(월물 상장 누락).
+  - 안전장치: 현재 월물의 `last_trade_date <= tradeDate`이면 현재 월물 거래량과 비교하지 않고 후보 중 거래량 최대(모두 0이면 동률 규칙으로 만기순 다음), 후보가 없으면 `null`(월물 상장 누락). product.md의 "위 규칙으로 고른 월물"은 "현재를 넘는 후보 중 최대"로도 읽혀, 이 해석으로 product.md를 고쳤다.
   - `initialFrontSymbol`: 이전 대표월물이 없는 날(적재 첫 거래일)은 그날 만기되지 않은 대상 월물 중 그날 거래량 최대. 미래 정보를 하루 쓰지만 첫날 하루뿐이다.
   - `buildFrontSeries(contracts, days)`: 전체 재계산용. 첫날·직전 결과가 `null`인 날은 `initialFrontSymbol`, 나머지는 전일 `nextFrontSymbol`. 결과는 `roll_weight`(basis=`FRONT`, weight 1) 행이 된다(5-3).
 - 근거
   - 일일 정산 ①(D-047)은 당일 정산 뒤 다음 거래일 대표월물을 정하므로 한 단계 함수가 배치와 전체 재계산에 같이 쓰인다.
   - 다음 거래일에 거래되지 않는 월물로 옮기면 하루 만에 안전장치로 다시 옮겨진다.
+  - 최종 거래일의 현재 월물 거래량은 대개 바닥이라 비교 대상으로 의미가 없다. 비교하면 거래량이 더 많은 먼 월물을 두고 만기순 다음으로 옮기는 경우가 생긴다.
 - 영향: 재계산 파이프라인·`DAILY_SETTLE`(5-3)이 `roll_weight` FRONT 행을 만든다.

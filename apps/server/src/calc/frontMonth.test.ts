@@ -119,7 +119,15 @@ describe('nextFrontSymbol', () => {
   });
 
   describe('안전장치: 현재 월물이 최종 거래일에 도달', () => {
-    it('넘는 후보가 없어도 만기순 다음 대상 월물로 옮긴다', () => {
+    it('현재 월물 거래량과 비교하지 않고 후보 중 거래량이 가장 많은 월물로 옮긴다', () => {
+      expect(
+        nextFrontSymbol(
+          CL_CONTRACTS,
+          '2026-11-19',
+          vols({ CLZ26: 1000, CLF27: 10, CLG27: 20 }),
+          'CLZ26',
+        ),
+      ).toBe('CLG27');
       expect(
         nextFrontSymbol(
           CL_CONTRACTS,
@@ -128,6 +136,12 @@ describe('nextFrontSymbol', () => {
           'CLZ26',
         ),
       ).toBe('CLF27');
+    });
+
+    it('후보 거래량이 모두 없으면 만기순 다음 대상 월물로 옮긴다', () => {
+      expect(nextFrontSymbol(CL_CONTRACTS, '2026-11-19', vols({ CLZ26: 1000 }), 'CLZ26')).toBe(
+        'CLF27',
+      );
     });
 
     it('규칙으로 고른 월물이 있으면 그 월물이 우선이다', () => {

@@ -41,8 +41,8 @@ export function initialFrontSymbol(
 // tradeDate(정산이 끝난 거래일)의 거래량으로 다음 거래일의 대표월물을 정한다.
 // - 현재보다 만기가 늦고 다음 거래일에도 거래되는 대상 월물 중 거래량이 현재를 넘는 것이 있으면
 //   그중 가장 많은 월물로 옮긴다. 이전 월물로는 되돌아가지 않는다.
-// - 안전장치: 현재 월물이 tradeDate에 최종 거래일에 도달했으면 거래량과 관계없이 옮긴다.
-//   위 규칙으로 고른 월물이 없으면 만기순 다음 대상 월물이고, 그것도 없으면 null(월물 상장 누락)
+// - 안전장치: 현재 월물이 tradeDate에 최종 거래일에 도달했으면 현재 거래량과 비교하지 않고
+//   후보 중 거래량이 가장 많은 월물로 옮긴다(모두 0이면 만기순 다음). 후보가 없으면 null(월물 상장 누락)
 export function nextFrontSymbol(
   contracts: readonly ListedContract[],
   tradeDate: string,
@@ -56,8 +56,8 @@ export function nextFrontSymbol(
     .filter((c) => c.isTarget && byExpiry(c, current) > 0 && c.lastTradeDate > tradeDate)
     .sort(byExpiry);
   const best = mostTraded(later, volumes);
+  if (current.lastTradeDate <= tradeDate) return best?.symbol ?? null;
   if (best && volumeOf(volumes, best.symbol) > volumeOf(volumes, currentSymbol)) return best.symbol;
-  if (current.lastTradeDate <= tradeDate) return later[0]?.symbol ?? null;
   return currentSymbol;
 }
 
