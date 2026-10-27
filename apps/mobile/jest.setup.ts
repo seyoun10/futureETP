@@ -51,3 +51,13 @@ jest.mock('@/api/config', () => ({
   apiUrl: 'http://api.test',
   devApiToken: null,
 }));
+
+// jest-expo의 기기 시간대는 America/New_York이다. 테스트 설정 값(Asia/Seoul)과 맞춰 시간대 PATCH가
+// 끼어들지 않게 한다. 시간대를 바꿔 보는 테스트는 jest.mocked(getCalendars)로 바꾼다(D-084).
+jest.mock('expo-localization', () => {
+  const actual = jest.requireActual<typeof import('expo-localization')>('expo-localization');
+  return {
+    ...actual,
+    getCalendars: jest.fn(() => [{ ...actual.getCalendars()[0], timeZone: 'Asia/Seoul' }]),
+  };
+});

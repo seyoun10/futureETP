@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAccessKeyStore, useHasAccessKey } from '@/api/accessToken';
 import { queryClient, setupFocusManager } from '@/api/queryClient';
 import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
+import { TimezoneSync } from '@/features/settings/TimezoneSync';
 import { setupI18n } from '@/i18n';
 import { lockPortrait } from '@/lib/orientation';
 import { colors } from '@/theme/tokens';
@@ -32,6 +33,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.root}>
         <StatusBar style="light" />
+        {hasKey && <TimezoneSync />}
         {hasKey ? (
           <Stack
             screenOptions={{
