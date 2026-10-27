@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (스캐폴딩·lint·format·test·Android 환경 완료, 다음은 iOS 시뮬레이터 실행 확인). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (스캐폴딩·lint·format·test·Android/iOS 실행 확인 완료, 다음은 CLAUDE.md 갱신). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 

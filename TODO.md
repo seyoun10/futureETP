@@ -65,10 +65,10 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] jest-expo + RNTL(앱)
   - [x] husky + lint-staged pre-commit
 - [x] Android Studio(SDK·에뮬레이터)·JDK 설치 (2026-10-27, D-055)
-- [ ] **[다음 작업]** Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
+- [x] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인 (2026-10-27, D-055)
   - [x] Android 에뮬레이터: dev 변형 빌드·설치·실행 (2026-10-27, D-055)
-  - [ ] iOS 시뮬레이터
-- [ ] CLAUDE.md 갱신 (Tech Stack, Architecture, Commands) — Commands는 2026-10-27 작성
+  - [x] iOS 시뮬레이터: CocoaPods 설치, iPhone 17(iOS 27.1)에서 dev 변형 빌드·설치·실행
+- [ ] **[다음 작업]** CLAUDE.md 갱신 (Tech Stack, Architecture, Commands) — Commands는 2026-10-27 작성
 - [ ] SessionStart hook(~/.claude/hooks/swift-env.sh)에 Node 버전 주입 추가 (package.json 존재 시)
 
 ## 5. 개발
