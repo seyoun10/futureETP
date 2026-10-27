@@ -891,3 +891,18 @@
   - Postgres enum은 값 추가는 쉽지만 삭제·이름 변경이 어렵고, 값 검증은 이미 API(zod)·calc에서 한다. 단일 사용자라 DB 제약으로 막을 동시 쓰기 경로도 거의 없다. 설정 행만은 앱 입력이 직접 들어가므로 제약을 둔다.
   - `numeric`을 문자열로 읽으면 calc 전에 매번 변환해야 한다. 가격 소수 자릿수(최대 3자리)와 double 정밀도(15~17자리)로 보아 읽을 때 number 변환의 오차는 표시·계산에 영향이 없고, 저장은 정밀 decimal이라 원천값은 그대로 남는다.
 - 영향: `data-model.md`(물리 타입 메모), `apps/server/src/db/schema.ts`, TODO 작업 이름.
+
+## D-059: Hono 앱 골격 — 에러 코드 shared enum, IP별 인증 실패 제한(15분 10회), 상수 시간 토큰 비교
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-1 Hono 앱 골격. D-036은 "틀린 요청에 횟수 제한"만 정했고 기준(키·횟수·기간)과 클라이언트 IP를 읽는 방법은 정하지 않았다.
+- 결정
+  - 구조: `apps/server/src/api/app.ts`의 `createApp({ token, authFailureLimit?, now?, clientIp? })`가 Hono 앱을 만든다(테스트는 `app.request`, 시각·IP 주입). `main.ts`는 `@hono/node-server`의 `serve`만 한다. 2026-10-27 npm 기준 `hono` 4.13.14(5.0은 RC), `@hono/node-server` 2.1.5.
+  - 봉투: 라우트는 `ok(c, data)`로 응답하고, 실패는 `ApiException(code, message)`을 던진다. `onError`가 봉투로 바꾸고, Hono `HTTPException` 4xx는 `VALIDATION_FAILED`, 그 밖은 로그만 남기고 `INTERNAL`이다. `notFound`도 봉투다. 에러 코드는 shared `API_ERROR_CODES`이고 `errorSchema.code`도 이 enum으로 검증한다.
+  - 인증: `/v1/health`만 인증 없이 열고, 그 밖의 `/v1/*`(없는 경로 포함)는 Bearer 검사가 먼저다. 인증 없이 없는 경로를 부르면 404가 아닌 401이라 경로 존재가 드러나지 않는다. 토큰은 양쪽 SHA-256 다이제스트를 `timingSafeEqual`로 비교한다(길이도 드러나지 않음).
+  - 횟수 제한: IP별로 첫 실패부터 15분 안의 인증 실패를 메모리에 센다. 10회에 닿으면 그 창이 끝날 때까지 그 IP의 모든 요청(맞는 토큰 포함, health 제외)이 `429 RATE_LIMITED`다. 서버 재시작 때 초기화된다.
+  - 클라이언트 IP: `X-Forwarded-For`의 가장 오른쪽 값, 없으면 소켓 주소다. Caddy는 `trusted_proxies`를 두지 않으면 이 헤더를 실제 클라이언트 IP로 덮어쓰므로 위조할 수 없다. 서버 포트는 Caddy에만 열어야 한다(D-036).
+- 근거
+  - 토큰이 32바이트 이상이라 추측 공격은 사실상 불가능하다. 제한의 목적은 스캐너 소음과 부하를 줄이는 것이라 메모리 계수기로 충분하다(프로세스 하나, D-034).
+  - 전역 계수기는 공격자가 사용자 본인까지 막을 수 있어 IP별로 센다. 막힌 IP에서 맞는 토큰을 통과시키면 막힌 동안에도 맞았는지 알 수 있어 모두 막는다. 사용자 본인 IP가 막혀도 15분 뒤 풀리고, 모바일 망은 IP가 자주 바뀐다.
+- 영향: `docs/architecture.md`(API 규약), `packages/shared/src/envelope.ts`, `apps/server/src/api/`.

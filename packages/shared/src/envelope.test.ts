@@ -20,6 +20,12 @@ describe('envelopeSchema', () => {
     expect(schema.safeParse({ success: false, error: { code: 'NOT_FOUND' } }).success).toBe(false);
   });
 
+  it('정의되지 않은 에러 코드는 거부한다', () => {
+    expect(
+      schema.safeParse({ success: false, error: { code: 'TEAPOT', message: 'x' } }).success,
+    ).toBe(false);
+  });
+
   it('success가 없으면 거부한다', () => {
     expect(schema.safeParse({ data: { price: 1 } }).success).toBe(false);
   });

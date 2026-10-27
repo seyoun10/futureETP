@@ -115,6 +115,8 @@ type ApiResponse<T> =
 
 - `message`는 개발·로그용 영문이다. 사용자에게 보이지 않는다. 사용자 문구는 앱이 `code`를 i18n 키(`errors.<code>`)로 바꿔 보여 준다(D-033).
 - 서버는 `onError`·`notFound`에서도 같은 봉투를 보낸다. 스택 트레이스는 응답에 넣지 않고 서버 로그(stdout)에만 남긴다.
+- 서버 라우트는 `ok(c, data)`로 응답하고 실패는 `ApiException(code, message)`을 던진다(`src/api/`, D-059).
+- 인증 실패 횟수 제한(D-059): IP(`X-Forwarded-For` 가장 오른쪽 값, 없으면 소켓 주소)별로 15분 안에 10회 실패하면 그 창이 끝날 때까지 그 IP의 `/v1/health` 밖 요청이 모두 `RATE_LIMITED`다. 인증 없이 없는 경로를 부르면 `NOT_FOUND`가 아닌 `UNAUTHORIZED`다.
 
 ### 값 형식
 - 시각: UTC ISO 8601 문자열(`2026-10-22T14:30:00Z`). 앱이 기기 현지 시간으로 바꿔 표시한다.
