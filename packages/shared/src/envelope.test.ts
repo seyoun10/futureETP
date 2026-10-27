@@ -14,7 +14,9 @@ describe('envelopeSchema', () => {
   });
 
   it('실패 응답은 error의 code·message를 요구한다', () => {
-    expect(schema.safeParse({ success: false, error: { code: 'NOT_FOUND', message: 'x' } }).success).toBe(true);
+    expect(
+      schema.safeParse({ success: false, error: { code: 'NOT_FOUND', message: 'x' } }).success,
+    ).toBe(true);
     expect(schema.safeParse({ success: false, error: { code: 'NOT_FOUND' } }).success).toBe(false);
   });
 

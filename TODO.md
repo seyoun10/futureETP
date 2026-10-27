@@ -61,7 +61,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Drizzle 마이그레이션 실행 방식(`drizzle-kit migrate` / 코드의 `migrate()`) (D-048) → 생성은 drizzle-kit, 적용은 코드 `migrate()`, 로컬 Postgres 18 설치 (D-053)
 - [ ] **[다음 작업]** lint / format / test 설정 (D-054)
   - [x] Vitest(서버·공유) + `parseConfig`·`envelopeSchema` 테스트 + 루트 `npm run check`
-  - [ ] ESLint + Prettier
+  - [x] ESLint + Prettier (루트 설정 하나, ESLint 9)
   - [ ] jest-expo + RNTL(앱)
   - [ ] husky + lint-staged pre-commit
 - [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)

@@ -7,8 +7,11 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
-    "check": "npm run typecheck && npm run test"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "overrides": {
     "react": "19.3.0",
@@ -18,6 +21,12 @@
     "node": ">=26.0.0"
   },
   "devDependencies": {
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.5.0",
+    "prettier": "^3.9.10",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
   }
 }

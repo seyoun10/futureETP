@@ -1,7 +1,10 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
+// expo-modules-core가 process.env 값을 any로 선언해서 string으로 좁혀 읽는다.
+const env: Partial<Record<string, string>> = process.env;
+
 // 앱 변형(D-043). 기본은 production이라 변수가 없는 환경(eas update 등)에서도 prod 설정이 된다.
-const variant = process.env.APP_VARIANT === 'development' ? 'development' : 'production';
+const variant = env.APP_VARIANT === 'development' ? 'development' : 'production';
 const isDev = variant === 'development';
 
 const BASE_ID = 'io.github.seyoon.futureetp';
@@ -14,8 +17,8 @@ const PROD_API_URL = 'https://futureetp.invalid';
 const extra = isDev
   ? {
       variant,
-      apiUrl: process.env.DEV_API_URL ?? null,
-      devApiToken: process.env.DEV_API_TOKEN ?? null,
+      apiUrl: env.DEV_API_URL ?? null,
+      devApiToken: env.DEV_API_TOKEN ?? null,
     }
   : { variant, apiUrl: PROD_API_URL };
 

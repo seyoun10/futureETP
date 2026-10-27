@@ -791,10 +791,22 @@
 
 ## D-054: lint·format·test 설정 — 테스트 도구는 루트에 한 벌, 서버 테스트는 더미 환경 변수
 - 날짜: 2026-10-27
-- 상태: 진행 중 (Vitest 완료, ESLint·Prettier·jest-expo·husky는 이어서 기록)
+- 상태: 진행 중 (Vitest·ESLint·Prettier 완료, jest-expo·husky는 이어서 기록)
 - 맥락: TODO 4단계, D-038 후속. 서버 `config.ts`는 import 때 `process.env`를 검증하고 실패하면 exit 1 한다(D-053).
 - 결정
   - Vitest 5.0.5는 루트 `devDependencies`에 한 벌만 둔다. 각 workspace는 `"test": "vitest run"` 스크립트만 갖는다.
   - 서버 `vitest.config.ts`의 `test.env`에 유효한 더미 값(`NODE_ENV`·`DATABASE_URL`·`API_TOKEN`·`SCHEDULER_ENABLED`)을 넣는다. `config`를 거쳐 import되는 모듈도 테스트할 수 있다. `parseConfig`는 인자로 받은 env만 검증하므로 테스트가 영향을 받지 않는다.
-  - 루트 스크립트: `typecheck`(모든 workspace), `test`(`--if-present`), `check`(`typecheck` → `test`, lint는 이어서 추가).
-- 근거: workspace마다 vitest를 설치하면 npm이 peer인 `vite`를 workspace 아래에 중첩 설치하고 루트에 hoist된 `@vitest/mocker`가 찾지 못해 시작 오류가 난다(npm 11.20, 2026-10-27 확인). 루트 한 벌이면 중복도 없다.
+  - 루트 스크립트: `typecheck`(모든 workspace), `lint`(`eslint .`), `format`·`format:check`, `test`(`--if-present`), `check`(`typecheck` → `lint` → `format:check` → `test`).
+  - ESLint는 9.39.5로 한다(D-038에 적은 10.x 아님). lint 도구는 모두 루트 `devDependencies`에 둔다.
+  - ESLint 설정은 루트 `eslint.config.mjs` 하나다. `eslint-config-expo/flat`의 각 항목에 `basePath: 'apps/mobile'`을 붙여 React·Hooks·import 규칙을 앱에만 건다. import resolver에는 `apps/mobile/tsconfig.json`을 지정한다(루트에서 실행하면 `@/` 별칭을 못 푼다).
+  - 모든 `.ts`·`.tsx`에 `typescript-eslint` `recommendedTypeChecked`(`projectService`)를 건다.
+  - default export 금지는 `import/no-default-export` 대신 ESLint 기본 규칙 `no-restricted-exports`(`restrictDefaultExports`)로 건다. 예외는 `apps/mobile/src/app/**`와 `*.config.*`(도구가 default export를 요구)다.
+  - Prettier: `singleQuote`, `printWidth` 100. `eslint-config-prettier`를 마지막에 둬서 서식 규칙이 겹치지 않게 한다. `*.md`는 포맷하지 않는다.
+  - `app.config.ts`는 `process.env`를 `Partial<Record<string, string>>`로 받아 읽는다.
+- 근거
+  - ESLint 10: `eslint-config-expo` 58이 쓰는 `eslint-plugin-react` 7.37.5(peer `^9.7`까지)와 `eslint-plugin-import` 2.32.0(peer `^9`까지)이 ESLint 10을 지원한다고 선언하지 않았고, Expo CLI(`expo lint`)도 `eslint@^9.0.0`을 설치한다(2026-10-27 확인). 두 플러그인이 10을 지원하면 올린다.
+  - 루트 설정 하나면 lint-staged가 루트에서 바뀐 파일을 한 번에 넘길 수 있다. ESLint 9는 설정 파일을 실행 위치(cwd) 기준으로 찾아서, workspace별 설정을 두면 루트 실행 때 읽히지 않는다.
+  - `no-restricted-exports`는 플러그인 없이 서버·공유 패키지에도 같은 규칙을 걸 수 있다. `eslint-plugin-import`는 Expo 설정을 통해 앱에만 들어온다.
+  - Markdown: 문서의 ASCII 와이어프레임·표를 Prettier가 다시 쓰면 손으로 맞춘 정렬이 깨질 수 있다.
+  - `expo-modules-core`가 `process.env` 값을 `any`로 선언해서(`[key: string]: any`) 타입 기반 규칙(`no-unsafe-assignment`)에 걸린다.
+- 근거(Vitest): workspace마다 vitest를 설치하면 npm이 peer인 `vite`를 workspace 아래에 중첩 설치하고 루트에 hoist된 `@vitest/mocker`가 찾지 못해 시작 오류가 난다(npm 11.20, 2026-10-27 확인). 루트 한 벌이면 중복도 없다.
