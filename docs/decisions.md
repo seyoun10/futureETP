@@ -816,3 +816,20 @@
   - lint-staged: 같은 파일에 ESLint와 Prettier를 서로 다른 glob으로 걸면 동시에 실행되어 서로 덮어쓸 수 있어 한 glob 안에서 순서대로 실행한다. `--no-warn-ignored`는 무시 대상 파일이 스테이징됐을 때 경고로 커밋이 막히지 않게 한다.
   - TypeScript 6은 `types` 기본값이 `[]`라 `@types/*`가 자동으로 포함되지 않는다.
 - 근거(Vitest): workspace마다 vitest를 설치하면 npm이 peer인 `vite`를 workspace 아래에 중첩 설치하고 루트에 hoist된 `@vitest/mocker`가 찾지 못해 시작 오류가 난다(npm 11.20, 2026-10-27 확인). 루트 한 벌이면 중복도 없다.
+
+## D-055: Android 개발 환경 — Zulu JDK 17, SDK는 명령줄 도구로 설치, API 36 Play 에뮬레이터
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 4단계, D-039 후속. Android 로컬 빌드와 에뮬레이터 실행에 JDK·Android SDK가 필요하다. 로컬은 M1 Pro(arm64).
+- 결정
+  - JDK: Azul Zulu 17(`brew install --cask zulu@17`, 17.0.21). Android Studio: `brew install --cask android-studio`(2026.2.1).
+  - SDK 위치는 Android Studio 기본값 `~/Library/Android/sdk`. 첫 실행 마법사 대신 명령줄 도구(cmdline-tools 21.0, `cmdline-tools/latest`)의 `sdkmanager`로 설치한다: `platform-tools` 37.0.1, `emulator` 37.2.12, `build-tools;37.0.0`, `platforms;android-37.0`, `ndk;27.1.12297006`, `system-images;android-36;google_apis_playstore;arm64-v8a`. CMake 3.22.1은 첫 Gradle 빌드가 자동 설치했다.
+  - 에뮬레이터: AVD `Pixel_API_36`(pixel_8, API 36 Google Play 이미지).
+  - 셸(`~/.zshrc`): `JAVA_HOME`(zulu-17), `ANDROID_HOME`, `PATH`에 `emulator`·`platform-tools`·`cmdline-tools/latest/bin`.
+- 근거
+  - RN 0.88 Gradle 플러그인이 `jvmToolchain(17)`을 쓰고, Expo 문서(2026-10-27 확인)가 Zulu 17을 권장한다.
+  - RN 0.88 `libs.versions.toml`이 compileSdk 37·Build-Tools 37.0.0·targetSdk 36·NDK 27.1.12297006·AGP 9.2.1이다. Expo 문서는 아직 Platform 36만 안내해서 37을 따로 설치했다.
+  - Play 이미지: FCM 푸시(D-037) 테스트에 Google Play 서비스가 필요하다. 이미지 API는 targetSdk(36)에 맞춘다.
+  - 명령줄 설치는 버전을 정확히 고르고 기록할 수 있다. Android Studio는 같은 SDK 위치를 쓰므로 나중에 열어도 그대로 인식한다.
+- 검증(2026-10-27): `npm run android:dev -w apps/mobile` 첫 빌드 5분 52초(Gradle 9.4.1) 성공, dev 변형(`io.github.seyoon.futureetp.dev`) 설치·실행, JS 번들 실행(`Running "main"`, Fabric) 확인, 크래시 없음.
+- 참고: prebuild가 `apps/mobile/.gitignore`(`expo-env.d.ts`)를 만들어 함께 커밋한다(지우면 다시 생긴다).
