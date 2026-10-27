@@ -791,7 +791,7 @@
 
 ## D-054: lint·format·test 설정 — 테스트 도구는 루트에 한 벌, 서버 테스트는 더미 환경 변수
 - 날짜: 2026-10-27
-- 상태: 진행 중 (Vitest·ESLint·Prettier·jest-expo 완료, husky는 이어서 기록)
+- 상태: 확정
 - 맥락: TODO 4단계, D-038 후속. 서버 `config.ts`는 import 때 `process.env`를 검증하고 실패하면 exit 1 한다(D-053).
 - 결정
   - Vitest 5.0.5는 루트 `devDependencies`에 한 벌만 둔다. 각 workspace는 `"test": "vitest run"` 스크립트만 갖는다.
@@ -803,6 +803,7 @@
   - default export 금지는 `import/no-default-export` 대신 ESLint 기본 규칙 `no-restricted-exports`(`restrictDefaultExports`)로 건다. 예외는 `apps/mobile/src/app/**`와 `*.config.*`(도구가 default export를 요구)다.
   - Prettier: `singleQuote`, `printWidth` 100. `eslint-config-prettier`를 마지막에 둬서 서식 규칙이 겹치지 않게 한다. `*.md`는 포맷하지 않는다.
   - `app.config.ts`는 `process.env`를 `Partial<Record<string, string>>`로 받아 읽는다.
+  - pre-commit: `husky` 9.1.7(`prepare` 스크립트) + `lint-staged` 17.6.0. `.husky/pre-commit`은 `npx lint-staged`만 실행한다. `.lintstagedrc.json`: 코드(`ts`·`tsx`·`js`·`mjs`·`cjs`)는 `eslint --fix --max-warnings=0 --no-warn-ignored` → `prettier --write` 순서, `json`·`yml`·`yaml`·`css`는 `prettier --write`만. 타입 검사·테스트는 넣지 않는다(D-038).
   - 앱 테스트: `jest-expo` 58.0.12(jest 30.5) + `@testing-library/react-native` 14.1.0 + `test-renderer` 1.3.0 + `@react-native/jest-preset` 0.88. 모두 앱 `devDependencies`, 설정은 앱 `package.json`의 `"jest": { "preset": "jest-expo" }`. 앱 tsconfig에 `"types": ["jest"]`를 둔다.
   - RNTL 14의 `render`는 Promise를 반환하므로 `await render(...)`로 쓴다. 매처(`toBeOnTheScreen` 등)는 RNTL을 import하면 자동 등록된다.
 - 근거
@@ -812,5 +813,6 @@
   - Markdown: 문서의 ASCII 와이어프레임·표를 Prettier가 다시 쓰면 손으로 맞춘 정렬이 깨질 수 있다.
   - `expo-modules-core`가 `process.env` 값을 `any`로 선언해서(`[key: string]: any`) 타입 기반 규칙(`no-unsafe-assignment`)에 걸린다.
   - jest-expo 설치: `npx expo install ... -- -D`가 SDK가 아는 패키지(`jest`·`jest-expo`·`@types/jest`)를 `dependencies`에 넣어서 `devDependencies`로 옮겼다. `jest-expo`가 `test-renderer` 1.3.0을 고정하므로 같은 버전으로 맞추고 `npm dedupe`로 한 벌만 남겼다(렌더러가 두 벌이면 RNTL과 preset이 다른 인스턴스를 쓸 수 있다).
+  - lint-staged: 같은 파일에 ESLint와 Prettier를 서로 다른 glob으로 걸면 동시에 실행되어 서로 덮어쓸 수 있어 한 glob 안에서 순서대로 실행한다. `--no-warn-ignored`는 무시 대상 파일이 스테이징됐을 때 경고로 커밋이 막히지 않게 한다.
   - TypeScript 6은 `types` 기본값이 `[]`라 `@types/*`가 자동으로 포함되지 않는다.
 - 근거(Vitest): workspace마다 vitest를 설치하면 npm이 peer인 `vite`를 workspace 아래에 중첩 설치하고 루트에 hoist된 `@vitest/mocker`가 찾지 못해 시작 오류가 난다(npm 11.20, 2026-10-27 확인). 루트 한 벌이면 중복도 없다.
