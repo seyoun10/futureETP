@@ -62,7 +62,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] **[다음 작업]** lint / format / test 설정 (D-054)
   - [x] Vitest(서버·공유) + `parseConfig`·`envelopeSchema` 테스트 + 루트 `npm run check`
   - [x] ESLint + Prettier (루트 설정 하나, ESLint 9)
-  - [ ] jest-expo + RNTL(앱)
+  - [x] jest-expo + RNTL(앱)
   - [ ] husky + lint-staged pre-commit
 - [ ] Android Studio(SDK·에뮬레이터)·JDK 설치 (D-039)
 - [ ] Android 에뮬레이터 / iOS 시뮬레이터에서 실행 확인
