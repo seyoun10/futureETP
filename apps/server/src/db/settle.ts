@@ -43,6 +43,10 @@ export function createSettleStore(db: typeof Db): SettleStore {
         .where(between(tradingDay.tradeDate, from, to))
         .orderBy(asc(tradingDay.tradeDate)),
     lastSuccessTradeDate: (job) => lastSuccessTradeDate(db, job),
+    async lastDailyBarDate() {
+      const [row] = await db.select({ tradeDate: max(dailyBar.tradeDate) }).from(dailyBar);
+      return row?.tradeDate ?? null;
+    },
     activeMonthRules: (code) =>
       db
         .select({
@@ -108,7 +112,8 @@ export function createSettleStore(db: typeof Db): SettleStore {
             volume: excluded('volume'),
             source: excluded('source'),
             collectedAt: excluded('collected_at'),
-            revisedAt: excluded('revised_at'),
+            // 다시 받아도(① 재수집) 이전 정정 기록은 남긴다
+            revisedAt: sql`coalesce(excluded.revised_at, ${dailyBar.revisedAt})`,
           },
         });
     },

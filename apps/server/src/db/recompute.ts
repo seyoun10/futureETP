@@ -2,7 +2,6 @@
 import { and, asc, eq } from 'drizzle-orm';
 import type { Basis, CommodityCode } from '@futureetp/shared';
 import type { RecomputeInput, RecomputeResult } from '../calc/recompute.ts';
-import { rollRuleParamsSchema, type RollRuleParams } from '../calc/rollWeight.ts';
 import type { db as Db } from './client.ts';
 import {
   contract,
@@ -19,7 +18,8 @@ import {
 type Tx = Parameters<Parameters<typeof Db.transaction>[0]>[0];
 
 export type CommoditySource = Omit<RecomputeInput, 'rule'> & {
-  rules: Partial<Record<'KR' | 'US', RollRuleParams>>;
+  // roll_rule.params 원본. 사람이 고친 행(D-024)일 수 있어 기준값별로 검사한다(jobs/recompute.ts)
+  rules: Partial<Record<'KR' | 'US', unknown>>;
 };
 
 export async function loadCommoditySource(
@@ -63,8 +63,7 @@ export async function loadCommoditySource(
     contracts,
     bars,
     tradeDates: days.map((d) => d.tradeDate),
-    // 사람이 고친 행(D-024)도 형태를 검사한다
-    rules: Object.fromEntries(rules.map((r) => [r.basis, rollRuleParamsSchema.parse(r.params)])),
+    rules: Object.fromEntries(rules.map((r) => [r.basis, r.params])),
   };
 }
 

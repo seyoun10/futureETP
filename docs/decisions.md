@@ -1096,7 +1096,7 @@
   - 계산 범위는 `trading_day` 중 그 원자재 일봉 첫날~마지막 날이다. 일봉이 없는 거래일도 넣어 영업일 순번을 세고, 보유 월물 정산가가 없으면 오류다. 거래일이 아닌 날의 일봉도 오류다(달력 누락).
   - `buildFrontAfterClose`(`frontMonth.ts`): 행 t = `buildFrontSeries`의 t+1 값, 마지막 날은 그날 거래량으로 `nextFrontSymbol`. `switched`(그날 보유 월물과 다름)를 대표월물 `index_bar.in_roll_period`로 둔다(전환 마커, D-066).
   - 조회·저장 `src/db/recompute.ts`, 흐름 `src/jobs/recompute.ts` `recomputeCommodity(db, code, now)`. 원자재 입력은 한 번 읽고, 기준값마다 한 트랜잭션에서 다섯 테이블(`roll_weight`·`index_bar`·`index_scale`·`disparity`·`disparity_distribution`)의 그 원자재·기준값 행을 지우고 다시 넣는다(5,000행씩). 한 기준값이 실패해도 나머지는 저장하고 실패를 모아 던진다. `roll_rule` 행이 없는 KR·US는 지우기만 한다(API가 FRONT로 대체, data-model.md).
-  - 변경 감지 없이 매번 전체를 다시 쓴다. 규칙 변경(D-024)·정산 정정(D-047)도 같은 경로다. `roll_rule.params`는 읽을 때 `rollRuleParamsSchema`로 검사한다(사람이 고친 행).
+  - 변경 감지 없이 매번 전체를 다시 쓴다. 규칙 변경(D-024)·정산 정정(D-047)도 같은 경로다. `roll_rule.params`는 기준값마다 `rollRuleParamsSchema`로 검사한다(사람이 고친 행). 한 행이 틀려도 그 기준값만 실패한다(2026-10-27 5-3 리뷰).
   - `roll_rule` 8행은 커스텀 마이그레이션 `0003_roll_rule_seed.sql`(`ROLL_RULE_SEEDS`에서 생성, `ON CONFLICT DO NOTHING`)로 넣는다. 이후 변경은 DB 행을 직접 고친다(D-024).
   - 1회 실행 CLI `npm run recompute -w apps/server -- [GC|SI|CL|NG ...]`(인자 없으면 4종).
 - 근거
@@ -1110,8 +1110,8 @@
 - 맥락: TODO 5-3 `DAILY_SETTLE`. 러너는 작업을 끝까지 돌린 뒤 `batch_run`을 성공으로 남기는데, 정산 대기 해제는 ① 성공 시점이어야 한다(D-047). 하루 정산이 재시도까지 실패한 다음 날의 처리, 평일 휴장일 트리거, "알림 판정 중지"의 조건, 실소스(Massive) 전의 소스가 정해지지 않았다. ① 실패는 정산 대기라 장중 배치가 이미 돌지 않으므로(D-022) 중지 플래그는 ② 실패에서만 뜻이 있다.
 - 결정(사용자가 권장안 선택)
   - 작업 두 개: `DAILY_SETTLE`(①)과 새 `SETTLE_REVISION`(②). 한 트리거 `[DAILY_SETTLE, SETTLE_REVISION]`(평일 18:30 CT)로 차례로 돌고 둘 다 재시도 간격 15분이다. `DAILY_SETTLE` 성공 행의 가장 큰 `trade_date`가 정산 대기 판정의 `lastSettledTradeDate`다(`db/settle.ts` `lastSettledTradeDate`).
-  - ①: 대상은 세션이 끝난 가장 최근 거래일 T(`ctx.tradeDate`)다. 마지막 정산 거래일 다음부터 T까지 밀린 거래일을 모두 받는다(최대 5거래일, 넘으면 실패하고 사람이 기준 시각을 주어 나눠 돌린다). 정산 이력이 없으면 T만 받는다. 이미 정산했으면(평일 휴장일) 소스를 부르지 않고 성공한다. 원자재마다: 소스 월물 정의로 `contract`에 없는 월물을 넣고(`is_target`은 `isTargetMonth`), 그날 거래되는 월물(최종 거래일 ≥ 그날, 첫 거래일 ≤ 그날) 일봉을 upsert한 뒤 전체 재계산(D-070)한다. 소스가 빈 일봉을 주면 반영 전으로 보고 실패한다.
-  - ②: 대상은 T의 직전 거래일 R이다. R이 아직 정산 전이거나 이미 확인했으면 건너뛴다. 저장된 R 일봉의 월물을 다시 받아 OHLC·정산가·거래량이 바뀐 행만 `revised_at`과 함께 저장하고 그 원자재만 재계산한다. R에 `revised_at`이 있는 원자재는 정정이 없어도 다시 계산한다(정정 저장 뒤 재계산 실패한 시도를 재시도가 복구).
+  - ①: 대상은 세션이 끝난 가장 최근 거래일 T(`ctx.tradeDate`)다. 마지막 정산 거래일 다음부터 T까지 밀린 거래일을 모두 받는다(최대 5거래일, 넘으면 실패하고 사람이 기준 시각을 주어 나눠 돌린다). 정산 이력이 없으면 `daily_bar`의 마지막 날 다음부터 받고, 일봉도 없으면 T만 받는다(5-4 적재 직후). 이미 정산했으면(평일 휴장일) 소스를 부르지 않고 성공한다. 원자재마다: 소스 월물 정의로 `contract`에 없는 월물을 넣고(`is_target`은 `isTargetMonth`), 그날 거래되는 월물(최종 거래일 ≥ 그날, 첫 거래일 ≤ 그날) 일봉을 upsert한 뒤 전체 재계산(D-070)한다. 그 원자재의 그날 일봉이 이미 있으면 받지 않는다(재시도·따라잡기 때 소스 호출 절약, 재계산은 함). 소스가 빈 일봉을 주면 반영 전으로 보고 실패한다. 일부 월물만 오는 응답은 받아들인다(거래량·미결제약정 없는 월물은 정산가가 게시되지 않음, `research/market-data.md`).
+  - ②: 대상은 T의 직전 거래일 R이다. 이미 확인했으면 건너뛰고, R이 아직 정산 전이거나 저장된 월물 중 소스에서 빠진 것이 있으면 확인하지 못한 것으로 실패한다(성공으로 남기면 중지가 풀리고 R이 확인된 것으로 쳐짐, 5-3 리뷰). 저장된 R 일봉의 월물을 다시 받아 OHLC·정산가·거래량이 바뀐 행만 `revised_at`과 함께 저장하고 그 원자재만 재계산한다. R에 `revised_at`이 있는 원자재는 정정이 없어도 다시 계산한다(정정 저장 뒤 재계산 실패한 시도를 재시도가 복구). upsert는 `revised_at`을 `coalesce`로 남겨 다시 받아도 정정 기록이 지워지지 않는다.
   - 두 작업 모두 원자재 하나가 실패해도 나머지를 끝내고 실패를 모아 던진다.
   - 알림 판정 중지: `SETTLE_REVISION`의 마지막으로 끝난 실행이 `FAILED`면 중지(`isAlertJudgmentSuspended`, 5-8 `INTRADAY`가 쓴다). 다음 ② 성공으로 풀린다. 스냅숏 수집은 계속한다.
   - 소스: `sources/settlement.ts` `SettlementSource`(`listContracts`·`fetchDailyBars`, 표준 심볼). 실소스 전에는 dev만 가짜 소스(`fakeSettlement.ts`, `source = 'FAKE'`, 날짜·월물로 정해지는 값)를 쓰고, prod는 실패하는 소스를 등록해 가짜 일봉이 들어가지 않게 한다.
@@ -1119,4 +1119,4 @@
   - 작업을 나누면 러너·`batch_run`·marketState를 바꾸지 않고 ① 성공이 곧 대기 해제가 된다. 트리거 순서 규칙(D-060)이 ① 뒤 ②를 보장한다.
   - 따라잡기가 없으면 하루 정산이 끝내 실패한 뒤 다음 날 재계산이 보유 월물 정산가 누락으로 계속 실패한다(D-070).
   - 정정을 확인하지 못한 이평선·분포로 알림을 보내지 않는다(product.md 배치 실패 규칙). 최종 실패만 보지 않고 마지막 실행으로 판정해 재시도 대기 중에도 보수적으로 멈춘다. 장중 고가·저가가 세션 누적이라 늦게 감지할 뿐 놓치지 않는다.
-- 영향: `data-model.md` `batch_run`, `constants.ts` `JOB_NAMES`·`SOURCES`. Healthchecks.io check가 `SETTLE_REVISION` 하나 늘어난다(5-10). 5-4 적재 뒤 첫 ①은 적재 마지막 날 다음 거래일부터 돌아야 한다(이력이 없으면 T만 받음).
+- 영향: `data-model.md` `batch_run`, `constants.ts` `JOB_NAMES`·`SOURCES`. Healthchecks.io check가 `SETTLE_REVISION` 하나 늘어난다(5-10). 5-4에서 실소스의 일부 월물 누락이 보유 월물에 생기는지 확인한다(생기면 ① 재계산이 실패해 드러남).

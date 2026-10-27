@@ -33,6 +33,12 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
     tradingDays: (from, to) =>
       Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
     lastSuccessTradeDate: (job) => Promise.resolve(lastSuccess[job] ?? null),
+    lastDailyBarDate: () =>
+      Promise.resolve(
+        [...bars.values()]
+          .map((b) => b.tradeDate)
+          .reduce<string | null>((a, d) => (a === null || d > a ? d : a), null),
+      ),
     activeMonthRules: (code) =>
       Promise.resolve(
         code === 'GC'
@@ -164,6 +170,39 @@ describe('DAILY_SETTLE', () => {
     recompute.mockRejectedValueOnce(new Error('boom'));
     await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/Settle failed: GC: boom/);
   });
+
+  it('재시도 때 이미 받은 원자재는 소스를 다시 부르지 않고 재계산만 한다', async () => {
+    const source = testSource((symbol) => (symbol.startsWith('SI') ? null : 100));
+    const { handlers, recompute } = setup({ DAILY_SETTLE: '2026-10-26' }, source);
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/SI/);
+    source.fetchDailyBars.mockClear();
+    recompute.mockClear();
+
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/SI/);
+    expect(source.fetchDailyBars.mock.calls.map(([code]) => code)).toEqual(['SI']);
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'CL', 'NG']);
+  });
+
+  it('정산 이력이 없으면 저장된 일봉의 마지막 날 다음부터 따라잡는다(적재 직후)', async () => {
+    const { handlers, store, bars } = setup({});
+    await store.upsertDailyBars([
+      {
+        contractSymbol: 'CLZ26',
+        tradeDate: '2026-10-23',
+        open: null,
+        high: null,
+        low: null,
+        settle: 90,
+        volume: 1,
+        source: 'DATABENTO',
+        collectedAt: NOW,
+        revisedAt: null,
+      },
+    ]);
+    await handlers.DAILY_SETTLE(ctx());
+    const dates = new Set([...bars.values()].map((b) => b.tradeDate));
+    expect([...dates]).toEqual(['2026-10-23', '2026-10-26', '2026-10-27']);
+  });
 });
 
 describe('SETTLE_REVISION', () => {
@@ -214,10 +253,16 @@ describe('SETTLE_REVISION', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG', 'NG']);
   });
 
-  it('직전 거래일이 아직 정산 전이면 건너뛴다', async () => {
+  it('소스에서 빠진 월물이 있으면 확인하지 못한 것으로 실패한다', async () => {
+    const { handlers, recompute } = await seeded((symbol) => (symbol === 'CLF27' ? null : 100));
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*CLF27/);
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('직전 거래일이 아직 정산 전이면 확인하지 못한 것으로 실패한다', async () => {
     const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-23' });
     const c = ctx();
-    await handlers.SETTLE_REVISION(c);
+    await expect(handlers.SETTLE_REVISION(c)).rejects.toThrow(/not settled yet/);
     expect(c.tradeDate).toBe('2026-10-26');
     expect(source.fetchDailyBars).not.toHaveBeenCalled();
   });
