@@ -124,6 +124,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 공용 UI: 기준 시각 줄(freshness), 로딩·오류·[다시 시도] 화면, `nextUpdateAt` 자동 새로고침 hook (2026-10-27, D-075)
   - [ ] 5-6 A 연결 때 Hermes 실기기에서 기준 시각 줄 표시(`formatToParts`) 확인
 - [ ] 접근 키 B-b: QR(`futureetp-key:v1:`)·붙여넣기, `GET /v1/settings`로 확인 후 SecureStore, `UNAUTHORIZED` 시 B-b 이동, `scripts/` 키 생성·QR (D-044)
+  - [x] SecureStore 저장·붙여넣기 입력·첫 실행 B-b(키 없으면 스택 대신)·B 목록 `설정됨` (2026-10-27, D-077)
+    - [ ] 5-6 `GET /v1/settings` 뒤 키 확인 응답을 설정 스키마로 바꾸고 실서버로 확인
+  - [ ] QR 읽기(`expo-camera`, 권한 거부·카메라 없음 안내)
+  - [ ] `UNAUTHORIZED` 시 어느 화면에서든 B-b로 이동 + 오류 줄
+  - [ ] `scripts/` 키 생성·QR 표시
 
 ### 5-6. 화면 수직 슬라이스 (API + 화면 + 테스트)
 - [ ] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면

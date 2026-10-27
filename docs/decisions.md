@@ -1201,3 +1201,21 @@
   - Expo 문서는 iOS 27부터 크기 조절 가능한 앱(iPhone Mirroring·iPad)에서 잠금을 선호값으로만 취급한다고 안내한다. 창 모양으로 레이아웃을 정하면 잠금이 거부돼도 화면이 깨지지 않는다.
   - Expo Router `Stack.Screen`의 `orientation` 옵션은 화면마다 고정 방향이라, 같은 탭에서 버튼으로 바꾸는 수동 전환에는 맞지 않는다.
 - 후속: Android 에뮬레이터·실기기에서 전환, ETP 탭 복귀, 가로 레이아웃 높이를 눈으로 확인한다(재빌드 필요).
+
+## D-077: 접근 키 저장·입력 세부 — 시작 때 동기 읽기 + 메모리 store, 키가 없으면 루트가 스택 대신 B-b, 확인은 `token` 지정 요청
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 접근 키 B-b 첫 단계(D-044 후속). D-044는 SecureStore 저장과 QR·붙여넣기 입력을 정했지만, 앱 시작 때 키 유무 판정, 첫 실행 화면 진입 방법, 저장 전 확인 요청 방법은 정하지 않았다. 확인에 쓸 `GET /v1/settings`는 5-6에서 만든다.
+- 결정:
+  - `expo-secure-store` ~58.0.2(`npx expo install`), 플러그인 기본값(Android 자동 백업에서 SecureStore 값 제외). 저장 이름은 `access-key`.
+  - `src/api/accessToken.ts`: 앱 시작 때 동기 `getItem`으로 한 번 읽어 zustand store(비저장)에 둔다. 저장된 키가 없으면 dev 변형의 `DEV_API_TOKEN`. 읽기 실패는 키 없음으로 본다. `getAccessToken()`은 이 값을 돌려주고, `saveAccessToken()`은 `setItemAsync`에 성공한 뒤에만 메모리 값을 바꾼다.
+  - 키 형식은 base64url 43자. QR은 `futureetp-key:v1:` 접두사가 있어야 받고(`requirePrefix`), 붙여넣기는 접두사 없이 키만 넣어도 받는다. 형식이 아니면 서버에 묻지 않는다.
+  - 키가 없으면 루트 `_layout`이 `Stack` 대신 `AccessKeyScreen`을 그린다([←] 없음). 저장하면 키 유무가 바뀌어 스택(A)이 그려진다. B > 접근 키로 들어온 경우는 저장 뒤 `router.back()`.
+  - 확인은 `apiRequest`의 `token` 옵션(저장된 키 대신 이 키를 보냄)으로 `GET /v1/settings`를 부른다. 응답은 지금 `z.unknown()`이고 5-6에서 설정 스키마로 바꾼다. 저장에 성공하면 모든 query를 무효화한다. `UNAUTHORIZED`면 "키가 맞지 않습니다", 그 밖은 `errors.<code>` 문구이고 저장하지 않는다.
+  - 붙여넣기는 `TextInput`(`secureTextEntry`) + [확인]이다. 클립보드 모듈은 쓰지 않는다. B 목록의 접근 키 행에는 키 값 대신 `설정됨`만 보인다.
+  - Jest는 `jest.setup.ts`에서 `expo-secure-store`를 메모리 Map으로, `@/api/config`를 키 없는 prod 값으로 mock한다(Jest에는 app config `extra`가 없음).
+- 근거:
+  - 동기 읽기 한 번이면 첫 렌더부터 키 유무가 정해져 로딩 분기 없이 B-b 또는 A를 고른다. 이후는 메모리 값만 읽어 요청마다 키 저장소를 열지 않는다.
+  - Expo Router `Stack.Protected`는 보호할 화면을 모두 나열해야 하고, 막혔을 때 어느 화면으로 가는지가 덜 명확하다. 루트에서 바꿔 그리면 경로 목록을 따로 관리하지 않는다.
+  - `TextInput` 붙여넣기는 네이티브 모듈을 늘리지 않고, 키를 화면에 보여 주지 않는다.
+- 후속: 5-6에서 `GET /v1/settings`가 생기기 전에는 실서버 확인이 `NOT_FOUND`로 실패한다(dev 변형은 `DEV_API_TOKEN`으로 건너뜀).

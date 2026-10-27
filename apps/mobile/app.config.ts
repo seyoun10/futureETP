@@ -52,6 +52,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-router',
     'expo-localization',
     'expo-sqlite',
+    // 기본값으로 Android 자동 백업에서 SecureStore 값을 뺀다(복원된 암호문은 읽을 수 없음)
+    'expo-secure-store',
     ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
     [
       'expo-splash-screen',

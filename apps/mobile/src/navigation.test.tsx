@@ -1,6 +1,7 @@
 import { lockAsync, OrientationLock } from 'expo-screen-orientation';
 import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { useAccessKeyStore } from '@/api/accessToken';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('expo-screen-orientation', () => ({
@@ -18,6 +19,8 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 // Jest 기기 언어는 영어라 문구 확인을 위해 한국어로 고정한다.
 beforeEach(() => {
   useDisplaySettings.getState().setLanguage('ko');
+  // 키가 없으면 B-b만 뜨므로 키가 있는 상태로 시작한다.
+  useAccessKeyStore.setState({ key: 'test-key' });
   Object.assign(mockWindow, { width: 390, height: 844 });
   jest.mocked(lockAsync).mockClear();
 });

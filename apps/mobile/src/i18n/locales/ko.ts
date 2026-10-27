@@ -46,6 +46,15 @@ export const ko = {
     upDownStyleKR: '한국식',
     upDownStyleUS: '미국식',
   },
+  accessKey: {
+    guide: '서버 접근 키를 넣어 주세요. Mac에서 키 스크립트가 띄운 QR을 읽거나 키를 붙여넣으세요.',
+    pastePlaceholder: '키 붙여넣기',
+    submit: '확인',
+    verifying: '확인 중',
+    badFormat: '키 형식이 맞지 않습니다.',
+    rejected: '키가 맞지 않습니다.',
+    saved: '설정됨',
+  },
   alertSettings: {
     title: '알림 설정',
   },

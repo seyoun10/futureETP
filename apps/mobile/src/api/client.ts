@@ -14,6 +14,8 @@ export type RequestOptions = {
   body?: unknown;
   // false면 Authorization 헤더 없이 보낸다(`/v1/health`).
   auth?: boolean;
+  // 저장된 키 대신 이 키를 보낸다(B-b에서 저장 전에 키 확인, D-044).
+  token?: string;
   // TanStack Query가 넘기는 취소 신호.
   signal?: AbortSignal;
 };
@@ -24,11 +26,11 @@ export async function apiRequest<T extends z.ZodType>(
   schema: T,
   options: RequestOptions = {},
 ): Promise<z.infer<T>> {
-  const { method = 'GET', query, body, auth = true, signal } = options;
+  const { method = 'GET', query, body, auth = true, token: tokenOverride, signal } = options;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (auth) {
-    const token = await getAccessToken();
+    const token = tokenOverride ?? (await getAccessToken());
     // 키가 없으면 보내도 401이라 요청하지 않는다(D-072).
     if (!token) throw new AppError('UNAUTHORIZED', { message: 'No access token' });
     headers.Authorization = `Bearer ${token}`;

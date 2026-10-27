@@ -73,6 +73,13 @@ describe('apiRequest', () => {
     expect(firstInit().headers.Authorization).toBeUndefined();
   });
 
+  it('token을 주면 저장된 키 대신 그 키를 보낸다', async () => {
+    mockGetAccessToken.mockResolvedValue(null);
+    fetchMock.mockResolvedValue(respond(200, { success: true, data: { price: 1 } }));
+    await apiRequest('/settings', schema, { token: 'new-key' });
+    expect(firstInit().headers.Authorization).toBe('Bearer new-key');
+  });
+
   it('키가 없으면 요청하지 않고 UNAUTHORIZED', async () => {
     mockGetAccessToken.mockResolvedValue(null);
     const error = await rejection(apiRequest('/settings', schema));

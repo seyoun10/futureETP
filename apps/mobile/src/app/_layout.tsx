@@ -3,7 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useHasAccessKey } from '@/api/accessToken';
 import { queryClient, setupFocusManager } from '@/api/queryClient';
+import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
 import { setupI18n } from '@/i18n';
 import { lockPortrait } from '@/lib/orientation';
 import { colors } from '@/theme/tokens';
@@ -17,16 +19,23 @@ void lockPortrait();
 export const unstable_settings = { anchor: 'index' };
 
 export default function RootLayout() {
+  // 접근 키가 없으면 A 대신 B-b만 띄운다. 저장하면 스택으로 바뀐다(screens.md B-b, D-044).
+  const hasKey = useHasAccessKey();
+
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.root}>
         <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        />
+        {hasKey ? (
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          />
+        ) : (
+          <AccessKeyScreen />
+        )}
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

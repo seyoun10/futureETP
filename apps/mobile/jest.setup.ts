@@ -15,3 +15,27 @@ jest.mock('expo-sqlite/kv-store', () => {
     },
   };
 });
+
+// expo-secure-store도 네이티브 모듈이라 메모리 Map으로 바꾼다(접근 키, D-044).
+jest.mock('expo-secure-store', () => {
+  const items = new Map<string, string>();
+  return {
+    getItem: (key: string) => items.get(key) ?? null,
+    getItemAsync: (key: string) => Promise.resolve(items.get(key) ?? null),
+    setItemAsync: (key: string, value: string) => {
+      items.set(key, value);
+      return Promise.resolve();
+    },
+    deleteItemAsync: (key: string) => {
+      items.delete(key);
+      return Promise.resolve();
+    },
+  };
+});
+
+// Jest에는 app config extra가 없다. 키가 없는 prod 변형으로 둔다(테스트가 필요하면 키를 직접 넣음).
+jest.mock('@/api/config', () => ({
+  isDevVariant: false,
+  apiUrl: 'http://api.test',
+  devApiToken: null,
+}));

@@ -149,7 +149,7 @@ type Freshness = {
 ### 앱 fetch 래퍼와 AppError
 - `src/api`의 래퍼가 인증 헤더, 타임아웃(15초), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.
 - 래퍼는 `apiRequest(path, schema, { method, query, body, auth, signal })` 하나다(`src/api/client.ts`). 엔드포인트 함수(`src/api/health.ts` 등)가 이것을 부르고, query key는 `src/api/queryKeys.ts`, query client는 `src/api/queryClient.ts`에 둔다(D-072).
-  - 접근 키는 `src/api/accessToken.ts` `getAccessToken()`에서만 읽는다(지금은 dev 토큰, SecureStore는 D-044 항목에서). 키가 없으면 요청하지 않고 `UNAUTHORIZED`를 던진다.
+  - 접근 키는 `src/api/accessToken.ts` `getAccessToken()`에서만 읽는다. 앱 시작 때 SecureStore에서 한 번 읽은 메모리 값이고, 없으면 dev 변형만 `DEV_API_TOKEN`이다(D-077). 키가 없으면 요청하지 않고 `UNAUTHORIZED`를 던진다. B-b의 키 확인은 `token` 옵션으로 저장 전 키를 보낸다.
   - 타임아웃은 내부 `AbortController` + `setTimeout`으로 만들고 호출자 `signal`(TanStack Query 취소)을 연결한다. 호출자 취소는 `AppError`로 바꾸지 않고 그대로 던진다.
   - 봉투가 아닌 응답(프록시 502 HTML 등)은 HTTP 5xx면 `INTERNAL`(재시도), 그 밖은 `SCHEMA_MISMATCH`다. 모르는 에러 `code`도 `SCHEMA_MISMATCH`다.
 - `AppError`는 `code`(서버 코드 + 앱 코드 `NETWORK`·`TIMEOUT`·`SCHEMA_MISMATCH`), `status?`(HTTP), `cause?`를 가진다. 화면은 `code`만 보고 문구를 고른다.

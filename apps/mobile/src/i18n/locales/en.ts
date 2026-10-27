@@ -44,6 +44,16 @@ export const en: Translation = {
     upDownStyleKR: 'Korean',
     upDownStyleUS: 'US',
   },
+  accessKey: {
+    guide:
+      'Enter the server access key. Scan the QR shown by the key script on your Mac, or paste the key.',
+    pastePlaceholder: 'Paste key',
+    submit: 'Confirm',
+    verifying: 'Verifying',
+    badFormat: 'The key format is invalid.',
+    rejected: 'The key was not accepted.',
+    saved: 'Set',
+  },
   alertSettings: {
     title: 'Alert settings',
   },
