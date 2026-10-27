@@ -44,6 +44,8 @@ async function main(): Promise<number> {
   const out = values.out ?? DEFAULT_OUT;
 
   const jobs: { request: RangeRequest; dir: string; path: string; label: string }[] = [];
+  // 견적은 원자재·스키마 전체 범위로 한 번씩 낸다(연도별 호출은 170회라 수 분 걸림). 일부 연도를 받았으면 실제보다 크게 나온다
+  const estimates: RangeRequest[] = [];
   for (const schema of LOAD_SCHEMAS) {
     const end = await client.datasetRangeEnd(schema);
     for (const code of COMMODITY_CODES) {
@@ -52,7 +54,11 @@ async function main(): Promise<number> {
         continue;
       }
       const dir = join(out, schema, code);
-      for (const range of yearRanges(START, end)) {
+      const ranges = yearRanges(START, end);
+      if (ranges.some((r) => !existsSync(join(dir, `${r.year}.csv.zst`)))) {
+        estimates.push({ schema, symbols: outrightRawSymbols(code), start: START, end });
+      }
+      for (const range of ranges) {
         jobs.push({
           request: {
             schema,
@@ -71,8 +77,8 @@ async function main(): Promise<number> {
   const pending = jobs.filter((j) => !existsSync(j.path));
   console.log(`${jobs.length - pending.length} chunks already downloaded`);
   let total = 0;
-  for (const job of pending) total += await client.cost(job.request);
-  console.log(`Total to download: $${total.toFixed(2)} (${pending.length} chunks) → ${out}`);
+  for (const request of estimates) total += await client.cost(request);
+  console.log(`Total to download: ≤ $${total.toFixed(2)} (${pending.length} chunks) → ${out}`);
   if (!values.yes) {
     console.log('Estimate only. Run again with --yes to download.');
     return 0;
