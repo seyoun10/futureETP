@@ -788,3 +788,13 @@
 - 검증(2026-10-27): 빈 환경·잘못된 값에서 항목별 오류와 exit 1, `.env.example` 값으로 정상 시작. 임시 테이블로 `db:generate` → `db:migrate` 적용, 재실행 시 중복 적용 없음(`drizzle.__drizzle_migrations` 1행). 확인 뒤 임시 테이블·마이그레이션 파일은 지웠다. 서버 `tsc --noEmit` 통과.
 - 주의: `drizzle/` 폴더가 아직 없어서 첫 스키마를 generate하기 전에는 `db:migrate`가 실패한다. drizzle 1.0 정식판이 나오면 마이그레이션 폴더 구조가 바뀌므로 올릴 때 확인한다.
 - 영향: `architecture.md` 서버 환경 변수·dev 표·prod 배포, `tech-stack.md` Backend 행.
+
+## D-054: lint·format·test 설정 — 테스트 도구는 루트에 한 벌, 서버 테스트는 더미 환경 변수
+- 날짜: 2026-10-27
+- 상태: 진행 중 (Vitest 완료, ESLint·Prettier·jest-expo·husky는 이어서 기록)
+- 맥락: TODO 4단계, D-038 후속. 서버 `config.ts`는 import 때 `process.env`를 검증하고 실패하면 exit 1 한다(D-053).
+- 결정
+  - Vitest 5.0.5는 루트 `devDependencies`에 한 벌만 둔다. 각 workspace는 `"test": "vitest run"` 스크립트만 갖는다.
+  - 서버 `vitest.config.ts`의 `test.env`에 유효한 더미 값(`NODE_ENV`·`DATABASE_URL`·`API_TOKEN`·`SCHEDULER_ENABLED`)을 넣는다. `config`를 거쳐 import되는 모듈도 테스트할 수 있다. `parseConfig`는 인자로 받은 env만 검증하므로 테스트가 영향을 받지 않는다.
+  - 루트 스크립트: `typecheck`(모든 workspace), `test`(`--if-present`), `check`(`typecheck` → `test`, lint는 이어서 추가).
+- 근거: workspace마다 vitest를 설치하면 npm이 peer인 `vite`를 workspace 아래에 중첩 설치하고 루트에 hoist된 `@vitest/mocker`가 찾지 못해 시작 오류가 난다(npm 11.20, 2026-10-27 확인). 루트 한 벌이면 중복도 없다.
