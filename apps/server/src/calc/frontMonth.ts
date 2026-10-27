@@ -1,6 +1,6 @@
 // 대표월물 선택과 전환(product.md 계산 정의 > 기준값 > 대표월물, D-004, D-064).
 
-import type { ListedContract } from './monthList.ts';
+import { byExpiry, type ListedContract } from './monthList.ts';
 
 // 월물별 그 거래일 거래량(daily_bar.volume). 없는 월물은 0으로 본다.
 export type DayVolumes = ReadonlyMap<string, number>;
@@ -11,9 +11,6 @@ export type FrontDay = {
 };
 
 const volumeOf = (volumes: DayVolumes, symbol: string) => volumes.get(symbol) ?? 0;
-
-const byExpiry = (a: ListedContract, b: ListedContract) =>
-  a.lastTradeDate.localeCompare(b.lastTradeDate) || a.contractMonth.localeCompare(b.contractMonth);
 
 // 거래량이 가장 많은 월물. 같으면 만기가 가까운 쪽
 function mostTraded<T extends ListedContract>(sorted: readonly T[], volumes: DayVolumes) {

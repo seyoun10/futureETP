@@ -50,6 +50,18 @@ export const rollRuleParamsSchema = z
   .refine(
     (p) => p.rollDays.every((d, i) => i === 0 || d > p.rollDays[i - 1]),
     '롤 영업일은 오름차순이다',
+  )
+  .refine(
+    (p) => p.oldShares.every((s, i) => i === 0 || s <= p.oldShares[i - 1]),
+    '이전 월물 비중은 줄어들기만 한다',
+  )
+  .refine(
+    (p) => p.oldShares[p.oldShares.length - 1] === 0,
+    '마지막 롤 영업일에 이전 월물 비중은 0이다',
+  )
+  .refine(
+    (p) => p.rebalance === null || p.rebalance.businessDay < p.rollDays[0],
+    '재조정일은 첫 롤 영업일보다 앞이다',
   );
 
 export type RollRuleSeed = {

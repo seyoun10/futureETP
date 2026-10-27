@@ -9,6 +9,9 @@ export type AlertLevelRecord = { direction: Direction; rareLevel: number; status
 
 export type DetectionAction = 'SEND' | 'HELD' | 'SUPPRESSED';
 
+// WAIT: 거부 시간이라 RETRY 그대로 두고 거부 시간이 끝난 뒤 첫 배치에서 다시 판단한다
+export type RetryAction = 'SEND' | 'SUPPRESSED' | 'WAIT';
+
 export type Detection = {
   direction: Direction;
   rareLevel: number;
@@ -115,12 +118,13 @@ const sameGroup = (a: AlertKey, b: AlertKey) =>
   a.tradeDate === b.tradeDate &&
   a.direction === b.direction;
 
-// RETRY 기록의 1회 재발송 계획. 같은 조건·거래일·방향에서 더 드문 레벨이 덮었으면 SUPPRESSED(D-023)
+// RETRY 기록의 1회 재발송 계획. 같은 조건·거래일·방향에서 더 드문 레벨이 덮었으면 SUPPRESSED(D-023).
+// 거부 시간에는 HELD로 바꾸지 않고 기다린다(HELD는 지연 발송에서 첫 발송으로 다뤄 재시도 횟수를 잃음)
 export function planRetries<Id>(
   retries: readonly (AlertKey & { id: Id })[],
   existing: readonly (AlertKey & { status: AlertStatus })[],
   quiet: boolean,
-): { id: Id; action: DetectionAction }[] {
+): { id: Id; action: RetryAction }[] {
   const records = [...existing, ...retries.map((r) => ({ ...r, status: 'RETRY' as const }))];
   return retries.map((retry) => {
     const covered = isCovered(
@@ -128,7 +132,7 @@ export function planRetries<Id>(
       retry.direction,
       retry.rareLevel,
     );
-    return { id: retry.id, action: covered ? 'SUPPRESSED' : quiet ? 'HELD' : 'SEND' };
+    return { id: retry.id, action: covered ? 'SUPPRESSED' : quiet ? 'WAIT' : 'SEND' };
   });
 }
 

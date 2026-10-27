@@ -114,11 +114,11 @@ export function marketStatus(
   if (!current) {
     return { state: 'CLOSED', tradeDate: lastClosedTradeDate(now, days), nextUpdateAt: next };
   }
-  if (inHalt(days[current.index], t)) {
-    return { state: 'CLOSED', tradeDate: current.tradeDate, nextUpdateAt: next };
-  }
+  // 직전 거래일이 미정산이면 정지 구간이어도 정산 대기가 먼저다(표시 데이터는 직전 거래일 것, D-022)
   const pending = unsettledPrevious(days, current.index, lastSettledTradeDate);
-  return pending !== null
-    ? { state: 'SETTLEMENT_PENDING', tradeDate: pending, nextUpdateAt: next }
+  if (pending !== null)
+    return { state: 'SETTLEMENT_PENDING', tradeDate: pending, nextUpdateAt: next };
+  return inHalt(days[current.index], t)
+    ? { state: 'CLOSED', tradeDate: current.tradeDate, nextUpdateAt: next }
     : { state: 'OPEN', tradeDate: current.tradeDate, nextUpdateAt: next };
 }

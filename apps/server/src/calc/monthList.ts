@@ -32,7 +32,11 @@ export function isTargetMonth(contractMonth: string, rules: readonly ActiveMonth
   return rule?.months.includes(Number(contractMonth.slice(5, 7))) ?? false;
 }
 
-const byExpiry = (a: ListedContract, b: ListedContract) =>
+// 만기순(최종 거래일, 같으면 월물). 월물 목록·대표월물·커브가 함께 쓴다
+export const byExpiry = (
+  a: Pick<ListedContract, 'lastTradeDate' | 'contractMonth'>,
+  b: Pick<ListedContract, 'lastTradeDate' | 'contractMonth'>,
+) =>
   a.lastTradeDate.localeCompare(b.lastTradeDate) || a.contractMonth.localeCompare(b.contractMonth);
 
 // tradeDate(표시 데이터가 속한 거래일, marketStatus.tradeDate)에 아직 만기되지 않은 대상 월물을

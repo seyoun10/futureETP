@@ -953,7 +953,7 @@
 - 결정
   - `apps/server/src/calc/marketState.ts`. 입력은 `now`, `trading_day` 행(오름차순, 호출자가 now 앞 2행 ~ 앞으로 약 10일을 넘김), 일일 정산 ①이 성공한 가장 최근 거래일 `lastSettledTradeDate`다. DB 조회는 호출자 몫(5-3). 세션 시각이 빈 과거 행은 판정에 쓰지 않는다.
   - `findSessionDay`: 세션(`open <= now < close`, 공휴일 중간 정지 포함)이 now를 포함하는 거래일. 장중 배치의 `ctx.tradeDate`다. `lastClosedTradeDate`: 세션이 끝난 가장 최근 거래일. 일일 정산 대상 판정에 쓴다.
-  - `marketStatus`: 세션 D 안·정지 구간 밖이면, 직전 거래일 P가 미정산일 때 `SETTLEMENT_PENDING`(`tradeDate` = P), 아니면 `OPEN`(D). 정지 구간은 `CLOSED`(D), 세션 밖은 `CLOSED`(마지막으로 끝난 거래일). `tradeDate`는 표시 데이터가 속한 거래일이다. 평일 17:00 CT부터 정산 ① 성공까지는 매일 정산 대기이고, 금요일 정산이 끝났으면 일요일 재개 때는 대기가 없다.
+  - `marketStatus`: 세션 D 안·정지 구간 밖이면, 직전 거래일 P가 미정산일 때 `SETTLEMENT_PENDING`(`tradeDate` = P), 아니면 `OPEN`(D). 정지 구간은 `CLOSED`(D)지만 P가 미정산이면 정지 중에도 `SETTLEMENT_PENDING`(P)이 먼저다(2026-10-27 5-2 리뷰), 세션 밖은 `CLOSED`(마지막으로 끝난 거래일). `tradeDate`는 표시 데이터가 속한 거래일이다. 평일 17:00 CT부터 정산 ① 성공까지는 매일 정산 대기이고, 금요일 정산이 끝났으면 일요일 재개 때는 대기가 없다.
   - `nextUpdateAt`: 장중 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수)을 앞으로 훑어, 세션 안·정지 구간 밖이고 `s + 소요 > now`인 첫 슬롯의 `s + INTRADAY_EXPECTED_MS`. 그 세션의 직전 거래일이 미정산이면 슬롯은 `P 18:30 CT + 20분`(정산 ① 예상 완료, D-047) 뒤이고, 그 시각이 지났는데 아직 대기면 지금 다음 슬롯이다. 넘겨받은 행 안에서 못 찾으면 `null`(달력 누락).
   - 상수: `SETTLE_AT` 18:30(scheduler와 같음), `SETTLE_STEP1_EXPECTED_MS` 20분, `INTRADAY_EXPECTED_MS` 5분(실측 전 임시값, 장중 수집기 구현 뒤 실측으로 고친다).
 - 근거
@@ -1078,7 +1078,7 @@
   - 덮음(covered): 같은 조건(원자재·기준값·이평선·N·CME 거래일)·방향에서 더 드문 레벨의 기록이 `SENT`·`HELD`·`RETRY` 중 하나이면 그 레벨은 덮였다. `HELD`는 곧 보낼 것이고 `RETRY`는 다시 보낼 것이라 함께 센다. `SUPPRESSED`·`FAILED`는 세지 않는다.
   - `planDetections({ sorted, levels, highDisparity, lowDisparity, existing, quiet })`: `existing`은 같은 조건·거래일의 기록(방향·레벨·상태). 방향별로 닿은 레벨 중 가장 드문 r이 기록이 없고 덮이지 않았으면 r을 `SEND`(거부 시간이면 `HELD`)로, 닿았지만 기록 없는 나머지 레벨은 모두 `SUPPRESSED`로 넣는다. r이 이미 기록됐거나 덮였으면 기록 없는 닿은 레벨을 모두 `SUPPRESSED`로 넣는다. 결과 행마다 판정 이격도(UP 고가, DOWN 저가)를 붙인다.
     - 설정을 바꿔 새로 생긴 덜 드문 레벨은 그날 더 드문 레벨을 이미 보냈으면 보내지 않는다. 키가 다르면 새 조건이라는 D-006 규칙은 원자재·기준값·이평선·N 변경에만 그대로 적용된다.
-  - `planRetries(retries, existing, quiet)`: `RETRY` 기록마다 덮였으면 `SUPPRESSED`, 아니면 `SEND`(거부 시간이면 `HELD`). 같은 조건·방향에 `RETRY`가 여럿이면 더 드문 `RETRY`가 덜 드문 것을 덮으므로 가장 드문 1건만 보낸다. 재시도는 `RETRY`가 생긴 뒤 처음 도는 `INTRADAY`·`DEFERRED_PUSH` 중 먼저 오는 배치가 한다(같은 시각이면 D-026 순서대로 `DEFERRED_PUSH`). 장 상태와 무관하게 30분 안에 다시 보낸다.
+  - `planRetries(retries, existing, quiet)`: `RETRY` 기록마다 덮였으면 `SUPPRESSED`, 아니면 `SEND`. 같은 조건·방향에 `RETRY`가 여럿이면 더 드문 `RETRY`가 덜 드문 것을 덮으므로 가장 드문 1건만 보낸다. 거부 시간이면 `HELD`로 바꾸지 않고 `WAIT`(`RETRY` 그대로)로 두어 거부 시간이 끝난 뒤 첫 배치에서 다시 판단한다(`HELD`로 바꾸면 지연 발송이 첫 발송으로 다뤄 재시도 횟수를 잃는다, 2026-10-27 5-2 리뷰). 재시도는 `RETRY`가 생긴 뒤 처음 도는 `INTRADAY`·`DEFERRED_PUSH` 중 먼저 오는 배치가 한다(같은 시각이면 D-026 순서대로 `DEFERRED_PUSH`). 거부 시간이 아니면 장 상태와 무관하게 30분 안에 다시 보낸다.
   - `statusAfterSend(delivered, isRetry)`: 한 기기라도 성공하면 `SENT`, 모두 실패면 첫 발송은 `RETRY`, 재시도는 `FAILED`(D-023). 지연 발송도 첫 발송으로 친다.
   - `planDeferred(held, quiet)`: 거부 시간이면 아무것도 하지 않는다. 아니면 `HELD`를 원자재·방향으로 묶어 가장 드문 1건을 `SEND`, 나머지를 `SUPPRESSED`로 한다. 같은 레벨이면 `detectedAt`이 늦은 쪽을 보낸다. CME 거래일·기준값·이평선·N은 묶음 기준이 아니다(보류 중 거래일이 바뀌어도 방향별 1건, product.md).
 - 근거

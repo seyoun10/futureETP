@@ -332,11 +332,11 @@ describe('planRetries', () => {
   const retry = (id: string, over: Partial<AlertKey> = {}) => ({ ...key(over), id });
   const row = (status: AlertStatus, over: Partial<AlertKey> = {}) => ({ ...key(over), status });
 
-  it('덮이지 않은 RETRY는 SEND, 거부 시간이면 HELD', () => {
+  it('덮이지 않은 RETRY는 SEND, 거부 시간이면 WAIT(RETRY 유지)', () => {
     const retries = [retry('a')];
     const existing = [row('RETRY')];
     expect(planRetries(retries, existing, false)).toEqual([{ id: 'a', action: 'SEND' }]);
-    expect(planRetries(retries, existing, true)).toEqual([{ id: 'a', action: 'HELD' }]);
+    expect(planRetries(retries, existing, true)).toEqual([{ id: 'a', action: 'WAIT' }]);
     // existing에 RETRY 자신이 없어도 같다
     expect(planRetries(retries, [], false)).toEqual([{ id: 'a', action: 'SEND' }]);
   });
@@ -385,11 +385,11 @@ describe('planRetries', () => {
     expect(planRetries(retries, [], false)).toEqual(expected);
   });
 
-  it('여러 RETRY 중 가장 드문 1건은 거부 시간이면 HELD, 나머지는 SUPPRESSED', () => {
+  it('여러 RETRY 중 가장 드문 1건은 거부 시간이면 WAIT, 나머지는 SUPPRESSED', () => {
     const retries = [retry('r5'), retry('r2', { rareLevel: 2 })];
     expect(planRetries(retries, [], true)).toEqual([
       { id: 'r5', action: 'SUPPRESSED' },
-      { id: 'r2', action: 'HELD' },
+      { id: 'r2', action: 'WAIT' },
     ]);
   });
 

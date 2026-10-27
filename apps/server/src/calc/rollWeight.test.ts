@@ -415,6 +415,14 @@ describe('rollRuleParamsSchema', () => {
     const bad = { ...GSCI_GC, rollDays: [5, 6], oldShares: [0.8] };
     expect(rollRuleParamsSchema.safeParse(bad).success).toBe(false);
   });
+
+  it.each([
+    ['이전 월물 비중이 늘어나면', { rollDays: [5, 6, 7], oldShares: [0.5, 0.7, 0] }],
+    ['마지막 비중이 0이 아니면', { rollDays: [5, 6], oldShares: [0.5, 0.2] }],
+    ['재조정일이 첫 롤 영업일보다 앞이 아니면', { rebalance: { months: [3], businessDay: 5 } }],
+  ])('%s 거부한다', (_, over) => {
+    expect(rollRuleParamsSchema.safeParse({ ...GSCI_GC, ...over }).success).toBe(false);
+  });
 });
 
 describe('ROLL_RULE_SEEDS', () => {

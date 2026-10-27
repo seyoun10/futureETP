@@ -2,7 +2,7 @@
 // (product.md 계산 정의 > 커브, D-018, D-026, D-068).
 
 import type { CurveState } from '@futureetp/shared';
-import type { ListedContract } from './monthList.ts';
+import { byExpiry, type ListedContract } from './monthList.ts';
 
 // 커브에 넣는 월물의 직전 거래일 평균 거래량 하한(계약)
 export const CURVE_MIN_AVG_VOLUME = 100;
@@ -12,11 +12,6 @@ export const CURVE_VOLUME_DAYS = 20;
 export const CURVE_MAX_CONTRACTS = 24;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-type Expiry = Pick<ListedContract, 'lastTradeDate' | 'contractMonth'>;
-
-const byExpiry = (a: Expiry, b: Expiry) =>
-  a.lastTradeDate.localeCompare(b.lastTradeDate) || a.contractMonth.localeCompare(b.contractMonth);
 
 // 평균 거래량 창: 거래일(오름차순) 중 커브 날짜까지의 마지막 20거래일.
 // 커브 날짜의 정산이 아직 없으면(D가 장중·정산 대기) 그날을 빼고 전일까지로 센다.

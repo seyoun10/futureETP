@@ -279,6 +279,13 @@ describe('marketStatus', () => {
       });
     });
 
+    it('정지 중이어도 직전 거래일이 미정산이면 정산 대기다', () => {
+      expect(marketStatus(ct('2026-11-26', '14:00'), days, '2026-11-24')).toMatchObject({
+        state: 'SETTLEMENT_PENDING',
+        tradeDate: '2026-11-25',
+      });
+    });
+
     it('정지가 끝나는 17:00 CT에 장중으로 돌아온다', () => {
       expect(marketStatus(ct('2026-11-26', '17:00'), days, '2026-11-25')).toEqual({
         state: 'OPEN',
