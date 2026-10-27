@@ -21,3 +21,7 @@ export type Locale = (typeof LOCALES)[number];
 
 export const PLATFORMS = ['IOS', 'ANDROID'] as const;
 export type Platform = (typeof PLATFORMS)[number];
+
+// 장 상태(D-022, architecture.md freshness)
+export const MARKET_STATES = ['OPEN', 'CLOSED', 'SETTLEMENT_PENDING'] as const;
+export type MarketState = (typeof MARKET_STATES)[number];

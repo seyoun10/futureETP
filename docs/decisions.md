@@ -945,3 +945,18 @@
   - CME 공지는 "휴장·정지·조기 마감 목록" 형태라 예외만 적는 입력이 옮겨 적기 쉽고 틀릴 곳이 적다. 세션·정지 시각 계산은 규칙이라 테스트되는 함수에 둔다.
   - 연도 범위 교체는 새로 생긴 휴장일(예: 국가 애도일)을 반영하고, 과거 연도 행(Databento 백필, D-048)을 건드리지 않는다.
 - 영향: `architecture.md` `scripts/`, CLAUDE.md Commands, `CALENDAR` 작업(5-10)은 이 행들의 60일 공백을 점검한다.
+
+## D-062: 거래일·장 상태 calc — 세션 행 + 마지막 정산 거래일을 받는 순수 함수, `nextUpdateAt`은 슬롯 탐색
+- 날짜: 2026-10-27
+- 상태: 확정 (`INTRADAY_EXPECTED_MS`는 임시값)
+- 맥락: TODO 5-2 첫 항목. freshness(`marketState`·`tradeDate`·`nextUpdateAt`)와 배치(장중 실행 여부, 일일 정산 대상 거래일)가 같은 판정을 써야 한다(D-022, D-048).
+- 결정
+  - `apps/server/src/calc/marketState.ts`. 입력은 `now`, `trading_day` 행(오름차순, 호출자가 now 앞 2행 ~ 앞으로 약 10일을 넘김), 일일 정산 ①이 성공한 가장 최근 거래일 `lastSettledTradeDate`다. DB 조회는 호출자 몫(5-3). 세션 시각이 빈 과거 행은 판정에 쓰지 않는다.
+  - `findSessionDay`: 세션(`open <= now < close`, 공휴일 중간 정지 포함)이 now를 포함하는 거래일. 장중 배치의 `ctx.tradeDate`다. `lastClosedTradeDate`: 세션이 끝난 가장 최근 거래일. 일일 정산 대상 판정에 쓴다.
+  - `marketStatus`: 세션 D 안·정지 구간 밖이면, 직전 거래일 P가 미정산일 때 `SETTLEMENT_PENDING`(`tradeDate` = P), 아니면 `OPEN`(D). 정지 구간은 `CLOSED`(D), 세션 밖은 `CLOSED`(마지막으로 끝난 거래일). `tradeDate`는 표시 데이터가 속한 거래일이다. 평일 17:00 CT부터 정산 ① 성공까지는 매일 정산 대기이고, 금요일 정산이 끝났으면 일요일 재개 때는 대기가 없다.
+  - `nextUpdateAt`: 장중 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수)을 앞으로 훑어, 세션 안·정지 구간 밖이고 `s + 소요 > now`인 첫 슬롯의 `s + INTRADAY_EXPECTED_MS`. 그 세션의 직전 거래일이 미정산이면 슬롯은 `P 18:30 CT + 20분`(정산 ① 예상 완료, D-047) 뒤이고, 그 시각이 지났는데 아직 대기면 지금 다음 슬롯이다. 넘겨받은 행 안에서 못 찾으면 `null`(달력 누락).
+  - 상수: `SETTLE_AT` 18:30(scheduler와 같음), `SETTLE_STEP1_EXPECTED_MS` 20분, `INTRADAY_EXPECTED_MS` 5분(실측 전 임시값, 장중 수집기 구현 뒤 실측으로 고친다).
+- 근거
+  - 정산 여부만 인자로 받으면 `batch_run` 조회 방식(5-3)과 무관하게 테스트할 수 있다.
+  - 슬롯 탐색은 휴식·주말·휴장일·정지·조기 마감·정산 지연을 한 규칙으로 다루고, 세션 사이는 다음 개장으로 건너뛰어 반복이 적다.
+- 영향: `architecture.md` freshness 절.

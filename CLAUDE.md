@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~D-061). 다음은 5-2 calc 거래일·장 상태. 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 서버 기반 완료(D-058~D-061), 5-2 거래일·장 상태 완료(D-062). 다음은 5-2 월물 목록. 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
