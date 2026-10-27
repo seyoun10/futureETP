@@ -1,6 +1,6 @@
 # 데이터 모델 초안
 
-> TODO 1단계 Step 2 산출물. 서버 DB의 논리 모델이다. DB는 PostgreSQL(D-035)이고, 물리 타입(배열·JSON 컬럼 등)은 Drizzle 스키마를 쓸 때 정한다.
+> TODO 1단계 Step 2 산출물. 서버 DB의 논리 모델이다. DB는 PostgreSQL(D-035)이고, 물리 타입은 `apps/server/src/db/schema.ts`가 기준이다(D-058: enum은 text, 가격은 numeric, 분포 배열만 double precision[]).
 > 계산 규칙은 [`product.md`](product.md)가 기준이고, 여기서는 그 규칙을 담을 테이블만 정의한다. 결정 근거는 `decisions.md` D-010.
 
 ## 공통 규약

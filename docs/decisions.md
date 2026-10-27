@@ -875,3 +875,19 @@
 - 근거
   - 화면은 배치가 계산해 둔 값을 읽기만 하므로(D-041) calc 정확성과 실데이터 검증이 먼저 끝나야 화면을 의미 있게 확인할 수 있다. 가짜 데이터로 화면을 먼저 만들면 응답 형태를 나중에 고칠 가능성이 크다.
   - agent-teams 5역할은 기각: 사용자 1명·단위 작업 순차 커밋이라 병렬로 돌릴 일이 거의 없고, 에이전트마다 문서 맥락을 다시 읽어 비용이 크며, 역할 간 넘겨주기에서 결정 기록과 코드가 어긋날 위험이 있다.
+
+## D-058: DB 물리 타입 — enum은 text + TS 타입, 가격은 numeric(number로 읽음), 분포 배열만 double, snake_case 자동 변환
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-1 DB 스키마. `data-model.md`가 미룬 물리 타입(enum·decimal·배열·JSON)과 Drizzle 작성 방식을 정한다.
+- 결정
+  - enum 값(`commodity_code`·`basis`·`window` 등)은 Postgres enum 대신 `text` + Drizzle `text({ enum })` TS 타입으로 둔다. 값 목록은 API에도 나가는 것은 `@futureetp/shared`의 `domain.ts`, 서버 전용(소스·작업 이름·배치·알림 상태)은 `apps/server/src/constants.ts`의 상수 배열이다. DB 제약은 `app_settings`(단일 행, 거부 시간 범위·30분 단위·시작≠종료)에만 건다.
+  - 가격·비중·이평선·이격도는 `numeric`(정밀도 지정 없음)으로 저장하고 Drizzle `mode: 'number'`로 읽는다. `rare_level`은 `numeric(3,1)`. `disparity_distribution.sorted_values`만 `double precision[]`이다(계산 결과이고 원자재·기준값·이평선·N마다 수천 개라 크기·속도 우선).
+  - 날짜(`trade_date` 등)는 `date`를 `'YYYY-MM-DD'` 문자열로, 시각은 `timestamptz`로 읽는다. `roll_rule.params`·`index_snapshot.disparity_by_ma`는 `jsonb`, `active_month_rule.months`는 `integer[]`, id는 `uuid`(`gen_random_uuid()`).
+  - 컬럼 이름은 Drizzle `casing: 'snake_case'`로 자동 변환한다(`client.ts`·`drizzle.config.ts` 둘 다 설정). `window` 컬럼은 Postgres 예약어라 직접 쓰는 SQL에서는 따옴표가 필요하다.
+  - `app_settings` 기본 행은 커스텀 마이그레이션(`0001_app_settings_row.sql`, 값은 컬럼 기본값)으로 만든다. `commodity` 시드는 5-1 시장 기준 데이터에서 한다.
+  - 작업 이름은 `data-model.md`의 `DAILY_SETTLE`·`INTRADAY`·`DEFERRED_PUSH`·`ETP`·`CALENDAR`·`BACKUP`으로 통일한다(TODO의 `DEFERRED_SEND`·`ETP_LIST` 표기 정정).
+- 근거
+  - Postgres enum은 값 추가는 쉽지만 삭제·이름 변경이 어렵고, 값 검증은 이미 API(zod)·calc에서 한다. 단일 사용자라 DB 제약으로 막을 동시 쓰기 경로도 거의 없다. 설정 행만은 앱 입력이 직접 들어가므로 제약을 둔다.
+  - `numeric`을 문자열로 읽으면 calc 전에 매번 변환해야 한다. 가격 소수 자릿수(최대 3자리)와 double 정밀도(15~17자리)로 보아 읽을 때 number 변환의 오차는 표시·계산에 영향이 없고, 저장은 정밀 decimal이라 원천값은 그대로 남는다.
+- 영향: `data-model.md`(물리 타입 메모), `apps/server/src/db/schema.ts`, TODO 작업 이름.

@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. C-a 차트 스파이크 통과(D-056), 개발 순서·전략 확정(D-057). 다음은 5-1 서버 기반(DB 스키마). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. 5-1 DB 스키마 완료(D-058). 다음은 5-1 Hono 앱 골격. 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
@@ -69,7 +69,7 @@ futureETP: 2026-10-27 기준 5단계 개발 중. C-a 차트 스파이크 통과(
 - 계산은 서버 `src/calc`(순수 함수)에만 둔다. 조회 API는 배치가 저장한 값을 읽기만 한다. 예외는 커브 조회뿐(원천값 → calc 호출) (D-041, D-046)
 - 앱: route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지 (D-041)
 - 환경: dev는 로컬 Mac(스케줄러 꺼짐, 작업은 CLI 1회 실행), prod는 VM. 앱은 `APP_VARIANT`로 dev(`.dev` ID)·prod 두 변형. 서버는 `process.env`를 `src/config.ts`(zod 검증)에서만, 앱은 `extra`(서버 주소·dev 토큰)를 `src/api/config.ts`에서만 읽는다. `APP_VARIANT`가 `development`가 아니면 모두 prod (D-043, D-052)
-- DB 마이그레이션: 생성은 dev의 `drizzle-kit generate`(`apps/server/drizzle/` 커밋), 적용은 코드 `migrate()`(`src/db/migrate.ts`) (D-053)
+- DB 마이그레이션: 생성은 dev의 `drizzle-kit generate`(`apps/server/drizzle/` 커밋), 적용은 코드 `migrate()`(`src/db/migrate.ts`) (D-053). 스키마는 `casing: 'snake_case'`(TS camelCase 속성 → snake_case 컬럼), enum 값은 text + shared·서버 상수 배열 (D-058)
 
 ## Domain Context
 

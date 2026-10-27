@@ -81,8 +81,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 개발 전략 확정 (2026-10-27, D-057): 단일 세션 + Stop hook 타입 검사, 서브에이전트는 calc 테스트 작성·단계 끝 리뷰에만
 
 ### 5-1. 서버 기반
-- [ ] **[다음 작업]** DB 스키마: 영역 1~3·5·6 Drizzle 정의 + 첫 마이그레이션 + `app_settings` 기본 행 (ETP 테이블은 5-9에서)
-- [ ] Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`)
+- [x] DB 스키마: 영역 1~3·5·6 Drizzle 정의 + 첫 마이그레이션 + `app_settings` 기본 행 (ETP 테이블은 5-9에서) (2026-10-27, D-058)
+- [ ] **[다음 작업]** Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`)
 - [ ] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`)
 - [ ] 시장 기준 데이터: `commodity` 시드, `active_month_rule`, `trading_day` 생성 스크립트(연 1회 입력용), 표준 심볼 유틸(D-049)
 
@@ -129,14 +129,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037)
 - [ ] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
 - [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
-- [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_SEND` 작업(30분)
+- [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
 - [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
 
 ### 5-9. ETP
 - [ ] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
 - [ ] 국내 수집기(네이버·`siseJson`·KRX): 종목명 파싱(배수·환헤지·시리즈), 시리즈 묶기, 상장폐지 처리
 - [ ] 미국 수집기(Nasdaq·Yahoo) + 매핑표(D-016), 새 후보 1회 알림(D-025), 최소 순자산(D-015)
-- [ ] `ETP_LIST` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)
+- [ ] `ETP` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)
 - [ ] `GET /v1/commodities/:code/etps`·`GET /v1/etps/:id` + C-d(필터 4종·정렬 3종)·C-d-a 화면
 
 ### 5-10. 운영과 첫 배포
