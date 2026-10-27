@@ -104,13 +104,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ### 5-3. 일일 정산 흐름 (가짜 소스로)
 - [x] 재계산 파이프라인: `daily_bar` → 대표월물·`roll_weight` → `index_bar`·`index_scale` → `disparity`·`disparity_distribution` (원자재·기준값 단위 전체 재계산 함수, D-024 규칙 변경 때도 사용) (2026-10-27, D-070)
-- [ ] **[다음 작업]** `DAILY_SETTLE` 작업: ① 당일 저장·재계산·정산 대기 해제 ② 전일 정정 확인 (D-047), 실패 시 알림 판정 중지 플래그
+- [x] `DAILY_SETTLE` 작업: ① 당일 저장·재계산·정산 대기 해제(밀린 거래일 따라잡기) ② `SETTLE_REVISION` 전일 정정 확인, ② 실패 시 알림 판정 중지 (2026-10-27, D-071)
 
 ### 5-4. 실데이터 적재와 검증 (외부 가입 필요)
-- [ ] Databento 가입·적재 견적 → `scripts/` 1회 적재(만기 월물 포함 2010-06~, 심볼 변환) → `trading_day` 과거 행 생성·`pandas_market_calendars` 대조 (D-020, D-048)
+- [ ] **[다음 작업 — 가입 필요, 기다리는 동안 5-5]** Databento 가입·적재 견적 → `scripts/` 1회 적재(만기 월물 포함 2010-06~, 심볼 변환) → `trading_day` 과거 행 생성·`pandas_market_calendars` 대조 (D-020, D-048)
 - [ ] 적재 데이터로 전체 재계산 실행, 결과 점검(롤 구간·산출 불가 2020-04 등)
 - [ ] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교
-- [ ] Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기 + `DAILY_SETTLE` 실소스 연결
+- [ ] Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
+  - [ ] 적재 마지막 날 다음 거래일부터 첫 ①이 돌게 한다(정산 이력이 없으면 T만 받음, D-071)
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
 - [ ] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (D-030, D-042)

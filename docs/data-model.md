@@ -267,7 +267,7 @@ erDiagram
     }
     batch_run {
         uuid id PK
-        string job "DAILY_SETTLE/INTRADAY/DEFERRED_PUSH/ETP/CALENDAR/BACKUP"
+        string job "DAILY_SETTLE/SETTLE_REVISION/INTRADAY/DEFERRED_PUSH/ETP/CALENDAR/BACKUP"
         date trade_date
         timestamp scheduled_at
         timestamp started_at
@@ -290,7 +290,7 @@ erDiagram
   - 같은 조건·거래일·방향에서 더 드문 레벨의 `SENT`·`HELD`·`RETRY` 기록은 덜 드문 레벨을 덮는다. 덮인 레벨은 새로 닿아도, 재시도 차례여도 `SUPPRESSED`다(D-069).
   - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 원자재·방향별로 묶어 가장 드문 1건을 보내고, 나머지를 `SUPPRESSED`로 바꾼다(D-069).
   - 보관 기간은 1년이다(중복 방지에는 당일 기록만 필요, D-046).
-- **`batch_run`**: 운영 알림의 거래일당 1회 판단(`ops_notified_at`, D-048), 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지", 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
+- **`batch_run`**: 운영 알림의 거래일당 1회 판단(`ops_notified_at`, D-048), 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지"(마지막 `SETTLE_REVISION` 실패, D-071), 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
 
 ## 서버에 두지 않는 데이터 (기기 저장)
 | 데이터 | 비고 |

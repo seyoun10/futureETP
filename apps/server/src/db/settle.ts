@@ -1,0 +1,116 @@
+// 일일 정산 조회·저장(D-071)과 batch_run 기반 정산 상태. 흐름은 jobs/settle.ts
+import { and, asc, between, desc, eq, inArray, isNotNull, max, sql } from 'drizzle-orm';
+import type { JobName } from '../constants.ts';
+import type { SettleStore } from '../jobs/settle.ts';
+import type { db as Db } from './client.ts';
+import { activeMonthRule, batchRun, contract, dailyBar, tradingDay } from './schema.ts';
+
+async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string | null> {
+  const [row] = await db
+    .select({ tradeDate: max(batchRun.tradeDate) })
+    .from(batchRun)
+    .where(and(eq(batchRun.job, job), eq(batchRun.status, 'SUCCESS')));
+  return row?.tradeDate ?? null;
+}
+
+// 일일 정산 ①이 성공한 가장 최근 거래일. 정산 대기 판정(marketState)의 입력이다(D-022, D-062)
+export const lastSettledTradeDate = (db: typeof Db) => lastSuccessTradeDate(db, 'DAILY_SETTLE');
+
+// 정정 확인 ②의 마지막으로 끝난 실행이 실패면 알림 판정을 멈춘다(product.md 배치 실패, D-071).
+// ① 실패는 정산 대기라 장중 배치가 이미 돌지 않는다
+export async function isAlertJudgmentSuspended(db: typeof Db): Promise<boolean> {
+  const [row] = await db
+    .select({ status: batchRun.status })
+    .from(batchRun)
+    .where(and(eq(batchRun.job, 'SETTLE_REVISION'), isNotNull(batchRun.finishedAt)))
+    .orderBy(desc(batchRun.startedAt))
+    .limit(1);
+  return row?.status === 'FAILED';
+}
+
+export function createSettleStore(db: typeof Db): SettleStore {
+  return {
+    tradingDays: (from, to) =>
+      db
+        .select({
+          tradeDate: tradingDay.tradeDate,
+          sessionOpenAt: tradingDay.sessionOpenAt,
+          sessionCloseAt: tradingDay.sessionCloseAt,
+          haltStartAt: tradingDay.haltStartAt,
+          haltEndAt: tradingDay.haltEndAt,
+        })
+        .from(tradingDay)
+        .where(between(tradingDay.tradeDate, from, to))
+        .orderBy(asc(tradingDay.tradeDate)),
+    lastSuccessTradeDate: (job) => lastSuccessTradeDate(db, job),
+    activeMonthRules: (code) =>
+      db
+        .select({
+          validFrom: activeMonthRule.validFrom,
+          validTo: activeMonthRule.validTo,
+          months: activeMonthRule.months,
+        })
+        .from(activeMonthRule)
+        .where(eq(activeMonthRule.commodityCode, code)),
+    contracts: (code) =>
+      db
+        .select({
+          symbol: contract.symbol,
+          firstTradeDate: contract.firstTradeDate,
+          lastTradeDate: contract.lastTradeDate,
+        })
+        .from(contract)
+        .where(eq(contract.commodityCode, code)),
+    async insertContracts(rows) {
+      if (rows.length === 0) return;
+      await db
+        .insert(contract)
+        .values([...rows])
+        .onConflictDoNothing();
+    },
+    dailyBars: (code, tradeDate) =>
+      db
+        .select({
+          contractSymbol: dailyBar.contractSymbol,
+          open: dailyBar.open,
+          high: dailyBar.high,
+          low: dailyBar.low,
+          settle: dailyBar.settle,
+          volume: dailyBar.volume,
+          revisedAt: dailyBar.revisedAt,
+        })
+        .from(dailyBar)
+        .where(
+          and(
+            eq(dailyBar.tradeDate, tradeDate),
+            inArray(
+              dailyBar.contractSymbol,
+              db
+                .select({ symbol: contract.symbol })
+                .from(contract)
+                .where(eq(contract.commodityCode, code)),
+            ),
+          ),
+        ),
+    async upsertDailyBars(rows) {
+      if (rows.length === 0) return;
+      const excluded = (column: string) => sql.raw(`excluded.${column}`);
+      await db
+        .insert(dailyBar)
+        .values([...rows])
+        .onConflictDoUpdate({
+          target: [dailyBar.contractSymbol, dailyBar.tradeDate],
+          set: {
+            open: excluded('open'),
+            high: excluded('high'),
+            low: excluded('low'),
+            settle: excluded('settle'),
+            volume: excluded('volume'),
+            source: excluded('source'),
+            collectedAt: excluded('collected_at'),
+            revisedAt: excluded('revised_at'),
+          },
+        });
+    },
+  };
+}

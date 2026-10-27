@@ -1,0 +1,233 @@
+import { readFileSync } from 'node:fs';
+import type { CommodityCode } from '@futureetp/shared';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  CME_TIME_ZONE,
+  buildTradingDays,
+  zonedTimeToUtc,
+  type CalendarInput,
+} from '../calc/tradingCalendar.ts';
+import type { JobName } from '../constants.ts';
+import type { ContractDefinition, SettlementSource, SourceBar } from '../sources/settlement.ts';
+import type { JobContext } from './runner.ts';
+import {
+  createSettleHandlers,
+  type DailyBarRow,
+  type NewContract,
+  type SettleStore,
+} from './settle.ts';
+
+const DAYS = buildTradingDays(
+  JSON.parse(
+    readFileSync(new URL('../../../../scripts/calendar/2026.json', import.meta.url), 'utf8'),
+  ) as CalendarInput,
+);
+
+const ct = (date: string, time: string) => zonedTimeToUtc(date, time, CME_TIME_ZONE);
+const NOW = ct('2026-10-27', '18:30');
+
+function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
+  const contracts: NewContract[] = [];
+  const bars = new Map<string, DailyBarRow>();
+  const store: SettleStore = {
+    tradingDays: (from, to) =>
+      Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
+    lastSuccessTradeDate: (job) => Promise.resolve(lastSuccess[job] ?? null),
+    activeMonthRules: (code) =>
+      Promise.resolve(
+        code === 'GC'
+          ? [{ validFrom: '2010-01-01', validTo: null, months: [2, 4, 6, 8, 10, 12] }]
+          : [],
+      ),
+    contracts: (code) => Promise.resolve(contracts.filter((c) => c.commodityCode === code)),
+    insertContracts(rows) {
+      for (const row of rows) {
+        if (!contracts.some((c) => c.symbol === row.symbol)) contracts.push(row);
+      }
+      return Promise.resolve();
+    },
+    dailyBars: (code, tradeDate) =>
+      Promise.resolve(
+        [...bars.values()].filter(
+          (b) => b.tradeDate === tradeDate && b.contractSymbol.startsWith(code),
+        ),
+      ),
+    upsertDailyBars(rows) {
+      for (const row of rows) bars.set(`${row.contractSymbol}|${row.tradeDate}`, row);
+      return Promise.resolve();
+    },
+  };
+  return { store, contracts, bars };
+}
+
+// 원자재마다 두 월물: 12월물(최종 거래일 11-20), 1월물(12-18). 값은 settle 함수로 바꿀 수 있다
+function testSource(settle: (symbol: string, tradeDate: string) => number | null = () => 100) {
+  const definitions = (code: CommodityCode): ContractDefinition[] => [
+    {
+      symbol: `${code}Z26`,
+      contractMonth: '2026-12',
+      firstTradeDate: null,
+      lastTradeDate: '2026-11-20',
+    },
+    {
+      symbol: `${code}F27`,
+      contractMonth: '2027-01',
+      firstTradeDate: '2026-10-27',
+      lastTradeDate: '2026-12-18',
+    },
+  ];
+  const listContracts = vi.fn((code: CommodityCode) => Promise.resolve(definitions(code)));
+  const fetchDailyBars = vi.fn(
+    (_code: CommodityCode, symbols: readonly string[], tradeDate: string) =>
+      Promise.resolve(
+        symbols.flatMap((contractSymbol): SourceBar[] => {
+          const value = settle(contractSymbol, tradeDate);
+          return value === null
+            ? []
+            : [{ contractSymbol, open: null, high: null, low: null, settle: value, volume: 10 }];
+        }),
+      ),
+  );
+  const source: SettlementSource = { name: 'FAKE', listContracts, fetchDailyBars };
+  return { source, listContracts, fetchDailyBars };
+}
+
+const ctx = (now = NOW): JobContext => ({ now });
+
+function setup(lastSuccess: Partial<Record<JobName, string>>, source = testSource()) {
+  const memory = memoryStore(lastSuccess);
+  const recompute = vi.fn<(code: CommodityCode, now: Date) => Promise<void>>(() =>
+    Promise.resolve(),
+  );
+  const handlers = createSettleHandlers({
+    store: memory.store,
+    source: source.source,
+    recompute,
+    log: () => {},
+  });
+  return { ...memory, source, recompute, handlers };
+}
+
+describe('DAILY_SETTLE', () => {
+  it('월물을 상장하고 그날 일봉을 저장한 뒤 원자재마다 재계산한다', async () => {
+    const { handlers, contracts, bars, recompute } = setup({ DAILY_SETTLE: '2026-10-26' });
+    const c = ctx();
+    await handlers.DAILY_SETTLE(c);
+
+    expect(c.tradeDate).toBe('2026-10-27');
+    // 금은 활성 월물(짝수 달)만 대상
+    expect(contracts.find((x) => x.symbol === 'GCF27')?.isTarget).toBe(false);
+    expect(contracts.find((x) => x.symbol === 'CLF27')?.isTarget).toBe(true);
+    expect(bars.get('CLZ26|2026-10-27')).toMatchObject({
+      settle: 100,
+      source: 'FAKE',
+      collectedAt: NOW,
+      revisedAt: null,
+    });
+    expect(bars.size).toBe(8);
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'SI', 'CL', 'NG']);
+  });
+
+  it('최종 거래일이 지났거나 아직 첫 거래일 전인 월물은 받지 않는다', async () => {
+    const { handlers, source } = setup({ DAILY_SETTLE: '2026-11-20' });
+    // 11-23(월): CLZ26 최종 거래일(11-20) 지남
+    await handlers.DAILY_SETTLE(ctx(ct('2026-11-23', '18:30')));
+    expect(source.fetchDailyBars.mock.calls[0][1]).toEqual(['GCF27']);
+  });
+
+  it('밀린 거래일을 모두 받고 재계산은 원자재마다 한 번이다', async () => {
+    const { handlers, bars, recompute } = setup({ DAILY_SETTLE: '2026-10-22' });
+    await handlers.DAILY_SETTLE(ctx());
+    const dates = new Set([...bars.values()].map((b) => b.tradeDate));
+    expect([...dates]).toEqual(['2026-10-23', '2026-10-26', '2026-10-27']);
+    expect(recompute).toHaveBeenCalledTimes(4);
+  });
+
+  it('이미 정산한 거래일이면 소스를 부르지 않는다', async () => {
+    const { handlers, source, recompute } = setup({ DAILY_SETTLE: '2026-10-27' });
+    const c = ctx();
+    await handlers.DAILY_SETTLE(c);
+    expect(c.tradeDate).toBe('2026-10-27');
+    expect(source.listContracts).not.toHaveBeenCalled();
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('소스에 아직 일봉이 없는 원자재가 있으면 나머지를 끝내고 실패한다', async () => {
+    const source = testSource((symbol) => (symbol.startsWith('SI') ? null : 100));
+    const { handlers, recompute } = setup({ DAILY_SETTLE: '2026-10-26' }, source);
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/SI: 2026-10-27: no bars/);
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'CL', 'NG']);
+  });
+
+  it('재계산이 실패해도 실패로 끝난다', async () => {
+    const { handlers, recompute } = setup({ DAILY_SETTLE: '2026-10-26' });
+    recompute.mockRejectedValueOnce(new Error('boom'));
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/Settle failed: GC: boom/);
+  });
+});
+
+describe('SETTLE_REVISION', () => {
+  // 10-26 일봉이 저장된 상태에서 10-27 18:30 CT에 돈다
+  async function seeded(settle: (symbol: string, tradeDate: string) => number | null) {
+    const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
+    await env.store.upsertDailyBars(
+      ['CLZ26', 'CLF27', 'NGZ26'].map((contractSymbol) => ({
+        contractSymbol,
+        tradeDate: '2026-10-26',
+        open: null,
+        high: null,
+        low: null,
+        settle: 100,
+        volume: 10,
+        source: 'FAKE',
+        collectedAt: NOW,
+        revisedAt: null,
+      })),
+    );
+    return env;
+  }
+
+  it('바뀐 일봉만 정정 시각과 함께 저장하고 그 원자재만 재계산한다', async () => {
+    const { handlers, bars, recompute } = await seeded((symbol) =>
+      symbol === 'CLF27' ? 101 : 100,
+    );
+    const c = ctx();
+    await handlers.SETTLE_REVISION(c);
+
+    expect(c.tradeDate).toBe('2026-10-26');
+    expect(bars.get('CLF27|2026-10-26')).toMatchObject({ settle: 101, revisedAt: NOW });
+    expect(bars.get('CLZ26|2026-10-26')?.revisedAt).toBeNull();
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
+  });
+
+  it('정정이 없으면 재계산하지 않는다', async () => {
+    const { handlers, recompute } = await seeded(() => 100);
+    await handlers.SETTLE_REVISION(ctx());
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('정정을 저장하고 재계산에 실패했으면 다음 시도에서 다시 계산한다', async () => {
+    const { handlers, recompute } = await seeded((symbol) => (symbol === 'NGZ26' ? 99 : 100));
+    recompute.mockRejectedValueOnce(new Error('boom'));
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/Revision failed: NG: boom/);
+    await handlers.SETTLE_REVISION(ctx());
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG', 'NG']);
+  });
+
+  it('직전 거래일이 아직 정산 전이면 건너뛴다', async () => {
+    const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-23' });
+    const c = ctx();
+    await handlers.SETTLE_REVISION(c);
+    expect(c.tradeDate).toBe('2026-10-26');
+    expect(source.fetchDailyBars).not.toHaveBeenCalled();
+  });
+
+  it('이미 확인한 거래일이면 건너뛴다(평일 휴장일 트리거)', async () => {
+    const { handlers, source } = setup({
+      DAILY_SETTLE: '2026-10-27',
+      SETTLE_REVISION: '2026-10-26',
+    });
+    await handlers.SETTLE_REVISION(ctx());
+    expect(source.fetchDailyBars).not.toHaveBeenCalled();
+  });
+});

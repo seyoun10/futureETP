@@ -10,8 +10,9 @@ export type Trigger = { cron: string; timezone: string; jobs: readonly JobName[]
 
 // 한 트리거의 jobs는 적힌 순서대로 차례로 실행한다.
 // :00/:30에는 지연 발송을 장중 판정보다 먼저 처리한다(D-026).
+// 정산 ①이 끝나야(재시도 포함) 정정 확인 ②가 돈다(D-047, D-071).
 export const TRIGGERS: readonly Trigger[] = [
-  { cron: '30 18 * * 1-5', timezone: CHICAGO, jobs: ['DAILY_SETTLE'] },
+  { cron: '30 18 * * 1-5', timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
   { cron: '0,30 * * * *', timezone: CHICAGO, jobs: ['DEFERRED_PUSH', 'INTRADAY'] },
   { cron: '15,45 * * * *', timezone: CHICAGO, jobs: ['INTRADAY'] },
   { cron: '30 8 * * *', timezone: SEOUL, jobs: ['ETP'] },
@@ -25,6 +26,7 @@ export const MAX_ATTEMPTS = 2;
 const MINUTE = 60_000;
 export const RETRY_DELAY_MS: Record<JobName, number> = {
   DAILY_SETTLE: 15 * MINUTE,
+  SETTLE_REVISION: 15 * MINUTE,
   INTRADAY: MINUTE,
   DEFERRED_PUSH: MINUTE,
   ETP: 10 * MINUTE,
