@@ -732,3 +732,21 @@
 - 근거: 템플릿 기본 구조를 따르면 Expo 문서·도구(AGENTS.md, typed routes)와 경로가 어긋나지 않는다. React가 두 벌이면 런타임에 hook 오류가 난다.
 - 검증: `tsc --noEmit`, `expo-doctor` 20/20, `expo export --platform android` 번들 생성 통과.
 - 영향: CLAUDE.md Coding Conventions, `architecture.md` 디렉터리 구조·레이어 표, `tech-stack.md`. D-029·D-038·D-041 본문의 `app/`은 `src/app/`으로 읽는다.
+
+## D-051: 서버 실행 방식 — Node 타입 스트리핑, 빌드 단계 없음
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 4단계 스캐폴딩, D-040 후속. 서버를 TS 그대로 실행할지(Node 26 기본 타입 스트리핑), 번들해서 실행할지(tsdown) 정하고, `packages/shared` TS 소스 직접 참조가 서버·앱 양쪽에서 되는지 확인한다.
+- 선택지: Node 타입 스트리핑(`node src/main.ts`) / tsdown 번들 후 `node dist/main.js`
+- 결정
+  - 서버는 Node 타입 스트리핑으로 실행한다. dev는 `node --watch src/main.ts`, prod 컨테이너는 `node src/main.ts`. 빌드 단계와 번들러를 두지 않는다.
+  - 서버·shared는 ESM(`"type": "module"`)이고, tsconfig는 `module`·`moduleResolution` `nodenext`, `allowImportingTsExtensions`, `erasableSyntaxOnly`, `verbatimModuleSyntax`, `noEmit`을 쓴다. 상대 import는 `.ts` 확장자를 붙이고, 타입만 가져올 때는 `import type`을 쓴다. TS `enum`·`namespace`·생성자 매개변수 속성은 쓰지 않는다(enum은 shared 상수 문자열, architecture.md API 규약과 같음).
+  - 서버는 tsconfig `paths` 별칭을 쓰지 않는다(Node가 읽지 않음). 필요하면 `package.json` `imports`(`#/...`)를 쓴다.
+  - shared는 `exports: { ".": "./src/index.ts" }`로 소스를 직접 내보낸다. 앱 tsconfig에 `allowImportingTsExtensions`를 추가했다(shared 안의 `.ts` 확장자 import 때문, 앱은 이미 `noEmit`).
+  - TypeScript는 서버·shared도 앱과 같은 `~6.0.3`으로 맞춘다(npm latest 7.0.2). 한 저장소에 두 메이저가 섞이지 않게 하고, Expo가 7.x로 올릴 때 함께 올린다.
+- 근거
+  - Node 26은 타입 스트리핑이 기본(`process.features.typescript === 'strip'`)이라 별도 도구 없이 실행된다. 번들 단계가 없으니 Dockerfile·배포 스크립트가 단순하고 스택 트레이스가 소스 줄과 그대로 맞는다.
+  - Node는 `node_modules` 아래 TS 파일의 타입 스트리핑을 거부한다(`ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING`). npm workspaces의 `node_modules/@futureetp/shared`는 `packages/shared`로 가는 심볼릭 링크이고 Node가 실제 경로로 풀기 때문에 동작한다.
+- 검증(2026-10-27): 최소 골격(`packages/shared`의 zod 봉투 스키마, `apps/server/src/main.ts`)으로 `node src/main.ts` 실행, 서버·shared `tsc --noEmit`, 앱에서 shared import 후 `tsc --noEmit`·`expo export --platform android`(번들에 shared 포함) 통과. `--preserve-symlinks`로 실행하면 위 오류로 실패함을 확인했다.
+- 주의: 서버 Dockerfile은 저장소 루트를 문맥으로 workspaces 구조 그대로 `npm ci`해서 shared를 심볼릭 링크로 둔다. shared를 `node_modules` 안으로 복사하거나 `--preserve-symlinks`를 쓰면 실행되지 않는다.
+- 영향: `architecture.md` 디렉터리 구조 규칙, `tech-stack.md` Backend 행.

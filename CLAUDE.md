@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (앱 스캐폴딩 1차 완료, 서버·shared 미생성). 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 4단계 프로젝트 생성 중 (앱 스캐폴딩 1차 완료, 서버·shared 최소 골격). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 
