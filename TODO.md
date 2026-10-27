@@ -72,16 +72,78 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] SessionStart hook(~/.claude/hooks/dev-env.sh, 기존 swift-env.sh에서 이름 변경)에 Node 버전 주입 추가 (package.json 존재 시, 2026-10-27): Node·npm·`.nvmrc`·macOS·Xcode 버전 한 줄
 
 ## 5. 개발
-- 개발 부분의 세부 항목은 이전 단계가 마무리된 이후 정리
+순서 원칙: 서버 기반 → calc(TDD) → 실데이터 적재·검증 → 화면별 수직 슬라이스(API + 화면) → 장중·알림 → ETP → 운영·배포. 각 항목이 커밋 단위이고, 끝날 때마다 `npm run check` 후 커밋한다. 5-2~5-3은 외부 가입 없이 진행하고, 5-5(앱 기반)는 Databento 적재(5-4)를 기다리는 동안 병행할 수 있다.
+
 - [x] 첫 작업: C-a 차트 스파이크(D-032) — log 축, x축만 핀치, 보이는 봉 기준 y 자동 맞춤, 봉 4,000개 성능, 십자선 스냅 햅틱 (2026-10-27, D-056: 통과, Victory Native XL 유지)
   - [ ] 수동 확인: 에뮬레이터에서 핀치 확대·축소(Option + 드래그), 실기기에서 햅틱 촉감·성능 (D-056)
   - 본 구현에 넘길 것: y축 특수 라벨(현재가 회색·이평선 노랑·rare-level 10개 보라 순위 색)은 기본 눈금과 다른 색으로 쓰고, 겹치면 기본 눈금 텍스트를 숨긴다(십자선 라벨과 같은 방식, rare-level 선·라벨은 기능 구현 때 적용). 한글 글꼴 번들(`useFont`) 또는 Skia Paragraph, '전체'에서 이동 제스처 막기, 스파이크 화면(`src/features/chart-spike/`, `src/app/dev/`)은 C-a 본 구현 뒤 삭제 (D-056)
-- [ ] **[다음 작업]** 5단계 개발 세부 항목 정리: 화면·API·배치의 구현 순서와 단위 작업 (아래 "개발 전략"과 함께)
+- [x] 5단계 개발 세부 항목 정리 (2026-10-27, 이 목록)
+- [x] 개발 전략 확정 (2026-10-27, D-057): 단일 세션 + Stop hook 타입 검사, 서브에이전트는 calc 테스트 작성·단계 끝 리뷰에만
+
+### 5-1. 서버 기반
+- [ ] **[다음 작업]** DB 스키마: 영역 1~3·5·6 Drizzle 정의 + 첫 마이그레이션 + `app_settings` 기본 행 (ETP 테이블은 5-9에서)
+- [ ] Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`)
+- [ ] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`)
+- [ ] 시장 기준 데이터: `commodity` 시드, `active_month_rule`, `trading_day` 생성 스크립트(연 1회 입력용), 표준 심볼 유틸(D-049)
+
+### 5-2. calc 순수 함수 (Vitest, product.md 계산 정의를 테스트로 먼저)
+- [ ] 거래일·장 상태: CME 거래일 판정, 장중/휴장/정산 대기, `nextUpdateAt` (D-022, D-048)
+- [ ] 월물 목록: 대상 월물, 만기순 5개 + 대표월물 6번째 (금속 활성 월물)
+- [ ] 대표월물 전환: 전일 거래량, 되돌아가지 않음, 최종 거래일 안전장치
+- [ ] 롤 비중: `roll_rule.params` 펼치기 — GSCI·BCOM·BCBCLI(1/3 leg·재조정·수량 drift) (D-013)
+- [ ] 수익률 연결 지수: OHLC 근사, 혼합 가격 0 이하 산출 불가·이어 붙이기, 가격 수준 맞춤 비율
+- [ ] 이평선·이격도·분포: 초기 기간 제외, 선형 보간 백분위, 실제 사용 기간, rare-level 선, 가까운 꼬리 백분위 표시값
+- [ ] 커브: 월물 선택(20거래일 평균 100계약, 최대 24, M1·M2 포함, M1 앞 월물, D-018·D-026), 변화율, 스프레드, 연환산 롤 수익률
+- [ ] 알림 판정: 고가·저가 이격도, 가장 드문 레벨 1건, 중복 방지 키, 거부 시간(자정 넘김·경계)·보류·지연 발송 선택, 실패 재시도 규칙 (D-006, D-023, D-026)
+
+### 5-3. 일일 정산 흐름 (가짜 소스로)
+- [ ] 재계산 파이프라인: `daily_bar` → 대표월물·`roll_weight` → `index_bar`·`index_scale` → `disparity`·`disparity_distribution` (원자재·기준값 단위 전체 재계산 함수, D-024 규칙 변경 때도 사용)
+- [ ] `DAILY_SETTLE` 작업: ① 당일 저장·재계산·정산 대기 해제 ② 전일 정정 확인 (D-047), 실패 시 알림 판정 중지 플래그
+
+### 5-4. 실데이터 적재와 검증 (외부 가입 필요)
+- [ ] Databento 가입·적재 견적 → `scripts/` 1회 적재(만기 월물 포함 2010-06~, 심볼 변환) → `trading_day` 과거 행 생성·`pandas_market_calendars` 대조 (D-020, D-048)
+- [ ] 적재 데이터로 전체 재계산 실행, 결과 점검(롤 구간·산출 불가 2020-04 등)
 - [ ] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교
-- [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Firebase 프로젝트·`google-services.json`(D-037), Healthchecks.io check(D-045), 배포 스크립트(D-048)
-- [ ] 소스 가입 후 실측: Massive Basic 정산가 필드·반영 시각·티커 형식, Databento 적재 견적, Yahoo 다중 심볼 quote·당일 고가·저가 누적 시작 시각, KRX Open API ETN 필드 (product.md 외부 연동)
-- [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
+- [ ] Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기 + `DAILY_SETTLE` 실소스 연결
+
+### 5-5. 앱 공통 기반 (5-4와 병행 가능)
+- [ ] `src/api`: `fetch` 래퍼·`AppError`·query client(재시도 규칙)·query key, shared 스키마 검증 (D-030, D-042)
+- [ ] 테마 토큰·등락 색, i18n(ko/en, `errors.<code>`), Zustand persist 표시 설정 (D-031, D-033, D-047)
+- [ ] 라우트 골격: A, C 하단 탭(C-a~C-d)·`etp/[id]`, B·B-a·B-b·데이터 출처, 가로 전환 (D-047)
+- [ ] 공용 UI: 기준 시각 줄(freshness), 로딩·오류·[다시 시도] 화면, `nextUpdateAt` 자동 새로고침 hook
+- [ ] 접근 키 B-b: QR(`futureetp-key:v1:`)·붙여넣기, `GET /v1/settings`로 확인 후 SecureStore, `UNAUTHORIZED` 시 B-b 이동, `scripts/` 키 생성·QR (D-044)
+
+### 5-6. 화면 수직 슬라이스 (API + 화면 + 테스트)
+- [ ] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면
+- [ ] A 원자재 목록: `GET /v1/commodities` + 화면(당겨서 새로고침, 대표월물·알림 표시)
+- [ ] C-a 이격도차트: `GET /v1/commodities/:code/disparity`(기준값 없는 원자재 대체 표시 포함) + 차트 본 구현(스파이크 이관, `src/charts/`), 롤 마커·음영, rare-level 밴드·특수 라벨, 십자선 상세, 기간 버튼(Zustand), 스파이크 삭제
+- [ ] C-b 월물커브: `GET /v1/commodities/:code/curve`(조회 시 calc, D-046) + 화면(기준일 −/+/0, 날짜 시트·휴장일 직전 거래일, D-021)
+- [ ] C-c 월물차트: `GET /v1/commodities/:code/contracts` + 화면(C-a 차트 공용 부품 재사용)
+
+### 5-7. 장중 배치
+- [ ] Yahoo 실측: 다중 심볼 quote·당일 고가·저가 누적 시작 시각(17:00 CT 여부)·지연 시각 → 호출 전략 결정
+- [ ] `INTRADAY` 작업: `intraday_snapshot`·`index_snapshot`(이평선 4종 이격도), 정산 대기·휴장 중지, 응답 형식 검증 실패 = 배치 실패
+- [ ] A·C freshness 장중 값·오늘 잠정 봉 반영 확인
+
+### 5-8. 알림
+- [ ] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037)
+- [ ] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
+- [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
+- [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_SEND` 작업(30분)
+- [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
+
+### 5-9. ETP
+- [ ] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
+- [ ] 국내 수집기(네이버·`siseJson`·KRX): 종목명 파싱(배수·환헤지·시리즈), 시리즈 묶기, 상장폐지 처리
+- [ ] 미국 수집기(Nasdaq·Yahoo) + 매핑표(D-016), 새 후보 1회 알림(D-025), 최소 순자산(D-015)
+- [ ] `ETP_LIST` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)
+- [ ] `GET /v1/commodities/:code/etps`·`GET /v1/etps/:id` + C-d(필터 4종·정렬 3종)·C-d-a 화면
+
+### 5-10. 운영과 첫 배포
+- [ ] `CALENDAR` 작업(60일 공백 점검), `BACKUP` 작업(`pg_dump`·7개 보관·보관 기간 행 정리, D-045, D-046), 운영 알림(거래일당 1회, D-048), Healthchecks.io ping
+- [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Healthchecks.io check(D-045)
+- [ ] `infra/`(Dockerfile·compose·Caddyfile) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
 - [ ] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체 (D-052)
+- [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
 - [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)
 - [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
-- 적절한 개발 전략 수립 : harness, agent-teams(frontend, backend, db, review, test) 구성

@@ -8,7 +8,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 ## Project status
 
-futureETP: 2026-10-27 기준 5단계 개발 중. C-a 차트 스파이크 통과(D-056). 다음은 5단계 세부 항목 정리. 진행 현황은 `TODO.md`
+futureETP: 2026-10-27 기준 5단계 개발 중. C-a 차트 스파이크 통과(D-056), 개발 순서·전략 확정(D-057). 다음은 5-1 서버 기반(DB 스키마). 진행 현황은 `TODO.md`
 
 ## Critical Rules
 

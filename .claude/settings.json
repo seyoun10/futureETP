@@ -1,5 +1,17 @@
 {
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": false
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/typecheck-changed.sh"
+          }
+        ]
+      }
+    ]
   }
 }

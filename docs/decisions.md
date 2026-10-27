@@ -863,3 +863,15 @@
 
 - 주의: 에뮬레이터 `Pixel_API_36`은 기본이 `hw.gpu.enabled=no`라 SwiftShader(CPU 렌더링)로 돈다. 이때는 무엇을 하든 다시 그릴 때 약 25~30fps로 묶여 차트 성능을 잴 수 없다. 성능을 볼 때는 `emulator -avd Pixel_API_36 -gpu host`로 띄운다(M1 Pro GPU, `dumpsys SurfaceFlinger`의 GLES가 Apple이면 정상).
 - 근거: 검증 항목 5개가 모두 라이브러리 위에서 해결됐고, 직접 구현한 부분(y 맞춤·x축·범위 제한·십자선)도 같은 기반(Skia·Reanimated·Gesture Handler)이라 D-032의 자체 구현 전환은 필요 없다. D-046의 열 배열 전환은 스파이크가 합성 데이터라 판단하지 못했다. API 연동 때 실제 응답으로 파싱 시간을 재서 정한다.
+
+## D-057: 5단계 개발 순서와 개발 전략 — 서버·calc 먼저, 단일 세션 + 최소 harness
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5단계 세부 항목 정리. TODO에 후보로 적어 둔 "harness, agent-teams(frontend, backend, db, review, test) 구성"을 함께 정했다.
+- 결정
+  - 순서: 서버 기반 → calc(명세를 테스트로 먼저) → 일일 정산 흐름(가짜 소스) → 실데이터 적재·검증 → 화면별 수직 슬라이스(API + 화면) → 장중 배치 → 알림 → ETP → 운영·첫 배포. 앱 공통 기반은 실데이터 적재를 기다리는 동안 병행한다. 단위 작업 목록은 `TODO.md` 5단계.
+  - 개발 전략: 메인 세션 하나가 구현한다. 서브에이전트는 두 곳에만 쓴다. ① calc 테스트를 구현과 따로 product.md 계산 정의만 보고 작성(구현과 같은 해석 오류가 테스트에 옮겨지는 것을 막음) ② 단계(5-x)가 끝날 때 `/code-review`.
+  - harness: 기존 `npm run check`·pre-commit에 Claude Code Stop hook 하나를 더한다(`.claude/hooks/typecheck-changed.sh`). 턴이 끝날 때 커밋 전 변경에 TS 파일이 있는 workspace만 타입 검사하고, 실패하면 오류를 돌려줘 고치게 한다. workspace당 1~2초다.
+- 근거
+  - 화면은 배치가 계산해 둔 값을 읽기만 하므로(D-041) calc 정확성과 실데이터 검증이 먼저 끝나야 화면을 의미 있게 확인할 수 있다. 가짜 데이터로 화면을 먼저 만들면 응답 형태를 나중에 고칠 가능성이 크다.
+  - agent-teams 5역할은 기각: 사용자 1명·단위 작업 순차 커밋이라 병렬로 돌릴 일이 거의 없고, 에이전트마다 문서 맥락을 다시 읽어 비용이 크며, 역할 간 넘겨주기에서 결정 기록과 코드가 어긋날 위험이 있다.
