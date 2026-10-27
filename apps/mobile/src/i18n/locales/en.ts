@@ -23,6 +23,10 @@ export const en: Translation = {
       SETTLEMENT_PENDING: 'Settlement pending',
     },
   },
+  commodityList: {
+    alert: 'Alert target',
+    noTrade: 'No trade',
+  },
   commodity: {
     rotate: 'Rotate screen',
     tabs: {

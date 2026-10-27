@@ -25,6 +25,10 @@ export const ko = {
       SETTLEMENT_PENDING: '정산 대기',
     } satisfies Record<MarketState, string>,
   },
+  commodityList: {
+    alert: '알림 대상',
+    noTrade: '거래 없음',
+  },
   commodity: {
     rotate: '가로/세로 전환',
     tabs: {

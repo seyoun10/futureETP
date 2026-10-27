@@ -2,12 +2,16 @@ import { lockAsync, OrientationLock } from 'expo-screen-orientation';
 import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
+import { getCommodities } from '@/api/commodities';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('expo-screen-orientation', () => ({
   ...jest.requireActual<typeof import('expo-screen-orientation')>('expo-screen-orientation'),
   lockAsync: jest.fn(() => Promise.resolve()),
 }));
+
+// A는 원자재 목록을 조회한다. 이동만 보므로 월물 줄은 비운다.
+jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn() }));
 
 // 창 모양은 테스트마다 바꾼다(가로 레이아웃 판정).
 const mockWindow = { width: 390, height: 844 };
@@ -23,6 +27,21 @@ beforeEach(() => {
   useAccessKeyStore.setState({ key: 'test-key' });
   Object.assign(mockWindow, { width: 390, height: 844 });
   jest.mocked(lockAsync).mockClear();
+  jest.mocked(getCommodities).mockResolvedValue({
+    freshness: {
+      asOf: '2026-10-22T14:45:00Z',
+      tradeDate: '2026-10-22',
+      delayed: false,
+      marketState: 'OPEN',
+      nextUpdateAt: null,
+    },
+    commodities: (['GC', 'SI', 'CL', 'NG'] as const).map((code) => ({
+      code,
+      priceDecimals: 2,
+      alert: false,
+      contracts: [],
+    })),
+  });
 });
 
 // 실제 src/app 라우트 트리로 화면 이동을 확인한다. 스파이크 화면은 Skia를 불러오므로 뺀다.
@@ -32,7 +51,7 @@ const renderApp = (initialUrl = '/') =>
 describe('라우트 골격', () => {
   it('A에서 원자재를 누르면 C-a 탭이 열리고 title-bar에 원자재명이 보인다', async () => {
     await renderApp();
-    await fireEvent.press(screen.getByText('원유 / CL'));
+    await fireEvent.press(await screen.findByText('원유 / CL'));
 
     expect(screen).toHavePathname('/commodity/CL');
     expect(screen.getByRole('header', { name: '원유 / CL' })).toBeOnTheScreen();
@@ -56,7 +75,7 @@ describe('라우트 골격', () => {
     await fireEvent.press(screen.getByLabelText('뒤로'));
 
     expect(screen).toHavePathname('/');
-    expect(screen.getByText('원유 / CL')).toBeOnTheScreen();
+    expect(await screen.findByText('원유 / CL')).toBeOnTheScreen();
   });
 
   it('C [⚙]는 B로 가고, B에서 돌아오면 C다', async () => {

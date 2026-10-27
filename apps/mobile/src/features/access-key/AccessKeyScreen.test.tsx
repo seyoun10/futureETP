@@ -22,6 +22,21 @@ jest.mock('@/api/settings', () => ({
     }),
   patchSettings: jest.fn(),
 }));
+// A는 원자재 목록을 조회한다. 화면 이동만 보므로 목록은 비운다.
+// 키 저장 뒤 무효화가 다시 조회를 기다리므로 응답은 와야 한다.
+jest.mock('@/api/commodities', () => ({
+  getCommodities: () =>
+    Promise.resolve({
+      freshness: {
+        asOf: '2026-10-22T14:45:00Z',
+        tradeDate: '2026-10-22',
+        delayed: false,
+        marketState: 'OPEN',
+        nextUpdateAt: null,
+      },
+      commodities: [],
+    }),
+}));
 const mockVerify = jest.mocked(verifyAccessKey);
 const { mockRequestCameraPermission } = jest.requireMock<{
   mockRequestCameraPermission: jest.Mock<Promise<{ granted: boolean }>, []>;
@@ -55,13 +70,13 @@ describe('B-b 접근 키', () => {
     await renderApp();
     expect(screen.getByRole('header', { name: '접근 키' })).toBeOnTheScreen();
     expect(screen.queryByLabelText('뒤로')).not.toBeOnTheScreen();
-    expect(screen.queryByText('원유 / CL')).not.toBeOnTheScreen();
+    expect(screen.queryByRole('header', { name: 'futureETP' })).not.toBeOnTheScreen();
 
     await enterKey(`futureetp-key:v1:${KEY}`);
 
     expect(mockVerify).toHaveBeenCalledWith(KEY);
     await expect(getItemAsync('access-key')).resolves.toBe(KEY);
-    expect(await screen.findByText('원유 / CL')).toBeOnTheScreen();
+    expect(await screen.findByRole('header', { name: 'futureETP' })).toBeOnTheScreen();
   });
 
   it('형식이 아니면 서버에 묻지 않는다', async () => {
@@ -106,7 +121,7 @@ describe('B-b 접근 키', () => {
 
       expect(mockVerify).toHaveBeenCalledTimes(1);
       expect(mockVerify).toHaveBeenCalledWith(KEY);
-      expect(await screen.findByText('원유 / CL')).toBeOnTheScreen();
+      expect(await screen.findByRole('header', { name: 'futureETP' })).toBeOnTheScreen();
     });
 
     it('접두사가 없는 QR은 받지 않고 계속 읽는다', async () => {
