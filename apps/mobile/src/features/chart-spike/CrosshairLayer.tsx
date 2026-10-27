@@ -1,4 +1,4 @@
-import { DashPathEffect, Group, Line, Text as SkText, vec } from '@shopify/react-native-skia';
+import { DashPathEffect, Group, Line, Rect, Text as SkText, vec } from '@shopify/react-native-skia';
 import type { SkFont } from '@shopify/react-native-skia';
 import { useDerivedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
@@ -12,28 +12,33 @@ export type CrosshairPress = ChartPressState<{
   y: { open: number; high: number; low: number; close: number };
 }>;
 
-type CrosshairLayerProps = {
-  press: CrosshairPress;
+// 십자선 화면 좌표. 축 레이어도 이 값으로 겹치는 기본 눈금을 숨긴다.
+export type Crosshair = {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
   // 손을 떼도 남는 표시 여부. press.isActive는 손을 떼면 false가 된다.
   visible: SharedValue<boolean>;
-  transform: ChartTransform;
-  chartBounds: ChartBounds;
-  dates: string[];
-  font: SkFont | null;
-  color: string;
 };
 
-// 길게 누르기 십자선(D-032 스파이크). press 위치는 변환 전 좌표라 행렬로 화면 좌표로 바꾼다.
-// 모두 UI 스레드 파생값이라 십자선을 움직여도 React 렌더가 없다.
-export function CrosshairLayer({
-  press,
-  visible,
-  transform,
-  chartBounds,
-  dates,
-  font,
-  color,
-}: CrosshairLayerProps) {
+export const CROSSHAIR_LABEL_PAD = 3;
+const DATE_SAMPLE = '0000-00-00';
+
+// 십자선 날짜 라벨 박스 너비(겹침 판정에도 쓴다)
+export function crosshairDateWidth(font: SkFont): number {
+  return font.measureText(DATE_SAMPLE).width + CROSSHAIR_LABEL_PAD * 2;
+}
+
+// 라벨 박스 높이(겹침 판정에도 쓴다)
+export function crosshairLabelHeight(font: SkFont): number {
+  return font.getSize() + CROSSHAIR_LABEL_PAD * 2;
+}
+
+// press 위치는 변환 전 좌표라 행렬로 화면 좌표로 바꾼다. UI 스레드 파생값이다.
+export function useCrosshairPosition(
+  press: CrosshairPress,
+  transform: ChartTransform,
+  visible: SharedValue<boolean>,
+): Crosshair {
   const x = useDerivedValue(() => {
     const c = getTransformComponents(transform.matrix.get());
     return c.scaleX * press.x.position.get() + c.translateX;
@@ -42,6 +47,37 @@ export function CrosshairLayer({
     const c = getTransformComponents(transform.matrix.get());
     return c.scaleY * press.y.close.position.get() + c.translateY;
   });
+  return { x, y, visible };
+}
+
+type CrosshairLayerProps = {
+  press: CrosshairPress;
+  crosshair: Crosshair;
+  chartBounds: ChartBounds;
+  canvasWidth: number;
+  dates: string[];
+  font: SkFont | null;
+  // 점선과 라벨 박스 색. 기본 눈금 색과 달라야 한다.
+  color: string;
+  labelTextColor: string;
+};
+
+// 길게 누르기 십자선(D-032 스파이크). 모두 UI 스레드 파생값이라 움직여도 React 렌더가 없다.
+export function CrosshairLayer({
+  press,
+  crosshair,
+  chartBounds,
+  canvasWidth,
+  dates,
+  font,
+  color,
+  labelTextColor,
+}: CrosshairLayerProps) {
+  const { x, y, visible } = crosshair;
+  const fontSize = font?.getSize() ?? 0;
+  const labelHeight = fontSize + CROSSHAIR_LABEL_PAD * 2;
+  const dateWidth = font ? crosshairDateWidth(font) : 0;
+
   const opacity = useDerivedValue(() => (visible.get() ? 1 : 0));
   const vTop = useDerivedValue(() => vec(x.get(), chartBounds.top));
   const vBottom = useDerivedValue(() => vec(x.get(), chartBounds.bottom));
@@ -49,10 +85,18 @@ export function CrosshairLayer({
   const hRight = useDerivedValue(() => vec(chartBounds.right, y.get()));
   const priceText = useDerivedValue(() => press.y.close.value.get().toFixed(3));
   const dateText = useDerivedValue(() => dates[press.matchedIndex.get()] ?? '');
-  const priceY = useDerivedValue(() => y.get() + 4);
-  const dateX = useDerivedValue(() => x.get() - 30);
+
+  // y축 가격 라벨: 우측 축 영역 전체 너비의 박스
+  const priceBoxY = useDerivedValue(() => y.get() - labelHeight / 2);
+  const priceTextY = useDerivedValue(() => y.get() + fontSize / 2 - 1);
+  // x축 날짜 라벨: 십자선 중앙, 차트 좌우 끝을 넘지 않게
+  const dateBoxX = useDerivedValue(() =>
+    Math.min(Math.max(x.get() - dateWidth / 2, chartBounds.left), chartBounds.right - dateWidth),
+  );
+  const dateTextX = useDerivedValue(() => dateBoxX.get() + CROSSHAIR_LABEL_PAD);
 
   if (!font) return null;
+  const dateBoxY = chartBounds.bottom + 2;
 
   return (
     <Group opacity={opacity}>
@@ -62,13 +106,27 @@ export function CrosshairLayer({
       <Line p1={hLeft} p2={hRight} color={color} strokeWidth={1}>
         <DashPathEffect intervals={[4, 4]} />
       </Line>
-      <SkText x={chartBounds.right + 4} y={priceY} text={priceText} font={font} color={color} />
+      <Rect
+        x={chartBounds.right + 1}
+        y={priceBoxY}
+        width={canvasWidth - chartBounds.right - 1}
+        height={labelHeight}
+        color={color}
+      />
       <SkText
-        x={dateX}
-        y={chartBounds.bottom + font.getSize() + 6}
+        x={chartBounds.right + 1 + CROSSHAIR_LABEL_PAD}
+        y={priceTextY}
+        text={priceText}
+        font={font}
+        color={labelTextColor}
+      />
+      <Rect x={dateBoxX} y={dateBoxY} width={dateWidth} height={labelHeight} color={color} />
+      <SkText
+        x={dateTextX}
+        y={dateBoxY + CROSSHAIR_LABEL_PAD + fontSize - 1}
         text={dateText}
         font={font}
-        color={color}
+        color={labelTextColor}
       />
     </Group>
   );

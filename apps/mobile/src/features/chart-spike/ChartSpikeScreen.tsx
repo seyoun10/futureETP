@@ -20,16 +20,26 @@ import {
 import type { ChartBounds, PointsArray } from 'victory-native';
 import { scheduleOnRN } from 'react-native-worklets';
 
-import { CrosshairLayer } from './CrosshairLayer';
+import { CrosshairLayer, useCrosshairPosition } from './CrosshairLayer';
 import { fitTransform, periodTransform } from './fitTransform';
 import type { CandleGeom } from './fitTransform';
 import { makeSyntheticBars } from './syntheticBars';
 import { XAxisLayer } from './XAxisLayer';
+import { YAxisLayer } from './YAxisLayer';
 
 // C-a 차트 스파이크(D-032). 검증용 화면이라 테마 토큰·i18n은 붙이지 않는다.
 const BAR_COUNT = 4000;
 const EPSILON = 1e-3;
 const LONG_PRESS_MS = 300;
+
+// 기본 눈금은 회색, 십자선은 눈금과 구분되는 흰색 점선·흰 박스 라벨로 쓴다.
+// 노랑(이평선)·등락 색·보라(rare-level)는 용도가 정해져 있어 피한다(screens.md C-a).
+const COLORS = {
+  tick: '#9e9e9e',
+  grid: '#2a2a2a',
+  crosshair: '#ffffff',
+  crosshairText: '#000000',
+};
 
 const PERIODS = [
   { label: '3M', bars: 63 },
@@ -42,6 +52,8 @@ const font = matchFont({
   fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
   fontSize: 11,
 });
+// 우측 y축 라벨 자리(가장 긴 가격 라벨 + 여백)
+const Y_LABEL_WIDTH = font.measureText('000.000').width + 10;
 
 type CandleLayerProps = {
   points: Record<'open' | 'high' | 'low' | 'close', PointsArray>;
@@ -114,6 +126,7 @@ export function ChartSpikeScreen() {
       if (active) crosshairVisible.set(true);
     },
   );
+  const crosshair = useCrosshairPosition(press, transform, crosshairVisible);
   const hideCrosshairTap = Gesture.Tap().onEnd(() => {
     crosshairVisible.set(false);
   });
@@ -219,21 +232,11 @@ export function ChartSpikeScreen() {
           chartPressConfig={{ pan: { activateAfterLongPress: LONG_PRESS_MS } }}
           // victory-native 42 타입은 RNGH 3의 새 ComposedGesture를 가리키지만, 런타임은 legacy Gesture.Race로 합친다.
           customGestures={Gesture.Race(hideCrosshairTap) as unknown as ComposedGesture}
-          // 라이브러리 x축은 끄고 XAxisLayer로 그린다. 아래 여백은 라벨 자리.
+          // 라이브러리 축은 끄고 XAxisLayer·YAxisLayer로 그린다. 여백은 라벨 자리.
           xAxis={{ font: null, lineColor: 'transparent' }}
-          padding={{ bottom: 24 }}
-          yAxis={[
-            {
-              font: yAxisEnabled ? font : null,
-              axisSide: 'right',
-              labelColor: '#9e9e9e',
-              lineColor: '#2a2a2a',
-              tickCount: 6,
-              enableRescaling: true,
-              formatYLabel: (v) => v.toFixed(2),
-            },
-          ]}
-          renderOutside={({ points, chartBounds }) =>
+          yAxis={[{ font: null, lineColor: 'transparent' }]}
+          padding={{ bottom: 24, right: Y_LABEL_WIDTH }}
+          renderOutside={({ points, chartBounds, canvasSize, yScale }) =>
             outsideEnabled && (
               <>
                 <XAxisLayer
@@ -242,17 +245,29 @@ export function ChartSpikeScreen() {
                   x0={points.high[0]?.x ?? 0}
                   dx={(points.high[1]?.x ?? 0) - (points.high[0]?.x ?? 0)}
                   font={font}
-                  labelColor="#9e9e9e"
-                  gridColor="#2a2a2a"
+                  labelColor={COLORS.tick}
+                  gridColor={COLORS.grid}
+                  crosshair={crosshair}
                 />
+                {yAxisEnabled && (
+                  <YAxisLayer
+                    yScale={yScale}
+                    chartBounds={chartBounds}
+                    font={font}
+                    labelColor={COLORS.tick}
+                    gridColor={COLORS.grid}
+                    crosshair={crosshair}
+                  />
+                )}
                 <CrosshairLayer
                   press={press}
-                  visible={crosshairVisible}
-                  transform={transform}
+                  crosshair={crosshair}
                   chartBounds={chartBounds}
+                  canvasWidth={canvasSize.width}
                   dates={dates}
                   font={font}
-                  color="#bdbdbd"
+                  color={COLORS.crosshair}
+                  labelTextColor={COLORS.crosshairText}
                 />
               </>
             )
