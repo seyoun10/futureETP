@@ -9,11 +9,15 @@ import { fail, ok } from './response.ts';
 
 export type AppOptions = {
   token: string;
+  // health에서 DB 연결을 확인한다. 실패하면 throw한다.
+  checkDb: () => Promise<void>;
+  dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   now?: () => number;
   clientIp?: (c: Context) => string;
 };
 
+const DEFAULT_DB_CHECK_TIMEOUT_MS = 3000;
 const DEFAULT_AUTH_FAILURE_LIMIT: AuthFailureLimit = { maxFailures: 10, windowMs: 15 * 60_000 };
 
 export function createApp(options: AppOptions) {
@@ -38,7 +42,28 @@ export function createApp(options: AppOptions) {
   app.notFound((c) => fail(c, 'NOT_FOUND', `No route for ${c.req.method} ${c.req.path}`));
 
   const v1 = new Hono();
-  v1.get('/health', (c) => ok(c, { status: 'ok' }));
+  // 배포 확인용. pg 풀은 연결 타임아웃이 없어 DB가 응답하지 않으면 멈추므로 시간을 제한한다.
+  v1.get('/health', async (c) => {
+    const timeoutMs = options.dbCheckTimeoutMs ?? DEFAULT_DB_CHECK_TIMEOUT_MS;
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      await Promise.race([
+        options.checkDb(),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error(`DB check timed out (${timeoutMs}ms)`)),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } catch (error) {
+      console.error(error);
+      throw new ApiException('INTERNAL', 'Database unavailable');
+    } finally {
+      clearTimeout(timer);
+    }
+    return ok(c, { status: 'ok' });
+  });
   v1.use(
     '*',
     bearerAuth({ token: options.token, limiter, clientIp: options.clientIp ?? defaultClientIp }),

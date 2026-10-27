@@ -5,10 +5,12 @@ import { ApiException } from './errors.ts';
 const TOKEN = 'test-token-0123456789abcdef0123456789';
 const auth = { Authorization: `Bearer ${TOKEN}` };
 
-function setup() {
+function setup(checkDb: () => Promise<void> = async () => {}) {
   let time = 0;
   const app = createApp({
     token: TOKEN,
+    checkDb,
+    dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,
   });
@@ -22,6 +24,23 @@ describe('GET /v1/health', () => {
     const res = await setup().request('/v1/health');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true, data: { status: 'ok' } });
+  });
+
+  it('DB 확인이 실패하거나 시간을 넘기면 500 INTERNAL', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failing = setup(() => Promise.reject(new Error('ECONNREFUSED')));
+    const hanging = setup(() => new Promise(() => {}));
+
+    for (const { request } of [failing, hanging]) {
+      const res = await request('/v1/health');
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({
+        success: false,
+        error: { code: 'INTERNAL', message: 'Database unavailable' },
+      });
+    }
+    expect(log).toHaveBeenCalledTimes(2);
+    log.mockRestore();
   });
 });
 

@@ -1,8 +1,9 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './api/app.ts';
 import { config } from './config.ts';
+import { pingDb } from './db/client.ts';
 
-const app = createApp({ token: config.API_TOKEN });
+const app = createApp({ token: config.API_TOKEN, checkDb: pingDb });
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   console.log(

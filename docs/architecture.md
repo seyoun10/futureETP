@@ -159,7 +159,7 @@ type Freshness = {
 
 | 메서드·경로 | 화면 | 내용 |
 |---|---|---|
-| `GET /v1/health` | — | 인증 없음, 배포 확인용 |
+| `GET /v1/health` | — | 인증 없음, 배포 확인용. DB `select 1`(3초 제한) 실패 시 500 `INTERNAL`(D-059) |
 | `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시, freshness |
 | `GET /v1/commodities/:code/disparity?basis&ma&window` | C-a | 지수 일봉, 이평선, rare-level 밴드, 롤 구간, freshness |
 | `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일·현재 커브, 스프레드·롤 수익률, freshness |
