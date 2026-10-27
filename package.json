@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "access-key": "node scripts/access-key.mjs"
   },
   "overrides": {
     "react": "19.3.0",
@@ -29,6 +30,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.10",
+    "toqr": "0.1.1",
     "typescript-eslint": "^8.72.1",
     "vitest": "^5.0.5"
   }

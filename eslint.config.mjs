@@ -26,7 +26,7 @@ export default defineConfig([
   },
 
   {
-    files: ['apps/server/**', 'packages/shared/**', '*.{js,mjs,cjs}'],
+    files: ['apps/server/**', 'packages/shared/**', 'scripts/**', '*.{js,mjs,cjs}'],
     languageOptions: { globals: globals.node },
   },
 

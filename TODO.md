@@ -129,7 +129,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] QR 읽기(`expo-camera`, 권한 거부·카메라 없음 안내) (2026-10-27, D-078)
     - [ ] 재빌드 후 Android 기기에서 권한 요청·QR 읽기 확인
   - [x] `UNAUTHORIZED` 시 어느 화면에서든 B-b로 이동 + 오류 줄 (2026-10-27, D-079)
-  - [ ] `scripts/` 키 생성·QR 표시
+  - [x] `scripts/` 키 생성·QR 표시(`npm run access-key`, 기존 키는 `--show`에 stdin) (2026-10-27, D-080)
 
 ### 5-6. 화면 수직 슬라이스 (API + 화면 + 테스트)
 - [ ] 설정: `GET·PATCH /v1/settings`(rare 레벨 검증·정렬, 시간대·언어), B 화면, 데이터 출처 화면

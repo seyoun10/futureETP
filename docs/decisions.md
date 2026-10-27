@@ -1250,3 +1250,17 @@
   - 이동을 한곳에 모으면 화면마다 처리하지 않아도 된다. `src/api`는 라우터를 모르고 store만 바꾸므로 레이어 방향(route → 화면 → query → `src/api`)을 지킨다.
   - 여러 query가 한꺼번에 거절돼도 표시는 하나라 이동은 한 번이다.
 - 영향: `UNAUTHORIZED`는 재시도 대상이 아니므로(D-042) 이동 뒤 반복 요청은 없다. 네이티브 변경 없음.
+
+## D-080: 접근 키 스크립트 — 루트 `scripts/access-key.mjs` + `toqr`, 기존 키는 stdin으로만
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 접근 키 B-b 넷째 단계(D-044 후속). D-044는 `scripts/`의 스크립트가 32바이트 base64url 키를 만들고 QR(`futureetp-key:v1:<키>`)을 터미널에 띄운다고만 정했다. Node에는 QR 인코더가 없고, 키는 하나라 두 번째 기기도 같은 키의 QR을 다시 읽어야 한다.
+- 선택지: QR 인코더 — `qrcode` 패키지 / `toqr`(Expo CLI가 터미널 QR에 쓰는 것, 이미 lock에 있음) / Homebrew `qrencode` / 직접 구현. 기존 키 입력 — 명령 인자 / stdin
+- 결정:
+  - 루트 `scripts/access-key.mjs`(빌드 없이 `node`로 실행, 루트 devDependency `toqr` 0.1.1 고정). `npm run access-key`는 새 키, `npm run access-key -- --show < 파일`은 stdin의 기존 키(43자 형식 검사)로 QR을 띄운다.
+  - 출력은 half-block QR(여백 2모듈, 어두운 배경 터미널 기준) → `API_TOKEN=<키>` 줄 → 넣을 곳 안내. 서버에는 `infra/.env`(dev는 `apps/server/.env`)의 `API_TOKEN`으로 넣는다.
+- 근거:
+  - `toqr`은 의존성 없는 작은 인코더이고 Expo CLI가 이미 받아 오므로 새로 받는 코드가 없다. 직접 의존으로 고정해 Expo CLI 버전이 바뀌어도 스크립트가 깨지지 않게 한다.
+  - 키를 명령 인자로 받으면 셸 기록·프로세스 목록에 남는다.
+  - 생성한 QR을 이미지로 그려 macOS CoreImage로 읽어 내용이 같음을 확인했다.
+- 영향: ESLint Node 전역을 `scripts/**`에도 건다. 앱·서버 코드 변경 없음.

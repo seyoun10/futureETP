@@ -235,7 +235,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ## 운영 (접근 키·실패 알림·백업·보관)
 
 ### 서버 접근 키(D-044)
-- 키는 32바이트 난수를 base64url로 인코딩한 문자열이다. `scripts/`의 키 스크립트가 만들고, QR(`futureetp-key:v1:<키>`)을 터미널에 띄운다.
+- 키는 32바이트 난수를 base64url로 인코딩한 문자열이다. `scripts/access-key.mjs`(`npm run access-key`)가 만들고, QR(`futureetp-key:v1:<키>`)을 터미널에 띄운다. 기존 키는 `--show`에 stdin으로 넘겨 QR만 다시 띄운다(D-080).
 - 앱: 처음 실행할 때 키가 없으면 B-b(접근 키 입력)를 먼저 띄운다. 카메라로 QR을 읽고, 카메라를 쓸 수 없으면(iOS 시뮬레이터, 권한 거부) 붙여넣기로 넣는다. 접두사 형식이 아니면 거절한다. 입력한 키로 `GET /v1/settings`를 불러 성공하면 `expo-secure-store`에 저장하고, 그 뒤에 기기 등록(`PUT /v1/devices`)을 한다.
 - `src/api` 래퍼가 SecureStore의 키를 읽어 헤더에 붙인다. 키를 메모리에 한 번 읽어 두고, 바꾸면 갱신한다. TanStack Query 캐시(`QueryCache`·`MutationCache`)의 `onError`에서 `UNAUTHORIZED`면 접근 키 store에 거절 표시를 하고, 루트 레이아웃이 보고 B-b로 보낸다. B-b의 새 키 확인 mutation(`meta.checksNewKey`)은 빼고, 거절 표시는 새 키 저장이나 B-b를 떠날 때 지운다(D-079).
 - 교체: ① 키 스크립트로 새 키 생성 → ② VM `infra/.env`의 `API_TOKEN` 수정 → ③ `docker compose up -d`로 서버 재시작 → ④ 각 기기가 401을 받아 B-b로 가면 새 QR을 읽는다. 사용자 1명이라 키는 하나만 받는다(교체 중 두 키를 함께 받는 기간을 두지 않음).
