@@ -6,7 +6,7 @@ import type { ChartBounds } from 'victory-native';
 
 import { crosshairDateWidth } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
-import { monthTicks } from './monthTicks';
+import { monthTicks } from '@/charts/monthTicks';
 
 type XAxisLayerProps = {
   dates: string[];
@@ -41,7 +41,8 @@ export function XAxisLayer({
 
   return monthTicks(dates, i0, i1).map((t) => {
     const x = toScreen(t.index);
-    const width = font.measureText(t.label).width;
+    const label = t.month === 1 ? String(t.year) : String(t.month);
+    const width = font.measureText(label).width;
     return [
       <Line
         key={`g${t.index}`}
@@ -55,7 +56,7 @@ export function XAxisLayer({
         x={Math.min(Math.max(x - width / 2, chartBounds.left), chartBounds.right - width)}
         y={labelY}
         width={width}
-        text={t.label}
+        text={label}
         font={font}
         color={labelColor}
         crosshair={crosshair}

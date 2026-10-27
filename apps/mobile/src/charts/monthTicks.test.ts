@@ -1,19 +1,29 @@
 import { monthTicks } from './monthTicks';
-import { makeSyntheticBars } from './syntheticBars';
 
-const dates = makeSyntheticBars(4000).map((b) => b.date);
+// 2010-06-01부터 평일 4,000개(휴장일은 무시)
+function weekdays(count: number): string[] {
+  const dates: string[] = [];
+  const d = new Date(Date.UTC(2010, 5, 1));
+  while (dates.length < count) {
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) dates.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+const dates = weekdays(4000);
 
 describe('monthTicks', () => {
-  it('짧은 구간은 매월 눈금을 달고 1월은 연도로 쓴다', () => {
-    // 2010-11 ~ 2011-03 언저리
+  it('짧은 구간은 매월 눈금을 단다', () => {
     const i0 = dates.findIndex((d) => d >= '2010-11-01');
     const i1 = dates.findIndex((d) => d >= '2011-03-15');
-    expect(monthTicks(dates, i0, i1).map((t) => t.label)).toEqual([
-      '11월',
-      '12월',
-      '2011',
-      '2월',
-      '3월',
+    expect(monthTicks(dates, i0, i1).map((t) => [t.year, t.month])).toEqual([
+      [2010, 11],
+      [2010, 12],
+      [2011, 1],
+      [2011, 2],
+      [2011, 3],
     ]);
   });
 

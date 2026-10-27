@@ -21,8 +21,8 @@ import type { ChartBounds, PointsArray } from 'victory-native';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { CrosshairLayer, useCrosshairPosition } from './CrosshairLayer';
-import { fitTransform, periodTransform } from './fitTransform';
-import type { CandleGeom } from './fitTransform';
+import { fitTransform, periodTransform } from '@/charts/fitTransform';
+import type { CandleGeom } from '@/charts/fitTransform';
 import { makeSyntheticBars } from './syntheticBars';
 import { XAxisLayer } from './XAxisLayer';
 import { YAxisLayer } from './YAxisLayer';
