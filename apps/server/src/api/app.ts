@@ -4,6 +4,8 @@ import { HTTPException } from 'hono/http-exception';
 import { bearerAuth, createAuthFailureLimiter } from './auth.ts';
 import type { AuthFailureLimit } from './auth.ts';
 import { clientIp as defaultClientIp } from './clientIp.ts';
+import { commoditiesRoutes } from './commodities.ts';
+import type { CommoditiesStore } from './commodities.ts';
 import { ApiException } from './errors.ts';
 import { fail, ok } from './response.ts';
 import { settingsRoutes } from './settings.ts';
@@ -14,8 +16,10 @@ export type AppOptions = {
   // health에서 DB 연결을 확인한다. 실패하면 throw한다.
   checkDb: () => Promise<void>;
   settings: SettingsStore;
+  commodities: CommoditiesStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
+  // 인증 실패 제한·조회 기준 시각(ms)
   now?: () => number;
   clientIp?: (c: Context) => string;
 };
@@ -72,6 +76,14 @@ export function createApp(options: AppOptions) {
     bearerAuth({ token: options.token, limiter, clientIp: options.clientIp ?? defaultClientIp }),
   );
   v1.route('/settings', settingsRoutes(options.settings));
+  v1.route(
+    '/commodities',
+    commoditiesRoutes(
+      options.commodities,
+      options.settings,
+      () => new Date(options.now?.() ?? Date.now()),
+    ),
+  );
 
   app.route('/v1', v1);
   return app;

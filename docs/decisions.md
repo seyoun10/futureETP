@@ -1327,3 +1327,19 @@
   - 서버 값과 비교하면 다른 기기나 서버 초기값과 어긋난 경우도 맞춰진다. 기기 저장 값은 서버가 바뀐 경우를 놓친다.
   - 실패 때 되돌림(`setQueryData`)이 다시 비교를 부르므로 시간대당 1회로 무한 반복을 막는다. 사용자가 고른 변경이 아니라 오류 줄을 띄우지 않는다.
 - 영향: 네이티브 변경 없음(`expo-localization`은 이미 있음). 푸시 토큰 등록(5-8 `PUT /v1/devices`)과는 따로 간다(D-048).
+
+## D-085: `GET /v1/commodities` — 거래일·대표월물·표시 값 고르는 규칙
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-6 A 첫 단계(서버). product.md 월물 목록과 D-048 휴장 표시 값은 정했지만, 응답 필드, 어느 거래일 기준으로 고르는지, "현재 대표월물"이 roll_weight 어느 행인지, `asOf`·`delayed`를 어떻게 정하는지는 정하지 않았다.
+- 결정:
+  - 응답(shared `commoditiesSchema`): `{ freshness, commodities: [{ code, priceDecimals, alert, contracts: [{ symbol, contractMonth, price, change, changePct, noTrade, isFront }] }] }`. 원자재 이름은 보내지 않는다. 앱이 `commodities.<code>` i18n 키로 쓴다(D-033). 가격은 반올림하지 않고 앱이 `priceDecimals`로 맞춘다.
+  - 기준 거래일 T = `marketStatus(now).tradeDate`(정산 대기면 직전 거래일). 정산 완료 거래일은 DAILY_SETTLE 성공 기록, 없으면 저장된 일봉의 마지막 날이다(`jobs/settle.ts`와 같음). T가 없으면(달력 없음) 500 `INTERNAL`이다.
+  - 월물 목록: `selectMonthList(contracts, T, front)`. 대표월물은 roll_weight FRONT 중 T 이하 가장 최근 행이다. 장중에는 직전 거래일 행(그날 보유 월물), 정산이 끝나면 T 행(다음 거래일 보유 월물)이 된다.
+  - 표시 값(`calc/quotes.ts` `buildQuotes`): T 정산가 → T의 최근 스냅숏 → 직전 거래일 정산가(`noTrade`) 순. 셋 다 없으면 `price: null`. 장 상태로 나누지 않는다(장중에는 T 정산가가 없음). `change`·`changePct`는 직전 거래일 정산가 대비이고, `noTrade`이거나 직전 정산가가 없으면 null이다.
+  - `asOf` = 표시한 값 중 가장 늦은 시각(스냅숏 `capturedAt`, 일봉 `revisedAt ?? collectedAt`). 값이 하나도 없으면 조회 시각이다. `delayed` = 스냅숏을 하나라도 썼는지.
+  - `alert` = 설정의 `alertCommodity`와 같은 원자재. 조회는 `db/commoditiesStore.ts`(`CommoditiesStore`), 조립은 `api/commodities.ts` `loadCommodities`이고, 라우트 테스트는 메모리 저장소로 한다.
+- 근거:
+  - 장 상태로 값을 나누지 않고 우선순위 하나로 고르면, 마감 뒤 정산 전(그날 마지막 스냅숏)과 정산 뒤(정산가)를 같은 코드가 처리한다(D-048).
+  - 대표월물을 "T 이하 최근 행"으로 두면 장중에는 지금 보유 월물을, 주말에는 다음 개장 때 보유할 월물을 보여 준다. C-a 롤 마커와도 같은 행을 쓴다.
+- 영향: `createApp`에 `commodities` 저장소가 필수 인자로 늘었다(테스트는 `api/commodities.fixtures.ts`). 앱 화면은 다음 단계.

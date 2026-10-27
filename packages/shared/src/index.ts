@@ -1,4 +1,12 @@
 export {
+  commoditiesSchema,
+  commoditySummarySchema,
+  contractQuoteSchema,
+  type Commodities,
+  type CommoditySummary,
+  type ContractQuote,
+} from './commodities.ts';
+export {
   API_ERROR_CODES,
   envelopeSchema,
   errorSchema,
