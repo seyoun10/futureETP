@@ -85,4 +85,74 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 
 ## API 통신 및 에러 처리 규약
 
+D-042. 스키마·에러 코드·enum은 `packages/shared`에 한 벌만 두고 앱·서버가 함께 쓴다.
+
+### 요청
+- 기본 경로 `https://<호스트>/v1`. JSON만 쓴다. 조회는 `GET`, 설정 변경은 `PATCH`, 기기 등록은 `PUT`(멱등 upsert).
+- `/v1/health`를 뺀 모든 요청에 `Authorization: Bearer <비밀 값>`(D-036).
+- 필드 이름은 camelCase. 서버는 path·query·body를 zod로 검증한다(Hono validator).
+
+### 응답 봉투
+모든 응답(성공·실패)은 판별 유니언 하나로 보낸다. HTTP 상태 코드도 함께 맞춘다.
+
+```ts
+type ApiResponse<T> =
+  | { success: true; data: T }
+  | { success: false; error: { code: ApiErrorCode; message: string } };
+```
+
+| `code` | HTTP | 언제 |
+|---|---|---|
+| `UNAUTHORIZED` | 401 | 비밀 값 없음·불일치 |
+| `RATE_LIMITED` | 429 | 인증 실패 횟수 제한 초과 |
+| `VALIDATION_FAILED` | 400 | path·query·body 검증 실패 |
+| `NOT_FOUND` | 404 | 없는 경로·원자재·ETP |
+| `INTERNAL` | 500 | 그 밖의 서버 오류 |
+
+- `message`는 개발·로그용 영문이다. 사용자에게 보이지 않는다. 사용자 문구는 앱이 `code`를 i18n 키(`errors.<code>`)로 바꿔 보여 준다(D-033).
+- 서버는 `onError`·`notFound`에서도 같은 봉투를 보낸다. 스택 트레이스는 응답에 넣지 않고 서버 로그(stdout)에만 남긴다.
+
+### 값 형식
+- 시각: UTC ISO 8601 문자열(`2026-10-22T14:30:00Z`). 앱이 기기 현지 시간으로 바꿔 표시한다.
+- CME 거래일: `YYYY-MM-DD` 문자열(달력 날짜와 다를 수 있음, data-model 공통 규약).
+- 가격·이격도·백분위: JSON number. DB는 decimal로 계산·저장하고 응답을 만들 때만 number로 바꾼다. 앱은 표시만 하므로 double 정밀도로 충분하다.
+- enum: shared 상수 문자열(`GC`, `FRONT`, `Y10`, `UP` 등, data-model과 같은 값).
+
+### 데이터 기준 정보(freshness)
+A와 C 화면의 조회 응답 `data`에는 상단 기준 시각 줄과 자동 새로고침에 쓰는 `freshness`를 넣는다.
+
+```ts
+type Freshness = {
+  asOf: string;            // 데이터 기준 시각(UTC)
+  tradeDate: string;       // CME 거래일
+  delayed: boolean;        // 지연 시세 여부
+  marketState: 'OPEN' | 'CLOSED' | 'SETTLEMENT_PENDING';
+  nextUpdateAt: string | null; // 다음 장중 배치 완료 예상 시각, 장중이 아니면 null
+};
+```
+
+- 앱은 화면이 보이는 동안 `nextUpdateAt` + 여유 1분에 해당 query를 다시 조회한다(D-030 후속). `null`이면 자동 새로고침하지 않고 당겨서 새로고침과 앱 복귀 재조회만 한다.
+
+### 앱 fetch 래퍼와 AppError
+- `src/api`의 래퍼가 인증 헤더, 타임아웃(15초, `AbortSignal.timeout`), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.
+- `AppError`는 `code`(서버 코드 + 앱 코드 `NETWORK`·`TIMEOUT`·`SCHEMA_MISMATCH`), `status?`(HTTP), `cause?`를 가진다. 화면은 `code`만 보고 문구를 고른다.
+- 재시도(TanStack Query `retry`): `NETWORK`·`TIMEOUT`·`INTERNAL`만 최대 2회. 4xx와 `SCHEMA_MISMATCH`는 재시도하지 않는다. mutation은 자동 재시도하지 않는다.
+- 화면 표시: 처음 로딩 실패는 오류 화면 + [다시 시도]. 이미 데이터가 있는 상태의 새로고침 실패는 기존 데이터를 유지하고 기준 시각 줄로 오래됨을 알린다(product.md 배치 실패 시).
+- `UNAUTHORIZED`의 화면 처리는 비밀 값 저장·교체 항목(TODO 3단계)에서 정한다.
+
+### 엔드포인트 초안
+개발 단계에서 응답 필드를 정하면서 고친다. 차트 구간 로딩·커브 캐시는 TODO 3단계 남은 항목에서 정한다.
+
+| 메서드·경로 | 화면 | 내용 |
+|---|---|---|
+| `GET /v1/health` | — | 인증 없음, 배포 확인용 |
+| `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시, freshness |
+| `GET /v1/commodities/:code/disparity?basis&ma&window` | C-a | 지수 일봉, 이평선, rare-level 밴드, 롤 구간, freshness |
+| `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일·현재 커브, 스프레드·롤 수익률, freshness |
+| `GET /v1/commodities/:code/contracts` | C-c | 월물 5개 원가격 시계열, freshness |
+| `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서) |
+| `GET /v1/etps/:id` | C-d-a | ETP 상세 |
+| `GET /v1/settings`, `PATCH /v1/settings` | B, B-a | 이격도차트·알림 설정, 언어(푸시 문구용) |
+| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준), 시간대는 `app_settings.timezone` 갱신 |
+
 ## 환경 설정 분리 (dev / prod)

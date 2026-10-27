@@ -571,3 +571,24 @@
 - 근거:
   - 사용자 1명·화면 10개 규모라 계층을 더 나누면 파일만 늘어난다. 조회 API가 저장값을 읽기만 하므로 service 계층에 둘 로직이 없다.
   - 계산을 순수 함수로 분리하면 지수·이평선·분포 같은 핵심 로직을 DB 없이 Vitest로 검증할 수 있다(D-038). 현재 시각을 인자로 받으면 정산 대기·휴장 판정도 시각을 고정해 테스트할 수 있다.
+
+## D-042: API 통신·에러 처리 규약 — 응답 봉투 + HTTP 상태, 앱에서도 zod 검증
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 3단계. CLAUDE.md는 응답을 `{ success, data, error }`로 잠정 규정했다. 앱 JS는 EAS Update로, 서버는 스크립트로 따로 배포해(D-039) 두 쪽 버전이 어긋날 수 있다. 오류는 다시 시도 화면, 장중 배치(15분) 뒤 자동 새로고침, 상단 기준 시각 줄이 필요하다(product.md, D-030 후속).
+- 선택지
+  - 응답 형태: 봉투 유지 + HTTP 상태 / 봉투 없이 HTTP 상태만
+  - 앱 응답 검증: zod로 실행 중 검증 / 타입만 공유
+- 결정:
+  - 모든 응답은 `{ success: true, data } | { success: false, error: { code, message } }` 판별 유니언이고, HTTP 상태 코드도 맞춘다. 에러 코드는 shared enum(`UNAUTHORIZED`·`RATE_LIMITED`·`VALIDATION_FAILED`·`NOT_FOUND`·`INTERNAL`)이다. `message`는 로그용이고, 사용자 문구는 앱이 `code`를 i18n 키로 바꿔 만든다.
+  - 앱 `fetch` 래퍼는 shared zod 스키마로 응답을 parse한다. 어긋나면 `AppError`(`SCHEMA_MISMATCH`)로 오류 화면을 보여 준다. 앱 전용 코드는 `NETWORK`·`TIMEOUT`·`SCHEMA_MISMATCH`다.
+  - 경로는 `/v1` 접두사, 필드는 camelCase, 시각은 UTC ISO 8601, 거래일은 `YYYY-MM-DD`, 가격 등 수치는 JSON number(DB는 decimal)다.
+  - A·C 조회 응답에 `freshness`(`asOf`·`tradeDate`·`delayed`·`marketState`·`nextUpdateAt`)를 넣는다. 앱은 `nextUpdateAt` + 1분에 다시 조회한다.
+  - 재시도는 `NETWORK`·`TIMEOUT`·`INTERNAL`만 최대 2회, 타임아웃 15초.
+  - 세부와 엔드포인트 초안은 `architecture.md` "API 통신 및 에러 처리 규약"에 둔다.
+- 근거:
+  - 봉투: 사용자가 선택했다. 래퍼가 성공·실패를 한 스키마로 파싱하고, 프록시(Caddy) 오류처럼 봉투가 아닌 응답은 HTTP 상태로 구분할 수 있다.
+  - 앱 검증: 배포가 따로라 스키마가 어긋날 수 있다. 검증하지 않으면 화면 깊은 곳에서 `undefined` 오류로 드러나 원인을 찾기 어렵다. 봉 4,000개 규모는 zod 4로 부담이 작다.
+  - 수치를 number로 보내는 이유: 앱은 계산하지 않고 표시만 한다(D-041). 표시 자릿수(최대 소수 3자리)에서 double 오차가 보이지 않는다.
+  - `nextUpdateAt`을 서버가 주면 휴장·정산 대기·조기 마감 판단을 앱이 다시 할 필요가 없다.
+- 후속: `UNAUTHORIZED` 화면 처리는 비밀 값 저장·교체 항목에서 정한다. 차트 구간 로딩·커브 캐시는 3단계 남은 항목에서 정한다.

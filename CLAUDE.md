@@ -52,7 +52,7 @@ futureETP: 2026-10-27 기준 설계 단계 (TODO 1단계 기획·2단계 Tech St
 - util/hook: camelCase
 - commit message: Conventional Commits ('feat:', 'fix:', 'chore:')
 - React component는 named export 사용 (default export 금지). 예외: `app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029)
-- API response은 항상 '{ success, data, error }' 형태로 통일 (잠정: TODO 3단계 API·에러 규약에서 확정)
+- API 응답은 항상 `{ success: true, data } | { success: false, error: { code, message } }` + 맞는 HTTP 상태. 앱은 shared zod 스키마로 응답을 검증하고, 사용자 문구는 에러 `code`의 i18n 키로 만든다 (D-042)
 
 ## Architecture
 
