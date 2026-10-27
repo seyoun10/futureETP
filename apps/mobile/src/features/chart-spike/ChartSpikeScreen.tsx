@@ -2,6 +2,8 @@ import { matchFont } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
+import { Gesture } from 'react-native-gesture-handler';
+import type { ComposedGesture } from 'react-native-gesture-handler';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAnimatedReaction, useFrameCallback, useSharedValue } from 'react-native-reanimated';
 import type { SharedValue } from 'react-native-reanimated';
@@ -103,6 +105,19 @@ export function ChartSpikeScreen() {
   });
   const [snapCount, setSnapCount] = useState(0);
 
+  // 십자선은 손을 떼도 남고, 차트를 한 번 더 누르면 사라진다(screens.md C-a).
+  // 탭은 길게 누르기·드래그와 경쟁하므로 그 제스처가 이기면 숨기지 않는다.
+  const crosshairVisible = useSharedValue(false);
+  useAnimatedReaction(
+    () => press.isActive.get(),
+    (active) => {
+      if (active) crosshairVisible.set(true);
+    },
+  );
+  const hideCrosshairTap = Gesture.Tap().onEnd(() => {
+    crosshairVisible.set(false);
+  });
+
   // 십자선이 다른 봉에 붙을 때마다 햅틱(D-032). 실기기에서만 느껴진다.
   const onSnap = () => {
     setSnapCount((n) => n + 1);
@@ -202,6 +217,8 @@ export function ChartSpikeScreen() {
           transformConfig={{ pan: { dimensions: 'x' }, pinch: { dimensions: 'x' } }}
           chartPressState={press}
           chartPressConfig={{ pan: { activateAfterLongPress: LONG_PRESS_MS } }}
+          // victory-native 42 타입은 RNGH 3의 새 ComposedGesture를 가리키지만, 런타임은 legacy Gesture.Race로 합친다.
+          customGestures={Gesture.Race(hideCrosshairTap) as unknown as ComposedGesture}
           // 라이브러리 x축은 끄고 XAxisLayer로 그린다. 아래 여백은 라벨 자리.
           xAxis={{ font: null, lineColor: 'transparent' }}
           padding={{ bottom: 24 }}
@@ -230,6 +247,7 @@ export function ChartSpikeScreen() {
                 />
                 <CrosshairLayer
                   press={press}
+                  visible={crosshairVisible}
                   transform={transform}
                   chartBounds={chartBounds}
                   dates={dates}

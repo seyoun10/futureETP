@@ -849,6 +849,7 @@
   - x축: 라이브러리 x축 라벨은 y 스케일 도메인 하단에 놓여서 y를 다시 맞추면 화면 밖으로 밀린다. x축은 끄고(`font: null`) 보이는 봉의 월 경계로 눈금을 고르는 Skia 레이어로 그린다(`monthTicks`, 1월은 연도).
   - y축 눈금은 `enableRescaling: true`여야 보이는 범위 기준으로 다시 계산된다. d3 log 눈금이라 범위에 따라 위쪽 라벨이 비는 구간이 있다. 실제 화면은 현재가·이평선·rare-level 라벨을 직접 그리므로(screens.md C-a) 영향이 작다.
   - 한글: Skia `matchFont`는 시스템 글꼴 대체(fallback)를 하지 않아 '월' 같은 한글이 □로 나온다. 차트 글자는 한글 글꼴을 번들해 `useFont`로 쓰거나 Skia Paragraph를 쓴다(본 구현 때 결정).
+  - 십자선 유지·숨김: `press.isActive`는 손을 떼면 false라, 표시 여부를 별도 공유 값으로 두고 길게 누르면 켠다. 숨김은 `customGestures`의 탭 제스처로 하며, 길게 누르기·드래그와 Race라 그 제스처가 이기면 숨기지 않는다. victory-native 42의 `customGestures` 타입은 RNGH 3의 새 `ComposedGesture`를 가리키지만 런타임은 legacy `Gesture.Race`라서 타입만 변환한다.
   - '전체'(k=1)에서 드래그하면 제스처가 x를 바꾸고 보정이 되돌리는 쓰기 충돌로 FPS가 47~55로 떨어진다. 본 구현에서는 k=1이면 이동 제스처를 막는다.
 - 성능 측정(디버그·release 빌드 같은 경향, UI 스레드 `useFrameCallback` 1초 평균, adb 스와이프 연속 입력)
 

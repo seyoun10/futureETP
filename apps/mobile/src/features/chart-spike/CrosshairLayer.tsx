@@ -1,6 +1,7 @@
 import { DashPathEffect, Group, Line, Text as SkText, vec } from '@shopify/react-native-skia';
 import type { SkFont } from '@shopify/react-native-skia';
 import { useDerivedValue } from 'react-native-reanimated';
+import type { SharedValue } from 'react-native-reanimated';
 import { getTransformComponents } from 'victory-native';
 import type { ChartBounds, ChartPressState, useChartTransformState } from 'victory-native';
 
@@ -13,6 +14,8 @@ export type CrosshairPress = ChartPressState<{
 
 type CrosshairLayerProps = {
   press: CrosshairPress;
+  // 손을 떼도 남는 표시 여부. press.isActive는 손을 떼면 false가 된다.
+  visible: SharedValue<boolean>;
   transform: ChartTransform;
   chartBounds: ChartBounds;
   dates: string[];
@@ -24,6 +27,7 @@ type CrosshairLayerProps = {
 // 모두 UI 스레드 파생값이라 십자선을 움직여도 React 렌더가 없다.
 export function CrosshairLayer({
   press,
+  visible,
   transform,
   chartBounds,
   dates,
@@ -38,7 +42,7 @@ export function CrosshairLayer({
     const c = getTransformComponents(transform.matrix.get());
     return c.scaleY * press.y.close.position.get() + c.translateY;
   });
-  const opacity = useDerivedValue(() => (press.isActive.get() ? 1 : 0));
+  const opacity = useDerivedValue(() => (visible.get() ? 1 : 0));
   const vTop = useDerivedValue(() => vec(x.get(), chartBounds.top));
   const vBottom = useDerivedValue(() => vec(x.get(), chartBounds.bottom));
   const hLeft = useDerivedValue(() => vec(chartBounds.left, y.get()));
