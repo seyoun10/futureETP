@@ -19,9 +19,9 @@ futureETP/
 │  │     ├─ features/              화면 단위: 화면·전용 컴포넌트·query hook
 │  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
-│  │     ├─ components/            여러 화면 공용 UI
+│  │     ├─ components/            여러 화면 공용 UI(header, `FreshnessLine`, `QueryStateView`, D-075)
 │  │     ├─ charts/                Skia 커스텀 레이어·차트 공용 (D-032)
-│  │     ├─ api/                   fetch 래퍼, AppError, query key (D-030)
+│  │     ├─ api/                   fetch 래퍼, AppError, query key, `useAutoRefresh` (D-030, D-075)
 │  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
 │  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
@@ -126,7 +126,7 @@ type ApiResponse<T> =
 
 ### 데이터 기준 정보(freshness)
 A와 C 화면의 조회 응답 `data`에는 상단 기준 시각 줄과 자동 새로고침에 쓰는 `freshness`를 넣는다.
-스키마는 shared `freshnessSchema`, 앱 표시는 `src/components/FreshnessLine.tsx`(포맷은 `src/lib/formatDateTime.ts`)다.
+스키마는 shared `freshnessSchema`, 앱 표시는 `src/components/FreshnessLine.tsx`(포맷은 `src/lib/formatDateTime.ts`)다(D-075).
 
 ```ts
 type Freshness = {

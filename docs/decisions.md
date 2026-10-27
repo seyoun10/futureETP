@@ -1175,3 +1175,16 @@
   - 탭 그룹을 스택 안에 두면 C-d-a에서 하단 탭이 사라지고 [←]가 직전 탭으로 돌아온다(screens.md C-d-a).
   - mock 컴포넌트 대신 실제 route 트리로 테스트하면 파일 이름·그룹 배치 실수도 잡힌다.
 - 영향: `architecture.md` 앱 디렉터리 route 줄. 가로 전환([⟲], C-a~C-c)은 별도 커밋(네이티브 모듈 설치·재빌드 필요).
+
+## D-075: 앱 공용 조회 UI — freshness 스키마는 shared, 상태 분기 컴포넌트, 자동 새로고침은 화면 포커스 동안 최소 1분 간격
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-5 공용 UI 항목. architecture.md는 freshness 형식, 처음 로딩 실패만 오류 화면이라는 규칙, `nextUpdateAt` + 1분 재조회를 정했다. 시각 포맷, 예상 시각이 이미 지났을 때와 재조회가 실패했을 때의 동작은 정하지 않았다.
+- 결정:
+  - `freshnessSchema`(shared): `asOf`·`nextUpdateAt`은 오프셋 없는 UTC ISO(`z.iso.datetime()`), `tradeDate`는 `YYYY-MM-DD`, `marketState`는 `MARKET_STATES`. A·C 응답 스키마가 이것을 넣어 쓴다.
+  - 기준 시각 줄 `FreshnessLine`: 언어와 상관없이 숫자 형식 `MM/DD HH:mm`(기기 현지, `Intl.DateTimeFormat#formatToParts`)이고, 거래일은 문자열을 잘라 `MM/DD`로 쓴다(시간대 변환 없음). `지연`은 `delayed`일 때만 넣는다.
+  - `QueryStateView`: 데이터가 있으면 항상 데이터를 보여 준다. 없으면 실패 + 조회 중 아님 → `ErrorView`(`errors.<code>` + [다시 시도], `AppError`가 아니면 `INTERNAL` 문구), 그 밖(처음 로딩·다시 시도 중) → 스켈레톤(화면별 `skeleton`을 넘기지 않으면 공용 막대).
+  - `useAutoRefresh(query)`(`src/api`): `useFocusEffect`로 화면이 보이는 동안만 `max(nextUpdateAt + 1분, 마지막 조회 + 1분)`에 `refetch`한다. 마지막 조회는 성공·실패 중 늦은 시각(`dataUpdatedAt`·`errorUpdatedAt`)이고, 조회가 끝날 때마다 다시 예약한다. 탭에 돌아왔을 때 두 시각이 모두 지났으면 바로 부른다. 앱이 백그라운드면 부르지 않는다(복귀 재조회는 focusManager). `null`이면 예약하지 않는다.
+- 근거:
+  - 최소 1분 간격이 없으면 서버가 지난 `nextUpdateAt`을 주거나 조회가 계속 실패할 때 바로 다시 부르는 반복이 생긴다. 실패 뒤에도 다시 예약해야 일시적인 네트워크 오류 뒤에 자동 새로고침이 멈추지 않는다.
+- 후속: `UNAUTHORIZED` 시 B-b 이동은 접근 키 항목에서 `ErrorView`·query 오류 처리에 붙인다. `formatToParts`는 Hermes 실기기에서 첫 화면 연결(5-6 A) 때 표시를 확인한다.
