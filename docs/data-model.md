@@ -110,7 +110,7 @@ erDiagram
         string basis PK "FRONT/KR/US"
         date trade_date PK
         string contract_symbol PK,FK
-        decimal weight "수량 기준 비중, 날짜별 합 1. FRONT는 1.0"
+        decimal weight "그날 종가 뒤 수량 기준 비중, 날짜별 합 1. FRONT는 1.0"
     }
     index_bar {
         string commodity_code PK,FK
@@ -120,7 +120,7 @@ erDiagram
         decimal high
         decimal low
         decimal close
-        decimal blended_price "Σ 비중 × 정산가"
+        decimal blended_price "Σ 그날 종가 뒤 비중 × 정산가"
         bool is_valid "혼합 가격 0 이하면 false(산출 불가)"
         bool in_roll_period "롤 구간 음영·전환 마커용"
     }
@@ -169,9 +169,9 @@ erDiagram
   - 공통: 영업일 달력 `calendar`(`NYSE`/`BCOM`/`NYMEX`, `trading_day`에 NYSE만 쉰 날을 빼서 계산), 롤 영업일 순번 `rollDays`와 그날 종가 뒤 이전 월물 비중 `oldShares`(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정 `rebalance`(`null` 또는 `{months:[3,9], businessDay:1}`)
   - leg마다(`legs`): 가치 비중 `weight`(예: 1 또는 1/3)와 매월 1영업일 보유 월물 표 `hold`(12칸, 예: GSCI GC `G J J M M Q Q Z Z Z Z G+1`)
   - `roll_weight`는 이 규칙을 날짜별로 펼친 결과다. leg 수량은 롤해도 유지하고(BCOM·BCBCLI의 CIM), 재조정 달에는 재조정일 종가에 다음 월물 가격으로 새 수량을 정해 롤과 함께 옮긴다(D-065). 그 사이 수량을 유지해 비중 drift를 재현한다.
-- **대표월물 이력**: 별도 테이블 없이 `roll_weight`(basis=`FRONT`, weight=1)로 표현한다. 전환일 마커는 전일과 월물이 바뀐 날이다.
+- **대표월물 이력**: 별도 테이블 없이 `roll_weight`(basis=`FRONT`, weight=1)로 표현한다. 세 기준값 모두 행 t는 그날 종가 뒤 보유 비중이라 FRONT 행 t는 다음 거래일 대표월물이다(D-066). 전환일 마커는 전일과 월물이 바뀐 날(옛 대표월물의 마지막 날)이다.
 - **기준값이 없는 원자재**: 그 원자재·basis의 `roll_rule`이 없으면 `roll_weight`·`index_bar`도 없고, API가 `FRONT`로 대신 응답하면서 대체 여부를 함께 알린다.
-- **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 혼합 가격이 0 이하이면 비율을 갱신하지 않는다.
+- **지수**: `index_bar`에는 원래 지수만 저장하고 가격 수준 맞춤 비율은 `index_scale`에 한 행으로 둔다. 첫 유효일 지수는 그날 혼합 가격이다. 지수나 혼합 가격이 0 이하인 날은 산출 불가이고, 비율은 마지막 유효일의 `blended_price / close`다(D-066).
 - **이격도**: `disparity`는 원자재 4 × 기준값 3 × 이평선 4 = 48개 시계열, `disparity_distribution`은 × N 4종 = 192행이다. 일일 정산 배치가 통째로 다시 쓴다. 산출 불가 기간은 `disparity`에 행을 두지 않는다.
 - **오늘 잠정 봉**: 장중 배치가 `index_snapshot`에 쓴다. 알림 판정은 이 고가·저가 이격도를 쓰고, C-a의 오늘 봉은 가장 최근 스냅숏을 쓴다.
 - **커브**: 테이블을 두지 않는다. 월물은 날짜별 직전 20거래일 평균 `daily_bar.volume` 100계약 기준으로 고르고, 기준값은 서버 상수다(D-018). `daily_bar`(기준일)와 최신 `intraday_snapshot` 또는 `daily_bar`(D)로 조회 시 만든다. 캐시나 materialized view는 두지 않는다. 커브 라우트만 원천값을 읽어 `calc` 함수로 만든다(D-046).

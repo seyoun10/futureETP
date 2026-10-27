@@ -1010,3 +1010,21 @@
   - BCBCLI 방법론(2021-03판, 2020-06-23 게시) "Index Rebalancing": CIM = Target Weight × 100 / 다음 월물 정산가 × AF, AF = Σ 이전 CIM × Roll In 정산가 / 100. WAV·PWAV가 이전 월물에 Lead CIM, 다음 월물에 Next CIM을 쓰고, Table 4(2020-03)에서 12월물 일정도 CLZ0 → CLZ0로 롤한다. 그래서 재조정은 1영업일 종가에 정하고 2~3영업일 롤로 옮겨진다.
   - NYSE만 쉰 날은 CME가 열렸어도 GSCI는 계산하지 않아 롤 영업일 순번이 밀린다(`research/roll-rules.md` 영업일 달력).
 - 영향: `data-model.md` 롤 규칙 설명, `research/roll-rules.md` BCBCLI 재조정 문구. 재계산 파이프라인(5-3)이 `roll_weight` KR·US 행과 `index_bar.in_roll_period`를 만든다.
+
+## D-066: 수익률 연결 지수 calc — 종가 뒤 비중, 산출 불가 판정과 이어 붙이기, 맞춤 비율은 마지막 유효일
+- 날짜: 2026-10-27
+- 상태: 확정
+- 맥락: TODO 5-2 수익률 연결 지수. product.md 공식의 `w(t-1)`이 `roll_weight`의 어느 행인지, 지수 시작값, 혼합 가격 0 이하 판정에 쓰는 값(분자 `Σ w(t-1)·P(t)`와 종가 혼합 `Σ w(t)·P(t)`), 무효일 뒤 분자 비중, 월물 시가·고가·저가가 없는 날, 전체 재계산 때 "직전 비율"이 정해지지 않았다. 또 `buildFrontSeries`(D-064)는 "그날 보유한 대표월물"을 내고 `expandRollWeights`(D-065)는 "그날 종가 뒤 비중"을 내어 같은 `roll_weight` 테이블에 다른 뜻이 섞일 수 있었다.
+- 결정
+  - `apps/server/src/calc/indexChain.ts`. `buildIndexBars(days)`가 거래일마다 `index_bar` 행을, `indexScaleRatio(bars)`가 `index_scale.ratio`를, `chainIndex`가 장중 지수(5-7)를 낸다.
+  - `roll_weight` 행 t는 세 기준값 모두 **그날 종가 뒤 보유 비중** `w(t)`다(공식의 `w(t-1)` = 전 거래일 행). FRONT 행 t는 그날 정산으로 정한 다음 거래일 대표월물(`nextFrontSymbol(t)`, `buildFrontSeries`의 t+1 값)이다. 대표월물 전환 마커는 롤 구간처럼 비중이 바뀌는 종가의 날이다.
+  - 혼합 가격 `blended_price(t) = Σ w(t)·settle(t)`. 무효일에도 저장한다.
+  - 첫 유효일의 종가 지수 = 그날 혼합 가격, 시가·고가·저가는 같은 비중 `w(t)`로 혼합한다. 그 뒤 `close(t) = close(v) × Σ w(t-1)·settle(t) / blended_price(v)`(v = 직전 유효일). 무효일이 없으면 v = t-1이라 분자·분모 같은 비중 공식과 같다. 시가·고가·저가도 같은 식으로 근사한다.
+  - 유효 조건: 지수(분자) > 0 이고 혼합 가격 > 0. 무효일은 OHLC null이고 다음 날의 기준 v가 되지 않는다. 무효일 다음 날 분자 비중은 v가 아니라 바로 전 거래일 `w(t-1)`이다(product.md "분모로 직전 유효일의 혼합 가격"을 그대로 따름, 이미 롤로 빠진 만기 월물 가격이 필요 없다).
+  - 월물 시가·고가·저가가 없으면 그 월물은 정산가로 대신한다. 유효일인데 혼합 시가·고가·저가가 0 이하이면 그 필드만 null이다(log 축).
+  - 비중이 있는 월물의 정산가가 없거나 비중이 비어 있으면 오류를 던진다(대표월물 `null` = 월물 상장 누락 포함).
+  - 맞춤 비율 = 마지막 유효일의 `blended_price / close`. 마지막 날이 무효면 그 앞 유효일 값이라 "직전 비율 유지"와 같고, 전체 재계산 뒤에도 저장된 옛 비율에 기대지 않는다.
+- 근거
+  - 종가 뒤 비중으로 맞추면 맞춤 지수의 최신 값이 내일 보유할 월물 혼합 가격과 같아, 장중 맞춤 지수가 `Σ w(t)·현재가`와 정확히 같다.
+  - 시작값을 혼합 가격으로 두면 원래 지수도 달러 단위 근처라 비율이 1 근처에 머문다.
+- 영향: `data-model.md` `roll_weight`·`index_bar`·`index_scale` 설명. 재계산 파이프라인(5-3)이 FRONT 행을 `nextFrontSymbol(t)`로 넣는다.
