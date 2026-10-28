@@ -130,6 +130,8 @@ export function createBarBuilder() {
   const key = (instrumentId: string, tradeDate: string) => `${instrumentId}|${tradeDate}`;
   const settles = new Map<string, number>();
   const volumes = new Map<string, number>();
+  // stat_type·월물별 지금까지 받은 가장 늦은 거래일. 파일은 수신 순서로 읽는다
+  const latestRefs = new Map<string, string>();
   // ts_ref 없는 거래량. ts_ref 값이 있으면 그쪽이 우선이다
   const lateVolumes = new Map<string, number>();
   const sessions = new Map<string, Session>();
@@ -141,12 +143,22 @@ export function createBarBuilder() {
     // 주말 ts_ref는 월물 1개짜리 잘못 붙은 재전송이다(2011-08-07 GCZ1, 2014-02-23 CLJ4)
     const dow = new Date(`${tradeDate}T00:00:00Z`).getUTCDay();
     if (tradeDate < FIRST_TRADE_DATE || dow === 0 || dow === 6) return;
+    const target =
+      row.stat_type === SETTLEMENT_PRICE
+        ? settles
+        : row.stat_type === CLEARED_VOLUME
+          ? volumes
+          : null;
+    if (!target) return;
+    // 더 늦은 거래일을 받은 뒤 이전 거래일로 오는 메시지는 버린다. 대부분 같은 값 재전송이고,
+    // 다른 값은 새 거래일 값이 잘못 붙은 것이다(2020-04-20 CLK0 확정 정산가가 04-17로 옴)
+    const latestKey = `${row.stat_type}|${row.instrument_id}`;
+    const latest = latestRefs.get(latestKey);
+    if (latest !== undefined && tradeDate < latest) return;
+    latestRefs.set(latestKey, tradeDate);
     // 같은 월물·거래일은 마지막 메시지가 확정값이다(잠정 → 확정, 재전송)
-    if (row.stat_type === SETTLEMENT_PRICE) {
-      settles.set(key(row.instrument_id, tradeDate), Number(row.price));
-    } else if (row.stat_type === CLEARED_VOLUME) {
-      volumes.set(key(row.instrument_id, tradeDate), Number(row.quantity));
-    }
+    const value = Number(row.stat_type === SETTLEMENT_PRICE ? row.price : row.quantity);
+    target.set(key(row.instrument_id, tradeDate), value);
   }
 
   // 정산가가 있는 날짜 중 모든 월물 정산가가 직전 거래일과 같은 날은 휴장일 재전송이다
