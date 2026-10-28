@@ -92,12 +92,7 @@ describe('businessDays', () => {
   });
 
   it('NYSE만 쉰 날 목록', () => {
-    expect([...NYSE_ONLY_CLOSED].sort()).toEqual([
-      '2012-10-29',
-      '2012-10-30',
-      '2018-12-05',
-      '2025-01-09',
-    ]);
+    expect([...NYSE_ONLY_CLOSED].sort()).toEqual(['2012-10-29', '2012-10-30', '2018-12-05']);
   });
 });
 
@@ -194,41 +189,22 @@ describe('expandRollWeights: leg 하나(GSCI·BCOM)', () => {
     expectWeights(d.get('2026-12-31'), [['CLG27', 1]]);
   });
 
-  it('NYSE만 쉰 날: GSCI는 영업일로 세지 않아 순번이 밀리고 직전 비중을 쓴다', () => {
-    // 2025-01: 1/1·1/20 휴장, 1/9 NYSE만 휴장. NYSE 영업일 5일 = 1/8, 9일 = 1/15
+  it('2025-01-09(NYSE만 휴장)는 GSCI·BCOM 모두 영업일로 센다(D-089)', () => {
+    // 2025-01: 1/1·1/20 휴장. 5영업일 = 1/8, 9영업일 = 1/14
     const dates = weekdays('2024-12-30', '2025-01-31', ['2025-01-01', '2025-01-20']);
-    const gsci = byDate(expandRollWeights('GC', GSCI_GC, noPrices(dates)));
-    expectWeights(gsci.get('2025-01-08'), [
-      ['GCG25', 0.8],
-      ['GCJ25', 0.2],
-    ]);
-    expectWeights(gsci.get('2025-01-09'), [
-      ['GCG25', 0.8],
-      ['GCJ25', 0.2],
-    ]);
-    expectWeights(gsci.get('2025-01-10'), [
-      ['GCG25', 0.6],
-      ['GCJ25', 0.4],
-    ]);
-    expectWeights(gsci.get('2025-01-14'), [
-      ['GCG25', 0.2],
-      ['GCJ25', 0.8],
-    ]);
-    expectWeights(gsci.get('2025-01-15'), [['GCJ25', 1]]);
-    expect(gsci.get('2025-01-15')!.inRollPeriod).toBe(true);
-
-    // BCOM은 1/9도 영업일이라 9영업일 = 1/14
-    const bcom = byDate(expandRollWeights('GC', BCOM_GC, noPrices(dates)));
-    expectWeights(bcom.get('2025-01-09'), [
-      ['GCG25', 0.6],
-      ['GCJ25', 0.4],
-    ]);
-    expectWeights(bcom.get('2025-01-10'), [
-      ['GCG25', 0.4],
-      ['GCJ25', 0.6],
-    ]);
-    expectWeights(bcom.get('2025-01-14'), [['GCJ25', 1]]);
-    expect(bcom.get('2025-01-15')!.inRollPeriod).toBe(false);
+    for (const params of [GSCI_GC, BCOM_GC]) {
+      const d = byDate(expandRollWeights('GC', params, noPrices(dates)));
+      expectWeights(d.get('2025-01-08'), [
+        ['GCG25', 0.8],
+        ['GCJ25', 0.2],
+      ]);
+      expectWeights(d.get('2025-01-09'), [
+        ['GCG25', 0.6],
+        ['GCJ25', 0.4],
+      ]);
+      expectWeights(d.get('2025-01-14'), [['GCJ25', 1]]);
+      expect(d.get('2025-01-15')!.inRollPeriod).toBe(false);
+    }
   });
 
   it('NYSE만 쉰 날(2018-12-05)이 롤 구간 앞에 있으면 GSCI 5영업일이 하루 밀린다', () => {

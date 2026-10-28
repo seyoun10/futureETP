@@ -118,13 +118,9 @@ export const ROLL_RULE_SEEDS: readonly RollRuleSeed[] = [
   { commodityCode: 'NG', basis: 'US', ruleId: 'BCOM', params: bcom('H H K K N N U U X X F+1 F+1') },
 ];
 
-// CME는 열렸어도 NYSE가 쉰 날. GSCI 영업일 순번에서 뺀다
-export const NYSE_ONLY_CLOSED: readonly string[] = [
-  '2012-10-29',
-  '2012-10-30',
-  '2018-12-05',
-  '2025-01-09',
-];
+// CME는 열렸어도 NYSE가 쉬고 S&P가 GSCI를 계산하지 않은 날. GSCI 영업일 순번에서 뺀다.
+// 2025-01-09(NYSE만 휴장)는 S&P가 계산·롤해서 넣지 않는다(D-089 재검증)
+export const NYSE_ONLY_CLOSED: readonly string[] = ['2012-10-29', '2012-10-30', '2018-12-05'];
 
 // 거래일(trading_day) 중 그 달력의 영업일. BCOM·NYMEX는 CME 거래일과 같게 본다
 export function businessDays(

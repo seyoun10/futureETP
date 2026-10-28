@@ -994,14 +994,14 @@
 
 ## D-065: 롤 비중 calc — `roll_rule.params` 형태, 영업일 달력, BCBCLI 수량(CIM) 재현
 - 날짜: 2026-10-27
-- 상태: 확정 (5-4 지수 재현 검증에서 BCBCLI 수량·BCOM 영업일 확인, NYSE 예외는 종가로 판별 불가, D-089)
+- 상태: 확정 (5-4 지수 재현 검증에서 BCBCLI 수량·BCOM 영업일 확인, NYSE 예외는 KRX GSCI 지수 값으로 재검증해 2025-01-09를 뺌, D-089)
 - 맥락: TODO 5-2 롤 비중. `roll_rule.params` 형태가 정해지지 않았고(D-013), BCBCLI 재조정을 "재조정일에 가치 비중을 수량으로" 바꾼다고만 적어 두어 새 수량이 언제 어느 월물에 붙는지, 영업일 달력별 예외를 어떻게 넣는지, 적재 첫 달·첫날을 어떻게 다루는지가 비어 있었다.
 - 결정
   - `apps/server/src/calc/rollWeight.ts`. `params`(`RollRuleParams`, zod `rollRuleParamsSchema`)는 `{ calendar, rollDays, oldShares, rebalance, legs }`다.
     - `calendar`: `NYSE`/`BCOM`/`NYMEX`. `rollDays`·`oldShares`: 롤 영업일 순번과 그날 종가 뒤 이전 월물 비중(GSCI·BCOM `[5..9]`·`[0.8,0.6,0.4,0.2,0]`, BCBCLI `[2,3]`·`[0.5,0]`). 첫 롤일 앞은 1, 마지막 롤일 뒤는 마지막 값이다.
     - `rebalance`: `null` 또는 `{ months, businessDay }`(BCBCLI `{ months: [3, 9], businessDay: 1 }`). `legs`: `{ weight, hold }[]`, `hold`는 매월 1영업일 보유 월물 12칸(`'G'`, `'G+1'` = 다음 해 2월물).
   - 8개 규칙(원자재 4 × KR·US)은 `ROLL_RULE_SEEDS` 상수로 둔다(`research/roll-rules.md` 표 그대로). DB `roll_rule` 행은 5-3 재계산 파이프라인 때 이 상수로 넣는다.
-  - 영업일: `NYMEX`·`BCOM`은 `trading_day` 그대로, `NYSE`는 `trading_day`에서 NYSE만 쉰 날(`NYSE_ONLY_CLOSED`: 2012-10-29·30 허리케인 샌디, 2018-12-05·2025-01-09 국장일)을 뺀다. BCOM 영업일은 지수 구성 원자재 비중 50% 넘게 거래되는 날이라 CME가 열린 날과 같게 본다. 영업일이 아닌 거래일은 직전 영업일 비중을 그대로 쓴다.
+  - 영업일: `NYMEX`·`BCOM`은 `trading_day` 그대로, `NYSE`는 `trading_day`에서 NYSE만 쉬고 S&P가 GSCI를 계산하지 않은 날(`NYSE_ONLY_CLOSED`: 2012-10-29·30 허리케인 샌디, 2018-12-05 국장일)을 뺀다. 2025-01-09 국장일도 NYSE만 쉬었지만 S&P가 GSCI를 계산하고 롤 영업일로 세서 넣지 않는다(D-089 재검증). BCOM 영업일은 지수 구성 원자재 비중 50% 넘게 거래되는 날이라 CME가 열린 날과 같게 본다. 영업일이 아닌 거래일은 직전 영업일 비중을 그대로 쓴다.
   - 월 m의 롤: leg마다 이전 월물 = `hold[m]`, 다음 월물 = `hold[m+1]`(12월이면 다음 해 1월 칸). 둘이 다르거나 m이 재조정 달이면 그 leg가 롤한다. 롤하는 leg가 있는 달의 `rollDays` 영업일이 롤 구간(`inRollPeriod`, `index_bar.in_roll_period`)이다.
   - 수량: leg마다 이전 월물 수량 `qOld`와 다음 월물 수량 `qNew`를 두고, 월물 비중 = Σ leg (share × q)를 날짜별 합 1로 정규화한다. 재조정 달이 아니면 `qNew = qOld`(롤해도 수량 유지, BCOM·BCBCLI의 CIM). 재조정 달은 `businessDay` 종가에 `V = Σ qOld_i × P(다음 월물_i)`, `qNew_i = weight_i × V / P(다음 월물_i)`로 정하고(방법론의 Adjustment Factor), 롤이 끝나면 `qOld := qNew`다. 그래서 다음 월물이 이전 월물과 같은 leg(3월 12월물, 9월 6월물)도 같은 월물 안에서 수량만 옮긴다.
   - leg가 하나인 규칙(GSCI·BCOM)은 수량이 정규화로 지워지므로 가격을 쓰지 않는다. 여러 leg 규칙에 필요한 가격이 없으면 오류를 던진다.
@@ -1404,7 +1404,7 @@
 
 ## D-089: 지수 재현 검증 — 미국형은 ProShares NAV와 일치, 한국형은 종가로는 판별 불가
 - 날짜: 2026-10-28
-- 상태: 미국형 확정, 한국형 CL·GC·SI는 S&P GSCI 지수 이력으로 확정(2026-10-28 재검증, 2025-01-09 처리만 수정 필요), 한국형 NG는 비교 대상 없음
+- 상태: 미국형 확정, 한국형 CL·GC·SI는 S&P GSCI 지수 이력으로 확정(2026-10-28 재검증, `NYSE_ONLY_CLOSED`에서 2025-01-09 뺌), 한국형 NG는 비교 대상 없음
 - 맥락: TODO 5-4. D-048의 지수 재현 검증. D-065의 `NYSE_ONLY_CLOSED`·BCBCLI 첫날 수량도 이 검증에서 확인하기로 했다.
 - 방법: dev DB `index_bar`(Databento 적재 뒤 전체 재계산, D-088) 맞춤 전 종가의 일일 수익률을 ETP 일일 수익률(레버리지는 배수로 나눔)과 같은 날짜끼리 비교했다. 지표는 상관, 기울기, 잔차(ETP − 지수) 평균·표준편차를 롤 구간(그 기준값의 `in_roll_period`, 전일·당일 중 하나)과 그 밖으로 나눠 본다. 비교 기준으로 다른 기준값(FRONT 등)도 같이 계산한다. 1회성 분석이라 스크립트는 저장소에 넣지 않았다(Node TS, 의존성 없음).
   - 미국형: ProShares 공식 NAV 이력 CSV(`accounts.profunds.com/etfdata/ByFund/<티커>-historical_nav.csv`, 키 없음)의 `NAV Change (%)`. NAV가 정산가로 계산돼 시점이 맞는다.
@@ -1434,7 +1434,7 @@
     - 2018-12-05(부시 국장일): GSCI 값이 전날과 같고(계산 안 함) 12월 롤이 하루 밀렸다. 지금 일정(제외)이 잔차 0.5bp 이내, 포함하면 −1.8bp까지 어긋난다.
     - 2025-01-09(카터 국장일): GSCI가 계산했고 롤 영업일로도 셌다. 포함하면 01-13~01-16 CL 잔차가 0.5bp 이내, 지금 일정(제외)은 −17·+10·−5bp다. 금 KR도 미국형(포함) 쪽이 GSCI Gold ER에 가깝다. 01-09·01-10의 ±60bp는 이틀 합이 1.5bp라 일정과 무관하고, 그날 S&P가 CL에 정산가와 다른 가격을 쓴 것으로 보인다(CME 조기 마감일).
     - 2012-10-29·30(허리케인 샌디)은 월말이라 롤 순번에 영향이 없고 KRX에 GSCI WTI ETF 이력이 없어 확인하지 않았다.
-- 영향: D-065 상태(BCBCLI 첫날 수량·BCOM 영업일 확인), TODO 5-4. 재검증 결과 `NYSE_ONLY_CLOSED`에서 2025-01-09를 빼야 한다(사용자 확인 뒤 수정).
+- 영향: D-065 상태(BCBCLI 첫날 수량·BCOM 영업일 확인), TODO 5-4. 재검증 결과로 `NYSE_ONLY_CLOSED`에서 2025-01-09를 뺐다(2026-10-28). 전체 재계산 뒤 2025-01-13~15 CL 한국형 잔차는 0.3bp 이내다.
 
 ## D-090: `GET /v1/commodities/:code/curve` — 기준일은 서버가 거래일로 맞추고 이동 날짜를 준다
 - 날짜: 2026-10-28
