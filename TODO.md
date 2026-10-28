@@ -188,7 +188,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] A·C freshness 장중 값·오늘 잠정 봉 반영 확인
 
 ### 5-8. 알림
-- [ ] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037)
+- [x] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037) (2026-10-28, 키는 저장소 밖, dry run으로 인증 확인)
 - [ ] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
   - [x] 서버 `PUT /v1/devices`(shared `devices.ts`, `pushToken` 기준 upsert) (2026-10-28)
   - [ ] 앱 `push/`: 토큰 받기(Firebase 설정 뒤)·실행 때 등록
@@ -198,13 +198,13 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 서버 `push/` 발송 인터페이스(`PushSender`)·전체 기기 발송(`broadcast`, 한 기기라도 성공하면 전달)·가짜 발송기 (2026-10-28)
   - [x] FCM HTTP v1 발송기: `push/fcmSender.ts`(`firebase-admin`, `alerts`·`ops` 채널 지정, 본문 없으면 제목만, `UNREGISTERED`면 `INVALID_TOKEN`, iOS는 APNs 전까지 `FAILED`). 실제 발송 확인은 서비스 계정 키 뒤 (2026-10-28)
   - [x] 운영 알림: 스케줄러가 재시도까지 실패하면 `jobFailedPush`를 `ops` 채널로 발송, 같은 작업·거래일은 다시 성공할 때까지 1회(`jobs/opsAlert.ts`, `ops_notified_at`) (2026-10-28)
-  - [ ] `main.ts`에 운영 알림 연결(FCM 발송기 뒤)
+  - [x] `main.ts`에 운영 알림 연결(`push/configuredSender.ts`, 키 없으면 모두 `FAILED`) (2026-10-28)
   - [ ] 앱 Android 채널 만들기(`push/`와 함께)
 - [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
   - [x] 판정·기록·즉시 발송: `jobs/rareAlert.ts`(알림 원자재만, 판정 중지·기준값 대체, 보낼 행은 `RETRY`로 먼저 넣고 발송 결과로 `SENT`/`RETRY`, 거부 시간 `HELD`) + `INTRADAY` 연결 + `db/rareAlertStore.ts` (2026-10-28)
   - [x] `RETRY` 재발송(`planRetries`): 공통 `createAlertRetry`(지난 슬롯의 `RETRY`만, 덮였으면 `SUPPRESSED`, 거부 시간이면 대기, 다시 실패면 `FAILED`) + `INTRADAY`·`DEFERRED_PUSH` 앞단 연결 (2026-10-28)
   - [x] `DEFERRED_PUSH` 작업: `jobs/deferredPush.ts`(재발송 → `createDeferredAlert`), `planDeferred`로 원자재·방향별 가장 드문 `HELD` 1건을 지연 발송 문구로 보내고 나머지 `SUPPRESSED`, 실패면 `RETRY` (2026-10-28)
-  - [ ] `handlers.ts`에 판정·재발송 연결과 `DEFERRED_PUSH` 등록(FCM 발송기 뒤)
+  - [x] `handlers.ts`에 판정·재발송 연결과 `DEFERRED_PUSH` 등록 (2026-10-28)
 - [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
 
 ### 5-9. ETP

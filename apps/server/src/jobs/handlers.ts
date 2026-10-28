@@ -1,12 +1,17 @@
 import { config } from '../config.ts';
 import { db } from '../db/client.ts';
+import { createPushDeviceStore } from '../db/devicesStore.ts';
 import { createIntradayStore } from '../db/intraday.ts';
+import { createRareAlertStore } from '../db/rareAlertStore.ts';
 import { createSettleStore } from '../db/settle.ts';
+import { pushSender } from '../push/configuredSender.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
 import { createMassiveSettlementSource } from '../sources/massiveSettlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
+import { createDeferredPushHandler } from './deferredPush.ts';
 import { createIntradayHandler } from './intraday.ts';
+import { createAlertRetry, createDeferredAlert, createRareAlert } from './rareAlert.ts';
 import { recomputeCommodity } from './recompute.ts';
 import type { JobHandlers } from './runner.ts';
 import { createSettleHandlers } from './settle.ts';
@@ -20,6 +25,13 @@ function settlementSource(): SettlementSource {
   return createMassiveSettlementSource({ apiKey: config.MASSIVE_API_KEY });
 }
 
+const alertDeps = {
+  store: createRareAlertStore(db),
+  devices: createPushDeviceStore(db),
+  sender: pushSender,
+};
+const retry = createAlertRetry(alertDeps);
+
 // 구현된 작업만 등록한다. 스케줄러는 여기 있는 작업만 돌리고, CLI는 없는 작업이면 종료한다.
 export const JOB_HANDLERS: JobHandlers = {
   ...createSettleHandlers({
@@ -32,5 +44,8 @@ export const JOB_HANDLERS: JobHandlers = {
   INTRADAY: createIntradayHandler({
     store: createIntradayStore(db),
     source: createYahooIntradaySource(),
+    alert: createRareAlert(alertDeps),
+    retry,
   }),
+  DEFERRED_PUSH: createDeferredPushHandler({ retry, deferred: createDeferredAlert(alertDeps) }),
 };

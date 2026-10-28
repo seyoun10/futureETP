@@ -5,17 +5,20 @@ import { db, pingDb } from './db/client.ts';
 import { createCommoditiesStore } from './db/commoditiesStore.ts';
 import { createContractsStore } from './db/contractsStore.ts';
 import { createCurveStore } from './db/curveStore.ts';
-import { createDevicesStore } from './db/devicesStore.ts';
+import { createDevicesStore, createPushDeviceStore } from './db/devicesStore.ts';
 import { createDisparityStore } from './db/disparityStore.ts';
 import { createSettingsStore } from './db/settingsStore.ts';
-import { createBatchRunStore } from './jobs/batchRunStore.ts';
+import { createBatchRunStore, createOpsAlertStore } from './jobs/batchRunStore.ts';
 import { JOB_HANDLERS } from './jobs/handlers.ts';
+import { createOpsAlert } from './jobs/opsAlert.ts';
 import { startScheduler } from './jobs/scheduler.ts';
+import { pushSender } from './push/configuredSender.ts';
 
+const settings = createSettingsStore(db);
 const app = createApp({
   token: config.API_TOKEN,
   checkDb: pingDb,
-  settings: createSettingsStore(db),
+  settings,
   commodities: createCommoditiesStore(db),
   disparity: createDisparityStore(db),
   curve: createCurveStore(db),
@@ -30,5 +33,14 @@ serve({ fetch: app.fetch, port: config.PORT }, (info) => {
 });
 
 if (config.SCHEDULER_ENABLED) {
-  await startScheduler({ handlers: JOB_HANDLERS, store: createBatchRunStore(db) });
+  await startScheduler({
+    handlers: JOB_HANDLERS,
+    store: createBatchRunStore(db),
+    opsAlert: createOpsAlert({
+      store: createOpsAlertStore(db),
+      devices: createPushDeviceStore(db),
+      sender: pushSender,
+      locale: async () => (await settings.get()).locale,
+    }),
+  });
 }
