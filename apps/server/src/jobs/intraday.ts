@@ -1,6 +1,6 @@
 // 장중 배치 INTRADAY(D-012, D-022, D-094). 장 상태가 OPEN일 때만 돈다(정산 대기·휴장·정지 구간은 건너뜀).
 // 원자재마다 커브 월물 장중 값(intraday_snapshot) → 기준값별 잠정 지수·이격도(index_snapshot)를 저장한다.
-// 알림 판정은 5-8에서 붙인다.
+// 알림 판정 대상 원자재면 저장 뒤 rare 레벨 알림을 판정한다(jobs/rareAlert.ts).
 import { BASES, type Basis, type CommodityCode } from '@futureetp/shared';
 import {
   indexAnchor,
@@ -13,6 +13,7 @@ import { marketStatus, type TradingDaySession } from '../calc/marketState.ts';
 import type { ListedContract } from '../calc/monthList.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { IntradayQuote, IntradaySource } from '../sources/intraday.ts';
+import type { RareAlert } from './rareAlert.ts';
 import { errorMessage, forEachCommodity, type JobHandler } from './runner.ts';
 
 export type IntradaySnapshotRow = IntradayQuote & { capturedAt: Date; tradeDate: string };
@@ -54,6 +55,8 @@ export interface IntradayStore {
 export type IntradayDeps = {
   store: IntradayStore;
   source: IntradaySource;
+  // 없으면 스냅숏만 저장한다(발송기 연결 전)
+  alert?: RareAlert;
   log?: (message: string) => void;
 };
 
@@ -67,6 +70,7 @@ const SLOT_MS = 15 * 60_000;
 export function createIntradayHandler({
   store,
   source,
+  alert,
   log = console.log,
 }: IntradayDeps): JobHandler {
   return async (ctx) => {
@@ -144,6 +148,20 @@ export function createIntradayHandler({
         indexes,
       );
       log(`[intraday ${code} ${tradeDate}] ${quotes.length} quotes, ${indexes.length} indexes`);
+      if (alert) {
+        try {
+          await alert({
+            commodityCode: code,
+            tradeDate,
+            detectedAt: capturedAt,
+            now: ctx.now,
+            ruleBases: [...weights.keys()],
+            indexes,
+          });
+        } catch (error) {
+          failures.push(`alert ${errorMessage(error)}`);
+        }
+      }
       if (failures.length > 0) throw new Error(failures.join('; '));
     });
   };

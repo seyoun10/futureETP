@@ -100,7 +100,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 이평선·이격도·분포: 초기 기간 제외, 선형 보간 백분위, 실제 사용 기간, rare-level 선, 가까운 꼬리 백분위 표시값 (2026-10-27, D-067)
 - [x] 커브: 월물 선택(20거래일 평균 100계약, 최대 24, M1·M2 포함, M1 앞 월물, D-018·D-026), 변화율, 스프레드, 연환산 롤 수익률 (2026-10-27, D-068)
 - [x] 알림 판정: 고가·저가 이격도, 가장 드문 레벨 1건, 중복 방지 키, 거부 시간(자정 넘김·경계)·보류·지연 발송 선택, 실패 재시도 규칙 (2026-10-27, D-069)
-  - [ ] 5-8에서 `INTRADAY`·`DEFERRED_PUSH` 모두 `RETRY` 재시도(`planRetries`), 기준값 없는 원자재는 대표월물 키로 판정
+  - [ ] 5-8에서 `INTRADAY`·`DEFERRED_PUSH` 모두 `RETRY` 재시도(`planRetries`) (기준값 없는 원자재의 대표월물 판정은 2026-10-28 완료)
 
 ### 5-3. 일일 정산 흐름 (가짜 소스로)
 - [x] 재계산 파이프라인: `daily_bar` → 대표월물·`roll_weight` → `index_bar`·`index_scale` → `disparity`·`disparity_distribution` (원자재·기준값 단위 전체 재계산 함수, D-024 규칙 변경 때도 사용) (2026-10-27, D-070)
@@ -201,6 +201,10 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [ ] `main.ts`에 운영 알림 연결(FCM 발송기 뒤)
   - [ ] 앱 Android 채널 만들기(`push/`와 함께)
 - [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
+  - [x] 판정·기록·즉시 발송: `jobs/rareAlert.ts`(알림 원자재만, 판정 중지·기준값 대체, 보낼 행은 `RETRY`로 먼저 넣고 발송 결과로 `SENT`/`RETRY`, 거부 시간 `HELD`) + `INTRADAY` 연결 + `db/rareAlertStore.ts` (2026-10-28)
+  - [ ] `RETRY` 재발송(`planRetries`): `INTRADAY`·`DEFERRED_PUSH` 공통
+  - [ ] `DEFERRED_PUSH` 작업(`planDeferred`, 지연 발송 문구)
+  - [ ] `handlers.ts`에 판정 연결(FCM 발송기 뒤)
 - [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
 
 ### 5-9. ETP

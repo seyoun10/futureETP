@@ -181,4 +181,24 @@ describe('INTRADAY', () => {
     expect(saved.indexes).toHaveLength(0);
     expect(saved.quotes).toHaveLength(3);
   });
+
+  it('저장 뒤 원자재마다 알림 판정을 부르고, 판정이 실패하면 저장은 두고 배치를 실패로 남긴다', async () => {
+    const { store, saved } = memoryStore();
+    const alert = vi.fn((input: { commodityCode: string }) =>
+      input.commodityCode === 'CL' ? Promise.reject(new Error('push down')) : Promise.resolve(),
+    );
+    const handler = createIntradayHandler({ store, source: fakeSource(), alert, log: () => {} });
+    await expect(run(handler)).rejects.toThrow('CL: alert push down');
+
+    expect(alert).toHaveBeenCalledTimes(4);
+    expect(alert).toHaveBeenCalledWith({
+      commodityCode: 'CL',
+      tradeDate: '2026-10-28',
+      detectedAt: SLOT,
+      now: NOW,
+      ruleBases: ['FRONT', 'KR'],
+      indexes: saved.indexes,
+    });
+    expect(saved.indexes).toHaveLength(2);
+  });
 });
