@@ -10,6 +10,7 @@ import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
 import { TimezoneSync } from '@/features/settings/TimezoneSync';
 import { setupI18n } from '@/i18n';
 import { lockPortrait } from '@/lib/orientation';
+import { PushRegistration } from '@/push/PushRegistration';
 import { colors } from '@/theme/tokens';
 
 setupFocusManager();
@@ -34,6 +35,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.root}>
         <StatusBar style="light" />
         {hasKey && <TimezoneSync />}
+        {hasKey && <PushRegistration />}
         {hasKey ? (
           <Stack
             screenOptions={{

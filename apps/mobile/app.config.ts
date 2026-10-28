@@ -72,6 +72,8 @@ export default ({ config }: ConfigContext): ExpoConfig =>
         monochromeImage: './assets/images/android-icon-monochrome.png',
       },
       predictiveBackGestureEnabled: false,
+      // Firebase 설정(D-037). dev·prod 두 package가 한 파일에 들어 있다. API 키가 있어 커밋하지 않는다(.gitignore).
+      googleServicesFile: './google-services.json',
     },
     plugins: [
       'expo-router',
@@ -88,6 +90,8 @@ export default ({ config }: ConfigContext): ExpoConfig =>
           recordAudioAndroid: false,
         },
       ],
+      // 서버가 채널을 지정해 보내므로(shared ANDROID_CHANNELS) 기본 채널은 두지 않는다. 채널은 앱이 실행 때 만든다.
+      'expo-notifications',
       ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
       [
         'expo-splash-screen',

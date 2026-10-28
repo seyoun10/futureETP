@@ -184,6 +184,13 @@ export const en: Translation = {
     notKeyQr: 'This QR is not an access key.',
     cameraUnavailable: 'The camera is unavailable. Paste the key instead.',
   },
+  // Android 알림 채널 이름(OS 알림 설정에 보임, D-045)
+  push: {
+    channels: {
+      alerts: 'Market alerts',
+      ops: 'Server alerts',
+    },
+  },
   alertSettings: {
     title: 'Alert settings',
   },

@@ -67,3 +67,14 @@ jest.mock('expo-localization', () => {
 jest.mock('@/charts/CandleChart', () => ({ CandleChart: jest.fn(() => null) }));
 jest.mock('@/charts/CurveChart', () => ({ CurveChart: jest.fn(() => null) }));
 jest.mock('@/charts/LinesChart', () => ({ LinesChart: jest.fn(() => null) }));
+
+// expo-notifications도 네이티브 모듈이다. 권한은 허용, 토큰은 없음(등록 안 함)으로 둔다.
+// 등록을 보는 테스트는 jest.mocked(getDevicePushTokenAsync)로 토큰을 돌려준다.
+jest.mock('expo-notifications', () => ({
+  AndroidImportance: { DEFAULT: 3, HIGH: 4 },
+  getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true, canAskAgain: true })),
+  requestPermissionsAsync: jest.fn(() => Promise.resolve({ granted: true, canAskAgain: true })),
+  getDevicePushTokenAsync: jest.fn(() => Promise.resolve({ type: 'ios', data: '' })),
+  setNotificationChannelAsync: jest.fn(() => Promise.resolve(null)),
+  addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
+}));

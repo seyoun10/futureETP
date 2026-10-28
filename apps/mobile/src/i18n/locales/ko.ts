@@ -190,6 +190,13 @@ export const ko = {
     notKeyQr: '접근 키 QR이 아닙니다.',
     cameraUnavailable: '카메라를 쓸 수 없습니다. 키를 붙여넣어 주세요.',
   },
+  // Android 알림 채널 이름(OS 알림 설정에 보임, D-045)
+  push: {
+    channels: {
+      alerts: '시세 알림',
+      ops: '운영 알림',
+    },
+  },
   alertSettings: {
     title: '알림 설정',
   },

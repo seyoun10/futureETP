@@ -25,7 +25,7 @@ futureETP/
 │  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
 │  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
-│  │     ├─ push/                  (예정) 토큰 등록·알림 탭 처리 (D-037)
+│  │     ├─ push/                  토큰 등록·Android 채널 (알림 탭 처리는 예정, D-037)
 │  │     └─ lib/                   포맷(Intl, 소수 자릿수) 등 순수 유틸
 │  └─ server/
 │     ├─ Dockerfile                (예정) 빌드 문맥 = 저장소 루트 (shared·lock 파일 포함)
@@ -245,6 +245,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ### 운영자 실패 알림(D-045)
 - 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림(`alerts`)과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 채널 id는 shared `ANDROID_CHANNELS`다.
+- 앱 `push/`(D-037, D-048): 접근 키가 있으면 루트 레이아웃의 `PushRegistration`이 마운트 때 한 번 Android 채널(`alerts` 높음·`ops` 기본, 이름은 표시 언어를 따라 바뀜)을 만들고, 알림 권한을 물을 수 있으면 요청한 뒤 `getDevicePushTokenAsync` 토큰으로 `PUT /v1/devices`를 부른다. 권한이 거부돼도 토큰은 등록한다. 토큰이 바뀌면(`addPushTokenListener`) 다시 등록한다. 실패는 다음 실행 때 다시 시도한다. Firebase 설정은 `apps/mobile/google-services.json`(dev·prod package 모두 포함, 커밋 안 함)을 `android.googleServicesFile`로 넣는다. 앱이 열려 있을 때도 알림 배너를 보인다(`expo-notifications` 기본값).
 - 서버 `push/`: `PushSender`(플랫폼별 구현, 결과는 `SENT`·`INVALID_TOKEN`·`FAILED`)와 `broadcast`(등록된 모든 기기로 보내고 `INVALID_TOKEN`이면 기기 삭제, 한 기기라도 `SENT`면 전달로 본다, D-023). 테스트는 `fakeSender.ts`를 주입한다. Android 구현은 `fcmSender.ts`(`firebase-admin` FCM HTTP v1, 서비스 계정 키 `FCM_SERVICE_ACCOUNT_PATH`, Android 채널 id를 `android.notification.channelId`로 지정, `messaging/registration-token-not-registered`만 `INVALID_TOKEN`)이다. 서버는 `configuredSender.ts`의 발송기 하나를 운영 알림(`main.ts`)·rare 레벨 판정·재발송·지연 발송(`jobs/handlers.ts`)이 함께 쓴다. 키가 없으면 모든 발송이 `FAILED`다.
 - 운영 알림(`jobs/opsAlert.ts`, D-045·D-048): 스케줄러가 재시도까지 실패한 작업의 마지막 `batch_run`으로 부른다. 같은 작업·거래일(거래일이 없으면 거래일 없음끼리)로 이미 알렸고 그 뒤 성공이 없으면 건너뛴다. `jobFailedPush`를 저장된 언어로 `ops` 채널에 `broadcast`하고, 전달되면 그 실행의 `ops_notified_at`을 채운다. CLI 1회 실행은 알리지 않는다.
 - rare 레벨 알림 판정(`jobs/rareAlert.ts`, D-069): `INTRADAY`가 원자재마다 잠정 지수를 저장한 뒤 부른다. 설정의 알림 원자재가 아니거나, 정정 확인이 멈춤 상태(D-071)거나, 그 기준값의 잠정 지수·분포가 없으면 건너뛴다. 설정 기준값의 `roll_rule`이 없는 원자재는 대표월물로 판정한다. 잠정 지수의 그 이평선 고가·저가 이격도로 `planDetections`를 돌려 보낼 행은 `RETRY`로 먼저 넣어 중복 방지 키를 차지한 뒤 `alerts` 채널로 `broadcast`하고, 결과로 `SENT`(+`sent_at`) 또는 `RETRY`로 바꾼다. 거부 시간이면 `HELD`, 밀린 레벨은 `SUPPRESSED`로 넣는다. 키가 이미 있으면 넣지도 보내지도 않는다(`ON CONFLICT DO NOTHING`). 판정 시각은 배치 슬롯, 거부 시간은 실제 실행 시각으로 본다. 판정 실패는 그 원자재의 실패로 모아 배치를 실패로 남긴다(스냅숏은 저장됨).
