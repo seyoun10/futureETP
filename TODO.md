@@ -94,7 +94,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 대표월물 전환: 전일 거래량, 되돌아가지 않음, 최종 거래일 안전장치 (2026-10-27, D-064)
 - [x] 롤 비중: `roll_rule.params` 펼치기 — GSCI·BCOM·BCBCLI(1/3 leg·재조정·수량 drift) (2026-10-27, D-065)
   - [x] `ROLL_RULE_SEEDS`로 `roll_rule` 8행 넣기(마이그레이션 0003, D-070)
-  - [ ] 5-4 지수 재현 검증 때 `NYSE_ONLY_CLOSED`·BCBCLI 첫날 수량 확인
+  - [x] 5-4 지수 재현 검증 때 `NYSE_ONLY_CLOSED`·BCBCLI 첫날 수량 확인 (2026-10-28, D-089: BCBCLI 수량 일치, NYSE 예외는 종가로 판별 불가해 방법론대로 유지)
 - [x] 수익률 연결 지수: OHLC 근사, 혼합 가격 0 이하 산출 불가·이어 붙이기, 가격 수준 맞춤 비율 (2026-10-27, D-066)
   - [x] FRONT `roll_weight` 행 t = `nextFrontSymbol(t)`(다음 거래일 대표월물)로 넣기(`buildFrontAfterClose`, D-070)
 - [x] 이평선·이격도·분포: 초기 기간 제외, 선형 보간 백분위, 실제 사용 기간, rare-level 선, 가까운 꼬리 백분위 표시값 (2026-10-27, D-067)
@@ -112,8 +112,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] CL·NG 연도 2자리 심볼 다운로드·다시 적재(NG 2025-06~ 채움) (2026-10-28, D-088)
   - [x] `pandas_market_calendars` 대조: 휴장일 재전송 9일 제외, Databento 공백 5거래일은 뺀 채 둠 (2026-10-28, D-088)
 - [x] 적재 데이터로 전체 재계산 실행, 결과 점검: ts_ref가 과거로 되돌아간 정산 메시지 버림(CLK20 2020-04-17 수정), 산출 불가일 0 (2026-10-28, D-088)
-- [ ] **[다음 작업]** 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교
-- [ ] Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
+- [x] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교 (2026-10-28, D-089: 미국형 3규칙 ProShares NAV와 일치, 금·은 한국형은 미국형으로 대신)
+  - [ ] 한국형 CL·NG: KRX Open API 인증키 발급 뒤 KODEX WTI원유선물(H) NAV 이력으로 다시 비교(종가로는 FRONT와 구분 안 됨)
+- [ ] **[다음 작업]** Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
   - [ ] 18:30 CT에 일부 월물 정산가가 빠지는지 실측(① 부분 응답 허용, D-071)
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
