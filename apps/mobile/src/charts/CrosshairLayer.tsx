@@ -10,10 +10,8 @@ import type { ChartBounds, ChartPressState, useChartTransformState } from 'victo
 
 export type ChartTransform = ReturnType<typeof useChartTransformState>['state'];
 
-export type CrosshairPress = ChartPressState<{
-  x: number;
-  y: { open: number; high: number; low: number; close: number; hi: number; lo: number };
-}>;
+// 십자선은 close 값을 따라간다. 차트마다 y 키가 더 있어도 된다(C-a 봉, C-c 선)
+export type CrosshairPress = ChartPressState<{ x: number; y: { close: number } }>;
 
 // 십자선 화면 좌표. 축 레이어도 이 값으로 겹치는 기본 눈금을 숨긴다.
 export type Crosshair = {

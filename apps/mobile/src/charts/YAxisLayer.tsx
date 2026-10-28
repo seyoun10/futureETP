@@ -8,7 +8,7 @@ import { colors } from '@/theme/tokens';
 import { numberFont } from './chartText';
 import { crosshairLabelHeight } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
-import { overlapsAny, placeLabels } from './priceLabels';
+import { overlapsAny, placeLabels, stackLabels } from './priceLabels';
 
 const TICK_COUNT = 6;
 
@@ -16,11 +16,13 @@ const TICK_COUNT = 6;
 export type PriceLabel = { key: string; price: number; color: string; suffix?: string };
 
 type YAxisLayerProps = {
-  // 변환 전 y 스케일(log)
+  // 변환 전 y 스케일(C-a log, C-c 선형)
   yScale: Scale;
   chartBounds: ChartBounds;
   priceDecimals: number;
   labels: readonly PriceLabel[];
+  // priority: 겹치면 우선순위가 낮은 라벨을 숨긴다. stack: 모두 남기고 겹치지 않게 민다(C-c 끝값 = 범례)
+  labelLayout?: 'priority' | 'stack';
   // 회색 수평 점선을 그릴 현재가
   currentPrice: number | null;
   crosshair: Crosshair;
@@ -41,6 +43,7 @@ export function YAxisLayer({
   chartBounds,
   priceDecimals,
   labels,
+  labelLayout = 'priority',
   currentPrice,
   crosshair,
 }: YAxisLayerProps) {
@@ -54,7 +57,7 @@ export function YAxisLayer({
     .ticks(TICK_COUNT);
   const decimals = decimalsFor(ticks, priceDecimals);
   const height = crosshairLabelHeight(numberFont);
-  const special = placeLabels(
+  const special = (labelLayout === 'stack' ? stackLabels : placeLabels)(
     labels.map((l) => ({ ...l, y: toScreen(l.price) })),
     height,
     chartBounds.top,
@@ -103,7 +106,7 @@ export function YAxisLayer({
           key={`s${l.key}`}
           x={x}
           y={l.y}
-          text={formatPrice(l.price, priceDecimals)}
+          text={priceLabelText(l, priceDecimals)}
           color={l.color}
           crosshair={crosshair}
         />
@@ -111,6 +114,11 @@ export function YAxisLayer({
     </>
   );
 }
+
+export const priceLabelText = (label: PriceLabel, decimals: number) =>
+  label.suffix
+    ? `${formatPrice(label.price, decimals)} ${label.suffix}`
+    : formatPrice(label.price, decimals);
 
 type AxisLabelProps = {
   x: number;
