@@ -10,7 +10,10 @@ export type AlertLevelRecord = { direction: Direction; rareLevel: number; status
 export type DetectionAction = 'SEND' | 'HELD' | 'SUPPRESSED';
 
 // WAIT: 거부 시간이라 RETRY 그대로 두고 거부 시간이 끝난 뒤 첫 배치에서 다시 판단한다
-export type RetryAction = 'SEND' | 'SUPPRESSED' | 'WAIT';
+export type RetryAction = 'SEND' | 'SUPPRESSED' | 'WAIT' | 'EXPIRED';
+
+// 감지 뒤 이만큼 지나도 못 보낸 RETRY는 보내지 않고 FAILED로 끝낸다(D-097). 다음 날 장중이면 새 판정이 나온다
+export const RETRY_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
 export type Detection = {
   direction: Direction;
@@ -119,11 +122,13 @@ const sameGroup = (a: AlertKey, b: AlertKey) =>
   a.direction === b.direction;
 
 // RETRY 기록의 1회 재발송 계획. 같은 조건·거래일·방향에서 더 드문 레벨이 덮었으면 SUPPRESSED(D-023).
+// 감지 후 24시간이 지났으면 EXPIRED(FAILED로 끝냄, D-097).
 // 거부 시간에는 HELD로 바꾸지 않고 기다린다(HELD는 지연 발송에서 첫 발송으로 다뤄 재시도 횟수를 잃음)
 export function planRetries<Id>(
-  retries: readonly (AlertKey & { id: Id })[],
+  retries: readonly (AlertKey & { id: Id; detectedAt: Date })[],
   existing: readonly (AlertKey & { status: AlertStatus })[],
   quiet: boolean,
+  now: Date,
 ): { id: Id; action: RetryAction }[] {
   const records = [...existing, ...retries.map((r) => ({ ...r, status: 'RETRY' as const }))];
   return retries.map((retry) => {
@@ -132,7 +137,9 @@ export function planRetries<Id>(
       retry.direction,
       retry.rareLevel,
     );
-    return { id: retry.id, action: covered ? 'SUPPRESSED' : quiet ? 'WAIT' : 'SEND' };
+    const expired = now.getTime() - retry.detectedAt.getTime() >= RETRY_EXPIRY_MS;
+    const action = covered ? 'SUPPRESSED' : expired ? 'EXPIRED' : quiet ? 'WAIT' : 'SEND';
+    return { id: retry.id, action };
   });
 }
 

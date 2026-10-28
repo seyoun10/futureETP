@@ -249,8 +249,19 @@ describe('RETRY 재발송', () => {
     await retry({ before: SLOT, now: NOW });
     expect(records[0]).toMatchObject({ status: 'SENT', sentAt: NOW });
     expect(sent.map((s) => s.message.text)).toEqual([
-      { title: '원유(대표월물) 이격도 상위 5% 도달', body: '+96.0%(고가 기준) · 100일선 · 08:45' },
+      {
+        title: '원유(대표월물) 이격도 상위 5% 도달',
+        body: '+96.0%(고가 기준) · 100일선 · 08:45 감지 · 지연 발송',
+      },
     ]);
+  });
+
+  it('감지 후 24시간이 지났으면 보내지 않고 FAILED로 끝낸다', async () => {
+    const { retry, records, sent } = setup({ rows: [retryRow(5)] });
+    const later = new Date('2026-10-28T23:45:00Z');
+    await retry({ before: later, now: later });
+    expect(sent).toHaveLength(0);
+    expect(records[0]).toMatchObject({ status: 'FAILED', sentAt: null });
   });
 
   it('다시 모든 기기에 실패하면 FAILED로 끝낸다', async () => {

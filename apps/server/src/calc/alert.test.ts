@@ -329,43 +329,63 @@ describe('planRetries', () => {
     rareLevel: 5,
   };
   const key = (over: Partial<AlertKey> = {}): AlertKey => ({ ...BASE, ...over });
-  const retry = (id: string, over: Partial<AlertKey> = {}) => ({ ...key(over), id });
+  // 2026-10-27 09:00 감지, 같은 날 10:00에 재발송
+  const DETECTED = new Date('2026-10-27T09:00:00Z');
+  const NOW = new Date('2026-10-27T10:00:00Z');
+  const retry = (id: string, over: Partial<AlertKey> = {}) => ({
+    ...key(over),
+    id,
+    detectedAt: DETECTED,
+  });
   const row = (status: AlertStatus, over: Partial<AlertKey> = {}) => ({ ...key(over), status });
 
   it('덮이지 않은 RETRY는 SEND, 거부 시간이면 WAIT(RETRY 유지)', () => {
     const retries = [retry('a')];
     const existing = [row('RETRY')];
-    expect(planRetries(retries, existing, false)).toEqual([{ id: 'a', action: 'SEND' }]);
-    expect(planRetries(retries, existing, true)).toEqual([{ id: 'a', action: 'WAIT' }]);
+    expect(planRetries(retries, existing, false, NOW)).toEqual([{ id: 'a', action: 'SEND' }]);
+    expect(planRetries(retries, existing, true, NOW)).toEqual([{ id: 'a', action: 'WAIT' }]);
     // existing에 RETRY 자신이 없어도 같다
-    expect(planRetries(retries, [], false)).toEqual([{ id: 'a', action: 'SEND' }]);
+    expect(planRetries(retries, [], false, NOW)).toEqual([{ id: 'a', action: 'SEND' }]);
   });
 
   it('같은 조건·거래일·방향에 더 드문 SENT가 있으면 SUPPRESSED', () => {
     const retries = [retry('a')];
     const withSelf = [row('RETRY'), row('SENT', { rareLevel: 2 })];
     const withoutSelf = [row('SENT', { rareLevel: 2 })];
-    expect(planRetries(retries, withSelf, false)).toEqual([{ id: 'a', action: 'SUPPRESSED' }]);
-    expect(planRetries(retries, withoutSelf, false)).toEqual([{ id: 'a', action: 'SUPPRESSED' }]);
+    expect(planRetries(retries, withSelf, false, NOW)).toEqual([{ id: 'a', action: 'SUPPRESSED' }]);
+    expect(planRetries(retries, withoutSelf, false, NOW)).toEqual([
+      { id: 'a', action: 'SUPPRESSED' },
+    ]);
     // 거부 시간이어도 덮였으면 SUPPRESSED
-    expect(planRetries(retries, withSelf, true)).toEqual([{ id: 'a', action: 'SUPPRESSED' }]);
+    expect(planRetries(retries, withSelf, true, NOW)).toEqual([{ id: 'a', action: 'SUPPRESSED' }]);
   });
 
   it.each(['HELD', 'RETRY'] as const)('더 드문 %s도 덮는다', (status) => {
-    expect(planRetries([retry('a')], [row(status, { rareLevel: 1 })], false)).toEqual([
+    expect(planRetries([retry('a')], [row(status, { rareLevel: 1 })], false, NOW)).toEqual([
       { id: 'a', action: 'SUPPRESSED' },
     ]);
   });
 
   it.each(['SUPPRESSED', 'FAILED'] as const)('더 드문 %s는 덮지 않는다', (status) => {
-    expect(planRetries([retry('a')], [row('RETRY'), row(status, { rareLevel: 1 })], false)).toEqual(
-      [{ id: 'a', action: 'SEND' }],
-    );
+    expect(
+      planRetries([retry('a')], [row('RETRY'), row(status, { rareLevel: 1 })], false, NOW),
+    ).toEqual([{ id: 'a', action: 'SEND' }]);
+  });
+
+  it('감지 후 24시간이 지났으면 EXPIRED, 덮였으면 SUPPRESSED가 먼저다', () => {
+    const at = (hours: number) => new Date(DETECTED.getTime() + hours * 3_600_000);
+    expect(planRetries([retry('a')], [], false, at(23.99))).toEqual([{ id: 'a', action: 'SEND' }]);
+    expect(planRetries([retry('a')], [], false, at(24))).toEqual([{ id: 'a', action: 'EXPIRED' }]);
+    // 거부 시간이어도 기다리지 않고 끝낸다
+    expect(planRetries([retry('a')], [], true, at(30))).toEqual([{ id: 'a', action: 'EXPIRED' }]);
+    expect(planRetries([retry('a')], [row('SENT', { rareLevel: 1 })], false, at(30))).toEqual([
+      { id: 'a', action: 'SUPPRESSED' },
+    ]);
   });
 
   it('덜 드문 레벨의 SENT는 덮지 않는다', () => {
     expect(
-      planRetries([retry('a')], [row('RETRY'), row('SENT', { rareLevel: 10 })], false),
+      planRetries([retry('a')], [row('RETRY'), row('SENT', { rareLevel: 10 })], false, NOW),
     ).toEqual([{ id: 'a', action: 'SEND' }]);
   });
 
@@ -381,13 +401,13 @@ describe('planRetries', () => {
       row('RETRY', { rareLevel: 2 }),
       row('RETRY', { rareLevel: 10 }),
     ];
-    expect(planRetries(retries, existing, false)).toEqual(expected);
-    expect(planRetries(retries, [], false)).toEqual(expected);
+    expect(planRetries(retries, existing, false, NOW)).toEqual(expected);
+    expect(planRetries(retries, [], false, NOW)).toEqual(expected);
   });
 
   it('여러 RETRY 중 가장 드문 1건은 거부 시간이면 WAIT, 나머지는 SUPPRESSED', () => {
     const retries = [retry('r5'), retry('r2', { rareLevel: 2 })];
-    expect(planRetries(retries, [], true)).toEqual([
+    expect(planRetries(retries, [], true, NOW)).toEqual([
       { id: 'r5', action: 'SUPPRESSED' },
       { id: 'r2', action: 'WAIT' },
     ]);
@@ -404,7 +424,9 @@ describe('planRetries', () => {
     ];
     for (const over of others) {
       const existing = [row('RETRY'), row('SENT', { ...over, rareLevel: 1 })];
-      expect(planRetries([retry('a')], existing, false)).toEqual([{ id: 'a', action: 'SEND' }]);
+      expect(planRetries([retry('a')], existing, false, NOW)).toEqual([
+        { id: 'a', action: 'SEND' },
+      ]);
     }
   });
 
@@ -415,7 +437,7 @@ describe('planRetries', () => {
       retry('prev', { tradeDate: '2026-10-26', rareLevel: 20 }),
     ];
     const existing = [row('SENT', { direction: 'DOWN', rareLevel: 2 })];
-    expect(planRetries(retries, existing, false)).toEqual([
+    expect(planRetries(retries, existing, false, NOW)).toEqual([
       { id: 'up', action: 'SEND' },
       { id: 'down', action: 'SUPPRESSED' },
       { id: 'prev', action: 'SEND' },
@@ -423,7 +445,7 @@ describe('planRetries', () => {
   });
 
   it('RETRY가 없으면 빈 결과', () => {
-    expect(planRetries([], [row('SENT')], false)).toEqual([]);
+    expect(planRetries([], [row('SENT')], false, NOW)).toEqual([]);
   });
 });
 

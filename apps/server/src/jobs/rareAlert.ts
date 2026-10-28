@@ -192,7 +192,8 @@ export function createRareAlert(deps: RareAlertDeps) {
 
 export type RareAlert = ReturnType<typeof createRareAlert>;
 
-// RETRY 기록을 1회 다시 보낸다. 더 드문 레벨이 덮었으면 SUPPRESSED, 거부 시간이면 RETRY로 두고 기다린다(D-023, D-069).
+// RETRY 기록을 1회 다시 보낸다. 더 드문 레벨이 덮었으면 SUPPRESSED, 감지 후 24시간이 지났으면 FAILED,
+// 거부 시간이면 RETRY로 두고 기다린다. 늘 늦게 닿으므로 지연 발송 문구로 보낸다(D-023, D-069, D-097).
 // 이미 판정한 알림이라 판정 중지(D-071)·알림 원자재 변경과 상관없이 처리한다
 export function createAlertRetry(deps: RareAlertDeps) {
   const { store, log = console.log } = deps;
@@ -214,13 +215,14 @@ export function createAlertRetry(deps: RareAlertDeps) {
         ),
       )
     ).flat();
-    for (const { id, action } of planRetries(retries, existing, quiet)) {
+    for (const { id, action } of planRetries(retries, existing, quiet, now)) {
       const row = retries.find((r) => r.id === id)!;
       log(
         `[alert retry ${row.commodityCode} ${row.basis}] ${row.direction} ${row.rareLevel}% ${action}`,
       );
       if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
-      if (action === 'SEND') await send(settings, row, now, { isRetry: true, deferred: false });
+      if (action === 'EXPIRED') await store.updateStatus(id, 'FAILED', null);
+      if (action === 'SEND') await send(settings, row, now, { isRetry: true, deferred: true });
     }
   };
 }
