@@ -1,12 +1,14 @@
 // 국내(D-096)·미국(D-099) ETP 상품·시리즈 조회·반영. 흐름은 jobs/etp.ts·jobs/etpUs.ts
+import type { CommodityCode } from '@futureetp/shared';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { KnownEtpProduct } from '../calc/etpSeries.ts';
 import type { EtpStore } from '../jobs/etp.ts';
 import type { EtpCandidateAlertStore } from '../jobs/etpCandidateAlert.ts';
+import type { MajorityAlertStore } from '../jobs/majorityAlert.ts';
 import type { KrxEtpEntry } from '../sources/krxEtp.ts';
 import { US_ISSUER_URLS } from '../sources/usEtpMap.ts';
 import type { db as Db } from './client.ts';
-import { etpProduct, etpSeries } from './schema.ts';
+import { etpProduct, etpSeries, rollRule } from './schema.ts';
 
 type SeriesState = KnownEtpProduct['series'][number];
 
@@ -17,7 +19,9 @@ const seriesRow = (productId: string, entry: KrxEtpEntry) => ({
   seriesCode: entry.type === 'ETN' ? (entry.series ?? 'A') : null,
 });
 
-export function createEtpStore(db: typeof Db): EtpStore & EtpCandidateAlertStore {
+export function createEtpStore(
+  db: typeof Db,
+): EtpStore & EtpCandidateAlertStore & MajorityAlertStore {
   return {
     async krxProducts() {
       const rows = await db
@@ -217,6 +221,46 @@ export function createEtpStore(db: typeof Db): EtpStore & EtpCandidateAlertStore
     async markCandidatesNotified(ids, at) {
       if (ids.length === 0) return;
       await db.update(etpProduct).set({ reviewNotifiedAt: at }).where(inArray(etpProduct.id, ids));
+    },
+
+    async majorityEtps() {
+      const rows = await db
+        .select({
+          commodityCode: etpProduct.commodityCode,
+          market: etpProduct.market,
+          underlyingIndex: etpProduct.underlyingIndex,
+          rollRuleRef: etpProduct.rollRuleRef,
+          aum: etpProduct.aum,
+        })
+        .from(etpProduct)
+        .where(and(eq(etpProduct.isActive, true), eq(etpProduct.needsReview, false)));
+      // 확인 완료 상품은 원자재가 정해져 있다
+      return rows.filter(
+        (row): row is typeof row & { commodityCode: CommodityCode } => row.commodityCode !== null,
+      );
+    },
+
+    async rollRules() {
+      return db
+        .select({
+          commodityCode: rollRule.commodityCode,
+          basis: rollRule.basis,
+          ruleId: rollRule.ruleId,
+          majorityRuleId: rollRule.majorityRuleId,
+        })
+        .from(rollRule)
+        .orderBy(asc(rollRule.commodityCode), asc(rollRule.basis));
+    },
+
+    async setMajority(updates, checkedAt) {
+      await db.transaction(async (tx) => {
+        for (const { commodityCode, basis, majorityRuleId } of updates) {
+          await tx
+            .update(rollRule)
+            .set({ majorityRuleId, majorityCheckedAt: checkedAt })
+            .where(and(eq(rollRule.commodityCode, commodityCode), eq(rollRule.basis, basis)));
+        }
+      });
     },
   };
 }

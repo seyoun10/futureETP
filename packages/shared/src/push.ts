@@ -17,6 +17,7 @@ type Messages = {
   jobs: Record<JobName, string>;
   jobFailed: (job: string) => string;
   etpCandidates: (count: number) => string;
+  majorityChanged: (count: number) => string;
   more: (count: number) => string;
 };
 
@@ -40,6 +41,7 @@ const MESSAGES: Record<Locale, Messages> = {
     },
     jobFailed: (job) => `서버 작업 실패: ${job}`,
     etpCandidates: (count) => `미국 ETP 새 후보 ${count}개 · 매핑표 확인 필요`,
+    majorityChanged: (count) => `다수 판정 변경 ${count}건 · 롤 규칙 확인 필요`,
     more: (count) => `외 ${count}개`,
   },
   en: {
@@ -62,6 +64,8 @@ const MESSAGES: Record<Locale, Messages> = {
     jobFailed: (job) => `Server job failed: ${job}`,
     etpCandidates: (count) =>
       `${count} new US ETP candidate${count === 1 ? '' : 's'} · check the mapping table`,
+    majorityChanged: (count) =>
+      `Majority roll rule changed for ${count} ${count === 1 ? 'basis' : 'bases'} · check roll_rule`,
     more: (count) => `+${count} more`,
   },
 };
@@ -132,5 +136,30 @@ export function etpCandidatesPush(locale: Locale, symbols: string[]): PushText {
   return {
     title: m.etpCandidates(symbols.length),
     body: shown.join(', ') + (rest > 0 ? ` ${m.more(rest)}` : ''),
+  };
+}
+
+export type MajorityChange = {
+  commodity: CommodityCode;
+  basis: Exclude<Basis, 'FRONT'>;
+  // 적용 중인 roll_rule.rule_id와 새 다수 판정
+  ruleId: string;
+  majorityRuleId: string;
+};
+
+// 다수 판정이 적용 중인 규칙과 달라졌을 때 ETP 작업이 묶어 보내는 알림(D-024).
+// 예: 다수 판정 변경 1건 · 롤 규칙 확인 필요 / 원유(미국형) BCBCLI → USO
+export function majorityChangedPush(locale: Locale, changes: MajorityChange[]): PushText {
+  const m = MESSAGES[locale];
+  const space = locale === 'en' ? ' ' : '';
+  return {
+    title: m.majorityChanged(changes.length),
+    body: changes
+      .map(
+        (change) =>
+          `${m.commodities[change.commodity]}${space}(${m.bases[change.basis]}) ` +
+          `${change.ruleId} → ${change.majorityRuleId}`,
+      )
+      .join(', '),
   };
 }

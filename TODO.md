@@ -225,9 +225,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 소스·매핑표: Nasdaq 스크리너(후보)·summary(순자산·총보수), Yahoo chart(상장일·일별 거래대금), 매핑표 17개·제외 44개·새 후보 판별(`sources/usEtpMap.ts`). 실데이터 매핑 17·새 후보 0 (2026-10-28, D-099)
   - [x] `ETP` 작업에 미국 동기화(`jobs/etpUs.ts`): 매핑 상품 저장·속성 갱신(받은 값만), 목록에서 빠지면 폐지·비활성, 새 후보는 `needs_review` 행(후보에서 빠지면 삭제). 매핑 상품이 절반 미만이거나 두 소스가 모두 실패하면 미반영. 국내·미국은 한쪽이 실패해도 다른 쪽을 반영. dev 실행 17상품 저장·재실행 무변경, 작업 전체 약 71초 (2026-10-28)
   - [x] 새 후보 1회 알림(`jobs/etpCandidateAlert.ts`): `ETP` 작업 끝에 알리지 않은 후보를 한 건으로 묶어 ops 채널로 보내고 `review_notified_at` 기록(한 기기에도 못 보내면 다음 작업에 다시). 미국 동기화가 실패해도 보냄, 누르면 A. dev DB 1회 발송·재실행 미발송 확인 (2026-10-28)
-- [ ] `ETP` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)
+- [x] `ETP` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)
   - [x] 다수 판정 순수 함수(`calc/majorityRule.ts`): 원자재·시장별 상품 수, 동률이면 순자산 합계, 하한(미국 $10M·국내 10억 원) 미만·순자산 모름·규칙 모름은 제외(D-015). 국내 규칙은 기초지수 이름(S&P GSCI·DJCI·Bloomberg Single·Solactive → `GSCI`, Enhanced → `GSCI_ENHANCED`). dev 실데이터 8개 판정 모두 현재 규칙과 같음 (2026-10-28)
-  - [ ] 판정 저장(`roll_rule.majority_rule_id`·`majority_checked_at`)·변경 알림(D-024)
+  - [x] 판정 저장(`roll_rule.majority_rule_id`·`majority_checked_at`)·변경 알림(D-024, `jobs/majorityAlert.ts`. dev ETP 작업 1회 실행에서 8행 모두 현재 규칙과 같아 기록만 함, 2026-10-28)
   - [x] 국내 순자산(ETF 순자산총액·ETN 시가총액)·평균 거래대금(KRX `ACC_TRDVAL` 20거래일, 시리즈 합산). dev 실행 79상품 모두 채움, 약 11초 (2026-10-28, D-017 수정)
 - [x] `GET /v1/commodities/:code/etps`·`GET /v1/etps/:id` + C-d(필터 4종·정렬 3종)·C-d-a 화면
   - [x] 조회 API 2개(shared `etps.ts`): 목록은 매핑 끝남·상장 중 상품과 상장 중 종목코드·순자산·평균 거래대금, 상세는 상장 중 시리즈 줄과 첫 시리즈 상장일. dev 응답 79상품 (2026-10-28)

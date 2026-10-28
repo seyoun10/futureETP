@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { JOB_NAMES, LOCALES } from './domain.ts';
-import { etpCandidatesPush, jobFailedPush, rareLevelPush, type RareLevelAlert } from './push.ts';
+import {
+  etpCandidatesPush,
+  jobFailedPush,
+  majorityChangedPush,
+  rareLevelPush,
+  type RareLevelAlert,
+} from './push.ts';
 
 // 2026-10-28 00:00 UTC = 09:00 KST
 const alert: RareLevelAlert = {
@@ -98,5 +104,27 @@ describe('etpCandidatesPush', () => {
     expect(etpCandidatesPush('en', ['A', 'B', 'C', 'D', 'E', 'F']).body).toBe(
       'A, B, C, D, E +1 more',
     );
+  });
+});
+
+describe('majorityChangedPush', () => {
+  it('건수는 제목에, 원자재(기준값) 적용 규칙 → 새 다수는 본문에 쓴다', () => {
+    expect(
+      majorityChangedPush('ko', [
+        { commodity: 'CL', basis: 'US', ruleId: 'BCBCLI', majorityRuleId: 'USO' },
+        { commodity: 'GC', basis: 'KR', ruleId: 'GSCI', majorityRuleId: 'GSCI_ENHANCED' },
+      ]),
+    ).toEqual({
+      title: '다수 판정 변경 2건 · 롤 규칙 확인 필요',
+      body: '원유(미국형) BCBCLI → USO, 금(한국형) GSCI → GSCI_ENHANCED',
+    });
+    expect(
+      majorityChangedPush('en', [
+        { commodity: 'NG', basis: 'US', ruleId: 'BCOM', majorityRuleId: 'UNG' },
+      ]),
+    ).toEqual({
+      title: 'Majority roll rule changed for 1 basis · check roll_rule',
+      body: 'Natural Gas (US-style) BCOM → UNG',
+    });
   });
 });

@@ -57,6 +57,8 @@ export { healthSchema, type Health } from './health.ts';
 export {
   ANDROID_CHANNELS,
   etpCandidatesPush,
+  majorityChangedPush,
+  type MajorityChange,
   jobFailedPush,
   rareLevelPush,
   type AndroidChannel,

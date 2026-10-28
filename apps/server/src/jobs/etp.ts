@@ -1,5 +1,5 @@
 // ETP 작업(08:30 KST): 국내 목록 동기화(D-096)와 순자산·평균 거래대금(D-017), 이어서 미국(jobs/etpUs.ts),
-// 끝으로 미국 새 후보 1회 알림(jobs/etpCandidateAlert.ts, D-025).
+// 미국 새 후보 1회 알림(jobs/etpCandidateAlert.ts, D-025), 끝으로 다수 판정 재계산·변경 알림(jobs/majorityAlert.ts, D-024).
 // 한 시장이 실패해도 다른 시장은 반영하고, 끝에 실패를 모아 작업을 실패로 둔다.
 // KRX 전일분을 받아 종목명을 읽고, 저장된 상품과 맞춘 묶기·상장폐지 계획을 한 트랜잭션으로 반영한다.
 // 그다음 상장 중인 시리즈로 상품별 순자산(기준일)과 최근 20거래일 평균 거래대금을 덮어쓴다.
@@ -20,6 +20,7 @@ import type { NasdaqEtpSource } from '../sources/nasdaqEtp.ts';
 import type { NaverEtfSource } from '../sources/naverEtf.ts';
 import type { YahooEtpSource } from '../sources/yahooEtp.ts';
 import type { EtpCandidateAlert } from './etpCandidateAlert.ts';
+import type { MajorityAlert } from './majorityAlert.ts';
 import { syncUsEtps, type UsEtpStore } from './etpUs.ts';
 import type { JobHandler } from './runner.ts';
 
@@ -171,6 +172,7 @@ export function createEtpHandler({
   yahoo,
   store,
   candidateAlert,
+  majorityAlert,
   log = console.log,
 }: {
   source: KrxEtpSource;
@@ -179,6 +181,7 @@ export function createEtpHandler({
   yahoo: YahooEtpSource;
   store: EtpStore;
   candidateAlert: (now: Date) => ReturnType<EtpCandidateAlert>;
+  majorityAlert: (now: Date) => ReturnType<MajorityAlert>;
   log?: (message: string) => void;
 }): JobHandler {
   return async ({ now }) => {
@@ -198,6 +201,12 @@ export function createEtpHandler({
       await candidateAlert(now);
     } catch (error) {
       errors.push(`US candidates: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    // 한 시장이 실패해도 저장된 상품(직전 값)으로 판정한다
+    try {
+      await majorityAlert(now);
+    } catch (error) {
+      errors.push(`majority: ${error instanceof Error ? error.message : String(error)}`);
     }
     if (errors.length > 0) throw new Error(errors.join('; '));
   };

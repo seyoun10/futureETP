@@ -19,6 +19,7 @@ import { createDeferredPushHandler } from './deferredPush.ts';
 import { createEtpHandler } from './etp.ts';
 import { createEtpCandidateAlert } from './etpCandidateAlert.ts';
 import { createIntradayHandler } from './intraday.ts';
+import { createMajorityAlert } from './majorityAlert.ts';
 import { createAlertRetry, createDeferredAlert, createRareAlert } from './rareAlert.ts';
 import { recomputeCommodity } from './recompute.ts';
 import type { JobHandlers } from './runner.ts';
@@ -65,6 +66,12 @@ export const JOB_HANDLERS: JobHandlers = {
     yahoo: createYahooEtpSource(),
     store: etpStore,
     candidateAlert: createEtpCandidateAlert({
+      store: etpStore,
+      devices: alertDeps.devices,
+      sender: pushSender,
+      locale: async () => (await settings.get()).locale,
+    }),
+    majorityAlert: createMajorityAlert({
       store: etpStore,
       devices: alertDeps.devices,
       sender: pushSender,
