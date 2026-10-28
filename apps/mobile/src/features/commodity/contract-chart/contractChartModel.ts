@@ -2,7 +2,7 @@
 import type { ContractsChart } from '@futureetp/shared';
 import type { ChartLine } from '@/charts/LineLayer';
 import type { PriceLabel } from '@/charts/YAxisLayer';
-import { formatContractMonth } from '@/lib/formatNumber';
+import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
 
 const LINE_STROKE = 1.5;
@@ -11,15 +11,15 @@ export type ContractChartModel = {
   lines: ChartLine[];
   // 날짜마다 그날 값이 있는 선들의 위·아래 끝
   envelope: { hi: number[]; lo: number[] };
-  // 각 선의 끝값. 라벨이 범례를 대신해 월물명을 붙인다(screens.md C-c)
-  endLabels: PriceLabel[];
+  // 선마다 가장 긴 값의 라벨. 이동해도 우측 라벨 자리가 바뀌지 않게 너비만 잰다
+  widestLabels: PriceLabel[];
 };
 
 const lineColor = (index: number) =>
   colors.chart.contractLines[Math.min(index, colors.chart.contractLines.length - 1)];
 
-function lastValue(values: readonly (number | null)[]): number | null {
-  for (let i = values.length - 1; i >= 0; i--) {
+function lastValue(values: readonly (number | null)[], i0: number, i1: number): number | null {
+  for (let i = Math.min(i1, values.length - 1); i >= Math.max(i0, 0); i--) {
     const v = values[i];
     if (v !== null) return v;
   }
@@ -42,18 +42,28 @@ export function contractChartModel(chart: ContractsChart): ContractChartModel {
       if (v < lo[i]) lo[i] = v;
     });
   }
-  const endLabels = chart.contracts.flatMap((c, i) => {
-    const price = lastValue(c.prices);
-    return price === null
-      ? []
-      : [
-          {
-            key: c.symbol,
-            price,
-            color: lineColor(i),
-            suffix: formatContractMonth(c.contractMonth),
-          },
-        ];
+  const widestLabels = chart.contracts.flatMap((c, i) => {
+    const values = c.prices.filter((v) => v !== null);
+    if (values.length === 0) return [];
+    const text = (v: number) => formatPrice(v, chart.priceDecimals).length;
+    const [min, max] = [Math.min(...values), Math.max(...values)];
+    return [label(chart, i, text(min) > text(max) ? min : max)];
   });
-  return { lines, envelope: { hi, lo }, endLabels };
+  return { lines, envelope: { hi, lo }, widestLabels };
+}
+
+const label = (chart: ContractsChart, i: number, price: number): PriceLabel => ({
+  key: chart.contracts[i].symbol,
+  price,
+  color: lineColor(i),
+  suffix: formatContractMonth(chart.contracts[i].contractMonth),
+});
+
+// 보이는 범위 [i0, i1]에서 각 선의 마지막 값에 월물명을 붙인다(범례 역할, screens.md C-c, D-093).
+// 범위 안에 값이 없는 선은 보이지 않으므로 라벨도 없다
+export function visibleEndLabels(chart: ContractsChart, i0: number, i1: number): PriceLabel[] {
+  return chart.contracts.flatMap((c, i) => {
+    const price = lastValue(c.prices, i0, i1);
+    return price === null ? [] : [label(chart, i, price)];
+  });
 }

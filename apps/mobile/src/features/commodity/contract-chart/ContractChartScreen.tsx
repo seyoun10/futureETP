@@ -13,7 +13,7 @@ import { useDisplaySettings } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
-import { contractChartModel } from './contractChartModel';
+import { contractChartModel, visibleEndLabels } from './contractChartModel';
 import type { ContractChartModel } from './contractChartModel';
 import { useContracts } from './useContracts';
 
@@ -48,12 +48,19 @@ function ContractChartView({ data }: { data: ContractsChart }) {
   const period = useDisplaySettings((s) => s.contractPeriod);
   const setPeriod = useDisplaySettings((s) => s.setContractPeriod);
   const [gestured, setGestured] = useState(false);
+  const [range, setRange] = useState<[number, number] | null>(null);
+  // 끝값 라벨은 보이는 범위의 마지막 날 값이다(D-093). 범위를 받기 전에는 전체 범위
+  const endLabels = useMemo(
+    () => visibleEndLabels(data, range?.[0] ?? 0, range?.[1] ?? data.dates.length - 1),
+    [data, range],
+  );
 
   const onSelectPeriod = (next: ChartPeriod) => {
     setPeriod(next);
     setGestured(false);
   };
   const onGestureStart = useCallback(() => setGestured(true), []);
+  const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
   const renderDetail = useCallback(
     (index: number) => <CrosshairDetail data={data} model={model} index={index} />,
     [data, model],
@@ -76,10 +83,12 @@ function ContractChartView({ data }: { data: ContractsChart }) {
           dates={data.dates}
           lines={model.lines}
           envelope={model.envelope}
-          endLabels={model.endLabels}
+          endLabels={endLabels}
+          widestLabels={model.widestLabels}
           priceDecimals={data.priceDecimals}
           periodBars={gestured ? null : PERIOD_BARS[period]}
           onGestureStart={onGestureStart}
+          onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
         />
       </View>

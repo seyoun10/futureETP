@@ -74,6 +74,16 @@ describe('C-c 월물차트', () => {
     ]);
   });
 
+  it('보이는 범위가 바뀌면 끝값 라벨이 그 범위 마지막 날 값으로 바뀐다', async () => {
+    await renderScreen();
+
+    await act(() => lastChartProps().onVisibleRangeChange(0, 1));
+    expect(lastChartProps().endLabels.map((l) => [l.price, l.suffix])).toEqual([
+      [3.2, 'DEC26'],
+      [3.5, 'JAN27'],
+    ]);
+  });
+
   it('기간은 C-a와 따로 기억한다: 12M으로 시작하고, 제스처 뒤 선택이 풀리며, 칩을 누르면 기억한다', async () => {
     await renderScreen();
 

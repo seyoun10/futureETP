@@ -25,9 +25,12 @@ type LinesChartProps = {
   envelope: { hi: readonly number[]; lo: readonly number[] };
   // 모두 남기고 겹치지 않게 민다(범례 역할)
   endLabels: readonly PriceLabel[];
+  // 우측 라벨 자리를 잡는 데만 쓴다(이동해도 너비가 바뀌지 않게)
+  widestLabels: readonly PriceLabel[];
   priceDecimals: number;
   periodBars: number | null;
   onGestureStart: () => void;
+  onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
 };
 
@@ -38,14 +41,16 @@ export const LinesChart = memo(function LinesChart({
   lines,
   envelope,
   endLabels,
+  widestLabels,
   priceDecimals,
   periodBars,
   onGestureStart,
+  onVisibleRangeChange,
   renderDetail,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
   const { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap } =
-    useChartViewport({ press, periodBars, onGestureStart });
+    useChartViewport({ press, periodBars, onGestureStart, onVisibleRangeChange });
 
   const data = useMemo(
     () =>
@@ -59,9 +64,11 @@ export const LinesChart = memo(function LinesChart({
   );
   // 우측 y축 라벨 자리(가장 긴 끝값 라벨 + 여백)
   const yLabelWidth = useMemo(() => {
-    const widths = endLabels.map((l) => numberFont.measureText(priceLabelText(l, priceDecimals)));
+    const widths = widestLabels.map((l) =>
+      numberFont.measureText(priceLabelText(l, priceDecimals)),
+    );
     return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + 10;
-  }, [endLabels, priceDecimals]);
+  }, [widestLabels, priceDecimals]);
 
   if (dates.length === 0) return null;
 
