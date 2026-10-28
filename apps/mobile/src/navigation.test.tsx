@@ -11,7 +11,11 @@ jest.mock('expo-screen-orientation', () => ({
 }));
 
 // A는 원자재 목록을 조회한다. 이동만 보므로 월물 줄은 비운다.
-jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn() }));
+// C-b 조회는 끝나지 않게 둔다(탭 이동만 확인)
+jest.mock('@/api/commodities', () => ({
+  getCommodities: jest.fn(),
+  getCurve: jest.fn(() => new Promise(() => {})),
+}));
 
 // 창 모양은 테스트마다 바꾼다(가로 레이아웃 판정).
 const mockWindow = { width: 390, height: 844 };

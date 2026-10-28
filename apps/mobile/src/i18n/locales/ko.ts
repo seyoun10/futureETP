@@ -1,4 +1,4 @@
-import type { CommodityCode, MarketState } from '@futureetp/shared';
+import type { CommodityCode, CurveState, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
 import type { ChartPeriod } from '@/stores/displaySettings';
 
@@ -96,6 +96,29 @@ export const ko = {
       fallback: '이 원자재에는 {{basis}} 상품이 없어 대표월물로 대신 보여 줍니다.',
       sameAsKR: '금·은은 미국형이 한국형과 같습니다.',
     },
+  },
+  // C-b 월물커브 범례·기준일 버튼·수치 요약·툴팁(screens.md C-b)
+  curve: {
+    legendBase: '기준일 {{date}} 종가',
+    legendCurrent: '현재 {{date}}',
+    baseDate: '{{date}} (D-{{n}})',
+    prev: '기준일을 1 거래일 앞으로',
+    next: '기준일을 1 거래일 뒤로',
+    reset: '기준일을 D-1로',
+    state: {
+      CONTANGO: '콘탱고',
+      BACKWARDATION: '백워데이션',
+      FLAT: '플랫',
+    } satisfies Record<CurveState, string>,
+    stateLine: '{{state}} (M1→M2) · {{m1}}→{{m2}} {{spread}}',
+    stateUnavailable: '커브 상태 산출 불가',
+    rollYield: '롤 수익률 {{value}} (기준일 {{base}})',
+    perYear: '{{pct}}/년',
+    unavailable: '산출 불가',
+    tooltipBase: '기준일 {{price}}',
+    tooltipCurrent: '현재 {{price}}',
+    tooltipChange: '변화율 {{pct}}',
+    noData: '표시할 월물이 없습니다.',
   },
   etp: {
     detailTitle: 'ETP 상세',

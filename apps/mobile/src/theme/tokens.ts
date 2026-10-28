@@ -23,6 +23,9 @@ export const colors = {
     rollMarker: '#9e9e9e',
     // 보이는 구간 최고가·최저가 꼬리표
     extremeTag: '#e0e0e0',
+    // C-b 커브: 기준일은 점선, 현재는 실선(screens.md C-b)
+    curveBase: '#9e9e9e',
+    curveCurrent: '#e0e0e0',
   },
 } as const;
 

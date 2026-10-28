@@ -65,3 +65,4 @@ jest.mock('expo-localization', () => {
 // Skia·Victory Native는 Jest에서 돌지 않는다. 차트는 아무것도 그리지 않는 jest.fn으로 두고,
 // 화면 테스트는 jest.mocked(CandleChart).mock.lastCall로 받은 props(renderDetail 등)를 확인한다.
 jest.mock('@/charts/CandleChart', () => ({ CandleChart: jest.fn(() => null) }));
+jest.mock('@/charts/CurveChart', () => ({ CurveChart: jest.fn(() => null) }));
