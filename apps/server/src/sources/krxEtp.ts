@@ -8,10 +8,14 @@ import { parseKrxEtpName } from './krxEtpName.ts';
 const BASE_URL = 'https://data-dbg.krx.co.kr/svc/apis/etp';
 export const REQUEST_TIMEOUT_MS = 30_000;
 
+// 금액(원)은 숫자 문자열로 온다. 순자산총액은 ETF에만 있다
 const rowSchema = z.object({
   ISU_CD: z.string().regex(/^\w{6}$/),
   ISU_NM: z.string(),
   IDX_IND_NM: z.string().nullish(),
+  ACC_TRDVAL: z.string().nullish(),
+  MKTCAP: z.string().nullish(),
+  INVSTASST_NETASST_TOTAMT: z.string().nullish(),
 });
 export type KrxEtpRow = z.infer<typeof rowSchema>;
 
@@ -50,6 +54,36 @@ export function toKrxEtpEntries(rows: readonly KrxEtpRow[], type: EtpType): KrxE
     ];
   });
 }
+
+// 빈 값·'-'처럼 숫자가 아니면 null
+function toAmount(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const amount = Number(value.replaceAll(',', ''));
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function amountsByTicker(
+  rows: readonly KrxEtpRow[],
+  pick: (row: KrxEtpRow) => string | null | undefined,
+) {
+  const amounts = new Map<string, number>();
+  for (const row of rows) {
+    const amount = toAmount(pick(row));
+    if (amount !== null) amounts.set(row.ISU_CD, amount);
+  }
+  return amounts;
+}
+
+// 순자산(D-015): ETF는 순자산총액, ETN은 시가총액
+export const krxAumByTicker = (day: KrxEtpDay) =>
+  new Map([
+    ...amountsByTicker(day.etf, (row) => row.INVSTASST_NETASST_TOTAMT),
+    ...amountsByTicker(day.etn, (row) => row.MKTCAP),
+  ]);
+
+// 거래대금(D-017): KRX 누적 거래대금(ACC_TRDVAL)
+export const krxTradingValueByTicker = (day: KrxEtpDay) =>
+  amountsByTicker([...day.etf, ...day.etn], (row) => row.ACC_TRDVAL);
 
 export function createKrxEtpSource({
   apiKey,

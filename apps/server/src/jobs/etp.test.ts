@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { KnownEtpProduct } from '../calc/etpSeries.ts';
 import type { KrxEtpDay, KrxEtpRow } from '../sources/krxEtp.ts';
-import { createEtpHandler, KRX_LOOKBACK_DAYS, type EtpStore } from './etp.ts';
+import {
+  AVG_TRADING_DAYS,
+  createEtpHandler,
+  KRX_LOOKBACK_DAYS,
+  TRADING_VALUE_LOOKBACK_DAYS,
+  type EtpStore,
+} from './etp.ts';
 
 // 10/29 08:30 KST → 전일 10/28부터 본다
 const NOW = new Date('2026-10-28T23:30:00Z');
@@ -25,6 +31,7 @@ function setup(days: Record<string, KrxEtpDay>, products: KnownEtpProduct[] = []
   const store = {
     krxProducts: vi.fn(() => Promise.resolve(products)),
     applyKrxPlan: vi.fn<EtpStore['applyKrxPlan']>(() => Promise.resolve()),
+    setMetrics: vi.fn<EtpStore['setMetrics']>(() => Promise.resolve()),
   };
   const handler = createEtpHandler({ source: { fetchDay }, store, log: () => {} });
   return { fetchDay, store, run: () => handler({ now: NOW }) };
@@ -58,7 +65,7 @@ describe('ETP 작업(국내)', () => {
 
     await run();
 
-    expect(fetchDay.mock.calls.map(([d]) => d)).toEqual([
+    expect(fetchDay.mock.calls.slice(0, 6).map(([d]) => d)).toEqual([
       '2026-10-28',
       '2026-10-27',
       '2026-10-26',
@@ -124,5 +131,85 @@ describe('ETP 작업(국내)', () => {
     const [plan] = store.applyKrxPlan.mock.calls[0];
     expect(plan.delistTickers).toEqual(['261222', '261223']);
     expect(plan.deactivateProductIds).toEqual(['c', 'd']);
+  });
+
+  describe('순자산·평균 거래대금', () => {
+    const traded = (row: KrxEtpRow, value: string, aum?: string): KrxEtpRow => ({
+      ...row,
+      ACC_TRDVAL: value,
+      ...(row.ISU_NM.includes('ETN') ? { MKTCAP: aum } : { INVSTASST_NETASST_TOTAMT: aum }),
+    });
+    const after: KnownEtpProduct[] = [
+      {
+        id: 'etn',
+        groupingKey: 'k',
+        isActive: true,
+        series: [
+          { ticker: '530031', delistedDate: null },
+          { ticker: '530133', delistedDate: null },
+        ],
+      },
+    ];
+
+    it('반영 뒤 시리즈로 기준일 순자산과 이전 거래일까지의 평균 거래대금을 저장한다', async () => {
+      const { store, run } = setup({
+        '2026-10-28': {
+          etf: [etf('261220')],
+          etn: [traded(etn('530031'), '100', '1000'), traded(etn('530133', ' B'), '50', '500')],
+        },
+        // 10/25·26 주말
+        '2026-10-24': { etf: [etf('261220')], etn: [traded(etn('530031'), '30')] },
+      });
+      store.krxProducts.mockResolvedValueOnce([]).mockResolvedValueOnce(after);
+
+      await run();
+
+      expect(store.setMetrics).toHaveBeenCalledWith(
+        [{ productId: 'etn', aum: 1500, avgTradingValue: 90 }],
+        NOW,
+      );
+      expect(store.setMetrics.mock.invocationCallOrder[0]).toBeGreaterThan(
+        store.applyKrxPlan.mock.invocationCallOrder[0],
+      );
+    });
+
+    it(`거래일 ${AVG_TRADING_DAYS}일을 채우면 더 거슬러 받지 않는다`, async () => {
+      const day = { etf: [etf('261220')], etn: [etn('530031')] };
+      const { fetchDay, run } = setup(
+        Object.fromEntries(
+          Array.from({ length: 30 }, (_, i) => [`2026-10-${String(28 - i).padStart(2, '0')}`, day]),
+        ),
+      );
+
+      await run();
+
+      expect(fetchDay).toHaveBeenCalledTimes(AVG_TRADING_DAYS);
+      expect(fetchDay).toHaveBeenLastCalledWith('2026-10-09');
+    });
+
+    it(`거래일이 모자라면 ${TRADING_VALUE_LOOKBACK_DAYS}일까지만 보고 찾은 만큼 쓴다`, async () => {
+      const { store, fetchDay, run } = setup({
+        '2026-10-28': { etf: [etf('261220')], etn: [traded(etn('530031'), '10')] },
+      });
+      store.krxProducts.mockResolvedValueOnce([]).mockResolvedValueOnce(after);
+
+      await run();
+
+      expect(fetchDay).toHaveBeenCalledTimes(1 + TRADING_VALUE_LOOKBACK_DAYS);
+      expect(store.setMetrics.mock.calls[0][0]).toEqual([
+        { productId: 'etn', aum: null, avgTradingValue: 10 },
+      ]);
+    });
+
+    it('이전 거래일 응답이 이상하면 목록도 반영하지 않는다', async () => {
+      const { store, run } = setup({
+        '2026-10-28': { etf: [etf('261220')], etn: [etn('530031')] },
+        '2026-10-27': { etf: [], etn: [etn('530031')] },
+      });
+
+      await expect(run()).rejects.toThrow('KRX 2026-10-27: ETF 0 rows, ETN 1 rows');
+      expect(store.applyKrxPlan).not.toHaveBeenCalled();
+      expect(store.setMetrics).not.toHaveBeenCalled();
+    });
   });
 });

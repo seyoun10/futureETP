@@ -96,5 +96,16 @@ export function createEtpStore(db: typeof Db): EtpStore {
         }
       });
     },
+
+    async setMetrics(metrics, collectedAt) {
+      await db.transaction(async (tx) => {
+        for (const { productId, aum, avgTradingValue } of metrics) {
+          await tx
+            .update(etpProduct)
+            .set({ aum, avgTradingValue, collectedAt })
+            .where(eq(etpProduct.id, productId));
+        }
+      });
+    },
   };
 }

@@ -292,7 +292,7 @@ export const etpProduct = pgTable(
     issuerUrl: text(),
     // 국내 ETF totalNav, ETN 시가총액, 미국 totalAssets. 통화는 market으로 정해진다.
     aum: decimal(),
-    // 최근 20거래일 평균(종가×거래량, ETN은 상장 중 시리즈 합산, D-017)
+    // 최근 20거래일 평균(국내 KRX 거래대금, 미국 종가×거래량. ETN은 상장 중 시리즈 합산, D-017)
     avgTradingValue: decimal(),
     // 발행사|원자재|배수|환헤지 (ETN 시리즈 묶기, D-096)
     groupingKey: text(),

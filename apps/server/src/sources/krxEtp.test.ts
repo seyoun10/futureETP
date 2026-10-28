@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createKrxEtpSource, toKrxEtpEntries } from './krxEtp.ts';
+import {
+  createKrxEtpSource,
+  krxAumByTicker,
+  krxTradingValueByTicker,
+  toKrxEtpEntries,
+} from './krxEtp.ts';
 
 // 2026-10-27 실제 응답에서 고른 행(필요한 필드만)
 const ETF_ROWS = [
@@ -43,6 +48,40 @@ describe('toKrxEtpEntries', () => {
         'ETF',
       ),
     ).toMatchObject([{ underlyingIndex: null }]);
+  });
+});
+
+describe('금액 필드', () => {
+  const day = {
+    etf: [
+      {
+        ISU_CD: '261220',
+        ISU_NM: 'KODEX WTI원유선물(H)',
+        ACC_TRDVAL: '867291785',
+        MKTCAP: '36055500000',
+        INVSTASST_NETASST_TOTAMT: '35893665344',
+      },
+      { ISU_CD: '261221', ISU_NM: 'x', ACC_TRDVAL: '-', INVSTASST_NETASST_TOTAMT: '' },
+    ],
+    etn: [{ ISU_CD: '580068', ISU_NM: 'y', ACC_TRDVAL: '0', MKTCAP: '65080000000' }],
+  };
+
+  it('순자산은 ETF 순자산총액, ETN 시가총액이고 숫자가 아닌 값은 뺀다', () => {
+    expect(krxAumByTicker(day)).toEqual(
+      new Map([
+        ['261220', 35893665344],
+        ['580068', 65080000000],
+      ]),
+    );
+  });
+
+  it('거래대금은 ACC_TRDVAL이고 0은 남긴다', () => {
+    expect(krxTradingValueByTicker(day)).toEqual(
+      new Map([
+        ['261220', 867291785],
+        ['580068', 0],
+      ]),
+    );
   });
 });
 

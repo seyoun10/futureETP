@@ -197,7 +197,7 @@ erDiagram
         decimal expense_ratio "총보수 %"
         string issuer_url
         decimal aum "순자산. 국내 ETF totalNav, ETN 시가총액, 미국 totalAssets"
-        decimal avg_trading_value "최근 20거래일 평균 거래대금(종가×거래량, 시리즈 합산)"
+        decimal avg_trading_value "최근 20거래일 평균 거래대금(국내 KRX 거래대금, 미국 종가×거래량, 시리즈 합산)"
         string grouping_key "발행사|원자재|배수|환헤지 (ETN 시리즈 묶기)"
         bool needs_review "미국 새 후보, 매핑 전까지 목록 제외"
         timestamp review_notified_at "새 후보 알림 1회(D-025)"
@@ -225,7 +225,7 @@ erDiagram
 - **미국 분류 매핑표**: 심볼 → 원자재·배수·`roll_rule_ref`를 코드의 시드 데이터로 둔다(D-016). 매핑표에 없는 후보는 `needs_review=true`로 저장하고 목록에서 뺀다. 알림은 처음 발견한 배치에서 1회 보내고 `review_notified_at`에 남긴다(D-025).
 - **다수 판정 하한**: `aum`이 미국 $10M, 국내 10억 원 미만인 상품은 세지 않는다(D-015).
 - **필터·정렬 값**: `market`, `type`, `leverage`, `fx_hedge`, `name`으로 C-d의 필터 4종과 기본 정렬을 처리하고, `aum`·`avg_trading_value`로 정렬 선택을 처리한다(D-017). 통화는 `market`으로 정해진다(KRX 원, US 달러).
-- **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 최근 45일 일봉(연휴가 껴도 20거래일을 채우도록)(국내 네이버 `siseJson`, 미국 Yahoo `chart`)을 받아 다시 계산해 덮어쓴다. 거래가 없는 날(거래량 0)은 0으로 넣고, 값이 빠진 날은 뺀다.
+- **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 다시 받아 계산해 덮어쓴다. 국내는 KRX 일별 목록을 기준일부터 거슬러 20거래일(최대 40일 전까지) 받아 `ACC_TRDVAL`을, 미국은 최근 45일 Yahoo `chart` 일봉의 종가×거래량을 쓴다(D-017). 거래가 없는 날(0)은 0으로 넣고, 값이 빠진 날(상장 전 포함)은 뺀다. 순자산은 기준일 값(국내 ETF 순자산총액, ETN 시가총액)을 상장 중 시리즈끼리 합산한다.
 
 ## 5~6. 설정·알림·운영
 > 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 단일 행으로 둔다.
