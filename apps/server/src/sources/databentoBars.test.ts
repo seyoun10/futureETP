@@ -63,6 +63,12 @@ describe('parseDefinition', () => {
     });
   });
 
+  it('연도 2자리 raw 심볼도 만기 연·월로 매핑한다', () => {
+    expect(
+      parseDefinition({ ...row, raw_symbol: 'CLF30', maturity_year: '2030', maturity_month: '1' }),
+    ).toMatchObject({ symbol: 'CLF30', contractMonth: '2030-01' });
+  });
+
   it('스프레드·옵션·다른 상품은 버린다', () => {
     expect(parseDefinition({ ...row, instrument_class: 'S' })).toBeNull();
     expect(parseDefinition({ ...row, asset: 'HO' })).toBeNull();

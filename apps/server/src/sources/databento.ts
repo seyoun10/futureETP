@@ -1,7 +1,6 @@
 // Databento 과거 데이터 HTTP API(D-020, D-048). 2010-06~ 일봉 1회 적재에만 쓴다.
 // 요청 형식은 공식 Python 클라이언트와 같다: POST form, Basic 인증(사용자 = API 키, 비밀번호 없음).
-import { createWriteStream } from 'node:fs';
-import { rename } from 'node:fs/promises';
+import { open, rename, rm } from 'node:fs/promises';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
@@ -79,23 +78,31 @@ export function createDatabentoClient(apiKey: string, fetchFn: typeof fetch = fe
       return Number(await response.text());
     },
 
-    // CSV(zstd 압축)로 받아 path에 쓴다. 받는 중 실패하면 path는 생기지 않는다(.part만 남음).
+    // CSV(zstd 압축)로 받아 path에 쓴다. 받는 중 실패하면 path는 생기지 않고 .part도 지운다.
     // 요청할 때마다 과금되므로 호출자가 이미 받은 파일이면 부르지 않는다.
-    // .part가 이미 있으면(다른 프로세스가 받는 중) 섞어 쓰지 않고 실패한다. 남은 .part는 지우고 다시 실행한다
+    // .part가 이미 있으면(다른 프로세스가 받는 중) 요청(과금) 전에 실패한다. 강제 종료로 남은 .part는 지우고 다시 실행한다
     async downloadCsv(r: RangeRequest, path: string): Promise<void> {
-      const form = rangeForm(r);
-      form.set('encoding', 'csv');
-      form.set('compression', 'zstd');
-      form.set('pretty_px', 'true');
-      form.set('pretty_ts', 'true');
-      form.set('map_symbols', 'true');
-      const response = await request('timeseries.get_range', { method: 'POST', body: form });
-      if (!response.body) throw new Error('Databento: empty response body');
       const part = `${path}.part`;
-      await pipeline(
-        Readable.fromWeb(response.body as WebReadableStream<Uint8Array>),
-        createWriteStream(part, { flags: 'wx' }),
-      );
+      const file = await open(part, 'wx');
+      try {
+        const form = rangeForm(r);
+        form.set('encoding', 'csv');
+        form.set('compression', 'zstd');
+        form.set('pretty_px', 'true');
+        form.set('pretty_ts', 'true');
+        form.set('map_symbols', 'true');
+        const response = await request('timeseries.get_range', { method: 'POST', body: form });
+        if (!response.body) throw new Error('Databento: empty response body');
+        await pipeline(
+          Readable.fromWeb(response.body as WebReadableStream<Uint8Array>),
+          file.createWriteStream(),
+        );
+      } catch (error) {
+        // 이 프로세스가 만든 .part라 지워도 된다(재시도가 다시 만든다)
+        await file.close().catch(() => {});
+        await rm(part, { force: true });
+        throw error;
+      }
       await rename(part, path);
     },
   };

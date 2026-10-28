@@ -2,7 +2,7 @@
 // ohlcv-1d는 UTC 날짜로 잘려 CME 거래일과 맞지 않아 쓰지 않는다. OHLC도 statistics에서 만든다.
 // 행 모양은 Databento CSV(pretty_px·pretty_ts, 헤더 이름 → 값)다.
 import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
-import { toContractSymbol } from '../calc/contractSymbol.ts';
+import { MONTH_CODES, toContractSymbol } from '../calc/contractSymbol.ts';
 import { CME_TIME_ZONE, addDays } from '../calc/tradingCalendar.ts';
 
 export type CsvRow = Readonly<Record<string, string>>;
@@ -67,11 +67,14 @@ export type ContractInfo = {
   lastTradeDate: string;
 };
 
+// 단일 월물 raw 심볼의 원자재 코드 뒤: 월 코드 + 연도 1자리(CLZ6) 또는 2자리(NGF27, D-088)
+const OUTRIGHT_SUFFIX = new RegExp(`^[${MONTH_CODES.join('')}]\\d{1,2}$`);
+
 // definition 행 → 단일 월물 계약. 연도 1자리 심볼 대신 만기 연·월로 표준 심볼을 만든다(D-049)
 export function parseDefinition(row: CsvRow): ContractInfo | null {
   if (row.instrument_class !== 'F' || row.security_type !== 'FUT') return null;
   const code = COMMODITY_CODES.find((c) => c === row.asset);
-  if (!code || row.raw_symbol.length !== code.length + 2) return null;
+  if (!code || !OUTRIGHT_SUFFIX.test(row.raw_symbol.slice(code.length))) return null;
   const contractMonth = `${row.maturity_year}-${row.maturity_month.padStart(2, '0')}`;
   return {
     instrumentId: row.instrument_id,
