@@ -22,6 +22,16 @@ export type Locale = (typeof LOCALES)[number];
 export const PLATFORMS = ['IOS', 'ANDROID'] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
+// ETP 상장 시장·종류·환헤지(C-d 필터, data-model.md 4. ETP). 미국 상장은 환헤지 구분이 없어 NA다.
+export const ETP_MARKETS = ['KRX', 'US'] as const;
+export type EtpMarket = (typeof ETP_MARKETS)[number];
+
+export const ETP_TYPES = ['ETF', 'ETN'] as const;
+export type EtpType = (typeof ETP_TYPES)[number];
+
+export const FX_HEDGES = ['HEDGED', 'UNHEDGED', 'NA'] as const;
+export type FxHedge = (typeof FX_HEDGES)[number];
+
 // 장 상태(D-022, architecture.md freshness)
 export const MARKET_STATES = ['OPEN', 'CLOSED', 'SETTLEMENT_PENDING'] as const;
 export type MarketState = (typeof MARKET_STATES)[number];

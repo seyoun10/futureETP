@@ -189,19 +189,19 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ### 5-8. 알림
 - [x] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037) (2026-10-28, 키는 저장소 밖, dry run으로 인증 확인)
-- [ ] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
+- [x] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
   - [x] 서버 `PUT /v1/devices`(shared `devices.ts`, `pushToken` 기준 upsert) (2026-10-28)
   - [x] 앱 `push/`: `expo-notifications` 네이티브 토큰·권한 요청·실행 때(접근 키 저장 직후 포함) `PUT /v1/devices`, 토큰 바뀌면 다시 등록 (2026-10-28)
   - [x] 에뮬레이터로 실제 푸시 수신 확인 (2026-10-28, 기기 등록·채널 2개·FCM 발송 → alerts 채널 수신)
   - [x] 무효 토큰 삭제: 발송 결과 `INVALID_TOKEN`(FCM `UNREGISTERED`·APNs 410)이면 행 삭제(`push/broadcast.ts`) (2026-10-28)
-- [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
+- [x] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
   - [x] shared `push.ts`: rare 레벨·운영 알림 문구(ko/en), Android 채널 id(`alerts`·`ops`) (2026-10-28)
   - [x] 서버 `push/` 발송 인터페이스(`PushSender`)·전체 기기 발송(`broadcast`, 한 기기라도 성공하면 전달)·가짜 발송기 (2026-10-28)
   - [x] FCM HTTP v1 발송기: `push/fcmSender.ts`(`firebase-admin`, `alerts`·`ops` 채널 지정, 본문 없으면 제목만, `UNREGISTERED`면 `INVALID_TOKEN`, iOS는 APNs 전까지 `FAILED`). 실제 발송 확인은 서비스 계정 키 뒤 (2026-10-28)
   - [x] 운영 알림: 스케줄러가 재시도까지 실패하면 `jobFailedPush`를 `ops` 채널로 발송, 같은 작업·거래일은 다시 성공할 때까지 1회(`jobs/opsAlert.ts`, `ops_notified_at`) (2026-10-28)
   - [x] `main.ts`에 운영 알림 연결(`push/configuredSender.ts`, 키 없으면 모두 `FAILED`) (2026-10-28)
   - [x] 앱 Android 채널 만들기(`alerts` 높음·`ops` 기본, 이름은 표시 언어) (2026-10-28)
-- [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
+- [x] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
   - [x] 판정·기록·즉시 발송: `jobs/rareAlert.ts`(알림 원자재만, 판정 중지·기준값 대체, 보낼 행은 `RETRY`로 먼저 넣고 발송 결과로 `SENT`/`RETRY`, 거부 시간 `HELD`) + `INTRADAY` 연결 + `db/rareAlertStore.ts` (2026-10-28)
   - [x] `RETRY` 재발송(`planRetries`): 공통 `createAlertRetry`(지난 슬롯의 `RETRY`만, 덮였으면 `SUPPRESSED`, 거부 시간이면 대기, 다시 실패면 `FAILED`) + `INTRADAY`·`DEFERRED_PUSH` 앞단 연결 (2026-10-28)
   - [x] `DEFERRED_PUSH` 작업: `jobs/deferredPush.ts`(재발송 → `createDeferredAlert`), `planDeferred`로 원자재·방향별 가장 드문 `HELD` 1건을 지연 발송 문구로 보내고 나머지 `SUPPRESSED`, 실패면 `RETRY` (2026-10-28)
@@ -213,8 +213,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 알림 거부 시간: 켜기(기본 23:00~07:00)·끄기(null), 30분 단위 48칸 시트, 반대쪽 시각은 막음, 자정 넘김은 (다음 날) 표시(`QuietTimeSection.tsx`) (2026-10-28)
 
 ### 5-9. ETP
-- [ ] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
+- [x] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
   - [x] KRX Open API 가입·필드 확인, ETN 만기일 소스 조사 → 만기일·상장일은 손 입력 선택 필드 (2026-10-28, D-096)
+  - [x] `etp_product`·`etp_series` 테이블(`0004_etp`), shared `ETP_MARKETS`·`ETP_TYPES`·`FX_HEDGES`. 미국 새 후보는 매핑 전이라 원자재·종류·배수·규칙 nullable (2026-10-28)
 - [ ] 국내 수집기(네이버·`siseJson`·KRX): 종목명 파싱(배수·환헤지·시리즈), 시리즈 묶기, 상장폐지 처리
 - [ ] 미국 수집기(Nasdaq·Yahoo) + 매핑표(D-016), 새 후보 1회 알림(D-025), 최소 순자산(D-015)
 - [ ] `ETP` 작업: 순자산·평균 거래대금(D-017), 다수 판정 재계산·변경 알림(D-024)

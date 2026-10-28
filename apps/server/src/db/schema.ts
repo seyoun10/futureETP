@@ -22,6 +22,9 @@ import {
   BASES,
   COMMODITY_CODES,
   DIRECTIONS,
+  ETP_MARKETS,
+  ETP_TYPES,
+  FX_HEDGES,
   LOCALES,
   PLATFORMS,
   WINDOWS,
@@ -265,7 +268,67 @@ export const indexSnapshot = pgTable(
   ],
 );
 
-// 5. 설정·알림 (ETP 영역 4는 5-9에서 추가)
+// 4. ETP
+
+// 미국 새 후보(needs_review)는 매핑표(D-016)에 넣기 전이라 원자재·종류·배수·규칙이 비어 있을 수 있다.
+export const etpProduct = pgTable(
+  'etp_product',
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    commodityCode: commodityCode().references(() => commodity.code),
+    market: text({ enum: ETP_MARKETS }).notNull(),
+    type: text({ enum: ETP_TYPES }),
+    // 예: 1, 2, -1, -2
+    leverage: decimal(),
+    fxHedge: text({ enum: FX_HEDGES }).notNull(),
+    // 원문
+    name: text().notNull(),
+    nameLang: text({ enum: LOCALES }).notNull(),
+    issuer: text(),
+    // 국내 ETN은 KRX IDX_IND_NM(D-096)
+    underlyingIndex: text(),
+    // 총보수 %
+    expenseRatio: decimal(),
+    issuerUrl: text(),
+    // 국내 ETF totalNav, ETN 시가총액, 미국 totalAssets. 통화는 market으로 정해진다.
+    aum: decimal(),
+    // 최근 20거래일 평균(종가×거래량, ETN은 상장 중 시리즈 합산, D-017)
+    avgTradingValue: decimal(),
+    // 발행사|원자재|배수|환헤지 (ETN 시리즈 묶기, D-096)
+    groupingKey: text(),
+    needsReview: boolean().notNull().default(false),
+    // 새 후보 알림 1회(D-025)
+    reviewNotifiedAt: utc(),
+    // roll_rule.rule_id와 같은 식별자 체계, FK 아님(D-024)
+    rollRuleRef: text(),
+    // 모든 시리즈가 상장폐지되면 false
+    isActive: boolean().notNull().default(true),
+    source: source().notNull(),
+    collectedAt: utc().notNull(),
+  },
+  (t) => [index().on(t.commodityCode), index().on(t.groupingKey)],
+);
+
+// ETF는 시리즈 1개다. 국내 ETN 상장일·만기일은 자동 소스가 없어 손으로 넣는다(D-096).
+export const etpSeries = pgTable(
+  'etp_series',
+  {
+    // 종목코드(국내 6자리, 미국 심볼)
+    ticker: text().primaryKey(),
+    productId: uuid()
+      .notNull()
+      .references(() => etpProduct.id),
+    // ETN A/B..., ETF는 null
+    seriesCode: text(),
+    listedDate: day(),
+    // ETN만
+    maturityDate: day(),
+    delistedDate: day(),
+  },
+  (t) => [index().on(t.productId)],
+);
+
+// 5. 설정·알림
 
 // 단일 행(id=1). 기본값은 product.md 전역 설정
 export const appSettings = pgTable(
