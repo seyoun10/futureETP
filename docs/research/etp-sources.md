@@ -44,6 +44,7 @@
 - KRX Open API 실측(2026-10-28, 인증키·서비스 승인 뒤): 요청은 `?basDd=YYYYMMDD` + 헤더 `AUTH_KEY`, 하루치 전 종목이 한 번에 온다(ETF 1,186행 약 530KB, ETN 359행 약 160KB). 종목 필터는 없다. 휴장일은 빈 배열이다.
   - ETF 필드: `BAS_DD`·`ISU_CD`·`ISU_NM`·`TDD_CLSPRC`·`CMPPREVDD_PRC`·`FLUC_RT`·`NAV`·`TDD_OPNPRC`·`TDD_HGPRC`·`TDD_LWPRC`·`ACC_TRDVOL`·`ACC_TRDVAL`(거래대금)·`MKTCAP`·`INVSTASST_NETASST_TOTAMT`(순자산)·`LIST_SHRS`·`IDX_IND_NM`(기초지수명)·`OBJ_STKPRC_IDX`(기초지수 값)·`CMPPREVDD_IDX`·`FLUC_RT_IDX`
   - ETN 필드: ETF와 같고 `NAV`·순자산 대신 `PER1SECU_INDIC_VAL`(지표가치)·`INDIC_VAL_AMT`(지표가치 총액). **만기일·상장일 필드는 없다**(기초지수명 `IDX_IND_NM`은 있음). 만기일은 다른 소스가 필요하다.
+- ETN 만기일 소스 추가 조사(2026-10-28): 무료·비로그인으로 만기일·상장일을 주는 소스를 찾지 못했다. KRX Open API 증권상품 서비스는 ETF·ETN·ELW 일별매매정보뿐이고(종목기본정보는 주식만), data.krx.co.kr `getJsonData.cmd`는 비로그인에 400 `LOGOUT`, 공공데이터포털 증권상품시세정보(15094806)·KRX 상장종목정보(15094775)에는 만기일 필드가 보이지 않는다(활용가이드 전체 명세는 미확인). 네이버 모바일 `basic`·`integration`에도 없다. 남은 후보는 발행사 지수 문서(PDF, URL 규칙이 발행사마다 다름)다.
   - `OBJ_STKPRC_IDX`로 S&P GSCI 지수 이력을 받아 한국형 지수를 재검증했다(D-089).
 
 ## 미국 상품 (Nasdaq 스크리너 + Yahoo, 2026-10-22)

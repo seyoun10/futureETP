@@ -182,6 +182,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 실측: quote는 crumb 필요(401), spark는 20개·종가만, chart는 월물별·제한 없음, 고가·저가·거래량은 17:00 CT 세션 누적, 약 10분 지연 (2026-10-28, `docs/research/market-data.md`)
   - [x] 호출 전략 결정: 지수 월물은 chart, 나머지 커브 월물은 spark (2026-10-28, D-094)
 - [ ] `INTRADAY` 작업: `intraday_snapshot`·`index_snapshot`(이평선 4종 이격도), 정산 대기·휴장 중지, 응답 형식 검증 실패 = 배치 실패
+  - [x] Yahoo 장중 소스(`sources/yahooIntraday.ts`): chart 세션 값·spark 현재가, 404 월물은 빠짐, 응답 zod 검증 (2026-10-28, D-094)
+  - [ ] 작업 본체: 대상 월물 선정·스냅숏 저장·잠정 지수·이격도
 - [ ] A·C freshness 장중 값·오늘 잠정 봉 반영 확인
 
 ### 5-8. 알림
