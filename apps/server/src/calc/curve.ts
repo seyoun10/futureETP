@@ -153,3 +153,133 @@ export function curveSummary(m1: CurvePoint | null, m2: CurvePoint | null): Curv
     daysBetween,
   };
 }
+
+export type BaseDateRange = {
+  baseDate: string;
+  // D부터 센 거래일 수(D-1이면 1)
+  baseOffset: number;
+  prevBaseDate: string | null;
+  nextBaseDate: string | null;
+  minBaseDate: string;
+  maxBaseDate: string;
+};
+
+// C-b 기준일을 거래일로 맞춘다(D-021). 범위는 minBaseDate(가장 이른 일봉 날짜) ~ D-1이다.
+// 요청이 없으면 D-1, D-1보다 뒤면 D-1, 휴장일이면 직전 거래일, 그 직전 거래일이 하한보다 앞이면
+// 하한 이후 첫 거래일이다. tradeDates(오름차순)는 요청일 앞부터 D까지 있어야 한다.
+// D-1이 하한보다 앞이면(일봉이 D 하루뿐) null
+export function resolveBaseDate(
+  tradeDates: readonly string[],
+  currentDate: string,
+  minBaseDate: string,
+  requested: string | null,
+): BaseDateRange | null {
+  const range = tradeDates.filter((d) => d >= minBaseDate && d < currentDate);
+  const maxBaseDate = range.at(-1);
+  if (maxBaseDate === undefined) return null;
+  const target = requested === null || requested > maxBaseDate ? maxBaseDate : requested;
+  const index = Math.max(
+    range.findLastIndex((d) => d <= target),
+    0,
+  );
+  const baseDate = range[index];
+  return {
+    baseDate,
+    baseOffset: tradeDates.filter((d) => d > baseDate && d <= currentDate).length,
+    prevBaseDate: range[index - 1] ?? null,
+    nextBaseDate: range[index + 1] ?? null,
+    minBaseDate,
+    maxBaseDate,
+  };
+}
+
+export type CurveBar = {
+  contractSymbol: string;
+  tradeDate: string;
+  settle: number;
+  volume: number;
+  collectedAt: Date;
+  revisedAt: Date | null;
+};
+
+export type CurveInput = {
+  // 최종 거래일이 기준일 이후인 월물
+  contracts: readonly ListedContract[];
+  // 오름차순. 기준일·D 각각의 거래량 창(20거래일)을 덮어야 한다
+  tradeDates: readonly string[];
+  baseDate: string;
+  // D(marketStatus.tradeDate)와 그날 정산이 끝났는지
+  currentDate: string;
+  currentSettled: boolean;
+  // 그날 보유한 대표월물 = 그 전 거래일 FRONT roll_weight 행(D-068)
+  baseFront: string | null;
+  currentFront: string | null;
+  bars: readonly CurveBar[];
+  // 월물별 D의 최근 스냅숏
+  snapshots: readonly { contractSymbol: string; capturedAt: Date; last: number }[];
+};
+
+export type CurveStatsResult = CurveSummary & { m1ContractMonth: string; m2ContractMonth: string };
+
+export type CurveResult = {
+  points: CurveComparisonPoint[];
+  base: CurveStatsResult | null;
+  current: CurveStatsResult | null;
+  // D 커브 값 중 가장 늦은 시각. 값이 하나도 없으면 null
+  asOf: Date | null;
+  // D 커브에 장중 스냅숏을 하나라도 썼는지
+  delayed: boolean;
+};
+
+// C-b 조회 조립(D-046, D-068). 기준일 값은 정산가, D 값은 정산가 → 최근 스냅숏 순(D-048)이다.
+export function buildCurve(input: CurveInput): CurveResult {
+  const barsBySymbol = Map.groupBy(input.bars, (b) => b.contractSymbol);
+  const settleOn = (symbol: string, date: string) =>
+    barsBySymbol.get(symbol)?.find((b) => b.tradeDate === date);
+  const baseWindow = volumeWindow(input.tradeDates, input.baseDate, true);
+  const currentWindow = volumeWindow(input.tradeDates, input.currentDate, input.currentSettled);
+
+  let asOf: number | null = null;
+  let delayed = false;
+  const baseCandidates = input.contracts.map((c) => ({
+    ...c,
+    price: settleOn(c.symbol, input.baseDate)?.settle ?? null,
+    avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], baseWindow),
+  }));
+  const currentCandidates = input.contracts.map((c) => {
+    const settled = settleOn(c.symbol, input.currentDate);
+    const snapshot = input.snapshots.find((s) => s.contractSymbol === c.symbol);
+    return {
+      ...c,
+      price: settled?.settle ?? snapshot?.last ?? null,
+      // 값을 매긴 시각. 스냅숏이면 지연 시세다
+      valuedAt: settled ? (settled.revisedAt ?? settled.collectedAt) : snapshot?.capturedAt,
+      fromSnapshot: !settled && snapshot !== undefined,
+      avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], currentWindow),
+    };
+  });
+  const base = selectCurve(baseCandidates, input.baseDate, input.baseFront);
+  const current = selectCurve(currentCandidates, input.currentDate, input.currentFront);
+  for (const c of current.contracts) {
+    delayed ||= c.fromSnapshot;
+    if (c.valuedAt) asOf = Math.max(asOf ?? 0, c.valuedAt.getTime());
+  }
+
+  const stats = (curve: Curve): CurveStatsResult | null => {
+    const summary = curveSummary(curve.m1, curve.m2);
+    return summary && curve.m1 && curve.m2
+      ? {
+          ...summary,
+          m1ContractMonth: curve.m1.contractMonth,
+          m2ContractMonth: curve.m2.contractMonth,
+        }
+      : null;
+  };
+  return {
+    points: compareCurves(base.contracts, current.contracts),
+    base: stats(base),
+    current: stats(current),
+    asOf: asOf === null ? null : new Date(asOf),
+    delayed,
+  };
+}

@@ -5,10 +5,13 @@ import {
   CURVE_MIN_AVG_VOLUME,
   CURVE_VOLUME_DAYS,
   averageVolume,
+  buildCurve,
   compareCurves,
   curveSummary,
+  resolveBaseDate,
   selectCurve,
   volumeWindow,
+  type CurveBar,
   type CurveCandidate,
   type CurvePoint,
 } from './curve.ts';
@@ -436,5 +439,151 @@ describe('curveSummary', () => {
   it('두 최종 거래일 사이 일수가 0 이하이면 null이다', () => {
     expect(curveSummary(ngDec, { ...ngJan, lastTradeDate: ngDec.lastTradeDate })).toBeNull();
     expect(curveSummary(ngJan, ngDec)).toBeNull();
+  });
+});
+
+describe('resolveBaseDate', () => {
+  // 2026-10-12(월) ~ 10-23(금) 평일 10개, 10-16(금)은 휴장
+  const DAYS = weekdays(10, '2026-10-12').filter((d) => d !== '2026-10-16');
+  const D = '2026-10-23';
+
+  it('요청이 없으면 D-1이고 다음 기준일은 없다', () => {
+    expect(resolveBaseDate(DAYS, D, '2026-10-12', null)).toEqual({
+      baseDate: '2026-10-22',
+      baseOffset: 1,
+      prevBaseDate: '2026-10-21',
+      nextBaseDate: null,
+      minBaseDate: '2026-10-12',
+      maxBaseDate: '2026-10-22',
+    });
+  });
+
+  it('D-n의 n은 기준일부터 D까지의 거래일 수다(휴장일 제외)', () => {
+    // 10-15 → 10-19, 20, 21, 22, 23 = 5거래일
+    expect(resolveBaseDate(DAYS, D, '2026-10-12', '2026-10-15')?.baseOffset).toBe(5);
+  });
+
+  it('휴장일·주말은 직전 거래일로 옮긴다', () => {
+    const holiday = resolveBaseDate(DAYS, D, '2026-10-12', '2026-10-16');
+    expect(holiday?.baseDate).toBe('2026-10-15');
+    expect(holiday?.nextBaseDate).toBe('2026-10-19');
+    expect(resolveBaseDate(DAYS, D, '2026-10-12', '2026-10-18')?.baseDate).toBe('2026-10-15');
+  });
+
+  it('D와 그 뒤 날짜는 D-1로 옮긴다', () => {
+    expect(resolveBaseDate(DAYS, D, '2026-10-12', D)?.baseDate).toBe('2026-10-22');
+    expect(resolveBaseDate(DAYS, D, '2026-10-12', '2026-11-30')?.baseDate).toBe('2026-10-22');
+  });
+
+  it('하한보다 앞이면 하한 이후 첫 거래일이고 이전 기준일은 없다', () => {
+    const r = resolveBaseDate(DAYS, D, '2026-10-14', '2026-10-01');
+    expect(r?.baseDate).toBe('2026-10-14');
+    expect(r?.prevBaseDate).toBeNull();
+    // 직전 거래일(10-13)이 하한보다 앞이면 이후 거래일로
+    expect(resolveBaseDate(DAYS, D, '2026-10-14', '2026-10-13')?.baseDate).toBe('2026-10-14');
+  });
+
+  it('D-1이 하한보다 앞이면 null이다', () => {
+    expect(resolveBaseDate(DAYS, D, D, null)).toBeNull();
+  });
+});
+
+describe('buildCurve', () => {
+  const DAYS = weekdays(25, '2026-09-21');
+  const D = DAYS.at(-1)!;
+  const BASE = DAYS.at(-2)!;
+  const at = (iso: string) => new Date(iso);
+  const contract = (month: string, lastTradeDate: string) => ({
+    symbol: toContractSymbol('CL', month),
+    contractMonth: month,
+    lastTradeDate,
+    isTarget: true,
+  });
+  // DEC26(M1)·JAN27(M2)·FEB27, 매일 거래량 1000
+  const CONTRACTS = [
+    contract('2026-12', '2026-11-20'),
+    contract('2027-01', '2026-12-18'),
+    contract('2027-02', '2027-01-20'),
+  ];
+  const bars = (month: string, date: string, settle: number): CurveBar => ({
+    contractSymbol: toContractSymbol('CL', month),
+    tradeDate: date,
+    settle,
+    volume: 1000,
+    collectedAt: at(`${date}T23:40:00Z`),
+    revisedAt: null,
+  });
+  const history = (month: string, settle: number) =>
+    DAYS.slice(0, -1).map((d) => bars(month, d, settle));
+  const BARS = [...history('2026-12', 70), ...history('2027-01', 71), ...history('2027-02', 72)];
+  const input = (over: Partial<Parameters<typeof buildCurve>[0]> = {}) =>
+    buildCurve({
+      contracts: CONTRACTS,
+      tradeDates: DAYS,
+      baseDate: BASE,
+      currentDate: D,
+      currentSettled: true,
+      baseFront: 'CLZ26',
+      currentFront: 'CLZ26',
+      bars: BARS,
+      snapshots: [],
+      ...over,
+    });
+
+  it('기준일은 정산가, D는 정산가로 변화율을 매기고 asOf는 가장 늦은 수집 시각이다', () => {
+    const r = input({
+      bars: [...BARS, bars('2026-12', D, 77), bars('2027-01', D, 71), bars('2027-02', D, 72)],
+    });
+    expect(r.points.map((p) => [p.contractMonth, p.basePrice, p.currentPrice])).toEqual([
+      ['2026-12', 70, 77],
+      ['2027-01', 71, 71],
+      ['2027-02', 72, 72],
+    ]);
+    expect(r.points[0].changePct).toBeCloseTo(10);
+    expect(r.delayed).toBe(false);
+    expect(r.asOf).toEqual(at(`${D}T23:40:00Z`));
+    expect(r.base).toMatchObject({
+      m1ContractMonth: '2026-12',
+      m2ContractMonth: '2027-01',
+      state: 'CONTANGO',
+    });
+    expect(r.current?.state).toBe('BACKWARDATION');
+  });
+
+  it('D 정산가가 없으면 최근 스냅숏을 쓰고 지연 시세로 표시한다', () => {
+    const r = input({
+      currentSettled: false,
+      snapshots: [{ contractSymbol: 'CLZ26', capturedAt: at(`${D}T15:00:00Z`), last: 75 }],
+    });
+    // 스냅숏이 없는 월물은 D 커브에서 빠지고, M2가 없어 D 요약은 null이다
+    expect(r.points.map((p) => p.currentPrice)).toEqual([75, null, null]);
+    expect(r.delayed).toBe(true);
+    expect(r.asOf).toEqual(at(`${D}T15:00:00Z`));
+    expect(r.current).toBeNull();
+  });
+
+  it('D 값이 하나도 없으면 asOf는 null이고 기준일 커브만 남는다', () => {
+    const r = input({ currentSettled: false });
+    expect(r.asOf).toBeNull();
+    expect(r.points.every((p) => p.currentPrice === null && p.basePrice !== null)).toBe(true);
+  });
+
+  it('기준일 커브와 D 커브는 각자 거래량 창으로 월물을 고른다', () => {
+    // FEB27은 기준일까지 거래가 없다가 D에 5,000계약 → D 창 평균 250
+    const quiet = BARS.map((b) => (b.contractSymbol === 'CLG27' ? { ...b, volume: 0 } : b));
+    const r = input({
+      bars: [
+        ...quiet,
+        bars('2026-12', D, 70),
+        bars('2027-01', D, 71),
+        { ...bars('2027-02', D, 72), volume: 5000 },
+      ],
+    });
+    expect(r.points.at(-1)).toMatchObject({
+      contractMonth: '2027-02',
+      basePrice: null,
+      currentPrice: 72,
+      changePct: null,
+    });
   });
 });

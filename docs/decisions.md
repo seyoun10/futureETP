@@ -1424,3 +1424,20 @@
   - 한국형 CL·NG(GSCI 매월 롤)는 KODEX 종가가 정산 뒤 아시아 장 움직임과 환헤지를 포함해 일일 잔차가 200bp 수준이고, 이 정밀도에서는 FRONT와 구분되지 않는다. 롤 기계 장치는 미국형과 같은 코드라 일정 표만 남는 위험이다. NAV 이력(KRX Open API `etf_bydd_trd`)을 받으면 같은 방법으로 다시 확인한다.
   - 2018 이전 UGL·AGQ, 2020 이전 UCO 잔차는 우리 데이터 문제가 아니다. 같은 Databento 적재인 BOIL은 2012년부터 일치한다. UCO는 2020년 기초지수를 BCBCLI로 바꿨고(ProShares 424B3), 금·은은 NAV 산출 시각 차이로 추정한다(미확인).
 - 영향: D-065 상태(BCBCLI 첫날 수량·BCOM 영업일 확인), TODO 5-4.
+
+## D-090: `GET /v1/commodities/:code/curve` — 기준일은 서버가 거래일로 맞추고 이동 날짜를 준다
+- 날짜: 2026-10-28
+- 상태: 확정
+- 맥락: TODO 5-6 C-b 첫 단계(서버). architecture.md 초안은 `?baseDate`와 "기준일·현재 커브, 스프레드·롤 수익률, freshness"만 정했다. 휴장일을 고른 기준일을 누가 옮기는지(D-021), −/+ 버튼과 `D-n` 표시에 필요한 거래일을 앱이 어떻게 아는지, 적재 전 응답이 정해지지 않았다.
+- 결정
+  - query: `baseDate`(선택, `YYYY-MM-DD`). 없으면 D-1. 서버가 거래일로 맞춘다: D-1보다 뒤면 D-1, 휴장일이면 직전 거래일, 그 직전 거래일이 하한(그 원자재의 가장 이른 일봉 날짜)보다 앞이면 하한 이후 첫 거래일이다. 형식이 틀리면 400 `VALIDATION_FAILED`, 모르는 원자재·일봉 없음(적재 전)·D-1이 하한보다 앞이면 404 `NOT_FOUND`.
+  - 응답(shared `curveSchema`): `freshness`(D = `tradeDate`), `priceDecimals`, 실제 `baseDate`, `baseOffset`(D부터 센 거래일 수 n), `prevBaseDate`·`nextBaseDate`(범위 끝이면 null), `minBaseDate`·`maxBaseDate`(D-1), `points`(만기순 `{ symbol, contractMonth, basePrice, currentPrice, changePct }`), `current`·`base`(M1→M2 `{ m1ContractMonth, m2ContractMonth, state, spreadPct, rollYieldPct }` 또는 null).
+  - 앱은 요청한 날짜와 응답 `baseDate`가 다르면 휴장일 안내를 띄우고, −/+는 `prevBaseDate`·`nextBaseDate`로 다시 조회한다.
+  - D 값: 그날 정산가 → 최근 스냅숏(D-048). 스냅숏을 하나라도 쓰면 `delayed: true`, `asOf`는 D 커브 값 중 가장 늦은 시각(값이 없으면 조회 시각). 정산 전·스냅숏 없음이면 D 커브는 비고 기준일 커브만 온다.
+  - 보유 대표월물(M1)은 그 날짜 미만 가장 최근 FRONT `roll_weight` 행이다(D-068). 2010-06 첫날은 행이 없어 요약이 null이다.
+  - 조회는 `db/curveStore.ts`(`CurveStore`), 기준일 해석·조립은 `calc/curve.ts` `resolveBaseDate`·`buildCurve`, 라우트는 `api/curve.ts` `loadCurve`다.
+- 근거
+  - 기준일 범위가 16년(약 4,100거래일)이라 앱에 거래일 목록을 보내면 화면 하나를 위해 응답이 커진다. 서버는 이미 `trading_day`를 읽으므로 맞춘 날짜와 이웃 날짜만 주면 앱은 달력을 몰라도 된다.
+  - 휴장일 안내는 요청 날짜와 응답 날짜 비교로 충분하다.
+  - dev DB 실측(2026-10-28): 조회 13~113ms(CL 24개·NG 24개·GC 11개·SI 5개 월물), 2020-04-17 CL 기준일은 M1 앞 MAY20(18.27)을 포함한다.
+- 영향: `createApp`에 `curve` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_CURVE`). 실소스(Massive)·`INTRADAY` 전에는 장중·정산 대기 동안 D 커브가 비어 있다.

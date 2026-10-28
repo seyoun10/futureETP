@@ -7,6 +7,14 @@ export {
   type ContractQuote,
 } from './commodities.ts';
 export {
+  curveContractSchema,
+  curveSchema,
+  curveStatsSchema,
+  type Curve,
+  type CurveContract,
+  type CurveStats,
+} from './curve.ts';
+export {
   disparityBarSchema,
   disparityChartSchema,
   rareLevelLineSchema,

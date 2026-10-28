@@ -1,5 +1,6 @@
 // 테스트 전용. 원자재 조회를 쓰지 않는 라우트 테스트의 createApp 인자
 import type { CommoditiesStore } from './commodities.ts';
+import type { CurveStore } from './curve.ts';
 import type { DisparityStore } from './disparity.ts';
 
 const unused = () => Promise.reject(new Error('unused'));
@@ -25,4 +26,16 @@ export const UNUSED_DISPARITY: DisparityStore = {
   scale: unused,
   latestIndexSnapshot: unused,
   distribution: unused,
+};
+
+export const UNUSED_CURVE: CurveStore = {
+  tradingDays: unused,
+  lastSettledTradeDate: unused,
+  latestSnapshots: unused,
+  priceDecimals: unused,
+  firstBarDate: unused,
+  tradeDates: unused,
+  contracts: unused,
+  frontSymbol: unused,
+  dailyBars: unused,
 };
