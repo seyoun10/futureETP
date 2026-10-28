@@ -14,11 +14,12 @@ const appId = isDev ? `${BASE_ID}.dev` : BASE_ID;
 const PROD_API_URL = 'https://futureetp.invalid';
 
 // dev 값은 apps/mobile/.env.local(커밋 안 함)에서 읽는다. prod config에는 넣지 않는다(D-044).
+// 값이 없으면 키를 뺀다. Expo가 config를 직렬화할 때 null을 {}로 바꾼다.
 const extra = isDev
   ? {
       variant,
-      apiUrl: env.DEV_API_URL ?? null,
-      devApiToken: env.DEV_API_TOKEN ?? null,
+      apiUrl: env.DEV_API_URL,
+      devApiToken: env.DEV_API_TOKEN,
     }
   : { variant, apiUrl: PROD_API_URL };
 
