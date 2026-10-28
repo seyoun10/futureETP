@@ -53,6 +53,19 @@ Yahoo 실측 (2026-10-22 13:30 UTC)
 - 일봉 거래량이 이틀 연속 같은 값으로 나온 경우가 있음 → 거래량은 Massive를 기준으로 쓴다
 - 비공식 API라 예고 없이 막힐 수 있다. 대체는 Massive Starter($29/월)
 
+Yahoo 실측 2차 (2026-10-28 00:49 CT, 5-7 장중 배치 준비)
+- 다중 심볼 조회
+  - `v7/finance/quote`: 401 Unauthorized. 쿠키·crumb 절차가 필요해 쓰지 않는다.
+  - `v8/finance/spark?symbols=…`: 인증 없이 된다. 한 번에 20개까지이고, 넘으면 400(`Number of symbols needs to be less than or equal to 20`)이다. 없는(만기) 심볼은 결과에서 빠질 뿐 오류가 아니다. 값은 5분봉 종가·전일 종가뿐이고 시가·고가·저가·거래량은 없다.
+  - `v8/finance/chart/<심볼>`: 월물마다 1회. 65회 연속 호출(23초)에 모두 200(만기 1개는 404), 제한에 걸리지 않았다.
+- 당일 고가·저가: chart `meta.regularMarketDayHigh`·`regularMarketDayLow`는 **17:00 CT 세션 시작부터 누적**이다. CLZ26·GCZ26 모두 17:00 CT 이후 5분봉 최고·최저와 정확히 같고, Yahoo의 `range=1d` 시작(자정 ET = 23:00 CT) 기준과는 다르다. D-022의 위험(대기 구간 터치를 놓침)은 없다.
+- 시가: chart `meta`에 시가 필드가 없다. `range=1d`는 23:00 CT부터라 세션 시가가 아니므로, `period1`을 세션 시작(17:00 CT)으로 주고 첫 5분봉 시가를 쓴다.
+- 거래량: `meta.regularMarketVolume`도 세션 누적이다(5분봉 합보다 조금 크다).
+- 정비 시간 16:00~17:00 CT의 5분봉은 값이 모두 `null`로 온다.
+- 지연: `regularMarketTime` 00:38:50 CT를 00:48:42 CT에 받음 → 약 10분 지연(1차와 같음).
+- 일봉 종가 = CME 정산가: CLZ26 10/23 103.27·10/26 101.76, GCZ26 4007.90·4038.40이 Databento 정산가와 같다. `meta.previousClose`는 직전 거래일 정산가다.
+- 장중 대상 월물 수(커브 최대 24개 기준): CL 24·NG 24·GC 12·SI 8 = 약 68개
+
 ## 장중 갱신 주기 (1시간보다 짧게 할 수 있는가)
 - 결론: 가능하다. 짧게 해도 소용 있는 하한은 **소스의 지연 시간**이다.
 
