@@ -194,6 +194,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [ ] 앱 `push/`: 토큰 받기(Firebase 설정 뒤)·실행 때 등록
   - [ ] 무효 토큰 삭제: FCM 발송 결과 `UNREGISTERED`면 행 삭제(발송 작업과 함께)
 - [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
+  - [x] shared `push.ts`: rare 레벨·운영 알림 문구(ko/en), Android 채널 id(`alerts`·`ops`) (2026-10-28)
+  - [ ] 서버 `push/` 발송 인터페이스(가짜 발송기로 테스트) → FCM HTTP v1 연결(서비스 계정 키 뒤)
+  - [ ] 앱 Android 채널 만들기(`push/`와 함께)
 - [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
 - [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
 

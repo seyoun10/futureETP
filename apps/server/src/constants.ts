@@ -4,18 +4,8 @@
 export const SOURCES = ['DATABENTO', 'MASSIVE', 'YAHOO', 'NAVER', 'KRX', 'NASDAQ', 'FAKE'] as const;
 export type Source = (typeof SOURCES)[number];
 
-// 배치 작업 이름. 스케줄러 등록 이름·CLI 인자·Healthchecks.io check slug와 같다(D-045).
-// 일일 정산은 ① DAILY_SETTLE(당일 저장·재계산, 성공 = 정산 대기 해제)과 ② SETTLE_REVISION(전일 정정 확인)이다(D-071).
-export const JOB_NAMES = [
-  'DAILY_SETTLE',
-  'SETTLE_REVISION',
-  'INTRADAY',
-  'DEFERRED_PUSH',
-  'ETP',
-  'CALENDAR',
-  'BACKUP',
-] as const;
-export type JobName = (typeof JOB_NAMES)[number];
+// 배치 작업 이름은 운영 알림 문구에도 쓰므로 shared에 둔다.
+export { JOB_NAMES, type JobName } from '@futureetp/shared';
 
 export const BATCH_STATUSES = ['RUNNING', 'SUCCESS', 'FAILED'] as const;
 export type BatchStatus = (typeof BATCH_STATUSES)[number];

@@ -29,3 +29,16 @@ export type MarketState = (typeof MARKET_STATES)[number];
 // 커브 상태(M1→M2로 판정, product.md 월물커브)
 export const CURVE_STATES = ['CONTANGO', 'BACKWARDATION', 'FLAT'] as const;
 export type CurveState = (typeof CURVE_STATES)[number];
+
+// 배치 작업 이름. 스케줄러 등록 이름·CLI 인자·Healthchecks.io check slug와 같다(D-045).
+// 일일 정산은 ① DAILY_SETTLE(당일 저장·재계산, 성공 = 정산 대기 해제)과 ② SETTLE_REVISION(전일 정정 확인)이다(D-071).
+export const JOB_NAMES = [
+  'DAILY_SETTLE',
+  'SETTLE_REVISION',
+  'INTRADAY',
+  'DEFERRED_PUSH',
+  'ETP',
+  'CALENDAR',
+  'BACKUP',
+] as const;
+export type JobName = (typeof JOB_NAMES)[number];
