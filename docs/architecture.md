@@ -51,7 +51,7 @@ futureETP/
 - `packages/shared`는 빌드 없이 TS 소스를 직접 export한다. 계산 코드는 넣지 않는다(앱은 계산하지 않음).
 - 앱 `@/` 별칭은 `apps/mobile/src`를 가리킨다. 화면 구현은 `src/features/` 아래 named export로 둔다.
 - 화면 전용 코드는 해당 feature 안에 두고, 두 곳 이상에서 쓰게 되면 공용 계층(`components`·`charts`·`lib` 등)으로 옮긴다.
-- 월물 심볼은 DB·API·화면에서 표준형(`CLZ26`)만 쓴다. 소스별 표기(Yahoo `CLZ26.NYM`·`GCZ26.CMX`, Databento `CLZ6`, Massive는 가입 후 확인)는 `sources/`의 각 수집기가 변환한다(D-049).
+- 월물 심볼은 DB·API·화면에서 표준형(`CLZ26`)만 쓴다. 소스별 표기(Yahoo `CLZ26.NYM`·`GCZ26.CMX`, Databento·Massive는 Globex 심볼 `CLZ6`·`CLF30`·`NGF27`)는 `sources/`의 각 수집기가 변환한다(D-049).
 - 서버 `jobs/`는 스케줄과 실행 기록(`batch_run`)만 맡고, 수집·계산·저장·발송은 `sources`·`calc`·`db`·`push`를 호출한다. `calc/`는 DB·네트워크에 의존하지 않아 Vitest 단위 테스트의 핵심 대상이다(D-038).
 - 루트 `package.json`의 `overrides`로 `react`·`react-native`를 앱과 같은 버전 하나로 고정한다. workspaces에서 peer로 끌어올려진 최신 `react`가 앱의 고정 버전과 따로 설치되는 것을 막는다(D-050). Expo SDK를 올릴 때 함께 고친다.
 - 서버는 빌드 없이 Node 타입 스트리핑으로 `src/main.ts`를 바로 실행한다. 서버·shared는 ESM, 상대 import에 `.ts` 확장자, `erasableSyntaxOnly`(enum·namespace 금지)를 지킨다. Docker 이미지에서도 shared는 workspaces 심볼릭 링크로 둔다(`node_modules` 아래 TS는 Node가 실행하지 않음, D-051).

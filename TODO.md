@@ -116,6 +116,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [ ] 한국형 CL·NG: KRX Open API 인증키 발급 뒤 KODEX WTI원유선물(H) NAV 이력으로 다시 비교(종가로는 FRONT와 구분 안 됨)
 - [ ] **[다음 작업]** Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
   - [x] 가입·필드·티커 형식·일괄 조회·Databento 정산가 일치 실측 (2026-10-28, `docs/research/market-data.md`: 정산가 일치, 월물별 1회, 거래 없는 날 봉 없음, 거래량 기준 다름)
+  - [x] Massive 수집기(`sources/massiveSettlement.ts`) + `DAILY_SETTLE`·`SETTLE_REVISION` 연결(prod·키 있는 dev), 가까운 26개 제한, 정정은 같은 소스 일봉만 (2026-10-28, D-095)
   - [ ] 정산가 반영 시각 실측(18:30 CT 이후)
   - [ ] 18:30 CT에 일부 월물 정산가가 빠지는지 실측(① 부분 응답 허용, D-071)
   - [x] 수집 범위·거래량 기준 결정: 가까운 26개, 거래 없는 날 봉 없음, 거래량 기준 그대로 (2026-10-28, D-095)
