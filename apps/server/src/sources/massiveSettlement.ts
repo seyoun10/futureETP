@@ -3,15 +3,18 @@
 import type { CommodityCode } from '@futureetp/shared';
 import { z } from 'zod';
 import { MONTH_CODES, toContractSymbol } from '../calc/contractSymbol.ts';
+import { tradesOn } from './settlement.ts';
 import type { ContractDefinition, SettlementSource, SourceBar } from './settlement.ts';
 
 const BASE_URL = 'https://api.massive.com';
 export const MIN_CALL_INTERVAL_MS = 13_000;
 export const RATE_LIMIT_WAIT_MS = 60_000;
 const MAX_ATTEMPTS = 3;
+// 응답이 멈춘 요청이 작업을 붙잡지 않게 한다
+export const REQUEST_TIMEOUT_MS = 30_000;
 // 월물마다 받는 최근 거래일 봉 수: 따라잡기 5거래일 + 정정 확인 1일 + 여유
 const SESSION_LIMIT = 10;
-// 받은 봉을 다시 쓰는 시간. 정산 작업 한 번(약 21분)과 이어지는 정정 확인을 덮는다
+// 받은 월물 정의·봉을 다시 쓰는 시간. 정산 작업 한 번(약 23분)과 이어지는 정정 확인을 덮는다
 export const BAR_CACHE_TTL_MS = 60 * 60_000;
 
 const contractsSchema = z.object({
@@ -30,7 +33,8 @@ const sessionBarSchema = z.object({
   open: z.number().nullish(),
   high: z.number().nullish(),
   low: z.number().nullish(),
-  volume: z.number(),
+  // 거래가 없던 세션은 거래량이 비어 올 수 있다
+  volume: z.number().nullish(),
   // 진행 중인 세션 봉은 정산가가 없다
   settlement_price: z.number().nullish(),
 });
@@ -70,6 +74,7 @@ export type MassiveDeps = {
   fetchFn?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
+  log?: (message: string) => void;
 };
 
 export function createMassiveSettlementSource({
@@ -77,11 +82,18 @@ export function createMassiveSettlementSource({
   fetchFn = fetch,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = Date.now,
+  log = console.log,
 }: MassiveDeps): SettlementSource {
   let lastCallAt = -Infinity;
   // 표준 심볼 → Massive 티커
   const tickers = new Map<string, string>();
+  const contractCache = new Map<
+    CommodityCode,
+    { fetchedAt: number; contracts: ContractDefinition[] }
+  >();
   const barCache = new Map<string, { fetchedAt: number; bars: SessionBar[] }>();
+  const fresh = (entry: { fetchedAt: number } | undefined) =>
+    entry !== undefined && now() - entry.fetchedAt < BAR_CACHE_TTL_MS;
 
   async function get(url: string): Promise<unknown> {
     if (!apiKey) throw new Error('MASSIVE_API_KEY is not set');
@@ -89,7 +101,10 @@ export function createMassiveSettlementSource({
       const wait = lastCallAt + MIN_CALL_INTERVAL_MS - now();
       if (wait > 0) await sleep(wait);
       lastCallAt = now();
-      const response = await fetchFn(url, { headers: { authorization: `Bearer ${apiKey}` } });
+      const response = await fetchFn(url, {
+        headers: { authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
       if (response.status === 429 && attempt < MAX_ATTEMPTS) {
         await sleep(RATE_LIMIT_WAIT_MS);
         continue;
@@ -102,8 +117,10 @@ export function createMassiveSettlementSource({
     }
   }
 
-  // 그날 기준 월물 정의 전부(만기 지난 월물 포함). 티커 표를 채운다
+  // 월물 정의 전부(만기 지난 월물 포함). 티커 표를 채운다. 따라잡기로 날짜가 여러 개여도 다시 쓴다(새로 상장된 먼 월물은 다음 실행에 들어온다)
   async function loadContracts(code: CommodityCode, tradeDate: string) {
+    const cached = contractCache.get(code);
+    if (cached && fresh(cached)) return cached.contracts;
     const params = new URLSearchParams({
       product_code: code,
       date: tradeDate,
@@ -111,11 +128,20 @@ export function createMassiveSettlementSource({
       limit: '1000',
     });
     let url: string | undefined = `${BASE_URL}/futures/v1/contracts?${params}`;
-    const contracts: (ContractDefinition & { ticker: string })[] = [];
+    const contracts: ContractDefinition[] = [];
     while (url) {
       const body = contractsSchema.parse(await get(url));
       for (const c of body.results) {
-        const contractMonth = parseMassiveTicker(code, c.ticker, c.last_trade_date);
+        let contractMonth: string;
+        try {
+          contractMonth = parseMassiveTicker(code, c.ticker, c.last_trade_date);
+        } catch (error) {
+          // 쓰지 않는 만기·먼 월물 하나 때문에 원자재 전체가 실패하지 않게 건너뛴다. 필요한 월물이면 fetchDailyBars에서 빠진다
+          log(
+            `[massive ${code}] skip contract: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          continue;
+        }
         const symbol = toContractSymbol(code, contractMonth);
         tickers.set(symbol, c.ticker);
         contracts.push({
@@ -123,20 +149,26 @@ export function createMassiveSettlementSource({
           contractMonth,
           firstTradeDate: c.first_trade_date ?? null,
           lastTradeDate: c.last_trade_date,
-          ticker: c.ticker,
         });
       }
-      url = body.next_url?.startsWith(BASE_URL) ? body.next_url : undefined;
+      if (body.next_url !== undefined && !body.next_url.startsWith(BASE_URL)) {
+        throw new Error(
+          `Massive /futures/v1/contracts: unexpected next_url host ${new URL(body.next_url).host}`,
+        );
+      }
+      url = body.next_url;
     }
+    contractCache.set(code, { fetchedAt: now(), contracts });
     return contracts;
   }
 
   // 받아 둔 봉에 그날 이후 정산가가 있으면 그날 값은 확정이라 다시 받지 않는다
   async function sessionBars(ticker: string, tradeDate: string): Promise<SessionBar[]> {
+    // 오래된 항목은 지운다(긴 프로세스에서 쌓이지 않게, 연도 1자리 티커가 10년 뒤 다시 쓰여도 섞이지 않게)
+    for (const [key, entry] of barCache) if (!fresh(entry)) barCache.delete(key);
     const cached = barCache.get(ticker);
     if (
       cached &&
-      now() - cached.fetchedAt < BAR_CACHE_TTL_MS &&
       cached.bars.some((b) => b.session_end_date >= tradeDate && b.settlement_price != null)
     ) {
       return cached.bars;
@@ -152,26 +184,18 @@ export function createMassiveSettlementSource({
   return {
     name: 'MASSIVE',
     async listContracts(code, tradeDate) {
-      const contracts = await loadContracts(code, tradeDate);
-      return contracts
-        .filter(
-          (c) =>
-            c.lastTradeDate >= tradeDate &&
-            (c.firstTradeDate === null || c.firstTradeDate <= tradeDate),
-        )
-        .map((c) => ({
-          symbol: c.symbol,
-          contractMonth: c.contractMonth,
-          firstTradeDate: c.firstTradeDate,
-          lastTradeDate: c.lastTradeDate,
-        }));
+      return (await loadContracts(code, tradeDate)).filter((c) => tradesOn(c, tradeDate));
     },
     async fetchDailyBars(code, symbols, tradeDate) {
       if (symbols.some((s) => !tickers.has(s))) await loadContracts(code, tradeDate);
       const bars: SourceBar[] = [];
       for (const symbol of symbols) {
         const ticker = tickers.get(symbol);
-        if (!ticker) throw new Error(`Massive: no ticker for ${symbol}`);
+        // 소스 월물 정의에 없는 월물(적재로만 들어온 월물 등)은 봉이 없는 것과 같이 빠진다
+        if (!ticker) {
+          log(`[massive ${code} ${tradeDate}] no ticker for ${symbol}`);
+          continue;
+        }
         // 거래가 없던 날은 봉이 없고, 반영 전이면 정산가가 없다. 둘 다 빠진다(D-095)
         const bar = (await sessionBars(ticker, tradeDate)).find(
           (b) => b.session_end_date === tradeDate,
@@ -183,7 +207,7 @@ export function createMassiveSettlementSource({
           high: bar.high ?? null,
           low: bar.low ?? null,
           settle: bar.settlement_price,
-          volume: bar.volume,
+          volume: bar.volume ?? 0,
         });
       }
       return bars;

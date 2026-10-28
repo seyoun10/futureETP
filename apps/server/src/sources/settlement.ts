@@ -12,6 +12,16 @@ export type ContractDefinition = {
   lastTradeDate: string;
 };
 
+// tradeDate에 거래되는 월물인가(첫 거래일 ≤ tradeDate ≤ 최종 거래일). 첫 거래일을 모르면 최종 거래일만 본다
+export function tradesOn(
+  c: { firstTradeDate: string | null; lastTradeDate: string },
+  tradeDate: string,
+): boolean {
+  return (
+    c.lastTradeDate >= tradeDate && (c.firstTradeDate === null || c.firstTradeDate <= tradeDate)
+  );
+}
+
 export type SourceBar = {
   contractSymbol: string;
   open: number | null;

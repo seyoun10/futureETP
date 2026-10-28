@@ -11,6 +11,7 @@ import {
 } from '../calc/settlement.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { JobName, Source } from '../constants.ts';
+import { tradesOn } from '../sources/settlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { errorMessage, type JobHandler } from './runner.ts';
 
@@ -110,11 +111,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     );
 
     const symbols = (await store.contracts(code))
-      .filter(
-        (c) =>
-          c.lastTradeDate >= tradeDate &&
-          (c.firstTradeDate === null || c.firstTradeDate <= tradeDate),
-      )
+      .filter((c) => tradesOn(c, tradeDate))
       .sort(
         (a, b) =>
           a.lastTradeDate.localeCompare(b.lastTradeDate) || a.symbol.localeCompare(b.symbol),

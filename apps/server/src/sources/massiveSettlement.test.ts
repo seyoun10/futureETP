@@ -60,6 +60,7 @@ function fakeApi(routes: Record<string, () => Response>) {
     fetchFn,
     sleep,
     now: () => clock,
+    log: () => {},
   });
   return { source, calls, sleep, advance: (ms: number) => (clock += ms) };
 }
@@ -194,7 +195,9 @@ describe('Massive 정산 소스', () => {
   it('응답 형식이 다르면 실패한다', async () => {
     const { source } = fakeApi({
       '/futures/v1/contracts': json(CL_CONTRACTS),
-      '/futures/v1/aggs/CLZ6': json({ results: [{ session_end_date: '2026-10-27' }] }),
+      '/futures/v1/aggs/CLZ6': json({
+        results: [{ ...bar('2026-10-27', null), settlement_price: '99.9' }],
+      }),
     });
     await expect(source.fetchDailyBars('CL', ['CLZ26'], '2026-10-27')).rejects.toThrow();
   });
@@ -233,10 +236,89 @@ describe('Massive 정산 소스', () => {
     expect(aggCalls()).toBe(4);
   });
 
-  it('월물 정의에 없는 심볼이면 실패한다', async () => {
-    const { source } = fakeApi({ '/futures/v1/contracts': json(CL_CONTRACTS) });
-    await expect(source.fetchDailyBars('CL', ['CLH27'], '2026-10-27')).rejects.toThrow(
-      /no ticker for CLH27/,
-    );
+  it('월물 정의에 없는 심볼은 봉이 없는 것처럼 빠진다', async () => {
+    const { source } = fakeApi({
+      '/futures/v1/contracts': json(CL_CONTRACTS),
+      '/futures/v1/aggs/CLZ6': json({ results: [bar('2026-10-27', 99.9)] }),
+    });
+    const bars = await source.fetchDailyBars('CL', ['CLH27', 'CLZ26'], '2026-10-27');
+    expect(bars.map((b) => b.contractSymbol)).toEqual(['CLZ26']);
+  });
+
+  it('형식이 다른 티커는 건너뛰고 나머지 월물 정의는 준다', async () => {
+    const { source } = fakeApi({
+      '/futures/v1/contracts': json({
+        results: [
+          ...CL_CONTRACTS.results,
+          contract('CLZ29', '2026-11-20'),
+          contract('CL-X', '2026-11-20'),
+        ],
+      }),
+    });
+    expect(await source.listContracts('CL', '2026-10-27')).toHaveLength(3);
+  });
+
+  it('다음 페이지 주소가 다른 호스트면 실패한다', async () => {
+    const { source } = fakeApi({
+      '/futures/v1/contracts': json({
+        ...CL_CONTRACTS,
+        next_url: 'https://api.polygon.io/futures/v1/contracts?cursor=abc',
+      }),
+    });
+    await expect(source.listContracts('CL', '2026-10-27')).rejects.toThrow(/api\.polygon\.io/);
+  });
+
+  it('다음 페이지가 있으면 이어 받는다', async () => {
+    let page = 0;
+    const { source } = fakeApi({
+      '/futures/v1/contracts': () =>
+        Response.json(
+          page++ === 0
+            ? {
+                results: [contract('CLZ6', '2026-11-20')],
+                next_url: 'https://api.massive.com/futures/v1/contracts?cursor=abc',
+              }
+            : { results: [contract('CLF7', '2026-12-18')] },
+        ),
+    });
+    expect((await source.listContracts('CL', '2026-10-27')).map((c) => c.symbol)).toEqual([
+      'CLZ26',
+      'CLF27',
+    ]);
+  });
+
+  it('거래량이 비어 있으면 0이다', async () => {
+    const { source } = fakeApi({
+      '/futures/v1/contracts': json(CL_CONTRACTS),
+      '/futures/v1/aggs/CLZ6': json({
+        results: [{ ...bar('2026-10-27', 99.9), volume: null }],
+      }),
+    });
+    const [only] = await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-27');
+    expect(only.volume).toBe(0);
+  });
+
+  it('월물 정의는 따라잡기 날짜마다 다시 받지 않고, 오래되면 다시 받는다', async () => {
+    const { source, calls, advance } = fakeApi({ '/futures/v1/contracts': json(CL_CONTRACTS) });
+    const contractCalls = () =>
+      calls.filter((c) => c.path.startsWith('/futures/v1/contracts')).length;
+
+    await source.listContracts('CL', '2026-10-26');
+    expect(await source.listContracts('CL', '2026-10-27')).toHaveLength(3);
+    expect(contractCalls()).toBe(1);
+    advance(BAR_CACHE_TTL_MS);
+    await source.listContracts('CL', '2026-10-28');
+    expect(contractCalls()).toBe(2);
+  });
+
+  it('요청마다 시간 제한을 건다', async () => {
+    const fetchFn = vi.fn<typeof fetch>(() => Promise.resolve(Response.json(CL_CONTRACTS)));
+    const source = createMassiveSettlementSource({
+      apiKey: 'k',
+      fetchFn,
+      sleep: () => Promise.resolve(),
+    });
+    await source.listContracts('CL', '2026-10-27');
+    expect(fetchFn.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });
