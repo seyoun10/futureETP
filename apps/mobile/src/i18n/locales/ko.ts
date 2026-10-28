@@ -9,6 +9,7 @@ export const ko = {
     loading: '불러오는 중',
     back: '뒤로',
     cancel: '취소',
+    confirm: '확인',
   },
   commodities: {
     GC: '금',
@@ -119,6 +120,9 @@ export const ko = {
     tooltipCurrent: '현재 {{price}}',
     tooltipChange: '변화율 {{pct}}',
     noData: '표시할 월물이 없습니다.',
+    pickTitle: '기준일 선택',
+    pickRange: '선택 가능: {{min}} ~ {{max}}',
+    moved: '휴장일이라 {{date}}({{weekday}})로 옮겼습니다',
   },
   etp: {
     detailTitle: 'ETP 상세',

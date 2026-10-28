@@ -6,6 +6,7 @@ export const en: Translation = {
     loading: 'Loading',
     back: 'Back',
     cancel: 'Cancel',
+    confirm: 'OK',
   },
   commodities: {
     GC: 'Gold',
@@ -113,6 +114,9 @@ export const en: Translation = {
     tooltipCurrent: 'Now {{price}}',
     tooltipChange: 'Change {{pct}}',
     noData: 'No contracts to show.',
+    pickTitle: 'Select base date',
+    pickRange: 'Available: {{min}} – {{max}}',
+    moved: 'Market closed, moved to {{date}} ({{weekday}})',
   },
   etp: {
     detailTitle: 'ETP details',

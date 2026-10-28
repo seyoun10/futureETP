@@ -11,6 +11,23 @@ export const formatLegendDate = (date: string, currentDate: string): string =>
     ? formatFullDate(date).slice(5)
     : formatFullDate(date);
 
+// OS 날짜 피커는 기기 시간대 Date를 쓴다. 날짜만 오가므로 기기 시간대 자정으로 바꾼다.
+export const toPickerDate = (date: string): Date => {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+export const fromPickerDate = (date: Date): string =>
+  [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((n) => String(n).padStart(2, '0'))
+    .join('-');
+
+// 휴장일 안내의 요일(`10/16(금)`). 날짜만이라 UTC로 센다.
+export const formatWeekday = (date: string, language: string): string =>
+  new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' }).format(
+    new Date(`${date}T00:00:00Z`),
+  );
+
 // 차트 점·툴팁 변화율. 커브는 점이 많아 소수 첫째 자리까지
 export const formatCurvePct = (pct: number): string => `${formatChange(pct, 1)}%`;
 

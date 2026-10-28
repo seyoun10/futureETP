@@ -406,7 +406,7 @@
 - 결정:
   - React Native 기본 `StyleSheet`와 typed 테마 토큰 모듈(색·간격·글자 크기)을 쓴다. UI 키트는 쓰지 않는다.
   - 등락 색은 토큰이 아니라 표시 설정에서 고르는 값으로 둔다(차트·목록이 같은 함수로 읽는다).
-  - 바텀 시트(C-b 기준일 선택)와 휠 피커는 개발 단계에서 고른다.
+  - 바텀 시트(C-b 기준일 선택)와 휠 피커는 개발 단계에서 고른다(→ D-091: OS 날짜 피커, 시트는 RN `Modal`).
 - 근거:
   - 다크 전용이라 테마 전환이 없고, 화면 수가 적다. 추가 의존성과 빌드 설정이 없는 쪽이 가장 단순하다.
   - Skia 차트는 className을 쓸 수 없어 NativeWind를 써도 같은 색을 JS 토큰으로 따로 둬야 한다. NativeWind는 2026-10-23 기준 v4.2.7이 안정판이고 v5는 RC다.
@@ -1441,3 +1441,22 @@
   - 휴장일 안내는 요청 날짜와 응답 날짜 비교로 충분하다.
   - dev DB 실측(2026-10-28): 조회 13~113ms(CL 24개·NG 24개·GC 11개·SI 5개 월물), 2020-04-17 CL 기준일은 M1 앞 MAY20(18.27)을 포함한다.
 - 영향: `createApp`에 `curve` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_CURVE`). 실소스(Massive)·`INTRADAY` 전에는 장중·정산 대기 동안 D 커브가 비어 있다.
+
+## D-091: C-b 기준일 선택 — OS 날짜 피커(`@react-native-community/datetimepicker`)
+- 날짜: 2026-10-28
+- 상태: 확정
+- 맥락: TODO 5-6 C-b 셋째 단계. D-031은 바텀 시트와 휠 피커를 개발 단계에서 고르기로 남겼다. 휠은 년·월·일 3개, 범위는 하한~D-1이고 범위 밖 값은 휠에 넣지 않는다(D-021, screens.md C-b).
+- 선택지: OS 날짜 피커 / RN `Modal` + `ScrollView` 스냅 휠 직접 구현 / `@gorhom/bottom-sheet` + JS 휠 라이브러리
+- 결정
+  - `@react-native-community/datetimepicker`(9.2.1, `npx expo install`로 SDK 58 버전)를 쓴다. 범위는 `minimumDate`·`maximumDate`로 OS가 막는다.
+  - Android: `DateTimePickerAndroid.open({ display: 'spinner' })`(Material 3가 아닌 기본 디자인, 년·월·일 spinner 다이얼로그). 확인은 `onValueChange`, 취소·바깥 누름은 `onDismiss`(바꾸지 않음).
+  - iOS: RN `Modal`(아래에서 올라옴) 바텀 시트 안에 `display="spinner"` 피커, 범위 문구, 취소·확인. 배경을 누르면 취소다.
+  - 날짜 문자열 ↔ `Date`는 기기 시간대 자정으로 바꾼다(`curveModel` `toPickerDate`·`fromPickerDate`).
+  - 휴장일 안내: 시트에서 고른 날짜와 그 조회 응답의 `baseDate`(placeholder가 아닌 것)가 다르면 차트 아래에 `휴장일이라 10/15(목)로 옮겼습니다`를 3초 띄운다. 요일은 `Intl`. D-1을 고르면 기본값(null) 조회 key를 쓴다.
+  - config plugin(`withDateTimePickerStyles`)은 Android 다이얼로그 색만 바꾸므로 넣지 않는다.
+- 근거
+  - 사용자 선택(2026-10-28). D-021 근거가 이미 "iOS·Android 기본 피커로 구현하기 쉽다"였다. 범위 제한·관성·접근성을 OS가 맡는다.
+  - 직접 구현은 의존성이 없고 와이어프레임과 같지만 코드 150~200줄과 휠 손맛 조정이 든다. 시트 라이브러리는 화면 하나에 의존성 2개다.
+- 영향
+  - Android는 와이어프레임의 바텀 시트가 아니라 OS 다이얼로그다(범위 문구 없음, 버튼 위치 OS 기본).
+  - 네이티브 모듈이 늘어 개발 빌드를 다시 만들어야 한다. Jest에서는 테스트 파일이 피커를 `View`로 mock한다(jest-expo는 iOS 경로).

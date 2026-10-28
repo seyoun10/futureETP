@@ -1,6 +1,6 @@
 import type { Curve } from '@futureetp/shared';
 import type { ComponentProps } from 'react';
-import { render } from '@testing-library/react-native';
+import { act, render } from '@testing-library/react-native';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { getCurve } from '@/api/commodities';
@@ -9,6 +9,12 @@ import { CurveChart } from '@/charts/CurveChart';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getCurve: jest.fn() }));
+// OS 날짜 피커는 네이티브라 props를 받는 View로 둔다(jest-expo는 iOS라 시트 경로를 탄다)
+jest.mock('@react-native-community/datetimepicker', () => ({
+  __esModule: true,
+  default: jest.requireActual<typeof import('react-native')>('react-native').View,
+  DateTimePickerAndroid: { open: jest.fn() },
+}));
 const mockGet = jest.mocked(getCurve);
 const mockChart = jest.mocked(CurveChart);
 
@@ -190,5 +196,96 @@ describe('C-b 월물커브', () => {
     await renderScreen();
 
     expect(await screen.findByText('표시할 월물이 없습니다.')).toBeOnTheScreen();
+  });
+
+  describe('기준일 선택 시트', () => {
+    const D2 = {
+      ...DATA,
+      baseDate: '2026-10-20',
+      baseOffset: 2,
+      prevBaseDate: '2026-10-19',
+      nextBaseDate: '2026-10-21',
+    };
+    // 10/16(금)은 휴장이라 서버가 10/15(목)로 옮긴다
+    const D5 = {
+      ...DATA,
+      baseDate: '2026-10-15',
+      baseOffset: 5,
+      prevBaseDate: '2026-10-14',
+      nextBaseDate: '2026-10-19',
+    };
+    beforeEach(() => {
+      mockGet.mockImplementation((_, baseDate) =>
+        Promise.resolve(baseDate === null ? DATA : baseDate === '2026-10-20' ? D2 : D5),
+      );
+    });
+
+    const openSheet = async () => {
+      await fireEvent.press(await screen.findByRole('button', { name: '2026/10/21 (D-1)' }));
+      return screen.getByTestId('base-date-picker');
+    };
+    const pick = (picker: ReturnType<typeof screen.getByTestId>, y: number, m: number, d: number) =>
+      fireEvent(picker, 'valueChange', { nativeEvent: {} }, new Date(y, m - 1, d));
+
+    it('현재 기준일·범위로 열고, 휴장일을 확인하면 옮긴 날짜를 잠깐 안내한다', async () => {
+      jest.useFakeTimers();
+      try {
+        await renderScreen();
+        const picker = await openSheet();
+
+        expect(screen.getByText('기준일 선택')).toBeOnTheScreen();
+        expect(screen.getByText('선택 가능: 2010/06/07 ~ 2026/10/21')).toBeOnTheScreen();
+        expect(picker.props).toMatchObject({
+          value: new Date(2026, 9, 21),
+          minimumDate: new Date(2010, 5, 7),
+          maximumDate: new Date(2026, 9, 21),
+        });
+
+        await pick(picker, 2026, 10, 16);
+        await fireEvent.press(screen.getByRole('button', { name: '확인' }));
+
+        expect(mockGet).toHaveBeenLastCalledWith('NG', '2026-10-16', expect.anything());
+        expect(await screen.findByTestId('curve-moved')).toHaveTextContent(
+          '휴장일이라 10/15(목)로 옮겼습니다',
+        );
+        expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/15 (D-5)');
+        expect(screen.queryByText('기준일 선택')).toBeNull();
+
+        await act(() => jest.advanceTimersByTime(3000));
+        expect(screen.queryByTestId('curve-moved')).toBeNull();
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('취소하거나 시트 밖을 누르면 기준일을 바꾸지 않는다', async () => {
+      await renderScreen();
+
+      await pick(await openSheet(), 2026, 10, 20);
+      await fireEvent.press(screen.getByRole('button', { name: '취소' }));
+      expect(screen.queryByText('기준일 선택')).toBeNull();
+
+      await pick(await openSheet(), 2026, 10, 20);
+      await fireEvent.press(screen.getByTestId('base-date-backdrop'));
+      expect(screen.queryByText('기준일 선택')).toBeNull();
+
+      expect(mockGet.mock.calls.map((c) => c[1])).toEqual([null]);
+      expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/21 (D-1)');
+    });
+
+    it('거래일을 고르면 안내 없이 옮기고, D-1을 고르면 기본값 key로 돌아간다', async () => {
+      await renderScreen();
+
+      await pick(await openSheet(), 2026, 10, 20);
+      await fireEvent.press(screen.getByRole('button', { name: '확인' }));
+      expect(await screen.findByText('2026/10/20 (D-2)')).toBeOnTheScreen();
+      expect(screen.queryByTestId('curve-moved')).toBeNull();
+
+      await fireEvent.press(screen.getByRole('button', { name: '2026/10/20 (D-2)' }));
+      await pick(screen.getByTestId('base-date-picker'), 2026, 10, 21);
+      await fireEvent.press(screen.getByRole('button', { name: '확인' }));
+      expect(await screen.findByText('2026/10/21 (D-1)')).toBeOnTheScreen();
+      expect(new Set(mockGet.mock.calls.map((c) => c[1]))).toEqual(new Set([null, '2026-10-20']));
+    });
   });
 });

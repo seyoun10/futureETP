@@ -1,6 +1,6 @@
 import type { CommodityCode, Curve } from '@futureetp/shared';
-import { useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { CurveChart } from '@/charts/CurveChart';
@@ -10,7 +10,14 @@ import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
-import { curveSummaryLines, formatCurvePct, formatFullDate, formatLegendDate } from './curveModel';
+import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
+import {
+  curveSummaryLines,
+  formatCurvePct,
+  formatFullDate,
+  formatLegendDate,
+  formatWeekday,
+} from './curveModel';
 import { useCurve } from './useCurve';
 
 // C-b 월물커브 탭(screens.md C-b, D-090)
@@ -32,23 +39,57 @@ export function CurveScreen() {
 function CurveContent({ code }: { code: CommodityCode }) {
   // null = 서버 기본값(D-1). 화면을 떠나면 잊는다(기기 설정이 아님)
   const [baseDate, setBaseDate] = useState<string | null>(null);
+  // 시트에서 고른 날짜. 응답 기준일이 다르면(휴장일) 옮긴 날짜를 잠깐 안내한다
+  const [picked, setPicked] = useState<string | null>(null);
   const curve = useCurve(code, baseDate);
   useAutoRefresh(curve);
 
+  const resolved = curve.isPlaceholderData ? undefined : curve.data?.baseDate;
+  const movedTo =
+    picked !== null && resolved !== undefined && resolved !== picked ? resolved : null;
+  useEffect(() => {
+    if (movedTo === null) return;
+    const id = setTimeout(() => setPicked(null), MOVED_NOTICE_MS);
+    return () => clearTimeout(id);
+  }, [movedTo]);
+
+  const changeBaseDate = useCallback((next: string | null) => {
+    setPicked(null);
+    setBaseDate(next);
+  }, []);
+  const pickBaseDate = useCallback((date: string, maxBaseDate: string) => {
+    setPicked(date);
+    // D-1이면 기본값과 같은 조회 key를 쓴다
+    setBaseDate(date === maxBaseDate ? null : date);
+  }, []);
+
   return (
     <QueryStateView query={curve}>
-      {(data) => <CurveView data={data} onChangeBaseDate={setBaseDate} />}
+      {(data) => (
+        <CurveView
+          data={data}
+          movedTo={movedTo}
+          onChangeBaseDate={changeBaseDate}
+          onPickBaseDate={pickBaseDate}
+        />
+      )}
     </QueryStateView>
   );
 }
 
+const MOVED_NOTICE_MS = 3000;
+
 type ViewProps = {
   data: Curve;
+  // 휴장일을 골라 서버가 옮긴 기준일
+  movedTo: string | null;
   onChangeBaseDate: (baseDate: string | null) => void;
+  onPickBaseDate: (date: string, maxBaseDate: string) => void;
 };
 
-function CurveView({ data, onChangeBaseDate }: ViewProps) {
-  const { t } = useTranslation();
+function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProps) {
+  const { t, i18n } = useTranslation();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const points = useMemo<CurvePoint[]>(
     () =>
       data.points.map((p) => ({
@@ -65,6 +106,22 @@ function CurveView({ data, onChangeBaseDate }: ViewProps) {
   );
   const currentDate = data.freshness.tradeDate;
   const [stateLine, rollLine] = curveSummaryLines(t, data);
+  const range = {
+    value: data.baseDate,
+    minBaseDate: data.minBaseDate,
+    maxBaseDate: data.maxBaseDate,
+  };
+  const confirmPick = (date: string) => {
+    setSheetOpen(false);
+    onPickBaseDate(date, data.maxBaseDate);
+  };
+  const openPicker = () => {
+    if (Platform.OS === 'android') {
+      openAndroidBaseDatePicker(t, range, { onConfirm: confirmPick, onCancel: () => {} });
+    } else {
+      setSheetOpen(true);
+    }
+  };
 
   return (
     <>
@@ -87,6 +144,16 @@ function CurveView({ data, onChangeBaseDate }: ViewProps) {
             renderDetail={renderDetail}
           />
         )}
+        {movedTo !== null && (
+          <View style={styles.notice} pointerEvents="none">
+            <Text style={styles.noticeText} testID="curve-moved">
+              {t('curve.moved', {
+                date: formatLegendDate(movedTo, currentDate),
+                weekday: formatWeekday(movedTo, i18n.language),
+              })}
+            </Text>
+          </View>
+        )}
       </View>
       <View style={styles.controls}>
         <StepButton
@@ -94,9 +161,16 @@ function CurveView({ data, onChangeBaseDate }: ViewProps) {
           accessibilityLabel={t('curve.prev')}
           onPress={data.prevBaseDate === null ? null : () => onChangeBaseDate(data.prevBaseDate)}
         />
-        <Text style={styles.baseDate} testID="curve-base-date">
-          {t('curve.baseDate', { date: formatFullDate(data.baseDate), n: data.baseOffset })}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={t('curve.pickTitle')}
+          onPress={openPicker}
+          style={styles.step}
+        >
+          <Text style={styles.baseDate} testID="curve-base-date">
+            {t('curve.baseDate', { date: formatFullDate(data.baseDate), n: data.baseOffset })}
+          </Text>
+        </Pressable>
         <StepButton
           label="+"
           accessibilityLabel={t('curve.next')}
@@ -122,6 +196,9 @@ function CurveView({ data, onChangeBaseDate }: ViewProps) {
       <Text style={styles.line} numberOfLines={1} testID="curve-roll-yield">
         {rollLine}
       </Text>
+      {sheetOpen && (
+        <BaseDateSheet range={range} onConfirm={confirmPick} onCancel={() => setSheetOpen(false)} />
+      )}
     </>
   );
 }
@@ -237,6 +314,22 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.sm,
+  },
+  notice: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: spacing.sm,
+    alignItems: 'center',
+  },
+  noticeText: {
+    color: colors.text,
+    fontSize: fontSize.caption,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: spacing.xs,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
   },
   detail: {
     gap: 2,
