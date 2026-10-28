@@ -2,7 +2,7 @@ import { lockAsync, OrientationLock } from 'expo-screen-orientation';
 import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
-import { getCommodities } from '@/api/commodities';
+import { getCommodities, getCurve } from '@/api/commodities';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('expo-screen-orientation', () => ({
@@ -66,6 +66,8 @@ describe('라우트 골격', () => {
 
     await fireEvent.press(screen.getByText('월물커브'));
     expect(screen).toHavePathname('/commodity/NG/curve');
+    // 탭으로 옮겨도 원자재 코드를 받는다(탭 이동은 경로 파라미터를 넘기지 않음)
+    expect(getCurve).toHaveBeenCalledWith('NG', null, expect.anything());
     await fireEvent.press(screen.getByText('월물차트'));
     expect(screen).toHavePathname('/commodity/NG/contracts');
     await fireEvent.press(screen.getByText('ETP'));
