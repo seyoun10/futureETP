@@ -1,4 +1,4 @@
-import { matchFont, Skia } from '@shopify/react-native-skia';
+import { FontHinting, matchFont, Skia } from '@shopify/react-native-skia';
 import type { SkParagraph } from '@shopify/react-native-skia';
 import { Platform } from 'react-native';
 
@@ -11,6 +11,10 @@ export const numberFont = matchFont({
   fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
   fontSize: CHART_FONT_SIZE,
 });
+// 기본값은 글자 위치를 정수 픽셀로 반올림해 작은 글자에서 `J AN27`처럼 간격이 벌어진다
+numberFont.setSubpixel(true);
+numberFont.setLinearMetrics(true);
+numberFont.setHinting(FontHinting.None);
 
 // 제스처 중 같은 글자를 매 프레임 다시 만들지 않게 글자·색별로 둔다
 const MAX_CACHED = 300;
