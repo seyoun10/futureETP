@@ -26,6 +26,8 @@ export const colors = {
     // C-b 커브: 기준일은 점선, 현재는 실선(screens.md C-b)
     curveBase: '#9e9e9e',
     curveCurrent: '#e0e0e0',
+    // C-c 월물 선은 만기순 순번으로 고른다. 6번째는 대표월물 안전장치 월물(D-092)
+    contractLines: ['#4fc3f7', '#ffb74d', '#f06292', '#81c784', '#ba68c8', '#90a4ae'],
   },
 } as const;
 

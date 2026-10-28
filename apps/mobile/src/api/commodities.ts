@@ -1,4 +1,9 @@
-import { commoditiesSchema, curveSchema, disparityChartSchema } from '@futureetp/shared';
+import {
+  commoditiesSchema,
+  contractsChartSchema,
+  curveSchema,
+  disparityChartSchema,
+} from '@futureetp/shared';
 import type { CommodityCode } from '@futureetp/shared';
 import { apiRequest } from './client';
 import type { DisparityParams } from './queryKeys';
@@ -22,3 +27,7 @@ export const getCurve = (code: CommodityCode, baseDate: string | null, signal?: 
     query: { baseDate: baseDate ?? undefined },
     signal,
   });
+
+// query가 없다. 기간·제스처는 받은 데이터 안에서 고른다(D-092)
+export const getContracts = (code: CommodityCode, signal?: AbortSignal) =>
+  apiRequest(`/commodities/${code}/contracts`, contractsChartSchema, { signal });

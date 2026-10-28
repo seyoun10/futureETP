@@ -19,3 +19,25 @@ export function placeLabels<T extends { y: number }>(
 
 export const overlapsAny = (y: number, labels: readonly { y: number }[], height: number) =>
   labels.some((l) => Math.abs(l.y - y) < height);
+
+// 모든 라벨을 남겨야 할 때(C-c 끝값 라벨은 범례 역할). 위에서부터 겹치지 않게 아래로 밀고,
+// 아래 끝을 넘으면 위로 되민다. 차트 위·아래 밖 라벨은 뺀다.
+export function stackLabels<T extends { y: number }>(
+  labels: readonly T[],
+  height: number,
+  top: number,
+  bottom: number,
+): T[] {
+  const sorted = labels
+    .filter((l) => l.y >= top && l.y <= bottom)
+    .map((l) => ({ ...l }))
+    .sort((a, b) => a.y - b.y);
+  for (let i = 1; i < sorted.length; i++) {
+    sorted[i].y = Math.max(sorted[i].y, sorted[i - 1].y + height);
+  }
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const limit = i === sorted.length - 1 ? bottom : sorted[i + 1].y - height;
+    sorted[i].y = Math.min(sorted[i].y, limit);
+  }
+  return sorted;
+}

@@ -12,8 +12,8 @@ import { overlapsAny, placeLabels } from './priceLabels';
 
 const TICK_COUNT = 6;
 
-// y축 특수 라벨(현재가·이평선·rare-level 등). 우선순위 순서로 넘긴다
-export type PriceLabel = { key: string; price: number; color: string };
+// y축 특수 라벨(현재가·이평선·rare-level 등). 우선순위 순서로 넘긴다. suffix는 가격 뒤에 붙는 이름(C-c 월물명)
+export type PriceLabel = { key: string; price: number; color: string; suffix?: string };
 
 type YAxisLayerProps = {
   // 변환 전 y 스케일(log)
