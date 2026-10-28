@@ -7,6 +7,7 @@ import { createContractsStore } from './db/contractsStore.ts';
 import { createCurveStore } from './db/curveStore.ts';
 import { createDevicesStore, createPushDeviceStore } from './db/devicesStore.ts';
 import { createDisparityStore } from './db/disparityStore.ts';
+import { createEtpsStore } from './db/etpsStore.ts';
 import { createSettingsStore } from './db/settingsStore.ts';
 import { createBatchRunStore, createOpsAlertStore } from './jobs/batchRunStore.ts';
 import { JOB_HANDLERS } from './jobs/handlers.ts';
@@ -24,6 +25,7 @@ const app = createApp({
   curve: createCurveStore(db),
   contracts: createContractsStore(db),
   devices: createDevicesStore(db),
+  etps: createEtpsStore(db),
 });
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {

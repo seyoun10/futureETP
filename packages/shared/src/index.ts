@@ -36,6 +36,16 @@ export {
   type RareLevelLine,
 } from './disparity.ts';
 export {
+  etpDetailSchema,
+  etpListSchema,
+  etpSeriesSchema,
+  etpSummarySchema,
+  type EtpDetail,
+  type EtpList,
+  type EtpSeries,
+  type EtpSummary,
+} from './etps.ts';
+export {
   API_ERROR_CODES,
   envelopeSchema,
   errorSchema,

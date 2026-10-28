@@ -8,6 +8,7 @@ import {
   UNUSED_CURVE,
   UNUSED_DISPARITY,
   UNUSED_DEVICES,
+  UNUSED_ETPS,
 } from './commodities.fixtures.ts';
 import type { ContractsStore } from './contracts.ts';
 
@@ -98,6 +99,7 @@ function setup(path: string, data: Data = {}) {
     curve: UNUSED_CURVE,
     contracts: store,
     devices: UNUSED_DEVICES,
+    etps: UNUSED_ETPS,
     now: () => at('2026-10-22T15:00:00Z').getTime(),
   });
   return app.request(path, { headers: { Authorization: `Bearer ${TOKEN}` } });

@@ -4,6 +4,7 @@ import type { ContractsStore } from './contracts.ts';
 import type { CurveStore } from './curve.ts';
 import type { DevicesStore } from './devices.ts';
 import type { DisparityStore } from './disparity.ts';
+import type { EtpsStore } from './etps.ts';
 
 const unused = () => Promise.reject(new Error('unused'));
 
@@ -53,3 +54,5 @@ export const UNUSED_CONTRACTS: ContractsStore = {
 };
 
 export const UNUSED_DEVICES: DevicesStore = { upsert: unused };
+
+export const UNUSED_ETPS: EtpsStore = { products: unused, product: unused, series: unused };

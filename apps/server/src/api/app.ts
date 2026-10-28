@@ -15,6 +15,8 @@ import type { DevicesStore } from './devices.ts';
 import { disparityRoutes } from './disparity.ts';
 import type { DisparityStore } from './disparity.ts';
 import { ApiException } from './errors.ts';
+import { commodityEtpsRoutes, etpsRoutes } from './etps.ts';
+import type { EtpsStore } from './etps.ts';
 import { fail, ok } from './response.ts';
 import { settingsRoutes } from './settings.ts';
 import type { SettingsStore } from './settings.ts';
@@ -29,6 +31,7 @@ export type AppOptions = {
   curve: CurveStore;
   contracts: ContractsStore;
   devices: DevicesStore;
+  etps: EtpsStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   // 인증 실패 제한·조회 기준 시각(ms)
@@ -94,6 +97,8 @@ export function createApp(options: AppOptions) {
   v1.route('/commodities', disparityRoutes(options.disparity, now));
   v1.route('/commodities', curveRoutes(options.curve, now));
   v1.route('/commodities', contractsRoutes(options.contracts, now));
+  v1.route('/commodities', commodityEtpsRoutes(options.etps));
+  v1.route('/etps', etpsRoutes(options.etps));
 
   app.route('/v1', v1);
   return app;

@@ -6,6 +6,7 @@ import {
   UNUSED_CONTRACTS,
   UNUSED_CURVE,
   UNUSED_DISPARITY,
+  UNUSED_ETPS,
 } from './commodities.fixtures.ts';
 import type { DevicesStore } from './devices.ts';
 import type { SettingsStore } from './settings.ts';
@@ -34,6 +35,7 @@ function setup() {
     curve: UNUSED_CURVE,
     contracts: UNUSED_CONTRACTS,
     devices,
+    etps: UNUSED_ETPS,
   });
   const request = (body: string, token = TOKEN) =>
     app.request('/v1/devices', {

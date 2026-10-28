@@ -10,6 +10,7 @@ import {
   UNUSED_DISPARITY,
   UNUSED_CONTRACTS,
   UNUSED_DEVICES,
+  UNUSED_ETPS,
 } from './commodities.fixtures.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -116,6 +117,7 @@ function setup(now: string, data: Data) {
     curve: UNUSED_CURVE,
     contracts: UNUSED_CONTRACTS,
     devices: UNUSED_DEVICES,
+    etps: UNUSED_ETPS,
     now: () => at(now).getTime(),
   });
   return app.request('/v1/commodities', { headers: { Authorization: `Bearer ${TOKEN}` } });
