@@ -19,6 +19,8 @@ RUN npm ci --omit=dev --ignore-scripts --workspace apps/server --include-workspa
 COPY packages/shared/src packages/shared/src
 COPY apps/server/src apps/server/src
 COPY apps/server/drizzle apps/server/drizzle
+# calendar:import가 읽는 거래일 달력(D-061). 새 연도는 배포 뒤 컨테이너에서 입력한다
+COPY scripts/calendar scripts/calendar
 
 USER node
 WORKDIR /app/apps/server

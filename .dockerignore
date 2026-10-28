@@ -7,4 +7,5 @@
 !apps/server/drizzle/
 !packages/shared/package.json
 !packages/shared/src/
+!scripts/calendar/
 **/*.test.ts
