@@ -1,12 +1,13 @@
+import type { Settings } from '@futureetp/shared';
 import { getPermissionsAsync, requestPermissionsAsync } from 'expo-notifications';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { AppState, Linking } from 'react-native';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { queryClient } from '@/api/queryClient';
-import { getSettings } from '@/api/settings';
+import { AppError } from '@/api/AppError';
+import { getSettings, patchSettings } from '@/api/settings';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
-// 루트 레이아웃의 시간대 동기화가 설정을 조회한다
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 
 type Permission = Awaited<ReturnType<typeof getPermissionsAsync>>;
@@ -56,5 +57,69 @@ describe('B-a 알림 권한', () => {
     const listeners = addListener.mock.calls.filter(([type]) => type === 'change');
     await act(() => listeners.forEach(([, listener]) => listener('active')));
     await waitFor(() => expect(screen.queryByText(/알림 권한이 꺼져/)).not.toBeOnTheScreen());
+  });
+});
+
+const SETTINGS: Settings = {
+  locale: 'ko',
+  timezone: 'Asia/Seoul',
+  basis: 'US',
+  maPeriod: 100,
+  window: 'Y10',
+  rareLevels: [5, 10, 15, 20, 25],
+  alertCommodity: 'CL',
+  quietTime: null,
+};
+
+describe('B-a 대상 원자재·적용 기준', () => {
+  beforeEach(() => {
+    jest.mocked(getSettings).mockResolvedValue(SETTINGS);
+    // 서버처럼 바꾼 값을 쌓아 둔다
+    let saved = SETTINGS;
+    jest.mocked(patchSettings).mockImplementation((patch) => {
+      saved = { ...saved, ...patch };
+      return Promise.resolve(saved);
+    });
+  });
+
+  it('대상 원자재를 고른 상태로 보여 주고 B 이격도차트 설정을 요약한다', async () => {
+    await renderAlertSettings();
+
+    expect(await screen.findByRole('radio', { name: '원유', checked: true })).toBeOnTheScreen();
+    expect(screen.getByText('기준값 미국형 · 100일선 · 10년')).toBeOnTheScreen();
+    expect(screen.getByText('레벨 5/10/15/20/25% (위·아래)')).toBeOnTheScreen();
+  });
+
+  it('분포 기간이 전체면 전체로 쓴다', async () => {
+    jest
+      .mocked(getSettings)
+      .mockResolvedValue({ ...SETTINGS, window: 'ALL', alertCommodity: null });
+    await renderAlertSettings();
+
+    expect(await screen.findByText('기준값 미국형 · 100일선 · 전체')).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '없음', checked: true })).toBeOnTheScreen();
+  });
+
+  it('[없음]은 알림 끔(null)으로, 원자재는 그 코드로 저장한다', async () => {
+    await renderAlertSettings();
+    await fireEvent.press(await screen.findByRole('radio', { name: '없음' }));
+    expect(await screen.findByRole('radio', { name: '없음', checked: true })).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('radio', { name: '천연가스' }));
+
+    await waitFor(() => expect(patchSettings).toHaveBeenCalledTimes(2));
+    expect(jest.mocked(patchSettings).mock.calls.map(([patch]) => patch)).toEqual([
+      { alertCommodity: null },
+      { alertCommodity: 'NG' },
+    ]);
+    expect(await screen.findByRole('radio', { name: '천연가스', checked: true })).toBeOnTheScreen();
+  });
+
+  it('저장에 실패하면 되돌리고 오류 줄을 보여 준다', async () => {
+    jest.mocked(patchSettings).mockRejectedValue(new AppError('NETWORK'));
+    await renderAlertSettings();
+    await fireEvent.press(await screen.findByRole('radio', { name: '금' }));
+
+    expect(await screen.findByText(/저장하지 못했습니다/)).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '원유', checked: true })).toBeOnTheScreen();
   });
 });

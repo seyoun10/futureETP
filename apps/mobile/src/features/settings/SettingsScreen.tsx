@@ -51,7 +51,7 @@ export function SettingsScreen() {
   );
 }
 
-const errorText = (t: ReturnType<typeof useTranslation>['t'], error: unknown) =>
+export const errorText = (t: ReturnType<typeof useTranslation>['t'], error: unknown) =>
   t(`errors.${error instanceof AppError ? error.code : 'INTERNAL'}`);
 
 // 언어·등락 색은 기기 설정이다. 언어는 푸시 문구에 쓰므로 서버에도 보낸다(마지막으로 바꾼 기기의 값).

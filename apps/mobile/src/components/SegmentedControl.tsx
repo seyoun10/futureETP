@@ -9,6 +9,8 @@ type Props<T extends string | number> = {
   // 아직 값을 모르면(설정 조회 중) 아무것도 고르지 않은 채로 둔다
   value: T | undefined;
   onChange: (value: T) => void;
+  // 선택지가 많으면 이름을 위에 두고 선택지가 전체 폭을 나눠 쓴다
+  stacked?: boolean;
 };
 
 // 설정 행: 이름 + [a|b|c] 중 하나 고르기. 고른 값을 다시 누르면 아무것도 하지 않는다.
@@ -17,10 +19,11 @@ export function SegmentedControl<T extends string | number>({
   options,
   value,
   onChange,
+  stacked = false,
 }: Props<T>) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.row, stacked && styles.stackedRow]}>
+      <Text style={[styles.label, stacked && styles.stackedLabel]}>{label}</Text>
       <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.group}>
         {options.map((option) => {
           const selected = option.value === value;
@@ -32,7 +35,11 @@ export function SegmentedControl<T extends string | number>({
               onPress={() => {
                 if (!selected) onChange(option.value);
               }}
-              style={[styles.segment, selected && styles.selected]}
+              style={[
+                styles.segment,
+                stacked && styles.stackedSegment,
+                selected && styles.selected,
+              ]}
             >
               <Text style={styles.segmentText}>{option.label}</Text>
             </Pressable>
@@ -52,10 +59,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
+  stackedRow: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
   label: {
     flex: 1,
     color: colors.text,
     fontSize: fontSize.body,
+  },
+  stackedLabel: {
+    flex: 0,
   },
   group: {
     flexDirection: 'row',
@@ -70,11 +84,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
   },
+  stackedSegment: {
+    flex: 1,
+    paddingHorizontal: spacing.xs,
+  },
   selected: {
     backgroundColor: colors.surfaceSelected,
   },
   segmentText: {
     color: colors.text,
     fontSize: fontSize.body,
+    textAlign: 'center',
   },
 });
