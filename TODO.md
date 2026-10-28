@@ -197,6 +197,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] shared `push.ts`: rare 레벨·운영 알림 문구(ko/en), Android 채널 id(`alerts`·`ops`) (2026-10-28)
   - [x] 서버 `push/` 발송 인터페이스(`PushSender`)·전체 기기 발송(`broadcast`, 한 기기라도 성공하면 전달)·가짜 발송기 (2026-10-28)
   - [ ] FCM HTTP v1 발송기(서비스 계정 키 뒤)
+  - [x] 운영 알림: 스케줄러가 재시도까지 실패하면 `jobFailedPush`를 `ops` 채널로 발송, 같은 작업·거래일은 다시 성공할 때까지 1회(`jobs/opsAlert.ts`, `ops_notified_at`) (2026-10-28)
+  - [ ] `main.ts`에 운영 알림 연결(FCM 발송기 뒤)
   - [ ] 앱 Android 채널 만들기(`push/`와 함께)
 - [ ] `INTRADAY`에 판정·발송 연결(`alert_record` 중복 방지·보류) + `DEFERRED_PUSH` 작업(30분)
 - [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
@@ -210,7 +212,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] `GET /v1/commodities/:code/etps`·`GET /v1/etps/:id` + C-d(필터 4종·정렬 3종)·C-d-a 화면
 
 ### 5-10. 운영과 첫 배포
-- [ ] `CALENDAR` 작업(60일 공백 점검), `BACKUP` 작업(`pg_dump`·7개 보관·보관 기간 행 정리, D-045, D-046), 운영 알림(거래일당 1회, D-048), Healthchecks.io ping
+- [ ] `CALENDAR` 작업(60일 공백 점검), `BACKUP` 작업(`pg_dump`·7개 보관·보관 기간 행 정리, D-045, D-046), Healthchecks.io ping (운영 알림은 5-8에서 완료)
 - [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Healthchecks.io check(D-045)
 - [ ] `infra/`(Dockerfile·compose·Caddyfile) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
 - [ ] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체 (D-052)

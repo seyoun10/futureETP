@@ -78,6 +78,35 @@ describe('createTriggerRunner', () => {
     expect(handler).toHaveBeenCalledTimes(2);
   });
 
+  it('재시도까지 실패하면 마지막 실행으로 운영 알림을 부르고, 성공하면 부르지 않는다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const opsAlert = vi.fn(() => Promise.resolve('SENT' as const));
+    const runTrigger = createTriggerRunner({
+      store: countingStore(),
+      handlers: { ETP: () => Promise.reject(new Error('down')), INTRADAY: async () => {} },
+      opsAlert,
+      sleep: async () => {},
+    });
+
+    await runTrigger(['ETP', 'INTRADAY'], new Date());
+    expect(opsAlert).toHaveBeenCalledTimes(1);
+    expect(opsAlert).toHaveBeenCalledWith('ETP', 'run-2');
+  });
+
+  it('운영 알림이 실패해도 다음 작업을 계속한다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const intraday = vi.fn(async () => {});
+    const runTrigger = createTriggerRunner({
+      store: countingStore(),
+      handlers: { ETP: () => Promise.reject(new Error('down')), INTRADAY: intraday },
+      opsAlert: () => Promise.reject(new Error('fcm down')),
+      sleep: async () => {},
+    });
+
+    await runTrigger(['ETP', 'INTRADAY'], new Date());
+    expect(intraday).toHaveBeenCalledTimes(1);
+  });
+
   it('batch_run 기록이 실패해도 다음 작업을 계속한다', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const intraday = vi.fn(async () => {});

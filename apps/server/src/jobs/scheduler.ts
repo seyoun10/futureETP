@@ -1,6 +1,7 @@
 // croner 스케줄 등록(D-034, D-060). SCHEDULER_ENABLED일 때만 main.ts가 시작한다.
 import { Cron } from 'croner';
 import type { JobName } from '../constants.ts';
+import type { OpsAlert } from './opsAlert.ts';
 import { runJob, type BatchRunStore, type JobHandlers } from './runner.ts';
 
 const CHICAGO = 'America/Chicago';
@@ -37,12 +38,14 @@ export const RETRY_DELAY_MS: Record<JobName, number> = {
 type SchedulerDeps = {
   handlers: JobHandlers;
   store: BatchRunStore;
+  // 재시도까지 실패하면 부른다(D-045). 발송기가 없으면 비운다.
+  opsAlert?: OpsAlert;
   now?: () => Date;
   sleep?: (ms: number) => Promise<void>;
 };
 
 // 같은 작업이 아직 실행 중이면(재시도 대기 포함) 이번 차례는 건너뛴다.
-export function createTriggerRunner({ handlers, store, now, sleep }: SchedulerDeps) {
+export function createTriggerRunner({ handlers, store, opsAlert, now, sleep }: SchedulerDeps) {
   const running = new Set<JobName>();
   return async (jobs: readonly JobName[], scheduledAt: Date): Promise<void> => {
     for (const job of jobs) {
@@ -54,7 +57,7 @@ export function createTriggerRunner({ handlers, store, now, sleep }: SchedulerDe
       }
       running.add(job);
       try {
-        await runJob(job, handler, {
+        const result = await runJob(job, handler, {
           store,
           maxAttempts: MAX_ATTEMPTS,
           retryDelayMs: RETRY_DELAY_MS[job],
@@ -62,6 +65,13 @@ export function createTriggerRunner({ handlers, store, now, sleep }: SchedulerDe
           now,
           sleep,
         });
+        if (result.status === 'FAILED' && opsAlert) {
+          try {
+            await opsAlert(job, result.runId);
+          } catch (error) {
+            console.error(`[ops ${job}] alert failed:`, error);
+          }
+        }
       } catch (error) {
         // batch_run 기록 자체가 실패한 경우(DB 중단 등). 다음 차례에 다시 돈다.
         console.error(`[job ${job}] run failed to record:`, error);
