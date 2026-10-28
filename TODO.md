@@ -196,7 +196,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
   - [x] shared `push.ts`: rare 레벨·운영 알림 문구(ko/en), Android 채널 id(`alerts`·`ops`) (2026-10-28)
   - [x] 서버 `push/` 발송 인터페이스(`PushSender`)·전체 기기 발송(`broadcast`, 한 기기라도 성공하면 전달)·가짜 발송기 (2026-10-28)
-  - [ ] FCM HTTP v1 발송기(서비스 계정 키 뒤)
+  - [x] FCM HTTP v1 발송기: `push/fcmSender.ts`(`firebase-admin`, `alerts`·`ops` 채널 지정, 본문 없으면 제목만, `UNREGISTERED`면 `INVALID_TOKEN`, iOS는 APNs 전까지 `FAILED`). 실제 발송 확인은 서비스 계정 키 뒤 (2026-10-28)
   - [x] 운영 알림: 스케줄러가 재시도까지 실패하면 `jobFailedPush`를 `ops` 채널로 발송, 같은 작업·거래일은 다시 성공할 때까지 1회(`jobs/opsAlert.ts`, `ops_notified_at`) (2026-10-28)
   - [ ] `main.ts`에 운영 알림 연결(FCM 발송기 뒤)
   - [ ] 앱 Android 채널 만들기(`push/`와 함께)
