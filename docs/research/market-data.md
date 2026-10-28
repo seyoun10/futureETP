@@ -66,6 +66,21 @@ Yahoo 실측 2차 (2026-10-28 00:49 CT, 5-7 장중 배치 준비)
 - 일봉 종가 = CME 정산가: CLZ26 10/23 103.27·10/26 101.76, GCZ26 4007.90·4038.40이 Databento 정산가와 같다. `meta.previousClose`는 직전 거래일 정산가다.
 - 장중 대상 월물 수(커브 최대 24개 기준): CL 24·NG 24·GC 12·SI 8 = 약 68개
 
+## Massive Basic 실측 (2026-10-28 06:00 UTC, 가입 직후)
+- 요금제: 가입하면 Futures Basic($0, Individual)이 이미 붙어 있다. 인증은 `Authorization: Bearer <키>`, 주소는 `https://api.massive.com`.
+- 되는 것과 안 되는 것
+  - `GET /futures/v1/contracts?product_code=CL&date=<날짜>&type=single&limit=1000`: 원자재당 1회로 전 월물이 온다(CL 138·NG 160). 필드 `ticker`·`first_trade_date`·`last_trade_date`·`settlement_date`·`active`(만기 지난 월물은 false로 섞여 옴). `type=single`을 빼면 스프레드가 섞인다. `sort`는 `date`·`product_code`·`ticker`만.
+  - `GET /futures/v1/aggs/<티커>?resolution=1session&limit=N`: 거래일 봉 `session_end_date`·`open`·`high`·`low`·`close`·`volume`·`transactions`·**`settlement_price`**. 최신 거래일부터 내림차순이고 한 번에 여러 날을 받는다. 티커는 경로에 하나뿐이라 월물마다 1회다(제품 단위 조회는 404).
+  - 진행 중인 세션 봉도 온다(정산가 없음). 2분 사이 종가·거래량이 바뀌어 거의 실시간에 가깝지만 지연은 재지 못했다. 1분봉(`resolution=1min`)은 세션 시작 직후(22:03 UTC)까지만 오고 `window_start` 필터는 날짜·나노초 모두 받지 않았다.
+  - `snapshot`·`trades`: 403(권한 없음). `market-status?product_code=CL`: 된다.
+- 티커 형식: 제품마다 Globex 원래 심볼이다. CL·GC·SI는 2029년물까지 연도 1자리(`CLZ6`), 2030년물부터 2자리(`CLF30`), NG는 2자리(`NGF27`). 직접 만들지 말고 contracts의 `ticker`를 쓴다. 형식이 틀리면 오류 없이 빈 결과다.
+- Databento와 정산가 비교(2026-05~10-26): GCZ26 118일·CLZ28 119일·SIZ26 118일·NGF27 118일 **모두 일치**.
+- 차이
+  - 거래가 없는 날은 봉이 없어 정산가도 없다. GCQ28은 DB 86일 중 Massive 2일뿐이다(Databento는 거래 없어도 정산가가 있음).
+  - 거래량은 Massive가 10~15% 작다(GCZ26 10/26 107,823 vs 126,007). Massive는 단일 월물 체결 합계, DB는 거래소 확정 거래량(stat 6, 스프레드 다리·블록 포함, D-088)이라 기준이 다르다.
+- 호출 수: 분당 5회라 월물마다 1회면 DB에 있는 월물 전부(10/26 기준 CL 123·NG 146·GC 34·SI 32 = 335개)는 약 67분이다.
+- 남은 실측: 정산가 반영 시각(18:30 CT 이후), 18:30 CT에 일부 월물이 빠지는지.
+
 ## 장중 갱신 주기 (1시간보다 짧게 할 수 있는가)
 - 결론: 가능하다. 짧게 해도 소용 있는 하한은 **소스의 지연 시간**이다.
 
