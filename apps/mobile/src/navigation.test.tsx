@@ -1,3 +1,10 @@
+import {
+  addNotificationResponseReceivedListener,
+  clearLastNotificationResponse,
+  DEFAULT_ACTION_IDENTIFIER,
+  getLastNotificationResponse,
+  type NotificationResponse,
+} from 'expo-notifications';
 import { lockAsync, OrientationLock } from 'expo-screen-orientation';
 import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
@@ -114,6 +121,45 @@ describe('라우트 골격', () => {
 
     await fireEvent.press(screen.getByText('데이터 출처'));
     expect(screen).toHavePathname('/settings/data-sources');
+  });
+});
+
+// 탭한 알림 응답. 테스트는 content.data와 actionIdentifier만 본다.
+const tapped = (data: Record<string, string>, actionIdentifier = DEFAULT_ACTION_IDENTIFIER) =>
+  ({ actionIdentifier, notification: { request: { content: { data } } } }) as NotificationResponse;
+
+describe('알림 탭', () => {
+  it('앱이 꺼져 있을 때 rare 레벨 알림을 누르면 C-a로 열리고 [←]는 A로 간다', async () => {
+    jest
+      .mocked(getLastNotificationResponse)
+      .mockReturnValueOnce(tapped({ type: 'RARE_LEVEL', commodity: 'GC' }));
+    await renderApp();
+
+    expect(screen).toHavePathname('/commodity/GC');
+    expect(screen.getByTestId('disparity-chart-screen')).toBeOnTheScreen();
+    expect(clearLastNotificationResponse).toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByLabelText('뒤로'));
+    expect(screen).toHavePathname('/');
+  });
+
+  it.each([
+    ['운영 알림', { type: 'JOB_FAILED', job: 'DAILY_SETTLE' }],
+    ['모르는 원자재', { type: 'RARE_LEVEL', commodity: 'XX' }],
+  ])('실행 중에 %s를 누르면 A로 간다', async (_, data) => {
+    await renderApp('/commodity/CL/curve');
+    const listener = jest.mocked(addNotificationResponseReceivedListener).mock.lastCall![0];
+
+    await act(() => listener(tapped(data)));
+    expect(screen).toHavePathname('/');
+  });
+
+  it('기본 동작이 아닌 응답(알림 버튼 등)은 이동하지 않는다', async () => {
+    await renderApp('/commodity/CL/curve');
+    const listener = jest.mocked(addNotificationResponseReceivedListener).mock.lastCall![0];
+
+    await act(() => listener(tapped({ type: 'RARE_LEVEL', commodity: 'GC' }, 'other')));
+    expect(screen).toHavePathname('/commodity/CL/curve');
   });
 });
 

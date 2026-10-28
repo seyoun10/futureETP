@@ -77,4 +77,8 @@ jest.mock('expo-notifications', () => ({
   getDevicePushTokenAsync: jest.fn(() => Promise.resolve({ type: 'ios', data: '' })),
   setNotificationChannelAsync: jest.fn(() => Promise.resolve(null)),
   addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
+  DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
 }));

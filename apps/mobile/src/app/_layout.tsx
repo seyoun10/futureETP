@@ -10,6 +10,7 @@ import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
 import { TimezoneSync } from '@/features/settings/TimezoneSync';
 import { setupI18n } from '@/i18n';
 import { lockPortrait } from '@/lib/orientation';
+import { NotificationTapHandler } from '@/push/NotificationTapHandler';
 import { PushRegistration } from '@/push/PushRegistration';
 import { colors } from '@/theme/tokens';
 
@@ -37,12 +38,15 @@ export default function RootLayout() {
         {hasKey && <TimezoneSync />}
         {hasKey && <PushRegistration />}
         {hasKey ? (
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.background },
-            }}
-          />
+          <>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+              }}
+            />
+            <NotificationTapHandler />
+          </>
         ) : (
           <AccessKeyScreen />
         )}

@@ -206,7 +206,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `RETRY` 재발송(`planRetries`): 공통 `createAlertRetry`(지난 슬롯의 `RETRY`만, 덮였으면 `SUPPRESSED`, 거부 시간이면 대기, 다시 실패면 `FAILED`) + `INTRADAY`·`DEFERRED_PUSH` 앞단 연결 (2026-10-28)
   - [x] `DEFERRED_PUSH` 작업: `jobs/deferredPush.ts`(재발송 → `createDeferredAlert`), `planDeferred`로 원자재·방향별 가장 드문 `HELD` 1건을 지연 발송 문구로 보내고 나머지 `SUPPRESSED`, 실패면 `RETRY` (2026-10-28)
   - [x] `handlers.ts`에 판정·재발송 연결과 `DEFERRED_PUSH` 등록 (2026-10-28)
-- [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구), 알림 탭 → A → C-a 스택
+- [x] 알림 탭 이동: rare 레벨 알림은 해당 원자재 C-a(스택 A → C), 운영·모르는 알림은 A. 꺼진 앱은 마지막 응답을 읽고 지운다(`push/NotificationTapHandler.tsx`) (2026-10-28)
+- [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구)
 
 ### 5-9. ETP
 - [ ] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
