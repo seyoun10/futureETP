@@ -48,11 +48,12 @@ const chartSchema = z.object({
   }),
 });
 
+// 그날 체결이 없는 월물은 close가 null이고 timestamp가 빈 배열이다
 const sparkSchema = z.record(
   z.string(),
   z.object({
-    timestamp: z.array(z.number()).default([]),
-    close: nullableNumbers.default([]),
+    timestamp: z.array(z.number()).nullish(),
+    close: nullableNumbers.nullish(),
   }),
 );
 
@@ -146,6 +147,7 @@ export function createYahooIntradaySource({
     },
     async fetchLastPrices(symbols) {
       const quotes: IntradayQuote[] = [];
+      const missing: string[] = [];
       for (let i = 0; i < symbols.length; i += SPARK_BATCH) {
         const batch = symbols.slice(i, i + SPARK_BATCH);
         const bySymbol = new Map(batch.map((s) => [toYahooSymbol(s), s]));
@@ -158,17 +160,17 @@ export function createYahooIntradaySource({
         // 없는 심볼은 결과에서 빠질 뿐이다. 모두 없으면 404가 온다
         const results = body === null ? {} : sparkSchema.parse(body);
         for (const [yahooSymbol, symbol] of bySymbol) {
-          const series = results[yahooSymbol];
-          // 마지막 null 아닌 종가
-          const last = series?.close.findLastIndex((c) => c !== null) ?? -1;
-          if (!series || last < 0) {
-            log(`[yahoo] no spark price for ${symbol}`);
+          const close = results[yahooSymbol]?.close ?? [];
+          // 마지막 null 아닌 종가. 없으면(체결 없음·없는 심볼) 빠지고 표시는 직전 정산가로 대신한다(D-085)
+          const last = close.findLastIndex((c) => c !== null);
+          if (last < 0) {
+            missing.push(symbol);
             continue;
           }
-          const time = series.timestamp[last];
+          const time = results[yahooSymbol]?.timestamp?.[last];
           quotes.push({
             contractSymbol: symbol,
-            last: series.close[last]!,
+            last: close[last]!,
             dayOpen: null,
             dayHigh: null,
             dayLow: null,
@@ -177,6 +179,8 @@ export function createYahooIntradaySource({
           });
         }
       }
+      // 먼 월물은 체결 없는 날이 흔해 한 줄로 남긴다
+      if (missing.length > 0) log(`[yahoo] no spark price for ${missing.join(', ')}`);
       return quotes;
     },
   };

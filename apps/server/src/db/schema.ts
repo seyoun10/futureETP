@@ -27,6 +27,7 @@ import {
   WINDOWS,
   type MaPeriod,
 } from '@futureetp/shared';
+import type { DisparityByMa } from '../calc/intraday.ts';
 import { ALERT_STATUSES, BATCH_STATUSES, JOB_NAMES, SOURCES } from '../constants.ts';
 
 // 가격·비중은 정밀 decimal로 저장하고 calc에서 쓰기 쉽게 number로 읽는다.
@@ -242,12 +243,6 @@ export const disparityDistribution = pgTable(
   },
   (t) => [primaryKey({ columns: [t.commodityCode, t.basis, t.maPeriod, t.window] })],
 );
-
-// 이평선 4종 현재가·고가·저가 이격도
-export type DisparityByMa = Record<
-  `${MaPeriod}`,
-  { last: number | null; high: number | null; low: number | null }
->;
 
 export const indexSnapshot = pgTable(
   'index_snapshot',

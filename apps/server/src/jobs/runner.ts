@@ -1,4 +1,5 @@
 // 작업 1회 실행 + batch_run 기록 + 실패 시 재시도(D-060). 스케줄러와 CLI가 같이 쓴다.
+import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
 import type { JobName } from '../constants.ts';
 
 export type JobContext = {
@@ -49,6 +50,22 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
 
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+// 원자재마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
+export async function forEachCommodity(
+  label: string,
+  task: (code: CommodityCode) => Promise<void>,
+): Promise<void> {
+  const failures: string[] = [];
+  for (const code of COMMODITY_CODES) {
+    try {
+      await task(code);
+    } catch (error) {
+      failures.push(`${code}: ${errorMessage(error)}`);
+    }
+  }
+  if (failures.length > 0) throw new Error(`${label} failed: ${failures.join('; ')}`);
 }
 
 // 시도마다 batch_run 행을 하나씩 만든다(attempt 1, 2). 마지막 행의 FAILED가 최종 실패다.

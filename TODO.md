@@ -183,7 +183,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 호출 전략 결정: 지수 월물은 chart, 나머지 커브 월물은 spark (2026-10-28, D-094)
 - [ ] `INTRADAY` 작업: `intraday_snapshot`·`index_snapshot`(이평선 4종 이격도), 정산 대기·휴장 중지, 응답 형식 검증 실패 = 배치 실패
   - [x] Yahoo 장중 소스(`sources/yahooIntraday.ts`): chart 세션 값·spark 현재가, 404 월물은 빠짐, 응답 zod 검증 (2026-10-28, D-094)
-  - [ ] 작업 본체: 대상 월물 선정·스냅숏 저장·잠정 지수·이격도
+  - [x] 작업 본체(`jobs/intraday.ts`): OPEN일 때만, 커브 월물 24개 + 보유 월물 → `intraday_snapshot`, 기준값별 잠정 지수·이평선 4종 이격도 → `index_snapshot` (2026-10-28, D-094). 실데이터 확인은 저장 없이만 했다(dev DB가 10/26까지라 정산 대기)
+  - [ ] 첫 `DAILY_SETTLE` 뒤 dev에서 저장까지 1회 실행, `INTRADAY_EXPECTED_MS` 실측(저장 없는 1회 약 4초)
 - [ ] A·C freshness 장중 값·오늘 잠정 봉 반영 확인
 
 ### 5-8. 알림

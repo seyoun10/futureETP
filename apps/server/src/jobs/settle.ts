@@ -1,6 +1,6 @@
 // 일일 정산(D-047, D-071). ① DAILY_SETTLE: 밀린 거래일까지 일봉 저장 → 원자재별 전체 재계산. 성공 = 정산 대기 해제.
 // ② SETTLE_REVISION: 직전 거래일 일봉을 다시 받아 바뀐 원자재만 재계산. 마지막 실행이 실패면 알림 판정을 멈춘다.
-import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
+import type { CommodityCode } from '@futureetp/shared';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import { isTargetMonth, type ActiveMonthRule } from '../calc/monthList.ts';
 import {
@@ -13,7 +13,7 @@ import { addDays } from '../calc/tradingCalendar.ts';
 import type { JobName, Source } from '../constants.ts';
 import { tradesOn } from '../sources/settlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
-import { errorMessage, type JobHandler } from './runner.ts';
+import { forEachCommodity, type JobHandler } from './runner.ts';
 
 export type NewContract = {
   symbol: string;
@@ -70,22 +70,6 @@ function loadDays(store: SettleStore, now: Date) {
 // 원자재마다 일봉을 받는 월물 수: 최종 거래일이 가까운 쪽부터. 커브 상한 24개(D-018) + 2.
 // 먼 월물은 지수·커브에 쓰지 않고, 소스 호출 제한(Massive 분당 5회)에 묶인다(D-095)
 export const MAX_SETTLE_CONTRACTS = 26;
-
-// 원자재마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
-async function forEachCommodity(
-  label: string,
-  task: (code: CommodityCode) => Promise<void>,
-): Promise<void> {
-  const failures: string[] = [];
-  for (const code of COMMODITY_CODES) {
-    try {
-      await task(code);
-    } catch (error) {
-      failures.push(`${code}: ${errorMessage(error)}`);
-    }
-  }
-  if (failures.length > 0) throw new Error(`${label} failed: ${failures.join('; ')}`);
-}
 
 export function createSettleHandlers({ store, source, recompute, log = console.log }: SettleDeps): {
   DAILY_SETTLE: JobHandler;

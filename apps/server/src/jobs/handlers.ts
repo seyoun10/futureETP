@@ -1,9 +1,12 @@
 import { config } from '../config.ts';
 import { db } from '../db/client.ts';
+import { createIntradayStore } from '../db/intraday.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
 import { createMassiveSettlementSource } from '../sources/massiveSettlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
+import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
+import { createIntradayHandler } from './intraday.ts';
 import { recomputeCommodity } from './recompute.ts';
 import type { JobHandlers } from './runner.ts';
 import { createSettleHandlers } from './settle.ts';
@@ -25,5 +28,9 @@ export const JOB_HANDLERS: JobHandlers = {
     recompute: async (code, now) => {
       await recomputeCommodity(db, code, now);
     },
+  }),
+  INTRADAY: createIntradayHandler({
+    store: createIntradayStore(db),
+    source: createYahooIntradaySource(),
   }),
 };

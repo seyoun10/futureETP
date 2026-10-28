@@ -126,7 +126,7 @@ describe('fetchSessionQuotes', () => {
 });
 
 describe('fetchLastPrices', () => {
-  it('20개씩 나눠 받고, 마지막 null 아닌 종가를 쓰며, 없는 심볼은 빠진다', async () => {
+  it('20개씩 나눠 받고, 마지막 null 아닌 종가를 쓰며, 없는 심볼·체결 없는 월물은 빠진다', async () => {
     const symbols = Array.from(
       { length: 21 },
       (_, i) => `NG${'FGHJKMNQUVXZ'[i % 12]}${27 + Math.floor(i / 12)}`,
@@ -142,14 +142,17 @@ describe('fetchLastPrices', () => {
             .filter((s) => s !== 'NGG27.NYM')
             .map((s) => [
               s,
-              { symbol: s, timestamp: [T0, T0 + 300, T0 + 600], close: [3, 3.1, null] },
+              // 그날 체결이 없는 월물은 close가 null
+              s === 'NGH27.NYM'
+                ? { symbol: s, timestamp: [], close: null, previousClose: 3 }
+                : { symbol: s, timestamp: [T0, T0 + 300, T0 + 600], close: [3, 3.1, null] },
             ]),
         ),
       );
     });
     const quotes = await source.fetchLastPrices(symbols);
     expect(urls.map((u) => u.searchParams.get('symbols')!.split(',').length)).toEqual([20, 1]);
-    expect(quotes).toHaveLength(19);
+    expect(quotes).toHaveLength(18);
     expect(quotes[0]).toEqual({
       contractSymbol: 'NGF27',
       last: 3.1,
@@ -159,7 +162,6 @@ describe('fetchLastPrices', () => {
       volume: null,
       sourceTime: new Date((T0 + 300) * 1000),
     });
-    expect(log).toHaveBeenCalledWith('[yahoo] no spark price for NGG27');
-    expect(log).toHaveBeenCalledWith('[yahoo] no spark price for NGU28');
+    expect(log).toHaveBeenCalledWith('[yahoo] no spark price for NGG27, NGH27, NGU28');
   });
 });

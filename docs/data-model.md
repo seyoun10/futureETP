@@ -90,10 +90,10 @@ erDiagram
         timestamp captured_at PK "15분 배치 시각"
         date trade_date
         decimal last "현재가"
-        decimal day_open
-        decimal day_high "Yahoo 당일 고가"
-        decimal day_low "Yahoo 당일 저가"
-        bigint volume
+        decimal day_open "nullable: spark 월물·세션 첫 체결 전"
+        decimal day_high "Yahoo 세션 고가, nullable"
+        decimal day_low "Yahoo 세션 저가, nullable"
+        bigint volume "nullable"
         timestamp source_time "소스 기준 시각(지연 표시용)"
     }
     roll_rule {
