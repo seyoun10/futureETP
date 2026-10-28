@@ -168,6 +168,24 @@ describe('C-a 이격도차트', () => {
     expect(screen.getByText('DEC26 60% · FEB27 40%')).toBeOnTheScreen();
   });
 
+  it('대표월물 전환 마커 봉의 십자선 상세는 새 월물명을 이어 쓴다', async () => {
+    mockGet.mockResolvedValue({
+      ...DATA,
+      basis: 'FRONT',
+      bars: [
+        bar('2026-10-20', 90),
+        bar('2026-10-21', 80),
+        bar('2026-10-22', 85, { holdings: [{ contractMonth: '2027-01', weight: 1 }] }),
+      ],
+    });
+    await renderScreen();
+    await screen.findByTestId('disparity-stats');
+
+    expect(lastChartProps().roll.markers).toEqual([{ index: 1, label: '1' }]);
+    await render(<>{lastChartProps().renderDetail(1)}</>);
+    expect(screen.getByText('DEC26 → JAN27')).toBeOnTheScreen();
+  });
+
   it('설정을 못 읽으면 오류와 다시 시도를 보여 준다', async () => {
     jest.mocked(getSettings).mockRejectedValue(new Error('down'));
     await renderScreen();

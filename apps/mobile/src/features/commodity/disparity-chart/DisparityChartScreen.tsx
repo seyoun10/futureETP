@@ -234,7 +234,10 @@ function CrosshairDetail({
   if (!bar) return null;
   const prev = model.bars[index - 1];
   const decimals = data.priceDecimals;
-  const holdings = holdingsText(bar, data.basis);
+  const switchTo = model.frontSwitchAt.get(index);
+  const current = holdingsText(bar, data.basis);
+  // 전환 마커 봉이면 새 월물명을 이어 쓴다(마커는 월 번호만, D-087)
+  const holdings = switchTo && current ? `${current} → ${switchTo}` : current;
 
   return (
     <View style={styles.detail}>

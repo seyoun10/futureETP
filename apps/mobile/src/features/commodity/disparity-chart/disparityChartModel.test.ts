@@ -70,7 +70,7 @@ describe('disparityChartModel', () => {
     expect(priceLabels.find((l) => l.key === 'UP-5')?.color).toBe(colors.chart.rareLevels[1]);
   });
 
-  it('한국형·미국형은 롤 음영만, 대표월물은 전환 마커만 그린다', () => {
+  it('한국형·미국형은 롤 음영만, 대표월물은 전환 마커(월 번호)만 그린다', () => {
     const rolling = [
       bar('2026-10-20', 100),
       bar('2026-10-21', 101, { inRoll: true }),
@@ -81,10 +81,10 @@ describe('disparityChartModel', () => {
       shading: [[1, 1]],
       markers: [],
     });
-    expect(disparityChartModel(chart({ basis: 'FRONT', bars: rolling })).roll).toEqual({
-      shading: [],
-      markers: [{ index: 1, label: '→FEB27' }],
-    });
+    const front = disparityChartModel(chart({ basis: 'FRONT', bars: rolling }));
+    expect(front.roll).toEqual({ shading: [], markers: [{ index: 1, label: '2' }] });
+    expect([...front.frontSwitchAt]).toEqual([[1, 'FEB27']]);
+    expect(disparityChartModel(chart({ bars: rolling })).frontSwitchAt.size).toBe(0);
   });
 });
 
