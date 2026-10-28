@@ -28,7 +28,7 @@ futureETP/
 │  │     ├─ push/                  토큰 등록·Android 채널 (알림 탭 처리는 예정, D-037)
 │  │     └─ lib/                   포맷(Intl, 소수 자릿수) 등 순수 유틸
 │  └─ server/
-│     ├─ Dockerfile                (예정) 빌드 문맥 = 저장소 루트 (shared·lock 파일 포함)
+│     ├─ Dockerfile                빌드 문맥 = 저장소 루트(허용 목록 `.dockerignore`), `node:26-alpine3.23` + `pg_dump` 18
 │     └─ src/
 │        ├─ main.ts                API + 스케줄러 한 프로세스 (D-034)
 │        ├─ api/                   Hono 라우트·미들웨어(Bearer 검사, 횟수 제한, D-036)
@@ -39,7 +39,7 @@ futureETP/
 │        └─ db/                    Drizzle 스키마, 마이그레이션, 조회
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
-├─ infra/                          (예정) docker-compose.yml, Caddyfile
+├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`
 ├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
 │                                  (예정) 배포(rsync + compose), 백업 내려받기·dev 복원
 ├─ docs/
@@ -195,6 +195,8 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 항목(D-053, 예시는 `apps/server/.env.example`): 필수 `NODE_ENV`(`development`·`production`), `DATABASE_URL`, `API_TOKEN`(32자 이상, D-036), `SCHEDULER_ENABLED`. 기본값 있음 `PORT`(3000), `LOG_LEVEL`(info). 비워도 시작 `DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`·`FCM_SERVICE_ACCOUNT_PATH`·`HEALTHCHECKS_PING_KEY`(dev는 비움, D-045)·`BACKUP_DIR`. 비워도 시작하는 값은 그 값을 쓰는 작업이 실행될 때 없으면 그 작업이 실패한다. 값이 dev와 prod에서 달라지는 것은 모두 환경 변수로 받고, 코드에서 `NODE_ENV`로 분기하지 않는다(로그 형식 같은 개발 편의만 예외).
 - dev: `apps/server/.env`(커밋 안 함)를 Node 내장 `--env-file`로 읽는다. 저장소에는 키 이름과 예시 값만 담은 `apps/server/.env.example`을 둔다.
 - prod: VM의 `infra/.env`(권한 600)를 Compose `env_file`로 넘긴다. 이 파일과 서비스 계정 키는 저장소에 넣지 않고, 배포 스크립트의 rsync에서도 제외해 VM에서 직접 관리한다. 서비스 계정 키는 컨테이너에 읽기 전용으로 마운트한다.
+  - 구현(`infra/docker-compose.yml`): `infra/.env`에는 `DOMAIN`·`POSTGRES_PASSWORD`·`API_TOKEN`·외부 키·`HEALTHCHECKS_PING_KEY`만 둔다. `NODE_ENV`·`PORT`·`DATABASE_URL`(`POSTGRES_PASSWORD`로 조립, `db` 서비스)·`SCHEDULER_ENABLED=true`·`FCM_SERVICE_ACCOUNT_PATH`·`BACKUP_DIR=/backups`는 Compose가 고정한다. FCM 키는 `infra/secrets/fcm-service-account.json`을 Compose secret으로, 덤프 폴더는 `infra/backups`를 bind 마운트로 넘긴다(둘 다 gitignore). 컨테이너 사용자는 `node`(uid 1000)라 두 경로를 uid 1000이 읽고 쓸 수 있어야 한다.
+  - Postgres 18 이미지는 데이터 폴더가 `/var/lib/postgresql/18/docker`라 볼륨을 `/var/lib/postgresql`에 붙인다. 컨테이너 로그는 `local` 드라이버 10MB×3개로 제한한다. 서버는 `init: true`로 SIGTERM을 받고 `/v1/health`로 healthcheck한다.
 - 외부 소스 키는 dev와 prod가 같은 키를 쓴다(Massive Basic 분당 5회 등 한도가 키 단위). 그래서 dev는 스케줄러를 끄고, 수동 실행도 필요한 작업만 한다. 테스트는 녹화한 응답(fixture)과 가짜 `sources`를 쓰고 실제 소스를 호출하지 않는다(D-038).
 
 ### 배치 수동 실행

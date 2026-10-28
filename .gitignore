@@ -48,3 +48,7 @@ apps/mobile/android/
 *.mobileprovision
 google-services.json
 GoogleService-Info.plist
+
+# prod VM 전용(infra/.env는 위 .env 규칙): FCM 서비스 계정 키, 백업 덤프 (D-045)
+infra/secrets/
+infra/backups/

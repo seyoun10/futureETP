@@ -1,0 +1,10 @@
+# 빌드 문맥은 저장소 루트(apps/server/Dockerfile). 필요한 것만 허용해 .env·키·앱 소스가 들어가지 않게 한다.
+*
+!package.json
+!package-lock.json
+!apps/server/package.json
+!apps/server/src/
+!apps/server/drizzle/
+!packages/shared/package.json
+!packages/shared/src/
+**/*.test.ts

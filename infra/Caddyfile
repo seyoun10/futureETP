@@ -1,0 +1,6 @@
+# TLS 자동 발급 + API만 외부에 연다(D-036). Postgres는 포트를 열지 않는다.
+# X-Forwarded-For는 Caddy가 실제 클라이언트 IP로 덮어쓴다(trusted_proxies 미설정, api/clientIp.ts)
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:3000
+}

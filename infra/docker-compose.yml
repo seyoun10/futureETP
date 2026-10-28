@@ -1,0 +1,85 @@
+# prod 구성(D-034, D-036). VM의 infra/에서 docker compose up -d
+# 값은 infra/.env(권한 600, 저장소·rsync 제외)에서 읽는다. 예시는 infra/.env.example
+name: futureetp
+
+x-logging: &logging
+  driver: local
+  options:
+    max-size: 10m
+    max-file: '3'
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: futureetp
+      POSTGRES_USER: futureetp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is not set}
+    # 18부터 데이터 폴더가 /var/lib/postgresql/<major>/docker라 상위 폴더를 마운트한다
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U futureetp -d futureetp']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging: *logging
+
+  server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    image: futureetp-server:latest
+    restart: unless-stopped
+    # SIGTERM을 Node에 전달해 docker stop이 바로 끝나게 한다(중단된 실행은 다음 시작 때 정리, D-060)
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    # 컨테이너 배치에 묶인 값은 여기서 고정한다(.env보다 우선)
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATABASE_URL: postgres://futureetp:${POSTGRES_PASSWORD}@db:5432/futureetp
+      SCHEDULER_ENABLED: 'true'
+      FCM_SERVICE_ACCOUNT_PATH: /run/secrets/fcm-service-account
+      BACKUP_DIR: /backups
+    secrets:
+      - fcm-service-account
+    # Mac 백업 내려받기가 VM의 infra/backups를 읽는다(D-045). 컨테이너 사용자 node(uid 1000)가 쓸 수 있어야 한다
+    volumes:
+      - ./backups:/backups
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3000/v1/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+
+  caddy:
+    image: caddy:2.11-alpine
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN is not set}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
+secrets:
+  fcm-service-account:
+    file: ./secrets/fcm-service-account.json
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
