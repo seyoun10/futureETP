@@ -118,6 +118,11 @@ export const en: Translation = {
     pickRange: 'Available: {{min}} – {{max}}',
     moved: 'Market closed, moved to {{date}} ({{weekday}})',
   },
+  // C-c contract chart (screens.md C-c)
+  contracts: {
+    provisional: '(provisional)',
+    noData: 'No contracts to show.',
+  },
   etp: {
     detailTitle: 'ETP details',
   },

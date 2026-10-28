@@ -124,6 +124,11 @@ export const ko = {
     pickRange: '선택 가능: {{min}} ~ {{max}}',
     moved: '휴장일이라 {{date}}({{weekday}})로 옮겼습니다',
   },
+  // C-c 월물차트(screens.md C-c)
+  contracts: {
+    provisional: '(잠정)',
+    noData: '표시할 월물이 없습니다.',
+  },
   etp: {
     detailTitle: 'ETP 상세',
   },

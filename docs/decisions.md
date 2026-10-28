@@ -1375,7 +1375,7 @@
   - y축 특수 라벨: 우선순위(현재가 → 이평선 → 현재가에 가까운 rare-level) 순으로 겹치지 않는 것만 그리고, 특수 라벨과 겹치는 기본 눈금 텍스트는 숨긴다(격자선 유지). 현재가는 회색 수평 점선을 함께 그린다.
   - 롤 음영·마커·꼬리표·축은 victory-native 변환 컨텍스트(JS)로 다시 그린다(개수가 적다). '전체'(k=1)에서는 `transformConfig.pan.enabled`를 꺼서 이동 제스처를 막는다.
   - 십자선 상세 박스는 캔버스가 아니라 RN View로, 봉에 붙을 때(햅틱과 같은 시점) 상태를 바꿔 손가락 반대편 절반에 띄운다. 내용은 화면이 `renderDetail(index)`로 준다(i18n·RN Text 그대로).
-  - `CandleChart`는 C-a·C-c 공용이다. 입력은 OHLC 봉, 위·아래 끝, 선 목록, 특수 라벨, 롤 음영·마커, 기간 봉 수(`PERIOD_BARS`, 월 21·연 252거래일), 보이는 범위 콜백.
+  - `CandleChart`는 C-a·C-c 공용이다(→ D-093: C-c는 `LinesChart`로 나누고 확대·이동·십자선만 공용 hook). 입력은 OHLC 봉, 위·아래 끝, 선 목록, 특수 라벨, 롤 음영·마커, 기간 봉 수(`PERIOD_BARS`, 월 21·연 252거래일), 보이는 범위 콜백.
   - 대표월물 전환 마커는 D-086대로 보유 월물이 바뀐 봉의 앞 봉(전환일)에 새 월물명으로 단다.
 - 근거: 글꼴 번들은 한글 글꼴 하나만 수 MB이고 굵기별로 늘어난다. Paragraph는 기기 시스템 글꼴을 그대로 써서 RN Text와 모양도 같다. 경로 변환은 봉 4,000개짜리 선 11개를 제스처 프레임마다 JS에서 다시 만들지 않으려는 것이다.
 - 영향: `formatPrice`가 worklet이 됐다(십자선 가격 라벨이 UI 스레드에서 부른다). 테마 토큰에 `rollShade`·`rollMarker`·`extremeTag`, i18n에 `chart.months`·`chart.highTag`·`chart.lowTag`가 늘었다.
@@ -1476,3 +1476,17 @@
   - 행 객체(`{ date, prices: [5] }`)보다 열 배열이 키 반복이 없고, 앱 차트가 x를 날짜 인덱스로 쓰므로 바로 넘길 수 있다.
   - dev DB 실측(2026-10-28, 압축 전): CL 2,246일 95KB, NG 2,856일 122KB, GC 1,466일 64KB, 조회 30~130ms. D-046의 C-a 400KB보다 작다.
 - 영향: `createApp`에 `contracts` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_CONTRACTS`).
+
+## D-093: C-c 월물차트 — 선형 `LinesChart` + 공용 `useChartViewport`, 끝값 라벨은 밀어 쌓기
+- 날짜: 2026-10-28
+- 상태: 확정 (선 색 구분·끝값 라벨 겹침·제스처는 에뮬레이터·실기기에서 확인)
+- 맥락: TODO 5-6 C-c 둘째 단계. D-087은 `CandleChart`를 C-a·C-c 공용으로 정했지만, C-c는 봉이 없고 y축이 선형이며(screens.md C-c) 끝값 라벨이 범례라 하나도 숨기면 안 된다.
+- 결정
+  - `CandleChart`의 변환 보정·기간 범위·'전체' 이동 막기·보이는 범위 알림·십자선(햅틱, 한 번 더 누르면 사라짐)·상세 박스 위치를 `charts/useChartViewport.ts`로 뺐다. `CandleChart`(log y, 봉)와 새 `LinesChart`(선형 y, 선만)가 이 hook과 축·선·십자선 레이어를 같이 쓴다.
+  - y 자동 맞춤은 날짜마다 그날 값이 있는 선들의 위·아래 끝(`contractChartModel` envelope)이다.
+  - 끝값 라벨: 각 선의 마지막 값에 월물명을 붙여(`3.402 JAN27`, `PriceLabel.suffix`) 선 색으로 쓴다. `YAxisLayer` `labelLayout="stack"`이면 겹치는 라벨을 빼지 않고 위에서부터 아래로 밀고, 아래 끝을 넘으면 위로 되민다(`stackLabels`). 차트 위·아래 밖 라벨은 뺀다.
+  - 선 색은 만기순 순번으로 테마 토큰 `chart.contractLines` 6색(6번째는 대표월물 안전장치 월물)에서 고른다. 이평선 노랑·등락 색과 겹치지 않게 골랐다.
+  - 십자선 가로선·가격 라벨은 그날 값이 있는 첫 선(만기가 가장 가까운 월물)을 따라간다. 상세 박스는 날짜(오늘 잠정 값이면 `(잠정)`)와 그날 값이 있는 월물별 가격(선 색)이다.
+  - 기간은 Zustand `contractPeriod`(최초 12M, C-a와 따로 기억, D-047)이고, 칩·제스처 동작은 C-a와 같다.
+- 근거: 선형 y와 봉 없는 그리기를 `CandleChart` 옵션으로 넣으면 C-a 전용 입력(OHLC·롤·꼬리표)이 C-c에 빈 값으로 따라다닌다. 제스처 동작을 hook 하나로 두면 C-a·C-c가 같게 움직인다는 요구(screens.md C-c)를 코드로 보장한다. 월물 가격은 차이가 작아(콘탱고 몇 %) 끝값 라벨이 자주 겹치는데, 우선순위로 숨기면 범례가 사라진다.
+- 영향: `CrosshairPress` 타입이 `close` 키만 요구한다(차트마다 y 키가 더 있어도 된다). `LONG_PRESS_MS`·`X_LABEL_HEIGHT`가 `useChartViewport.ts`로 옮겨졌다. jest 설정이 `LinesChart`도 mock한다.
