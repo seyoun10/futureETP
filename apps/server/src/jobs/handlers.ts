@@ -2,16 +2,19 @@ import { config } from '../config.ts';
 import { db } from '../db/client.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
+import { createMassiveSettlementSource } from '../sources/massiveSettlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { recomputeCommodity } from './recompute.ts';
 import type { JobHandlers } from './runner.ts';
 import { createSettleHandlers } from './settle.ts';
 
-// 실소스(Massive) 연결 전에는 dev만 가짜 소스로 돈다. prod에 가짜 일봉이 들어가지 않게 실패시킨다(D-071)
+// 실소스는 Massive(D-095). dev는 키가 없을 때만 가짜 소스로 돈다(D-071).
+// dev DB에도 실데이터를 적재했으므로(D-088) 키가 있으면 가짜 일봉을 섞지 않는다. prod는 키가 없으면 작업이 실패한다
 function settlementSource(): SettlementSource {
-  if (config.NODE_ENV === 'development') return createFakeSettlementSource();
-  const notConnected = () => Promise.reject(new Error('Settlement source not connected (5-4)'));
-  return { name: 'MASSIVE', listContracts: notConnected, fetchDailyBars: notConnected };
+  if (config.NODE_ENV === 'development' && !config.MASSIVE_API_KEY) {
+    return createFakeSettlementSource();
+  }
+  return createMassiveSettlementSource({ apiKey: config.MASSIVE_API_KEY });
 }
 
 // 구현된 작업만 등록한다. 스케줄러는 여기 있는 작업만 돌리고, CLI는 없는 작업이면 종료한다.
