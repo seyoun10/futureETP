@@ -1,4 +1,5 @@
 import { config } from '../config.ts';
+import { createCalendarStore } from '../db/calendarStore.ts';
 import { db } from '../db/client.ts';
 import { createPushDeviceStore } from '../db/devicesStore.ts';
 import { createEtpStore } from '../db/etpStore.ts';
@@ -15,6 +16,7 @@ import { createNaverEtfSource } from '../sources/naverEtf.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { createYahooEtpSource } from '../sources/yahooEtp.ts';
 import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
+import { createCalendarHandler } from './calendar.ts';
 import { createDeferredPushHandler } from './deferredPush.ts';
 import { createEtpHandler } from './etp.ts';
 import { createEtpCandidateAlert } from './etpCandidateAlert.ts';
@@ -78,4 +80,5 @@ export const JOB_HANDLERS: JobHandlers = {
       locale: async () => (await settings.get()).locale,
     }),
   }),
+  CALENDAR: createCalendarHandler({ store: createCalendarStore(db) }),
 };
