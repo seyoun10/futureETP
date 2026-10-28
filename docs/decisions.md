@@ -1593,3 +1593,16 @@
 - 위험: Nasdaq도 비공식 API다. `curl` 기본 UA에는 응답하지 않았다(Node `fetch`는 응답). 막히면 ETP 작업의 미국 부분이 실패한다.
 - 동기화(같은 날 추가): `ETP` 작업이 국내 다음에 미국을 처리한다(`jobs/etpUs.ts`). 매핑 상품은 `source` NASDAQ·`fx_hedge` NA·`name_lang` en으로 저장하고, 속성은 받은 값만 덮어쓴다(실패·빈 값은 저장된 값 유지). 목록에서 빠진 매핑 상품은 폐지일(뉴욕 날짜)·비활성으로 두고, 다시 나오면 되돌린다. 새 후보는 `needs_review` 행(원자재·배수 없음)으로 넣고, 매핑표에 오르면 같은 행을 확정하며, 제외 목록에 오르거나 목록에서 빠지면 지운다(확인 전이라 이력 없음). 매핑 상품이 매핑표의 절반 미만이거나 Nasdaq·Yahoo가 모든 상품에서 실패하면 미국 쪽은 반영하지 않는다. 한 시장이 실패해도 다른 시장은 반영하고 작업은 실패로 끝난다(운영 알림).
 - 영향: `sources/nasdaqEtp.ts`·`sources/yahooEtp.ts`·`sources/usEtpMap.ts`·`jobs/etpUs.ts`, `research/etp-sources.md` 미국 소스 표.
+
+## D-100: prod 초기 데이터 — dev DB를 첫 배포 때 한 번 넣는다
+- 날짜: 2026-10-28
+- 상태: 확정
+- 맥락: 첫 배포(D-048)로 만든 prod DB는 마이그레이션만 적용돼 달력·시세·이격도 분포가 비어 있다. 과거 일봉은 Databento 1회 적재(D-088)로 dev에 넣고 재계산(D-070)까지 마쳤다.
+- 선택지: dev DB를 prod에 복원 / VM에서 적재 CLI(`calendar:import`·`databento:import`·`recompute`) 재실행
+- 결정(사용자가 선택): Mac의 `npm run prod:seed`가 dev DB를 덤프해 ssh로 VM의 빈 prod DB에 넣는다.
+  - 대상 조건: dev와 prod의 마이그레이션 수가 같고, prod의 `daily_bar`·`disparity`가 비어 있다. 이미 운영 중인 prod는 덮어쓰지 않는다.
+  - `device`(dev 기기 토큰)·`alert_record`(시험 알림)·`batch_run`(dev 실행 기록)은 행을 빼고 옮긴다. 설정(`app_settings`)·ETP는 옮긴다.
+  - 넣는 동안 서버를 멈추고, 한 트랜잭션이라 중간 실패는 롤백된다.
+- 근거: dev 값은 지수 재현 검증(5-4)을 거쳤다. VM에서 다시 만들면 Databento 원본 파일을 옮겨야 하고, ARM VM에서 재계산하는 시간이 걸리며, 같은 값이 나오는지 다시 확인해야 한다.
+- 영향: `scripts/prod-seed.sh`, `scripts/dev-db.sh`(dev 복원과 dev 접속 문자열 확인 공유), `architecture.md` prod 초기 데이터.
+

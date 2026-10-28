@@ -212,6 +212,11 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
   - 구현: `npm run dev:restore -- [덤프 파일] [--yes]`(`scripts/dev-restore.sh`). 덤프를 주지 않으면 백업 내려받기 폴더의 최신 덤프를 쓴다. 대상은 `DATABASE_URL`(환경 변수, 없으면 `apps/server/.env`)이고 localhost·127.0.0.1·::1이 아니면 거부한다. 확인 질문에 답하거나 `--yes`를 붙여야 진행한다.
   - `BEGIN` → `public`·`drizzle` 스키마 삭제·`public` 재생성 → `pg_restore --no-owner --no-privileges -f -` 출력 → `device` 전부와 `alert_record`의 `HELD`·`RETRY` 삭제 → `COMMIT`을 psql 하나로 넣는다. 덤프가 손상돼 중간에 끊기면 `COMMIT`이 오지 않아 기존 dev DB가 그대로 남는다. 그 뒤 항상 `db:migrate`를 돌린다(이미 적용된 것은 건너뜀). psql 오류는 주 메시지만 출력해 COPY 행(푸시 토큰)이 찍히지 않게 한다.
 
+### prod 초기 데이터(D-100)
+- 첫 배포로 만든 빈 prod DB에 dev DB를 한 번 넣는다. 시세·분포는 dev에서 Databento 1회 적재·재계산으로 만든 값을 그대로 쓴다.
+  - 구현: `npm run prod:seed -- [--yes]`(`scripts/prod-seed.sh`). dev와 prod의 마이그레이션 수가 같고 prod의 `daily_bar`·`disparity`가 비어 있어야 진행한다. 확인 질문에 답하거나 `--yes`를 붙여야 한다.
+  - 서버를 멈춘 뒤 `BEGIN` → `public`·`drizzle` 스키마 삭제·`public` 재생성 → dev `pg_dump`(plain, `device`·`alert_record`·`batch_run`은 행 제외) → `COMMIT`을 ssh로 VM db 컨테이너의 psql 하나에 넣는다. 중간에 끊기면 롤백된다. 성공·실패와 관계없이 서버를 다시 띄운다.
+
 ### prod 배포(D-048)
 - `scripts/`의 배포 스크립트가 ① rsync(`infra/.env`·키 파일 제외) ② VM에서 이미지 빌드 ③ `pg_dump` 덤프 ④ 새 이미지의 일회성 컨테이너로 Drizzle 마이그레이션 ⑤ `docker compose up -d`로 서버 교체 순서로 진행한다. ④가 실패하면 ⑤를 하지 않고 이전 서버를 그대로 둔다.
   - 구현: Mac에서 `DEPLOY_HOST=<ssh 대상> npm run deploy`(`DEPLOY_DIR` 기본 `~/futureetp`). 커밋되지 않은 변경이 있으면 멈춘다. HEAD를 `git archive`로 꺼낸 서버 관련 파일(루트 package·lock, `apps/server`, `packages/shared`, `infra`)만 `rsync --delete`로 보내고, `infra/.env`·`secrets/`·`backups/`·`predeploy/`는 제외해 보내지도 지우지도 않는다. ②~⑤는 VM에서 `infra/deploy-remote.sh`가 `set -e`로 진행한다.

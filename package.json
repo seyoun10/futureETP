@@ -16,7 +16,8 @@
     "access-key": "node scripts/access-key.mjs",
     "deploy": "bash scripts/deploy.sh",
     "backup:pull": "bash scripts/backup-pull.sh",
-    "dev:restore": "bash scripts/dev-restore.sh"
+    "dev:restore": "bash scripts/dev-restore.sh",
+    "prod:seed": "bash scripts/prod-seed.sh"
   },
   "overrides": {
     "react": "19.3.0",
