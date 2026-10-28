@@ -193,6 +193,11 @@ export const en: Translation = {
   },
   alertSettings: {
     title: 'Alert settings',
+    permissionOff: '⚠ Notifications are turned off',
+    allow: 'Allow',
+    openSettings: 'Open settings',
+    guide:
+      "Checked every 15 minutes during trading hours; each level alerts at most once per CME trading day. You are alerted when today's candle wick touches a rare-level line on the chart (intraday touches, so alerts can fire more often than p%).",
   },
   errors: {
     UNAUTHORIZED: 'The access key is missing or invalid.',
