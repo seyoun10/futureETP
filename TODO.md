@@ -113,7 +113,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `pandas_market_calendars` 대조: 휴장일 재전송 9일 제외, Databento 공백 5거래일은 뺀 채 둠 (2026-10-28, D-088)
 - [x] 적재 데이터로 전체 재계산 실행, 결과 점검: ts_ref가 과거로 되돌아간 정산 메시지 버림(CLK20 2020-04-17 수정), 산출 불가일 0 (2026-10-28, D-088)
 - [x] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교 (2026-10-28, D-089: 미국형 3규칙 ProShares NAV와 일치, 금·은 한국형은 미국형으로 대신)
-  - [ ] 한국형 CL·NG: KRX Open API 인증키 발급 뒤 KODEX WTI원유선물(H) NAV 이력으로 다시 비교(종가로는 FRONT와 구분 안 됨)
+  - [x] 한국형 CL·NG: KRX Open API 인증키 발급 뒤 KODEX WTI원유선물(H) NAV 이력으로 다시 비교(종가로는 FRONT와 구분 안 됨) (2026-10-28, KRX가 주는 S&P GSCI 지수 값으로 CL·GC·SI KR 일치, NG는 비교 대상 없음, D-089)
+    - [ ] `NYSE_ONLY_CLOSED`에서 2025-01-09 빼기(S&P가 그날 계산·롤함, 2018-12-05는 지금대로) 후 재계산
 - [ ] **[다음 작업]** Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
   - [x] 가입·필드·티커 형식·일괄 조회·Databento 정산가 일치 실측 (2026-10-28, `docs/research/market-data.md`: 정산가 일치, 월물별 1회, 거래 없는 날 봉 없음, 거래량 기준 다름)
   - [x] Massive 수집기(`sources/massiveSettlement.ts`) + `DAILY_SETTLE`·`SETTLE_REVISION` 연결(prod·키 있는 dev), 가까운 26개 제한, 정정은 같은 소스 일봉만 (2026-10-28, D-095)
