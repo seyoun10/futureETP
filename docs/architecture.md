@@ -35,7 +35,7 @@ futureETP/
 │        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·달력 점검·백업), 러너·CLI (D-060)
 │        ├─ calc/                  지수·롤 비중·이평선·이격도·분포·커브 순수 함수
 │        ├─ sources/               외부 수집기(Databento·Massive·Yahoo·Naver·KRX·Nasdaq), Databento 1회 적재 CLI(다운로드·변환, D-088)
-│        ├─ push/                  (예정) FCM·APNs 발송 인터페이스 (D-037)
+│        ├─ push/                  FCM·APNs 발송 인터페이스·전체 기기 발송 (D-037)
 │        └─ db/                    Drizzle 스키마, 마이그레이션, 조회
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
@@ -81,7 +81,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | 진입점 | `src/api`(Hono 라우트), `src/jobs`(croner 배치) | 요청 검증(zod)·응답 봉투 / 스케줄·실행 기록(`batch_run`)·재시도 |
 | 작업 흐름 | `src/jobs`의 배치별 함수, 라우트 핸들러 | 수집 → 계산 → 저장 → 발송 순서 조합 |
 | 도메인 계산 | `src/calc` | 순수 함수(입력 배열 → 결과). DB·네트워크·시각 의존 없음(현재 시각도 인자로 받음) |
-| 외부 연동 | `src/sources`, `src/push`(예정) | 외부 API 호출과 응답을 내부 타입으로 변환 / FCM·APNs 발송 결과를 공통 결과 타입으로 변환 |
+| 외부 연동 | `src/sources`, `src/push` | 외부 API 호출과 응답을 내부 타입으로 변환 / FCM·APNs 발송 결과를 공통 결과 타입으로 변환 |
 | 데이터 접근 | `src/db` | Drizzle 스키마와 조회·저장 함수. 별도 repository 추상화는 두지 않는다 |
 
 - 조회 API는 계산하지 않는다. 배치가 미리 계산해 저장한 값을 `db` 조회 함수로 읽어 응답 형태로 바꾸기만 한다(product.md "앱은 자체 백엔드만 조회하고, 계산은 모두 서버에서 미리 한다").
@@ -245,6 +245,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ### 운영자 실패 알림(D-045)
 - 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림(`alerts`)과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 채널 id는 shared `ANDROID_CHANNELS`다.
+- 서버 `push/`: `PushSender`(플랫폼별 구현, 결과는 `SENT`·`INVALID_TOKEN`·`FAILED`)와 `broadcast`(등록된 모든 기기로 보내고 `INVALID_TOKEN`이면 기기 삭제, 한 기기라도 `SENT`면 전달로 본다, D-023). 테스트는 `fakeSender.ts`를 주입한다.
 - 푸시 문구는 shared `push.ts`에 있다. 서버가 설정의 언어·시간대로 만든다: rare 레벨 `rareLevelPush`(와이어프레임 X 형식, 판정 시각은 사용자 시간대 HH:mm, 지연 발송이면 `03:00 감지 · 지연 발송`), 운영 알림 `jobFailedPush`(한 줄). 작업 이름 `JOB_NAMES`는 이 문구 때문에 shared `domain.ts`에 두고 서버 `constants.ts`가 다시 내보낸다. ETP 새 후보·다수 판정 변경 문구는 5-9에서 더한다.
 - Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. URL은 프로젝트 ping key와 작업 이름 slug로 만든다(`https://hc-ping.com/<HEALTHCHECKS_PING_KEY>/<작업 이름>`, D-053). 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
 - dev는 ping URL을 비워 신호를 보내지 않는다. ping 실패는 배치 결과에 영향을 주지 않는다(로그만 남김).
