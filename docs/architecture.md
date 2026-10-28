@@ -25,23 +25,23 @@ futureETP/
 │  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
 │  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
-│  │     ├─ push/                  토큰 등록·알림 탭 처리 (D-037)
+│  │     ├─ push/                  (예정) 토큰 등록·알림 탭 처리 (D-037)
 │  │     └─ lib/                   포맷(Intl, 소수 자릿수) 등 순수 유틸
 │  └─ server/
-│     ├─ Dockerfile                빌드 문맥 = 저장소 루트 (shared·lock 파일 포함)
+│     ├─ Dockerfile                (예정) 빌드 문맥 = 저장소 루트 (shared·lock 파일 포함)
 │     └─ src/
 │        ├─ main.ts                API + 스케줄러 한 프로세스 (D-034)
 │        ├─ api/                   Hono 라우트·미들웨어(Bearer 검사, 횟수 제한, D-036)
 │        ├─ jobs/                  croner 배치 진입점(일일 정산·장중·지연 발송·ETP 목록·달력 점검·백업), 러너·CLI (D-060)
 │        ├─ calc/                  지수·롤 비중·이평선·이격도·분포·커브 순수 함수
-│        ├─ sources/               외부 수집기(Databento·Massive·Yahoo·Naver·KRX·Nasdaq)
-│        ├─ push/                  FCM·APNs 발송 인터페이스 (D-037)
+│        ├─ sources/               외부 수집기(Databento·Massive·Yahoo·Naver·KRX·Nasdaq), Databento 1회 적재 CLI(다운로드·변환, D-088)
+│        ├─ push/                  (예정) FCM·APNs 발송 인터페이스 (D-037)
 │        └─ db/                    Drizzle 스키마, 마이그레이션, 조회
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
-├─ infra/                          docker-compose.yml, Caddyfile
-├─ scripts/                        배포(rsync + compose), Databento 1회 적재, 달력 입력 파일(`calendar/<연도>.json`, D-061),
-│                                  백업 내려받기·dev 복원, 접근 키 생성·QR 표시
+├─ infra/                          (예정) docker-compose.yml, Caddyfile
+├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
+│                                  (예정) 배포(rsync + compose), 백업 내려받기·dev 복원
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`
 ```
@@ -66,7 +66,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 |---|---|---|---|
 | route | `src/app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·하단 탭, 스와이프 전환 없음, D-047) | 로직, 데이터 조회 |
 | 화면·컴포넌트(UI) | `src/features/*`, `src/components`, `src/charts` | 렌더링, 사용자 입력, 로딩·오류·빈 상태 표시 | `fetch` 직접 호출, 서버 데이터 복사 저장 |
-| 상태 | `src/features/*/use*Query.ts`·`use*Mutation.ts`(서버 상태), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
+| 상태 | `src/features/**/use<대상>.ts`(서버 상태, 예: `useCommodities`·`useSettings`·`useSaveAccessKey`), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |
 
 - 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색·C-a/C-c 기간 선택)만 둔다(D-030, D-047). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
@@ -81,7 +81,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | 진입점 | `src/api`(Hono 라우트), `src/jobs`(croner 배치) | 요청 검증(zod)·응답 봉투 / 스케줄·실행 기록(`batch_run`)·재시도 |
 | 작업 흐름 | `src/jobs`의 배치별 함수, 라우트 핸들러 | 수집 → 계산 → 저장 → 발송 순서 조합 |
 | 도메인 계산 | `src/calc` | 순수 함수(입력 배열 → 결과). DB·네트워크·시각 의존 없음(현재 시각도 인자로 받음) |
-| 외부 연동 | `src/sources`, `src/push` | 외부 API 호출과 응답을 내부 타입으로 변환 / FCM·APNs 발송 결과를 공통 결과 타입으로 변환 |
+| 외부 연동 | `src/sources`, `src/push`(예정) | 외부 API 호출과 응답을 내부 타입으로 변환 / FCM·APNs 발송 결과를 공통 결과 타입으로 변환 |
 | 데이터 접근 | `src/db` | Drizzle 스키마와 조회·저장 함수. 별도 repository 추상화는 두지 않는다 |
 
 - 조회 API는 계산하지 않는다. 배치가 미리 계산해 저장한 값을 `db` 조회 함수로 읽어 응답 형태로 바꾸기만 한다(product.md "앱은 자체 백엔드만 조회하고, 계산은 모두 서버에서 미리 한다").
