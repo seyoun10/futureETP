@@ -1,15 +1,18 @@
 import { config } from '../config.ts';
 import { db } from '../db/client.ts';
 import { createPushDeviceStore } from '../db/devicesStore.ts';
+import { createEtpStore } from '../db/etpStore.ts';
 import { createIntradayStore } from '../db/intraday.ts';
 import { createRareAlertStore } from '../db/rareAlertStore.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { pushSender } from '../push/configuredSender.ts';
+import { createKrxEtpSource } from '../sources/krxEtp.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
 import { createMassiveSettlementSource } from '../sources/massiveSettlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
 import { createDeferredPushHandler } from './deferredPush.ts';
+import { createEtpHandler } from './etp.ts';
 import { createIntradayHandler } from './intraday.ts';
 import { createAlertRetry, createDeferredAlert, createRareAlert } from './rareAlert.ts';
 import { recomputeCommodity } from './recompute.ts';
@@ -48,4 +51,8 @@ export const JOB_HANDLERS: JobHandlers = {
     retry,
   }),
   DEFERRED_PUSH: createDeferredPushHandler({ retry, deferred: createDeferredAlert(alertDeps) }),
+  ETP: createEtpHandler({
+    source: createKrxEtpSource({ apiKey: config.KRX_API_KEY }),
+    store: createEtpStore(db),
+  }),
 };

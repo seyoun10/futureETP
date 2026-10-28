@@ -23,11 +23,12 @@ export type KnownEtpProduct = {
   series: readonly { ticker: string; delistedDate: string | null }[];
 };
 
-export type EtpSeriesPlan = {
+// 목록 항목에 붙은 다른 필드(이름 등)는 그대로 계획에 실어 보낸다
+export type EtpSeriesPlan<L extends KrxEtpListing = KrxEtpListing> = {
   // 묶을 기존 상품이 없는 종목. ETN은 같은 키끼리 한 상품으로 모은다
-  newProducts: { groupingKey: string | null; listings: KrxEtpListing[] }[];
+  newProducts: { groupingKey: string | null; listings: L[] }[];
   // 기존 상품에 붙는 새 시리즈
-  addSeries: { productId: string; listing: KrxEtpListing }[];
+  addSeries: { productId: string; listing: L }[];
   delistTickers: string[];
   // 폐지로 기록했다가 목록에 다시 나온 종목
   relistTickers: string[];
@@ -44,10 +45,10 @@ export function etnGroupingKey({
   return `${issuer}|${commodityCode}|${leverage}|${fxHedge}`;
 }
 
-export function planKrxEtpSeries(
+export function planKrxEtpSeries<L extends KrxEtpListing>(
   products: readonly KnownEtpProduct[],
-  listings: readonly KrxEtpListing[],
-): EtpSeriesPlan {
+  listings: readonly L[],
+): EtpSeriesPlan<L> {
   const listed = new Set(listings.map((listing) => listing.ticker));
   const productByTicker = new Map(
     products.flatMap((product) => product.series.map((s) => [s.ticker, product] as const)),
@@ -62,7 +63,7 @@ export function planKrxEtpSeries(
     }
   }
 
-  const plan: EtpSeriesPlan = {
+  const plan: EtpSeriesPlan<L> = {
     newProducts: [],
     addSeries: [],
     delistTickers: [],
@@ -70,7 +71,7 @@ export function planKrxEtpSeries(
     deactivateProductIds: [],
     reactivateProductIds: [],
   };
-  const newByKey = new Map<string, KrxEtpListing[]>();
+  const newByKey = new Map<string, L[]>();
   // 이번 목록이 끝난 뒤 상장 중인 시리즈가 있는 상품
   const live = new Set<string>();
 

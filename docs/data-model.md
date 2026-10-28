@@ -218,7 +218,7 @@ erDiagram
 
 설명
 - **ETN 후속 시리즈**: 상품(`etp_product`) 하나에 시리즈(`etp_series`) 여러 개다. ETF는 시리즈가 하나다. C-d-a는 `delisted_date`가 없는 시리즈를 모두 나란히 보여 준다.
-- **상장폐지**: 이전 시리즈는 `delisted_date`만 채운다. 모든 시리즈가 폐지되면 `is_active=false`로 목록에서 뺀다. 이력은 지우지 않는다(다시 묶기 판정과 디버깅용).
+- **상장폐지**: 이전 시리즈는 `delisted_date`만 채운다. 모든 시리즈가 폐지되면 `is_active=false`로 목록에서 뺀다. 이력은 지우지 않는다(다시 묶기 판정과 디버깅용). 국내는 KRX 일별 목록에서 처음 빠진 기준일을 `delisted_date`로 쓰고, 다시 나오면 지운다. ETN 첫 시리즈는 이름에 표기가 없어 `series_code`를 A로 둔다.
 - **상장일**: C-d-a의 상장일은 상품의 첫 시리즈 `listed_date`다.
 - **매핑 전 후보**: 미국 새 후보(`needs_review=true`)는 매핑표에 넣기 전이라 `commodity_code`·`type`·`leverage`·`roll_rule_ref`가 비어 있을 수 있다(물리 스키마에서 nullable). 목록·다수 판정은 `needs_review=false`만 쓴다.
 - **한국형·미국형 판정**: 상품별로 따르는 롤 규칙(`roll_rule_ref`)을 기록해 두면, 시장별 상품 수·AUM으로 다수 규칙을 다시 고를 수 있다. 값은 지수 이름이 아니라 규칙 식별자다(예: `GSCI`, `BCOM`, `BCBCLI`, `USO`). 지수 회사가 달라도 월물 일정·롤 시점이 같으면 같은 식별자를 쓴다(DJCI는 `GSCI`). `roll_rule.rule_id`와 같은 체계지만 FK는 아니다. 다수가 `rule_id`와 다르면 `majority_rule_id`에 기록하고 알린다(D-024).
