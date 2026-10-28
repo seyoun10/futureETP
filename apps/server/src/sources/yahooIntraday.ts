@@ -12,7 +12,7 @@ export const SPARK_BATCH = 20;
 export const MIN_CALL_INTERVAL_MS = 300;
 export const REQUEST_TIMEOUT_MS = 15_000;
 // 기본 UA(node)는 막히는 일이 있어 브라우저 UA를 쓴다
-const USER_AGENT = 'Mozilla/5.0';
+export const USER_AGENT = 'Mozilla/5.0';
 
 const EXCHANGE = { CL: 'NYM', NG: 'NYM', GC: 'CMX', SI: 'CMX' } as const;
 

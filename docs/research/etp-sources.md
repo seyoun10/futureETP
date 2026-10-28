@@ -72,6 +72,10 @@
 | Nasdaq `api.nasdaq.com/api/screener/etf?download=true` | 전 종목(약 5,500, ETN 포함) 심볼·이름 | 비공식, 이름만 |
 | Yahoo `quoteSummary` (`summaryDetail`, `fundProfile`, `defaultKeyStatistics`, `assetProfile`) | 순자산, 운용사, 보수, 설정일, 카테고리("Trading--Leveraged Commodities"), 설명 문장 | 비공식, crumb 필요. 기초지수명 필드 없음 |
 | 운용사 사이트 | 기초지수, 배수 | 구조가 운용사마다 다름. Direxion·etfdb는 403 |
+| Nasdaq `api.nasdaq.com/api/quote/{심볼}/summary?assetclass=etf` | 순자산 `AUM`(천 달러), 총보수 `ExpenseRatio`(%), `MarketCap`(순자산과 크게 다름) | 비공식, 인증 없음. 없는 심볼은 HTTP 200 + `data: null`. `curl` 기본 UA에는 응답 없음 |
+| Yahoo `v8/finance/chart` | 일봉 종가·거래량, `meta.firstTradeDate`(상장일), `longName` | 비공식, 인증 없음 |
+
+- 재확인(2026-10-28): `quoteSummary`는 crumb이 필요해 쓰지 않고, 순자산·총보수는 Nasdaq summary, 상장일·거래대금은 Yahoo chart로 받는다(D-099). 17개 순자산은 위 표와 맞는다(USO $1,848M, UCO $480M, DGZ $1.7M 등). 스크리너 이름에 원자재 단어가 있는 상품은 98개이고, 대상 17개·광산·에너지 주식 37개·그 밖의 비대상 44개다.
 
 - 배수·선물 기반 여부·규칙은 이름과 설명 문장으로만 추정할 수 있다. 미국은 상품이 20개 안팎이라 오분류 위험(`product.md` 위험 사항)이 크고, 검증도 사람이 하는 편이 싸다.
 
