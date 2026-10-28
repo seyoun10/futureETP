@@ -7,11 +7,13 @@ import {
   zonedTimeToUtc,
   type CalendarInput,
 } from '../calc/tradingCalendar.ts';
+import { toContractSymbol } from '../calc/contractSymbol.ts';
 import type { JobName } from '../constants.ts';
 import type { ContractDefinition, SettlementSource, SourceBar } from '../sources/settlement.ts';
 import type { JobContext } from './runner.ts';
 import {
   createSettleHandlers,
+  MAX_SETTLE_CONTRACTS,
   type DailyBarRow,
   type NewContract,
   type SettleStore,
@@ -183,6 +185,32 @@ describe('DAILY_SETTLE', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'CL', 'NG']);
   });
 
+  it('최종 거래일이 가까운 월물 26개만 받는다', async () => {
+    const months = Array.from({ length: 30 }, (_, i) => {
+      const total = 2026 * 12 + 10 + i;
+      return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+    });
+    const many = testSource();
+    many.listContracts.mockImplementation((code: CommodityCode) =>
+      Promise.resolve(
+        // 먼 쪽부터 넣어도 만기순으로 고른다
+        months.toReversed().map((contractMonth) => ({
+          symbol: toContractSymbol(code, contractMonth),
+          contractMonth,
+          firstTradeDate: null,
+          lastTradeDate: `${contractMonth}-01`,
+        })),
+      ),
+    );
+    const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-26' }, many);
+    await handlers.DAILY_SETTLE(ctx());
+
+    const symbols = source.fetchDailyBars.mock.calls[0][1];
+    expect(symbols).toHaveLength(MAX_SETTLE_CONTRACTS);
+    expect(symbols[0]).toBe('GCX26');
+    expect(symbols.at(-1)).toBe(toContractSymbol('GC', months[MAX_SETTLE_CONTRACTS - 1]));
+  });
+
   it('정산 이력이 없으면 저장된 일봉의 마지막 날 다음부터 따라잡는다(적재 직후)', async () => {
     const { handlers, store, bars } = setup({});
     await store.upsertDailyBars([
@@ -256,6 +284,29 @@ describe('SETTLE_REVISION', () => {
   it('소스에서 빠진 월물이 있으면 확인하지 못한 것으로 실패한다', async () => {
     const { handlers, recompute } = await seeded((symbol) => (symbol === 'CLF27' ? null : 100));
     await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*CLF27/);
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('다른 소스(적재)로 저장된 일봉은 다시 확인하지 않는다', async () => {
+    const { handlers, store, source, recompute } = await seeded((symbol) =>
+      symbol === 'GCZ26' ? null : 100,
+    );
+    await store.upsertDailyBars([
+      {
+        contractSymbol: 'GCZ26',
+        tradeDate: '2026-10-26',
+        open: null,
+        high: null,
+        low: null,
+        settle: 90,
+        volume: 12,
+        source: 'DATABENTO',
+        collectedAt: NOW,
+        revisedAt: null,
+      },
+    ]);
+    await handlers.SETTLE_REVISION(ctx());
+    expect(source.fetchDailyBars.mock.calls.map(([code]) => code)).toEqual(['CL', 'NG']);
     expect(recompute).not.toHaveBeenCalled();
   });
 

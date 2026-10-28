@@ -30,7 +30,7 @@ export type DailyBarRow = BarValues & {
   revisedAt: Date | null;
 };
 
-export type StoredBar = BarValues & { revisedAt: Date | null };
+export type StoredBar = BarValues & { source: Source; revisedAt: Date | null };
 
 export interface SettleStore {
   // 오름차순, from·to 포함
@@ -65,6 +65,10 @@ function loadDays(store: SettleStore, now: Date) {
   const today = now.toISOString().slice(0, 10);
   return store.tradingDays(addDays(today, -CALENDAR_LOOKBACK_DAYS), addDays(today, 1));
 }
+
+// 원자재마다 일봉을 받는 월물 수: 최종 거래일이 가까운 쪽부터. 커브 상한 24개(D-018) + 2.
+// 먼 월물은 지수·커브에 쓰지 않고, 소스 호출 제한(Massive 분당 5회)에 묶인다(D-095)
+export const MAX_SETTLE_CONTRACTS = 26;
 
 // 원자재마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
 async function forEachCommodity(
@@ -111,6 +115,11 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
           c.lastTradeDate >= tradeDate &&
           (c.firstTradeDate === null || c.firstTradeDate <= tradeDate),
       )
+      .sort(
+        (a, b) =>
+          a.lastTradeDate.localeCompare(b.lastTradeDate) || a.symbol.localeCompare(b.symbol),
+      )
+      .slice(0, MAX_SETTLE_CONTRACTS)
       .map((c) => c.symbol);
     const bars = await source.fetchDailyBars(code, symbols, tradeDate);
     // 소스 반영 전(D-019)이면 15분 뒤 재시도한다
@@ -172,7 +181,11 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     }
 
     await forEachCommodity('Revision', async (code) => {
-      const stored = await store.dailyBars(code, tradeDate);
+      // 지금 소스로 받은 일봉만 다시 확인한다. 적재 등 다른 소스 일봉은 거래량 기준이 달라(D-095)
+      // 모두 정정으로 잡히고, 거래 없는 월물은 소스에서 빠져 확인에 실패한다
+      const stored = (await store.dailyBars(code, tradeDate)).filter(
+        (b) => b.source === source.name,
+      );
       if (stored.length === 0) return;
       const fetched = await source.fetchDailyBars(
         code,
