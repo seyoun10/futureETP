@@ -32,8 +32,9 @@ export function openAndroidBaseDatePicker(
     display: 'spinner',
     minimumDate: toPickerDate(range.minBaseDate),
     maximumDate: toPickerDate(range.maxBaseDate),
-    positiveButton: { label: t('common.confirm') },
-    negativeButton: { label: t('common.cancel') },
+    // spinner 버튼 글자색은 라이브러리가 액티비티 테마(라이트)에서 읽어 어둡게 칠하므로 직접 준다
+    positiveButton: { label: t('common.confirm'), textColor: colors.text },
+    negativeButton: { label: t('common.cancel'), textColor: colors.text },
     onValueChange: (_, date) => onConfirm(fromPickerDate(date)),
     onDismiss: onCancel,
   });

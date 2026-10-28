@@ -1453,7 +1453,8 @@
   - iOS: RN `Modal`(아래에서 올라옴) 바텀 시트 안에 `display="spinner"` 피커, 범위 문구, 취소·확인. 배경을 누르면 취소다.
   - 날짜 문자열 ↔ `Date`는 기기 시간대 자정으로 바꾼다(`curveModel` `toPickerDate`·`fromPickerDate`).
   - 휴장일 안내: 시트에서 고른 날짜와 그 조회 응답의 `baseDate`(placeholder가 아닌 것)가 다르면 차트 아래에 `휴장일이라 10/15(목)로 옮겼습니다`를 3초 띄운다. 요일은 `Intl`. D-1을 고르면 기본값(null) 조회 key를 쓴다.
-  - config plugin(`withDateTimePickerStyles`)은 Android 다이얼로그 색만 바꾸므로 넣지 않는다.
+  - Android 다크: 라이브러리 spinner 스타일 `SpinnerDatePickerDialog`가 `DayNight`라 기기가 라이트 모드면 밝게 뜬다(앱 `userInterfaceStyle: 'dark'`가 다이얼로그에 닿지 않음, 에뮬레이터 확인 2026-10-28). `app.config.ts`의 작은 config plugin이 앱 `styles.xml`에 같은 이름을 `Theme.AppCompat.Dialog`(배경 `colors.surface`)로 다시 정의한다. 버튼 글자색은 라이브러리가 액티비티 테마에서 읽어 칠하므로 `positiveButton`·`negativeButton`의 `textColor`로 준다.
+  - 라이브러리 config plugin(`withDateTimePickerStyles`)은 spinner 다이얼로그에 닿지 않아(spinner는 고정 스타일을 씀) 넣지 않는다.
 - 근거
   - 사용자 선택(2026-10-28). D-021 근거가 이미 "iOS·Android 기본 피커로 구현하기 쉽다"였다. 범위 제한·관성·접근성을 OS가 맡는다.
   - 직접 구현은 의존성이 없고 와이어프레임과 같지만 코드 150~200줄과 휠 손맛 조정이 든다. 시트 라이브러리는 화면 하나에 의존성 2개다.

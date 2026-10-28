@@ -1,5 +1,6 @@
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { setupI18n } from '@/i18n';
+import { colors } from '@/theme/tokens';
 import { openAndroidBaseDatePicker } from './BaseDatePicker';
 import { formatWeekday, fromPickerDate, toPickerDate } from './curveModel';
 
@@ -39,6 +40,9 @@ describe('기준일 피커', () => {
       display: 'spinner',
       minimumDate: new Date(2010, 5, 7),
       maximumDate: new Date(2026, 9, 21),
+      // 라이브러리 기본 버튼 색은 기기 라이트 모드에서 어두워 보이지 않는다
+      positiveButton: { textColor: colors.text },
+      negativeButton: { textColor: colors.text },
     });
     args?.onValueChange?.({ nativeEvent: { timestamp: 0, utcOffset: 0 } }, new Date(2026, 9, 16));
     expect(onConfirm).toHaveBeenCalledWith('2026-10-16');
