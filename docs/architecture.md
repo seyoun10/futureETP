@@ -39,9 +39,9 @@ futureETP/
 │        └─ db/                    Drizzle 스키마, 마이그레이션, 조회
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
-├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`
+├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`, VM 배포 단계(`deploy-remote.sh`)
 ├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
-│                                  (예정) 배포(rsync + compose), 백업 내려받기·dev 복원
+│                                  배포(`deploy.sh`, D-048), (예정) 백업 내려받기·dev 복원
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`
 ```
@@ -211,6 +211,8 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 
 ### prod 배포(D-048)
 - `scripts/`의 배포 스크립트가 ① rsync(`infra/.env`·키 파일 제외) ② VM에서 이미지 빌드 ③ `pg_dump` 덤프 ④ 새 이미지의 일회성 컨테이너로 Drizzle 마이그레이션 ⑤ `docker compose up -d`로 서버 교체 순서로 진행한다. ④가 실패하면 ⑤를 하지 않고 이전 서버를 그대로 둔다.
+  - 구현: Mac에서 `DEPLOY_HOST=<ssh 대상> npm run deploy`(`DEPLOY_DIR` 기본 `~/futureetp`). 커밋되지 않은 변경이 있으면 멈춘다. HEAD를 `git archive`로 꺼낸 서버 관련 파일(루트 package·lock, `apps/server`, `packages/shared`, `infra`)만 `rsync --delete`로 보내고, `infra/.env`·`secrets/`·`backups/`·`predeploy/`는 제외해 보내지도 지우지도 않는다. ②~⑤는 VM에서 `infra/deploy-remote.sh`가 `set -e`로 진행한다.
+  - VM 쪽: `.env`·FCM 키가 없으면 멈추고, `backups`·FCM 키 소유자가 uid 1000이 아니면 `sudo -n chown`한다. ③은 `db`를 띄운 뒤 `docker compose exec db pg_dump -Fc`로 `infra/predeploy/predeploy-<UTC>.dump`(최근 3개, `BACKUP` 덤프와 다른 폴더)에 쓰고, ④는 `docker compose run --rm --no-deps server node src/db/migrate.ts`, ⑤는 `docker compose up -d --wait`(서버 healthcheck 통과까지 대기) 뒤 dangling 이미지를 지운다. ssh 사용자는 docker 그룹에 있어야 한다.
 - 서버는 시작할 때 마이그레이션하지 않는다. 문제가 생기면 ③ 덤프로 복원한다. 컬럼 삭제처럼 되돌리기 어려운 변경은 "추가 → 코드 배포 → 삭제" 두 번의 배포로 나눈다.
 - 마이그레이션 SQL은 dev에서 `npm run db:generate -w apps/server`(drizzle-kit)로 만들어 `apps/server/drizzle/`에 커밋한다. 적용은 `src/db/migrate.ts`(코드 `migrate()`)이고 dev는 `npm run db:migrate -w apps/server`, prod는 ④의 일회성 컨테이너에서 `node src/db/migrate.ts`다. prod 이미지에는 drizzle-kit을 넣지 않는다(D-053).
 

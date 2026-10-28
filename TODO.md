@@ -244,7 +244,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] `infra/`(Dockerfile·compose·Caddyfile) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
   - [x] `apps/server/Dockerfile`·`.dockerignore`·`infra/docker-compose.yml`·`Caddyfile`·`.env.example`, 로그 크기 제한. 이미지와 같은 파일 구성으로 `npm ci --omit=dev` 후 서버 기동·health 확인(Mac에 Docker가 없어 이미지 빌드·compose 기동은 미확인) (2026-10-28)
   - [ ] 로컬 Docker로 이미지 빌드·compose 기동 확인(또는 첫 배포 때)
-  - [ ] 배포 스크립트
+  - [x] 배포 스크립트(`scripts/deploy.sh` + `infra/deploy-remote.sh`): 가짜 `docker`로 단계 순서·마이그레이션 실패 시 교체 안 함·배포 전 덤프 3개 보관, 가짜 `ssh`로 rsync가 VM 전용 파일은 남기고 저장소에서 지운 파일은 지우는 것 확인(실제 VM은 첫 배포 때) (2026-10-28)
   - [ ] 백업 내려받기·dev 복원 스크립트
 - [ ] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체 (D-052)
 - [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
