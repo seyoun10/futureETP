@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { JOB_NAMES, LOCALES } from './domain.ts';
-import { jobFailedPush, rareLevelPush, type RareLevelAlert } from './push.ts';
+import { etpCandidatesPush, jobFailedPush, rareLevelPush, type RareLevelAlert } from './push.ts';
 
 // 2026-10-28 00:00 UTC = 09:00 KST
 const alert: RareLevelAlert = {
@@ -79,5 +79,24 @@ describe('jobFailedPush', () => {
         expect(jobFailedPush(locale, job).title).not.toMatch(/undefined/);
       }
     }
+  });
+});
+
+describe('etpCandidatesPush', () => {
+  it('개수는 제목에, 심볼은 본문에 5개까지 쓴다', () => {
+    expect(etpCandidatesPush('ko', ['NEWG', 'NEWW'])).toEqual({
+      title: '미국 ETP 새 후보 2개 · 매핑표 확인 필요',
+      body: 'NEWG, NEWW',
+    });
+    expect(etpCandidatesPush('en', ['NEWG'])).toEqual({
+      title: '1 new US ETP candidate · check the mapping table',
+      body: 'NEWG',
+    });
+    expect(etpCandidatesPush('ko', ['A', 'B', 'C', 'D', 'E', 'F', 'G']).body).toBe(
+      'A, B, C, D, E 외 2개',
+    );
+    expect(etpCandidatesPush('en', ['A', 'B', 'C', 'D', 'E', 'F']).body).toBe(
+      'A, B, C, D, E +1 more',
+    );
   });
 });

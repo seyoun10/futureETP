@@ -149,6 +149,7 @@ describe('알림 탭', () => {
 
   it.each([
     ['운영 알림', { type: 'JOB_FAILED', job: 'DAILY_SETTLE' }],
+    ['ETP 새 후보 알림', { type: 'ETP_CANDIDATES' }],
     ['모르는 원자재', { type: 'RARE_LEVEL', commodity: 'XX' }],
   ])('실행 중에 %s를 누르면 A로 간다', async (_, data) => {
     await renderApp('/commodity/CL/curve');

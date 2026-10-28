@@ -45,6 +45,7 @@ function setup(days: Record<string, KrxEtpDay>, products: KnownEtpProduct[] = []
   );
   const nasdaq = { listings, summary: vi.fn(() => Promise.resolve(null)) };
   const yahoo = { daily: vi.fn(() => Promise.resolve({ listedDate: null, tradingValues: [] })) };
+  const candidateAlert = vi.fn(() => Promise.resolve('NONE' as const));
   const log = vi.fn();
   const handler = createEtpHandler({
     source: { fetchDay },
@@ -52,9 +53,18 @@ function setup(days: Record<string, KrxEtpDay>, products: KnownEtpProduct[] = []
     nasdaq,
     yahoo,
     store,
+    candidateAlert,
     log,
   });
-  return { fetchDay, expenseRatio, store, listings, log, run: () => handler({ now: NOW }) };
+  return {
+    fetchDay,
+    expenseRatio,
+    store,
+    listings,
+    candidateAlert,
+    log,
+    run: () => handler({ now: NOW }),
+  };
 }
 
 describe('ETP 작업(국내)', () => {
@@ -305,5 +315,14 @@ describe('ETP 작업(시장별 실패)', () => {
 
     await expect(run()).rejects.toThrow(/^KRX: no ETP data.*; US: 0 of 17 mapped ETPs/);
     expect(store.applyUsSync).not.toHaveBeenCalled();
+  });
+
+  it('미국 동기화가 실패해도 남은 새 후보 알림은 보내고, 알림 실패도 모은다', async () => {
+    const { listings, candidateAlert, run } = setup({});
+    listings.mockResolvedValueOnce([]);
+    candidateAlert.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(run()).rejects.toThrow(/; US: 0 of 17 mapped ETPs.*; US candidates: db down$/);
+    expect(candidateAlert).toHaveBeenCalledWith(NOW);
   });
 });

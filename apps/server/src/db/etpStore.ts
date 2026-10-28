@@ -1,7 +1,8 @@
 // 국내(D-096)·미국(D-099) ETP 상품·시리즈 조회·반영. 흐름은 jobs/etp.ts·jobs/etpUs.ts
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { KnownEtpProduct } from '../calc/etpSeries.ts';
 import type { EtpStore } from '../jobs/etp.ts';
+import type { EtpCandidateAlertStore } from '../jobs/etpCandidateAlert.ts';
 import type { KrxEtpEntry } from '../sources/krxEtp.ts';
 import { US_ISSUER_URLS } from '../sources/usEtpMap.ts';
 import type { db as Db } from './client.ts';
@@ -16,7 +17,7 @@ const seriesRow = (productId: string, entry: KrxEtpEntry) => ({
   seriesCode: entry.type === 'ETN' ? (entry.series ?? 'A') : null,
 });
 
-export function createEtpStore(db: typeof Db): EtpStore {
+export function createEtpStore(db: typeof Db): EtpStore & EtpCandidateAlertStore {
   return {
     async krxProducts() {
       const rows = await db
@@ -196,6 +197,26 @@ export function createEtpStore(db: typeof Db): EtpStore {
             );
         }
       });
+    },
+
+    async unnotifiedCandidates() {
+      return db
+        .select({ id: etpProduct.id, ticker: etpSeries.ticker })
+        .from(etpProduct)
+        .innerJoin(etpSeries, eq(etpSeries.productId, etpProduct.id))
+        .where(
+          and(
+            eq(etpProduct.market, 'US'),
+            eq(etpProduct.needsReview, true),
+            isNull(etpProduct.reviewNotifiedAt),
+          ),
+        )
+        .orderBy(asc(etpSeries.ticker));
+    },
+
+    async markCandidatesNotified(ids, at) {
+      if (ids.length === 0) return;
+      await db.update(etpProduct).set({ reviewNotifiedAt: at }).where(inArray(etpProduct.id, ids));
     },
   };
 }

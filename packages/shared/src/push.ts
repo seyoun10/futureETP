@@ -16,6 +16,8 @@ type Messages = {
   deferred: (time: string) => string;
   jobs: Record<JobName, string>;
   jobFailed: (job: string) => string;
+  etpCandidates: (count: number) => string;
+  more: (count: number) => string;
 };
 
 const MESSAGES: Record<Locale, Messages> = {
@@ -37,6 +39,8 @@ const MESSAGES: Record<Locale, Messages> = {
       BACKUP: '백업',
     },
     jobFailed: (job) => `서버 작업 실패: ${job}`,
+    etpCandidates: (count) => `미국 ETP 새 후보 ${count}개 · 매핑표 확인 필요`,
+    more: (count) => `외 ${count}개`,
   },
   en: {
     commodities: { GC: 'Gold', SI: 'Silver', CL: 'Crude Oil', NG: 'Natural Gas' },
@@ -56,6 +60,9 @@ const MESSAGES: Record<Locale, Messages> = {
       BACKUP: 'Backup',
     },
     jobFailed: (job) => `Server job failed: ${job}`,
+    etpCandidates: (count) =>
+      `${count} new US ETP candidate${count === 1 ? '' : 's'} · check the mapping table`,
+    more: (count) => `+${count} more`,
   },
 };
 
@@ -112,4 +119,18 @@ export function rareLevelPush(locale: Locale, timeZone: string, alert: RareLevel
 export function jobFailedPush(locale: Locale, job: JobName): PushText {
   const m = MESSAGES[locale];
   return { title: m.jobFailed(m.jobs[job]), body: null };
+}
+
+// 본문에 심볼을 이만큼까지 쓰고 나머지는 개수로 줄인다
+export const ETP_CANDIDATE_SYMBOLS_SHOWN = 5;
+
+// 미국 ETP 새 후보를 처음 발견한 배치에서 묶어 1회 보내는 알림(D-025). 예: 미국 ETP 새 후보 2개 · 매핑표 확인 필요 / NEWG, NEWW
+export function etpCandidatesPush(locale: Locale, symbols: string[]): PushText {
+  const m = MESSAGES[locale];
+  const shown = symbols.slice(0, ETP_CANDIDATE_SYMBOLS_SHOWN);
+  const rest = symbols.length - shown.length;
+  return {
+    title: m.etpCandidates(symbols.length),
+    body: shown.join(', ') + (rest > 0 ? ` ${m.more(rest)}` : ''),
+  };
 }
