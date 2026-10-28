@@ -315,11 +315,12 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.sm,
   },
+  // 차트 위쪽에 띄운다. 아래쪽이면 x축 월물 라벨을 가린다
   notice: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: spacing.sm,
+    top: spacing.sm,
     alignItems: 'center',
   },
   noticeText: {
