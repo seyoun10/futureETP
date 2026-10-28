@@ -300,4 +300,4 @@ erDiagram
 | 서버 접근 키 | `expo-secure-store`, B-b에서 QR·붙여넣기로 입력(D-044) |
 
 ## 리서치 후 확정할 항목
-- `etp_series.maturity_date`·`listed_date`(국내 ETN), `etp_product.underlying_index`(국내 ETN): KRX Open API 인증키를 받아 필드를 확인한 뒤 소스를 정한다.
+- (확정, D-096) `etp_series.maturity_date`·`listed_date`(국내 ETN)는 자동 소스가 없어 nullable·손 입력이다. `etp_product.underlying_index`(국내 ETN)는 KRX Open API `IDX_IND_NM`.
