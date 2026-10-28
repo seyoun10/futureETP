@@ -123,3 +123,75 @@ describe('B-a 대상 원자재·적용 기준', () => {
     expect(screen.getByRole('radio', { name: '원유', checked: true })).toBeOnTheScreen();
   });
 });
+
+describe('B-a 알림 거부 시간', () => {
+  beforeEach(() => {
+    jest.mocked(getSettings).mockResolvedValue(SETTINGS);
+    let saved = SETTINGS;
+    jest.mocked(patchSettings).mockClear();
+    jest.mocked(patchSettings).mockImplementation((patch) => {
+      saved = { ...saved, ...patch };
+      return Promise.resolve(saved);
+    });
+  });
+
+  it('꺼져 있으면 시각 없이 안내만 보이고, 켜면 23:00~07:00으로 저장한다', async () => {
+    await renderAlertSettings();
+    const toggle = await screen.findByLabelText('알림 거부 시간');
+    expect(screen.queryByLabelText(/^시작/)).not.toBeOnTheScreen();
+    expect(screen.getByText(/종료 시각에 방향별로 가장 드문 1건만/)).toBeOnTheScreen();
+
+    await fireEvent(toggle, 'valueChange', true);
+    await waitFor(() =>
+      expect(patchSettings).toHaveBeenCalledWith({ quietTime: { startMin: 1380, endMin: 420 } }),
+    );
+    expect(await screen.findByLabelText('시작 23:00')).toBeOnTheScreen();
+    expect(screen.getByLabelText('종료 다음 날 07:00')).toBeOnTheScreen();
+  });
+
+  it('끄면 null로 저장한다', async () => {
+    jest
+      .mocked(getSettings)
+      .mockResolvedValue({ ...SETTINGS, quietTime: { startMin: 60, endMin: 360 } });
+    await renderAlertSettings();
+    // 자정을 넘기지 않으면 (다음 날)을 붙이지 않는다
+    expect(await screen.findByLabelText('종료 06:00')).toBeOnTheScreen();
+
+    await fireEvent(screen.getByLabelText('알림 거부 시간'), 'valueChange', false);
+    await waitFor(() => expect(patchSettings).toHaveBeenCalledWith({ quietTime: null }));
+    await waitFor(() => expect(screen.queryByLabelText(/^시작/)).not.toBeOnTheScreen());
+  });
+
+  it('시각 시트에서 30분 단위로 고르고, 반대쪽 시각은 고를 수 없다', async () => {
+    jest
+      .mocked(getSettings)
+      .mockResolvedValue({ ...SETTINGS, quietTime: { startMin: 1380, endMin: 420 } });
+    await renderAlertSettings();
+    await fireEvent.press(await screen.findByLabelText('시작 23:00'));
+
+    expect(screen.getAllByRole('radio', { name: /^\d\d:\d\d$/ })).toHaveLength(48);
+    expect(screen.getByRole('radio', { name: '23:00', checked: true })).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: '07:00', disabled: true })).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('radio', { name: '22:30' }));
+    await waitFor(() =>
+      expect(patchSettings).toHaveBeenCalledWith({ quietTime: { startMin: 1350, endMin: 420 } }),
+    );
+    expect(await screen.findByLabelText('시작 22:30')).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: '22:30' })).not.toBeOnTheScreen();
+  });
+
+  it('같은 시각을 다시 고르거나 취소하면 저장하지 않는다', async () => {
+    jest
+      .mocked(getSettings)
+      .mockResolvedValue({ ...SETTINGS, quietTime: { startMin: 1380, endMin: 420 } });
+    await renderAlertSettings();
+    await fireEvent.press(await screen.findByLabelText('종료 다음 날 07:00'));
+    await fireEvent.press(screen.getByRole('radio', { name: '07:00' }));
+    await fireEvent.press(screen.getByLabelText('종료 다음 날 07:00'));
+    await fireEvent.press(screen.getByLabelText('취소'));
+
+    expect(screen.queryByRole('radio', { name: '07:00' })).not.toBeOnTheScreen();
+    expect(patchSettings).not.toHaveBeenCalled();
+  });
+});

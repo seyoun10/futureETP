@@ -207,10 +207,10 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `DEFERRED_PUSH` 작업: `jobs/deferredPush.ts`(재발송 → `createDeferredAlert`), `planDeferred`로 원자재·방향별 가장 드문 `HELD` 1건을 지연 발송 문구로 보내고 나머지 `SUPPRESSED`, 실패면 `RETRY` (2026-10-28)
   - [x] `handlers.ts`에 판정·재발송 연결과 `DEFERRED_PUSH` 등록 (2026-10-28)
 - [x] 알림 탭 이동: rare 레벨 알림은 해당 원자재 C-a(스택 A → C), 운영·모르는 알림은 A. 꺼진 앱은 마지막 응답을 읽고 지운다(`push/NotificationTapHandler.tsx`) (2026-10-28)
-- [ ] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구)
+- [x] B-a 알림 설정 화면(대상·현재 레벨 요약·거부 시간·권한 상태·안내 문구)
   - [x] 권한 상태(꺼지면 경고 + [허용]/영구 거부면 [설정 열기], 앱 복귀 때 다시 확인)·안내 문구(`push/usePushPermission.ts`) (2026-10-28)
   - [x] 대상 원자재·현재 적용 기준 요약 (2026-10-28)
-  - [ ] 알림 거부 시간
+  - [x] 알림 거부 시간: 켜기(기본 23:00~07:00)·끄기(null), 30분 단위 48칸 시트, 반대쪽 시각은 막음, 자정 넘김은 (다음 날) 표시(`QuietTimeSection.tsx`) (2026-10-28)
 
 ### 5-9. ETP
 - [ ] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인

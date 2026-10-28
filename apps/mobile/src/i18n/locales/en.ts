@@ -202,6 +202,12 @@ export const en: Translation = {
     criteriaChart: 'Basis {{basis}} · {{maPeriod}}-day MA · {{window}}',
     criteriaWindowYears: '{{years}} years',
     criteriaLevels: 'Levels {{levels}}% (above & below)',
+    quietTime: 'Quiet hours',
+    quietStart: 'Start',
+    quietEnd: 'End',
+    quietNextDay: 'next day {{time}}',
+    quietNote:
+      'Alerts during quiet hours are sent at the end time, only the rarest one per direction.',
     guide:
       "Checked every 15 minutes during trading hours; each level alerts at most once per CME trading day. You are alerted when today's candle wick touches a rare-level line on the chart (intraday touches, so alerts can fire more often than p%).",
   },

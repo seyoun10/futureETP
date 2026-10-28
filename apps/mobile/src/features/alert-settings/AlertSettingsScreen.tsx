@@ -10,12 +10,13 @@ import { errorText } from '@/features/settings/SettingsScreen';
 import { useSettings, useUpdateSettings } from '@/features/settings/useSettings';
 import { usePushPermission } from '@/push/usePushPermission';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { QuietTimeSection } from './QuietTimeSection';
 
 // 선택지 '없음'은 alertCommodity null(알림 끔)이다
 const NONE = 'NONE';
 const COMMODITY_OPTIONS = [NONE, ...COMMODITY_CODES] as const;
 
-// B-a 알림 설정(screens.md B-a). 거부 시간은 5-8에서 이어서 채운다.
+// B-a 알림 설정(screens.md B-a). 바꾼 값은 바로 서버에 저장한다.
 // 적용 기준은 B 이격도차트 설정을 그대로 쓰므로 여기서는 요약만 보여 준다.
 export function AlertSettingsScreen() {
   const { t } = useTranslation();
@@ -47,7 +48,15 @@ export function AlertSettingsScreen() {
               value={settings.data && (settings.data.alertCommodity ?? NONE)}
               onChange={(value) => update.mutate({ alertCommodity: value === NONE ? null : value })}
             />
-            {settings.data && <CriteriaSummary settings={settings.data} />}
+            {settings.data && (
+              <>
+                <CriteriaSummary settings={settings.data} />
+                <QuietTimeSection
+                  value={settings.data.quietTime}
+                  onChange={(quietTime) => update.mutate({ quietTime })}
+                />
+              </>
+            )}
           </>
         )}
         <Text style={styles.guide}>{t('alertSettings.guide')}</Text>
