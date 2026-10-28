@@ -10,6 +10,8 @@ import { contractsRoutes } from './contracts.ts';
 import type { ContractsStore } from './contracts.ts';
 import { curveRoutes } from './curve.ts';
 import type { CurveStore } from './curve.ts';
+import { devicesRoutes } from './devices.ts';
+import type { DevicesStore } from './devices.ts';
 import { disparityRoutes } from './disparity.ts';
 import type { DisparityStore } from './disparity.ts';
 import { ApiException } from './errors.ts';
@@ -26,6 +28,7 @@ export type AppOptions = {
   disparity: DisparityStore;
   curve: CurveStore;
   contracts: ContractsStore;
+  devices: DevicesStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   // 인증 실패 제한·조회 기준 시각(ms)
@@ -86,6 +89,7 @@ export function createApp(options: AppOptions) {
   );
   const now = () => new Date(options.now?.() ?? Date.now());
   v1.route('/settings', settingsRoutes(options.settings));
+  v1.route('/devices', devicesRoutes(options.devices));
   v1.route('/commodities', commoditiesRoutes(options.commodities, options.settings, now));
   v1.route('/commodities', disparityRoutes(options.disparity, now));
   v1.route('/commodities', curveRoutes(options.curve, now));

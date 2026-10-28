@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import type { QuoteBar } from '../calc/quotes.ts';
 import { createApp } from './app.ts';
-import { UNUSED_COMMODITIES, UNUSED_CURVE, UNUSED_DISPARITY } from './commodities.fixtures.ts';
+import {
+  UNUSED_COMMODITIES,
+  UNUSED_CURVE,
+  UNUSED_DISPARITY,
+  UNUSED_DEVICES,
+} from './commodities.fixtures.ts';
 import type { ContractsStore } from './contracts.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -92,6 +97,7 @@ function setup(path: string, data: Data = {}) {
     disparity: UNUSED_DISPARITY,
     curve: UNUSED_CURVE,
     contracts: store,
+    devices: UNUSED_DEVICES,
     now: () => at('2026-10-22T15:00:00Z').getTime(),
   });
   return app.request(path, { headers: { Authorization: `Bearer ${TOKEN}` } });

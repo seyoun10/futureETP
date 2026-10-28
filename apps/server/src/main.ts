@@ -5,6 +5,7 @@ import { db, pingDb } from './db/client.ts';
 import { createCommoditiesStore } from './db/commoditiesStore.ts';
 import { createContractsStore } from './db/contractsStore.ts';
 import { createCurveStore } from './db/curveStore.ts';
+import { createDevicesStore } from './db/devicesStore.ts';
 import { createDisparityStore } from './db/disparityStore.ts';
 import { createSettingsStore } from './db/settingsStore.ts';
 import { createBatchRunStore } from './jobs/batchRunStore.ts';
@@ -19,6 +20,7 @@ const app = createApp({
   disparity: createDisparityStore(db),
   curve: createCurveStore(db),
   contracts: createContractsStore(db),
+  devices: createDevicesStore(db),
 });
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {

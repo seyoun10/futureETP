@@ -174,7 +174,7 @@ type Freshness = {
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서) |
 | `GET /v1/etps/:id` | C-d-a | ETP 상세 |
 | `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |
-| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준). 토큰을 못 받으면 부르지 않는다(D-048) |
+| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준, 응답은 기기 `id`). 토큰을 못 받으면 부르지 않는다(D-048). 스키마는 shared `devices.ts`(모르는 필드 거절, `appVersion`은 모르면 null) |
 
 ## 환경 설정 분리 (dev / prod)
 

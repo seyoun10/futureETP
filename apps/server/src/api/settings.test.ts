@@ -6,6 +6,7 @@ import {
   UNUSED_CURVE,
   UNUSED_DISPARITY,
   UNUSED_CONTRACTS,
+  UNUSED_DEVICES,
 } from './commodities.fixtures.ts';
 import type { SettingsStore } from './settings.ts';
 
@@ -42,6 +43,7 @@ function setup() {
     disparity: UNUSED_DISPARITY,
     curve: UNUSED_CURVE,
     contracts: UNUSED_CONTRACTS,
+    devices: UNUSED_DEVICES,
   });
   const request = (method: string, body?: string) =>
     app.request('/v1/settings', {

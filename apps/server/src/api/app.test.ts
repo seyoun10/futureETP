@@ -5,6 +5,7 @@ import {
   UNUSED_CURVE,
   UNUSED_DISPARITY,
   UNUSED_CONTRACTS,
+  UNUSED_DEVICES,
 } from './commodities.fixtures.ts';
 import { ApiException } from './errors.ts';
 
@@ -24,6 +25,7 @@ function setup(checkDb: () => Promise<void> = async () => {}) {
     disparity: UNUSED_DISPARITY,
     curve: UNUSED_CURVE,
     contracts: UNUSED_CONTRACTS,
+    devices: UNUSED_DEVICES,
     dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,
