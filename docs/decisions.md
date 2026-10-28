@@ -785,7 +785,7 @@
 - 결정
   - 환경 변수(`apps/server/src/config.ts`): 필수 `NODE_ENV`(`development`·`production`), `DATABASE_URL`(postgres URL), `API_TOKEN`(32자 이상), `SCHEDULER_ENABLED`(zod `stringbool`). 기본값 `PORT` 3000, `LOG_LEVEL` info. 비워도 시작하는 것 `DATABENTO_API_KEY`·`MASSIVE_API_KEY`·`KRX_API_KEY`·`FCM_SERVICE_ACCOUNT_PATH`·`HEALTHCHECKS_PING_KEY`·`BACKUP_DIR`. 빈 문자열은 미설정으로 본다.
   - 선택 값이 없으면 그 값을 쓰는 작업이 실행될 때 실패한다(배치 실패 → 운영 알림, D-045). dev에서 가입하지 않은 소스 키 때문에 서버가 뜨지 않는 일을 막는다.
-  - Healthchecks.io는 작업별 ping URL 대신 프로젝트 ping key 하나(`HEALTHCHECKS_PING_KEY`)와 slug URL(`https://hc-ping.com/<key>/<작업 이름>`)을 쓴다. check slug를 작업 이름과 같게 만든다.
+  - Healthchecks.io는 작업별 ping URL 대신 프로젝트 ping key 하나(`HEALTHCHECKS_PING_KEY`)와 slug URL(`https://hc-ping.com/<key>/<작업 이름>`)을 쓴다. check slug를 작업 이름의 소문자로 만든다(slug는 소문자·숫자·`_`·`-`만 허용, 예: `daily_settle`).
   - `parseConfig(env)`는 순수 함수로 두어 테스트하고, 모듈의 `config`는 import 때 검증해 실패하면 오류 목록(`z.prettifyError`)을 출력하고 exit 1 한다.
   - 마이그레이션: SQL 생성은 dev에서 `drizzle-kit generate`(`npm run db:generate -w apps/server`, 출력 `apps/server/drizzle/`, 커밋함)만 쓴다. 적용은 `src/db/migrate.ts`가 `drizzle-orm/node-postgres/migrator`의 `migrate()`로 한다(`npm run db:migrate`, `.env`가 있으면 읽음). prod 배포 스크립트는 새 이미지의 일회성 컨테이너에서 `node src/db/migrate.ts`를 실행한다(D-048).
   - 라이브러리: `drizzle-orm` 0.45.4(1.0은 RC라 안정판), `drizzle-kit` 0.31.11, 드라이버 `pg` 8.x(node-postgres).

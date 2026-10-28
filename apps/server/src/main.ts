@@ -11,6 +11,7 @@ import { createEtpsStore } from './db/etpsStore.ts';
 import { createSettingsStore } from './db/settingsStore.ts';
 import { createBatchRunStore, createOpsAlertStore } from './jobs/batchRunStore.ts';
 import { JOB_HANDLERS } from './jobs/handlers.ts';
+import { createHealthcheck } from './jobs/healthcheck.ts';
 import { createOpsAlert } from './jobs/opsAlert.ts';
 import { startScheduler } from './jobs/scheduler.ts';
 import { pushSender } from './push/configuredSender.ts';
@@ -44,5 +45,8 @@ if (config.SCHEDULER_ENABLED) {
       sender: pushSender,
       locale: async () => (await settings.get()).locale,
     }),
+    healthcheck: config.HEALTHCHECKS_PING_KEY
+      ? createHealthcheck({ pingKey: config.HEALTHCHECKS_PING_KEY })
+      : undefined,
   });
 }

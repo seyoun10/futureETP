@@ -1,6 +1,7 @@
 import { Cron } from 'croner';
 import { describe, expect, it, vi } from 'vitest';
 import { JOB_NAMES } from '../constants.ts';
+import type { Healthcheck } from './healthcheck.ts';
 import type { BatchRunStore } from './runner.ts';
 import { createTriggerRunner, TRIGGERS } from './scheduler.ts';
 
@@ -117,5 +118,43 @@ describe('createTriggerRunner', () => {
 
     await expect(runTrigger(['DEFERRED_PUSH', 'INTRADAY'], new Date())).resolves.toBeUndefined();
     expect(intraday).not.toHaveBeenCalled();
+  });
+
+  it('Healthchecks 신호는 재시도까지 묶어 /start 한 번, 최종 결과 한 번 보낸다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const healthcheck = vi.fn<Healthcheck>(() => Promise.resolve());
+    const etp = vi
+      .fn(() => Promise.resolve())
+      .mockImplementationOnce(() => Promise.reject(new Error('down')));
+    const runTrigger = createTriggerRunner({
+      store: countingStore(),
+      handlers: { ETP: etp, BACKUP: () => Promise.reject(new Error('disk full')) },
+      healthcheck,
+      sleep: async () => {},
+    });
+
+    await runTrigger(['ETP', 'BACKUP'], new Date());
+    expect(healthcheck.mock.calls.map(([job, signal]) => `${job} ${signal}`)).toEqual([
+      'ETP start',
+      'ETP success',
+      'BACKUP start',
+      'BACKUP fail',
+    ]);
+    const [[, , etpStart], [, , etpEnd], [, , backupStart]] = healthcheck.mock.calls;
+    expect(etpEnd).toBe(etpStart);
+    expect(backupStart).not.toBe(etpStart);
+  });
+
+  it('batch_run 기록이 실패하면 /fail을 보낸다', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const healthcheck = vi.fn<Healthcheck>(() => Promise.resolve());
+    const runTrigger = createTriggerRunner({
+      store: { ...countingStore(), start: () => Promise.reject(new Error('db down')) },
+      handlers: { CALENDAR: async () => {} },
+      healthcheck,
+    });
+
+    await runTrigger(['CALENDAR'], new Date());
+    expect(healthcheck.mock.calls.map(([, signal]) => signal)).toEqual(['start', 'fail']);
   });
 });
