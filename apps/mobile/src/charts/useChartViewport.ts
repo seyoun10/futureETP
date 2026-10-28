@@ -10,7 +10,7 @@ import {
   useChartTransformState,
 } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
-import { scheduleOnRN } from 'react-native-worklets';
+import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
 
 import { useCrosshairPosition } from './CrosshairLayer';
 import type { ChartTransform, CrosshairPress } from './CrosshairLayer';
@@ -62,15 +62,20 @@ export function useChartViewport({
     },
     [geom],
   );
+  // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
+  // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
   useEffect(() => {
-    const g = geom.get();
-    if (!g) return;
-    if (periodBars !== null) {
-      applyTransform(transform, periodTransform(g, periodBars));
-    } else {
-      const c = getTransformComponents(transform.matrix.get());
-      applyTransform(transform, fitTransform(g, c.scaleX, c.translateX));
-    }
+    scheduleOnUI(() => {
+      'worklet';
+      const g = geom.get();
+      if (!g) return;
+      if (periodBars !== null) {
+        applyTransform(transform, periodTransform(g, periodBars));
+      } else {
+        const c = getTransformComponents(transform.matrix.get());
+        applyTransform(transform, fitTransform(g, c.scaleX, c.translateX));
+      }
+    });
   }, [geom, geomVersion, periodBars, transform]);
 
   // 제스처가 행렬을 바꿀 때마다 x 범위 제한 + y 자동 맞춤(UI 스레드, D-056)
