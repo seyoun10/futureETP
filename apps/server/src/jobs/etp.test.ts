@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { KnownEtpProduct } from '../calc/etpSeries.ts';
 import type { KrxEtpDay, KrxEtpRow } from '../sources/krxEtp.ts';
+import type { NaverEtfSource } from '../sources/naverEtf.ts';
 import {
   AVG_TRADING_DAYS,
   createEtpHandler,
@@ -28,13 +29,16 @@ const EMPTY: KrxEtpDay = { etf: [], etn: [] };
 
 function setup(days: Record<string, KrxEtpDay>, products: KnownEtpProduct[] = []) {
   const fetchDay = vi.fn((date: string) => Promise.resolve(days[date] ?? EMPTY));
+  const expenseRatio = vi.fn<NaverEtfSource['expenseRatio']>(() => Promise.resolve(0.35));
   const store = {
     krxProducts: vi.fn(() => Promise.resolve(products)),
     applyKrxPlan: vi.fn<EtpStore['applyKrxPlan']>(() => Promise.resolve()),
     setMetrics: vi.fn<EtpStore['setMetrics']>(() => Promise.resolve()),
+    setDetails: vi.fn<EtpStore['setDetails']>(() => Promise.resolve()),
   };
-  const handler = createEtpHandler({ source: { fetchDay }, store, log: () => {} });
-  return { fetchDay, store, run: () => handler({ now: NOW }) };
+  const log = vi.fn();
+  const handler = createEtpHandler({ source: { fetchDay }, naver: { expenseRatio }, store, log });
+  return { fetchDay, expenseRatio, store, log, run: () => handler({ now: NOW }) };
 }
 
 describe('ETP 작업(국내)', () => {
@@ -210,6 +214,62 @@ describe('ETP 작업(국내)', () => {
       await expect(run()).rejects.toThrow('KRX 2026-10-27: ETF 0 rows, ETN 1 rows');
       expect(store.applyKrxPlan).not.toHaveBeenCalled();
       expect(store.setMetrics).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('운용사 주소·총보수', () => {
+    const listed = (id: string, ...tickers: string[]): KnownEtpProduct => ({
+      id,
+      groupingKey: null,
+      isActive: true,
+      series: tickers.map((ticker) => ({ ticker, delistedDate: null })),
+    });
+    const DAY = {
+      etf: [etf('261220'), { ...etf('999990'), ISU_NM: 'XYZ 골드선물(H)' }],
+      etn: [etn('530031')],
+    };
+    const AFTER = [
+      listed('etf', '261220'),
+      listed('etn', '530031'),
+      listed('new-brand', '999990'),
+      // 오늘 목록에 없는(폐지 처리된) 상품은 건드리지 않는다
+      { ...listed('gone'), series: [{ ticker: '111111', delistedDate: '2026-10-28' }] },
+    ];
+
+    it('브랜드 고정표로 주소를, ETF만 네이버 총보수를 채운다', async () => {
+      const { store, expenseRatio, run } = setup({ '2026-10-28': DAY });
+      store.krxProducts.mockResolvedValueOnce([]).mockResolvedValueOnce(AFTER);
+
+      await run();
+
+      expect(expenseRatio.mock.calls).toEqual([['261220'], ['999990']]);
+      expect(store.setDetails).toHaveBeenCalledWith([
+        {
+          productId: 'etf',
+          issuerUrl: 'https://www.samsungfund.com/etf/main.do',
+          expenseRatio: 0.35,
+        },
+        { productId: 'etn', issuerUrl: 'https://www.samsungpop.com/' },
+        { productId: 'new-brand', issuerUrl: null, expenseRatio: 0.35 },
+      ]);
+    });
+
+    it('네이버가 실패하거나 값이 없으면 그 상품 총보수는 저장된 값을 둔다', async () => {
+      const { store, expenseRatio, log, run } = setup({ '2026-10-28': DAY });
+      store.krxProducts.mockResolvedValueOnce([]).mockResolvedValueOnce(AFTER);
+      expenseRatio
+        .mockRejectedValueOnce(new Error('Naver 261220: HTTP 500'))
+        .mockResolvedValueOnce(null);
+
+      await run();
+
+      expect(store.setDetails.mock.calls[0][0]).toEqual([
+        { productId: 'etf', issuerUrl: 'https://www.samsungfund.com/etf/main.do' },
+        { productId: 'etn', issuerUrl: 'https://www.samsungpop.com/' },
+        { productId: 'new-brand', issuerUrl: null },
+      ]);
+      expect(log).toHaveBeenCalledWith('[etp Naver] 261220: Naver 261220: HTTP 500');
+      expect(log).toHaveBeenLastCalledWith(expect.stringContaining('fees for 0/2 ETFs'));
     });
   });
 });

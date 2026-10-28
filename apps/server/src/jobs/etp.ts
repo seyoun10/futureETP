@@ -1,9 +1,11 @@
 // ETP 작업(08:30 KST): 국내 목록 동기화(D-096)와 순자산·평균 거래대금(D-017). 미국 목록은 뒤에 붙인다.
 // KRX 전일분을 받아 종목명을 읽고, 저장된 상품과 맞춘 묶기·상장폐지 계획을 한 트랜잭션으로 반영한다.
 // 그다음 상장 중인 시리즈로 상품별 순자산(기준일)과 최근 20거래일 평균 거래대금을 덮어쓴다.
+// 끝으로 운용사 주소(고정표)와 ETF 총보수(네이버, 비공식이라 실패해도 작업은 계속)를 채운다.
 import { etpProductMetrics, type EtpMetrics } from '../calc/etpMetrics.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import { planKrxEtpSeries, type EtpSeriesPlan, type KnownEtpProduct } from '../calc/etpSeries.ts';
+import { krxIssuerUrl } from '../sources/krxIssuerUrls.ts';
 import {
   krxAumByTicker,
   krxTradingValueByTicker,
@@ -12,6 +14,7 @@ import {
   type KrxEtpEntry,
   type KrxEtpSource,
 } from '../sources/krxEtp.ts';
+import type { NaverEtfSource } from '../sources/naverEtf.ts';
 import type { JobHandler } from './runner.ts';
 
 // 연휴에도 마지막 거래일에 닿도록 거슬러 볼 날 수
@@ -22,6 +25,9 @@ export const MIN_LISTED_RATIO = 0.5;
 export const AVG_TRADING_DAYS = 20;
 export const TRADING_VALUE_LOOKBACK_DAYS = 40;
 
+// expenseRatio가 없으면 저장된 값을 둔다
+export type EtpDetails = { productId: string; issuerUrl: string | null; expenseRatio?: number };
+
 export interface EtpStore {
   krxProducts(): Promise<KnownEtpProduct[]>;
   // delistedDate: 목록에서 처음 빠진 기준일
@@ -30,6 +36,7 @@ export interface EtpStore {
     at: { baseDate: string; collectedAt: Date },
   ): Promise<void>;
   setMetrics(metrics: readonly EtpMetrics[], collectedAt: Date): Promise<void>;
+  setDetails(details: readonly EtpDetails[]): Promise<void>;
 }
 
 const seoulDate = (at: Date) =>
@@ -66,12 +73,51 @@ async function earlierKrxDays(source: KrxEtpSource, baseDate: string) {
   return days;
 }
 
+// 상품의 상장 중 시리즈 하나로 운용사 주소를 고르고, ETF면 총보수를 받는다
+async function krxDetails(
+  products: readonly KnownEtpProduct[],
+  listings: readonly KrxEtpEntry[],
+  naver: NaverEtfSource,
+  log: (message: string) => void,
+) {
+  const listingByTicker = new Map(listings.map((listing) => [listing.ticker, listing]));
+  const details: EtpDetails[] = [];
+  let etfs = 0;
+  let fees = 0;
+  for (const product of products) {
+    const listing = product.series
+      .filter((series) => series.delistedDate === null)
+      .map((series) => listingByTicker.get(series.ticker))
+      .find((found) => found !== undefined);
+    if (!listing) continue;
+    const detail: EtpDetails = { productId: product.id, issuerUrl: krxIssuerUrl(listing.issuer) };
+    if (listing.type === 'ETF') {
+      etfs++;
+      try {
+        const fee = await naver.expenseRatio(listing.ticker);
+        if (fee !== null) {
+          detail.expenseRatio = fee;
+          fees++;
+        }
+      } catch (error) {
+        log(
+          `[etp Naver] ${listing.ticker}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    details.push(detail);
+  }
+  return { details, etfs, fees };
+}
+
 export function createEtpHandler({
   source,
+  naver,
   store,
   log = console.log,
 }: {
   source: KrxEtpSource;
+  naver: NaverEtfSource;
   store: EtpStore;
   log?: (message: string) => void;
 }): JobHandler {
@@ -93,18 +139,23 @@ export function createEtpHandler({
     const plan = planKrxEtpSeries(products, listings);
     await store.applyKrxPlan(plan, { baseDate: date, collectedAt: now });
     // 반영 뒤 시리즈 구성(새 상품·폐지)으로 다시 읽어 합산한다
+    const applied = await store.krxProducts();
     const metrics = etpProductMetrics(
-      await store.krxProducts(),
+      applied,
       krxAumByTicker(day),
       tradingDays.map(krxTradingValueByTicker),
     );
     await store.setMetrics(metrics, now);
+    const { details, etfs, fees } = await krxDetails(applied, listings, naver, log);
+    await store.setDetails(details);
     log(
       `[etp KRX ${date}] ${listings.length} listings: +${plan.newProducts.length} products, ` +
         `+${plan.addSeries.length} series, ${plan.delistTickers.length} delisted, ` +
         `${plan.relistTickers.length} relisted, ${plan.deactivateProductIds.length} deactivated, ` +
         `${plan.reactivateProductIds.length} reactivated; ` +
-        `metrics for ${metrics.length} products over ${tradingDays.length} trading days`,
+        `metrics for ${metrics.length} products over ${tradingDays.length} trading days; ` +
+        `issuer URLs for ${details.filter((d) => d.issuerUrl !== null).length}/${details.length}, ` +
+        `fees for ${fees}/${etfs} ETFs`,
     );
   };
 }

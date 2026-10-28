@@ -107,5 +107,16 @@ export function createEtpStore(db: typeof Db): EtpStore {
         }
       });
     },
+
+    async setDetails(details) {
+      await db.transaction(async (tx) => {
+        for (const { productId, issuerUrl, expenseRatio } of details) {
+          await tx
+            .update(etpProduct)
+            .set({ issuerUrl, ...(expenseRatio === undefined ? {} : { expenseRatio }) })
+            .where(eq(etpProduct.id, productId));
+        }
+      });
+    },
   };
 }
