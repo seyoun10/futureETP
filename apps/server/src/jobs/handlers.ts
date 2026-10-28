@@ -9,8 +9,10 @@ import { pushSender } from '../push/configuredSender.ts';
 import { createKrxEtpSource } from '../sources/krxEtp.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
 import { createMassiveSettlementSource } from '../sources/massiveSettlement.ts';
+import { createNasdaqEtpSource } from '../sources/nasdaqEtp.ts';
 import { createNaverEtfSource } from '../sources/naverEtf.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
+import { createYahooEtpSource } from '../sources/yahooEtp.ts';
 import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
 import { createDeferredPushHandler } from './deferredPush.ts';
 import { createEtpHandler } from './etp.ts';
@@ -55,6 +57,8 @@ export const JOB_HANDLERS: JobHandlers = {
   ETP: createEtpHandler({
     source: createKrxEtpSource({ apiKey: config.KRX_API_KEY }),
     naver: createNaverEtfSource(),
+    nasdaq: createNasdaqEtpSource(),
+    yahoo: createYahooEtpSource(),
     store: createEtpStore(db),
   }),
 };

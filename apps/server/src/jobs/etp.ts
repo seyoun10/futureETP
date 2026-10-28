@@ -1,4 +1,5 @@
-// ETP 작업(08:30 KST): 국내 목록 동기화(D-096)와 순자산·평균 거래대금(D-017). 미국 목록은 뒤에 붙인다.
+// ETP 작업(08:30 KST): 국내 목록 동기화(D-096)와 순자산·평균 거래대금(D-017), 이어서 미국(jobs/etpUs.ts).
+// 한 시장이 실패해도 다른 시장은 반영하고, 끝에 실패를 모아 작업을 실패로 둔다.
 // KRX 전일분을 받아 종목명을 읽고, 저장된 상품과 맞춘 묶기·상장폐지 계획을 한 트랜잭션으로 반영한다.
 // 그다음 상장 중인 시리즈로 상품별 순자산(기준일)과 최근 20거래일 평균 거래대금을 덮어쓴다.
 // 끝으로 운용사 주소(고정표)와 ETF 총보수(네이버, 비공식이라 실패해도 작업은 계속)를 채운다.
@@ -14,7 +15,10 @@ import {
   type KrxEtpEntry,
   type KrxEtpSource,
 } from '../sources/krxEtp.ts';
+import type { NasdaqEtpSource } from '../sources/nasdaqEtp.ts';
 import type { NaverEtfSource } from '../sources/naverEtf.ts';
+import type { YahooEtpSource } from '../sources/yahooEtp.ts';
+import { syncUsEtps, type UsEtpStore } from './etpUs.ts';
 import type { JobHandler } from './runner.ts';
 
 // 연휴에도 마지막 거래일에 닿도록 거슬러 볼 날 수
@@ -28,7 +32,7 @@ export const TRADING_VALUE_LOOKBACK_DAYS = 40;
 // expenseRatio가 없으면 저장된 값을 둔다
 export type EtpDetails = { productId: string; issuerUrl: string | null; expenseRatio?: number };
 
-export interface EtpStore {
+export interface EtpStore extends UsEtpStore {
   krxProducts(): Promise<KnownEtpProduct[]>;
   // delistedDate: 목록에서 처음 빠진 기준일
   applyKrxPlan(
@@ -110,52 +114,81 @@ async function krxDetails(
   return { details, etfs, fees };
 }
 
+async function syncKrxEtps({
+  source,
+  naver,
+  store,
+  now,
+  log,
+}: {
+  source: KrxEtpSource;
+  naver: NaverEtfSource;
+  store: EtpStore;
+  now: Date;
+  log: (message: string) => void;
+}) {
+  const { date, day } = await latestKrxDay(source, now);
+  const listings = [...toKrxEtpEntries(day.etf, 'ETF'), ...toKrxEtpEntries(day.etn, 'ETN')];
+  const products = await store.krxProducts();
+  const listedCount = products
+    .flatMap((product) => product.series)
+    .filter((series) => series.delistedDate === null).length;
+  if (listings.length < listedCount * MIN_LISTED_RATIO) {
+    throw new Error(`KRX ${date}: ${listings.length} commodity ETPs, ${listedCount} listed in DB`);
+  }
+
+  // 받기를 모두 마친 뒤에 반영한다(중간 실패 시 아무것도 바꾸지 않도록)
+  const tradingDays = [day, ...(await earlierKrxDays(source, date))];
+  const plan = planKrxEtpSeries(products, listings);
+  await store.applyKrxPlan(plan, { baseDate: date, collectedAt: now });
+  // 반영 뒤 시리즈 구성(새 상품·폐지)으로 다시 읽어 합산한다
+  const applied = await store.krxProducts();
+  const metrics = etpProductMetrics(
+    applied,
+    krxAumByTicker(day),
+    tradingDays.map(krxTradingValueByTicker),
+  );
+  await store.setMetrics(metrics, now);
+  const { details, etfs, fees } = await krxDetails(applied, listings, naver, log);
+  await store.setDetails(details);
+  log(
+    `[etp KRX ${date}] ${listings.length} listings: +${plan.newProducts.length} products, ` +
+      `+${plan.addSeries.length} series, ${plan.delistTickers.length} delisted, ` +
+      `${plan.relistTickers.length} relisted, ${plan.deactivateProductIds.length} deactivated, ` +
+      `${plan.reactivateProductIds.length} reactivated; ` +
+      `metrics for ${metrics.length} products over ${tradingDays.length} trading days; ` +
+      `issuer URLs for ${details.filter((d) => d.issuerUrl !== null).length}/${details.length}, ` +
+      `fees for ${fees}/${etfs} ETFs`,
+  );
+}
+
 export function createEtpHandler({
   source,
   naver,
+  nasdaq,
+  yahoo,
   store,
   log = console.log,
 }: {
   source: KrxEtpSource;
   naver: NaverEtfSource;
+  nasdaq: NasdaqEtpSource;
+  yahoo: YahooEtpSource;
   store: EtpStore;
   log?: (message: string) => void;
 }): JobHandler {
   return async ({ now }) => {
-    const { date, day } = await latestKrxDay(source, now);
-    const listings = [...toKrxEtpEntries(day.etf, 'ETF'), ...toKrxEtpEntries(day.etn, 'ETN')];
-    const products = await store.krxProducts();
-    const listedCount = products
-      .flatMap((product) => product.series)
-      .filter((series) => series.delistedDate === null).length;
-    if (listings.length < listedCount * MIN_LISTED_RATIO) {
-      throw new Error(
-        `KRX ${date}: ${listings.length} commodity ETPs, ${listedCount} listed in DB`,
-      );
+    const errors: string[] = [];
+    try {
+      await syncKrxEtps({ source, naver, store, now, log });
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
     }
-
-    // 받기를 모두 마친 뒤에 반영한다(중간 실패 시 아무것도 바꾸지 않도록)
-    const tradingDays = [day, ...(await earlierKrxDays(source, date))];
-    const plan = planKrxEtpSeries(products, listings);
-    await store.applyKrxPlan(plan, { baseDate: date, collectedAt: now });
-    // 반영 뒤 시리즈 구성(새 상품·폐지)으로 다시 읽어 합산한다
-    const applied = await store.krxProducts();
-    const metrics = etpProductMetrics(
-      applied,
-      krxAumByTicker(day),
-      tradingDays.map(krxTradingValueByTicker),
-    );
-    await store.setMetrics(metrics, now);
-    const { details, etfs, fees } = await krxDetails(applied, listings, naver, log);
-    await store.setDetails(details);
-    log(
-      `[etp KRX ${date}] ${listings.length} listings: +${plan.newProducts.length} products, ` +
-        `+${plan.addSeries.length} series, ${plan.delistTickers.length} delisted, ` +
-        `${plan.relistTickers.length} relisted, ${plan.deactivateProductIds.length} deactivated, ` +
-        `${plan.reactivateProductIds.length} reactivated; ` +
-        `metrics for ${metrics.length} products over ${tradingDays.length} trading days; ` +
-        `issuer URLs for ${details.filter((d) => d.issuerUrl !== null).length}/${details.length}, ` +
-        `fees for ${fees}/${etfs} ETFs`,
-    );
+    try {
+      await syncUsEtps({ nasdaq, yahoo, store, now, log });
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+    if (errors.length > 0) throw new Error(errors.join('; '));
   };
 }

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { KnownEtpProduct } from '../calc/etpSeries.ts';
 import type { KrxEtpDay, KrxEtpRow } from '../sources/krxEtp.ts';
 import type { NaverEtfSource } from '../sources/naverEtf.ts';
+import { US_ETP_MAP } from '../sources/usEtpMap.ts';
 import {
   AVG_TRADING_DAYS,
   createEtpHandler,
@@ -35,10 +36,25 @@ function setup(days: Record<string, KrxEtpDay>, products: KnownEtpProduct[] = []
     applyKrxPlan: vi.fn<EtpStore['applyKrxPlan']>(() => Promise.resolve()),
     setMetrics: vi.fn<EtpStore['setMetrics']>(() => Promise.resolve()),
     setDetails: vi.fn<EtpStore['setDetails']>(() => Promise.resolve()),
+    usProducts: vi.fn<EtpStore['usProducts']>(() => Promise.resolve([])),
+    applyUsSync: vi.fn<EtpStore['applyUsSync']>(() => Promise.resolve()),
   };
+  // 미국 부분은 etpUs.test.ts에서 본다. 여기서는 매핑표 그대로 성공하게 둔다
+  const listings = vi.fn(() =>
+    Promise.resolve(Object.keys(US_ETP_MAP).map((symbol) => ({ symbol, name: symbol }))),
+  );
+  const nasdaq = { listings, summary: vi.fn(() => Promise.resolve(null)) };
+  const yahoo = { daily: vi.fn(() => Promise.resolve({ listedDate: null, tradingValues: [] })) };
   const log = vi.fn();
-  const handler = createEtpHandler({ source: { fetchDay }, naver: { expenseRatio }, store, log });
-  return { fetchDay, expenseRatio, store, log, run: () => handler({ now: NOW }) };
+  const handler = createEtpHandler({
+    source: { fetchDay },
+    naver: { expenseRatio },
+    nasdaq,
+    yahoo,
+    store,
+    log,
+  });
+  return { fetchDay, expenseRatio, store, listings, log, run: () => handler({ now: NOW }) };
 }
 
 describe('ETP 작업(국내)', () => {
@@ -269,7 +285,25 @@ describe('ETP 작업(국내)', () => {
         { productId: 'new-brand', issuerUrl: null },
       ]);
       expect(log).toHaveBeenCalledWith('[etp Naver] 261220: Naver 261220: HTTP 500');
-      expect(log).toHaveBeenLastCalledWith(expect.stringContaining('fees for 0/2 ETFs'));
+      expect(log).toHaveBeenCalledWith(expect.stringContaining('fees for 0/2 ETFs'));
     });
+  });
+});
+
+describe('ETP 작업(시장별 실패)', () => {
+  it('국내가 실패해도 미국은 반영하고, 끝에 실패로 둔다', async () => {
+    const { store, run } = setup({});
+
+    await expect(run()).rejects.toThrow('KRX: no ETP data');
+    expect(store.applyKrxPlan).not.toHaveBeenCalled();
+    expect(store.applyUsSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('두 시장이 모두 실패하면 메시지를 모은다', async () => {
+    const { store, listings, run } = setup({});
+    listings.mockResolvedValueOnce([]);
+
+    await expect(run()).rejects.toThrow(/^KRX: no ETP data.*; US: 0 of 17 mapped ETPs/);
+    expect(store.applyUsSync).not.toHaveBeenCalled();
   });
 });

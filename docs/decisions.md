@@ -1585,4 +1585,5 @@
   - 운용사 주소는 운용사 4곳 고정표(`US_ISSUER_URLS`), 기초지수명은 매핑표에 둔다.
 - 근거: 두 API 모두 인증 없이 받고, 2026-10-28 실측 순자산이 리서치 표(2026-10-22)와 맞는다. 광산 주식 ETF는 자주 새로 나와 이름으로 빼지 않으면 알림이 잦다. 그 밖의 비대상(현물 신탁·커버드콜 등)은 이름 규칙으로 빼면 새 선물 상품까지 놓칠 수 있어 심볼로 뺀다.
 - 위험: Nasdaq도 비공식 API다. `curl` 기본 UA에는 응답하지 않았다(Node `fetch`는 응답). 막히면 ETP 작업의 미국 부분이 실패한다.
-- 영향: `sources/nasdaqEtp.ts`·`sources/yahooEtp.ts`·`sources/usEtpMap.ts`, `research/etp-sources.md` 미국 소스 표.
+- 동기화(같은 날 추가): `ETP` 작업이 국내 다음에 미국을 처리한다(`jobs/etpUs.ts`). 매핑 상품은 `source` NASDAQ·`fx_hedge` NA·`name_lang` en으로 저장하고, 속성은 받은 값만 덮어쓴다(실패·빈 값은 저장된 값 유지). 목록에서 빠진 매핑 상품은 폐지일(뉴욕 날짜)·비활성으로 두고, 다시 나오면 되돌린다. 새 후보는 `needs_review` 행(원자재·배수 없음)으로 넣고, 매핑표에 오르면 같은 행을 확정하며, 제외 목록에 오르거나 목록에서 빠지면 지운다(확인 전이라 이력 없음). 매핑 상품이 매핑표의 절반 미만이거나 Nasdaq·Yahoo가 모든 상품에서 실패하면 미국 쪽은 반영하지 않는다. 한 시장이 실패해도 다른 시장은 반영하고 작업은 실패로 끝난다(운영 알림).
+- 영향: `sources/nasdaqEtp.ts`·`sources/yahooEtp.ts`·`sources/usEtpMap.ts`·`jobs/etpUs.ts`, `research/etp-sources.md` 미국 소스 표.
