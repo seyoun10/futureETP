@@ -6,6 +6,8 @@ import type { AuthFailureLimit } from './auth.ts';
 import { clientIp as defaultClientIp } from './clientIp.ts';
 import { commoditiesRoutes } from './commodities.ts';
 import type { CommoditiesStore } from './commodities.ts';
+import { contractsRoutes } from './contracts.ts';
+import type { ContractsStore } from './contracts.ts';
 import { curveRoutes } from './curve.ts';
 import type { CurveStore } from './curve.ts';
 import { disparityRoutes } from './disparity.ts';
@@ -23,6 +25,7 @@ export type AppOptions = {
   commodities: CommoditiesStore;
   disparity: DisparityStore;
   curve: CurveStore;
+  contracts: ContractsStore;
   dbCheckTimeoutMs?: number;
   authFailureLimit?: AuthFailureLimit;
   // 인증 실패 제한·조회 기준 시각(ms)
@@ -86,6 +89,7 @@ export function createApp(options: AppOptions) {
   v1.route('/commodities', commoditiesRoutes(options.commodities, options.settings, now));
   v1.route('/commodities', disparityRoutes(options.disparity, now));
   v1.route('/commodities', curveRoutes(options.curve, now));
+  v1.route('/commodities', contractsRoutes(options.contracts, now));
 
   app.route('/v1', v1);
   return app;

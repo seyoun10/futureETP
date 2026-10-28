@@ -170,7 +170,7 @@ type Freshness = {
 | `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시, freshness. 스키마는 shared `commodities.ts`, 표시 값 규칙은 `calc/quotes.ts`(D-085) |
 | `GET /v1/commodities/:code/disparity?basis&ma&window&levels` | C-a | 지수 일봉(맞춤 비율 곱함)·이평선·보유 월물·롤 구간, 오늘 잠정 봉, rare 레벨 10개, 꼬리 백분위, 대체 여부, freshness. 스키마는 shared `disparity.ts`, 조립은 `calc/disparityChart.ts`(D-086) |
 | `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일(서버가 거래일로 맞춤, 이전·다음 기준일·범위)·현재 커브, 월물별 변화율, M1→M2 스프레드·롤 수익률, freshness. 스키마는 shared `curve.ts`, 조립은 `calc/curve.ts`(D-090) |
-| `GET /v1/commodities/:code/contracts` | C-c | 월물 5개 원가격 시계열, freshness |
+| `GET /v1/commodities/:code/contracts` | C-c | A와 같은 월물 목록의 정산가 선(공유 `dates` + 월물별 `prices` 열 배열, 상장 전 null), 오늘 잠정 값, freshness. 스키마는 shared `contracts.ts`, 조립은 `calc/contractLines.ts`(D-092) |
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서) |
 | `GET /v1/etps/:id` | C-d-a | ETP 상세 |
 | `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |

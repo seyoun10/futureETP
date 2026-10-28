@@ -1461,3 +1461,18 @@
 - 영향
   - Android는 와이어프레임의 바텀 시트가 아니라 OS 다이얼로그다(범위 문구 없음, 버튼 위치 OS 기본).
   - 네이티브 모듈이 늘어 개발 빌드를 다시 만들어야 한다. Jest에서는 테스트 파일이 피커를 `View`로 mock한다(jest-expo는 iOS 경로).
+
+## D-092: `GET /v1/commodities/:code/contracts` — 공유 날짜 축 + 월물별 가격 열 배열
+- 날짜: 2026-10-28
+- 상태: 확정
+- 맥락: TODO 5-6 C-c 첫 단계(서버). architecture.md 초안은 "월물 5개 원가격 시계열, freshness"만 정했다. 선 5개가 날짜 축을 공유하고(screens.md C-c), 월물마다 상장일이 달라 앞쪽이 비며, 오늘 잠정 값 처리가 정해지지 않았다.
+- 결정
+  - 응답(shared `contractsChartSchema`): `freshness`, `priceDecimals`, `dates`(거래일 오름차순), `provisional`, `contracts`(A와 같은 월물 목록 `{ symbol, contractMonth, prices }`). `prices`는 `dates`와 같은 길이이고 그날 값이 없으면(상장 전·일봉 누락) null이다. 스키마가 길이 일치를 검증한다.
+  - 날짜는 그릴 월물 중 하나라도 일봉이 있는 날이다. '전체'는 가장 이른 월물의 첫 일봉부터다(screens.md "가장 긴 월물의 상장일부터", 2010-06 이전 상장은 적재 시작일부터).
+  - 값은 정산가(`settle`)다. D 값은 그날 정산가 → 최근 스냅숏(D-048)이고 스냅숏을 하나라도 쓰면 D를 날짜 끝에 붙이고 `provisional`·`delayed`가 true다. `asOf`는 각 선 마지막 값 시각 중 가장 늦은 시각이다.
+  - 월물 목록은 A와 같은 규칙(`selectMonthList`, 대표월물은 D 이하 최근 FRONT 행)이다. 모르는 원자재·일봉 없음은 404 `NOT_FOUND`. query는 없다(기간·제스처는 받은 데이터 안에서, architecture.md).
+  - 조회는 `db/contractsStore.ts`(`ContractsStore`), 조립은 `calc/contractLines.ts` `buildContractLines`, 라우트는 `api/contracts.ts` `loadContracts`다.
+- 근거
+  - 행 객체(`{ date, prices: [5] }`)보다 열 배열이 키 반복이 없고, 앱 차트가 x를 날짜 인덱스로 쓰므로 바로 넘길 수 있다.
+  - dev DB 실측(2026-10-28, 압축 전): CL 2,246일 95KB, NG 2,856일 122KB, GC 1,466일 64KB, 조회 30~130ms. D-046의 C-a 400KB보다 작다.
+- 영향: `createApp`에 `contracts` 저장소가 필수 인자로 늘었다(테스트는 `commodities.fixtures.ts` `UNUSED_CONTRACTS`).

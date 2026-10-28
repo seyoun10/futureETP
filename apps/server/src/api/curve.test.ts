@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CurveBar } from '../calc/curve.ts';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import { createApp } from './app.ts';
-import { UNUSED_COMMODITIES, UNUSED_DISPARITY } from './commodities.fixtures.ts';
+import { UNUSED_COMMODITIES, UNUSED_DISPARITY, UNUSED_CONTRACTS } from './commodities.fixtures.ts';
 import type { CurveStore } from './curve.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -80,6 +80,7 @@ function setup(path: string, data: Data = {}) {
     commodities: UNUSED_COMMODITIES,
     disparity: UNUSED_DISPARITY,
     curve: store,
+    contracts: UNUSED_CONTRACTS,
     now: () => at('2026-10-22T15:00:00Z').getTime(),
   });
   return app.request(path, { headers: { Authorization: `Bearer ${TOKEN}` } });
