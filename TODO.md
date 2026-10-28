@@ -192,7 +192,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 기기 등록: 앱 `push/`(토큰·플랫폼·시간대) + `PUT /v1/devices`, 무효 토큰 자동 삭제
   - [x] 서버 `PUT /v1/devices`(shared `devices.ts`, `pushToken` 기준 upsert) (2026-10-28)
   - [x] 앱 `push/`: `expo-notifications` 네이티브 토큰·권한 요청·실행 때(접근 키 저장 직후 포함) `PUT /v1/devices`, 토큰 바뀌면 다시 등록 (2026-10-28)
-  - [ ] 에뮬레이터로 실제 푸시 수신 확인
+  - [x] 에뮬레이터로 실제 푸시 수신 확인 (2026-10-28, 기기 등록·채널 2개·FCM 발송 → alerts 채널 수신)
   - [x] 무효 토큰 삭제: 발송 결과 `INVALID_TOKEN`(FCM `UNREGISTERED`·APNs 410)이면 행 삭제(`push/broadcast.ts`) (2026-10-28)
 - [ ] 발송: `push/` FCM 발송 인터페이스(APNs는 Apple 가입 뒤), shared 푸시 문구(ko/en), Android 채널(시세·`ops`)
   - [x] shared `push.ts`: rare 레벨·운영 알림 문구(ko/en), Android 채널 id(`alerts`·`ops`) (2026-10-28)
