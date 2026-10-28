@@ -3,11 +3,12 @@ import type { ComponentProps } from 'react';
 import { act, render } from '@testing-library/react-native';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
-import { getCurve } from '@/api/commodities';
+import { getCommodities, getCurve } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { CurveChart } from '@/charts/CurveChart';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
+import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getCurve: jest.fn() }));
 // OS 날짜 피커는 네이티브라 props를 받는 View로 둔다(jest-expo는 iOS라 시트 경로를 탄다)
 jest.mock('@react-native-community/datetimepicker', () => ({
@@ -77,6 +78,7 @@ const lastChartProps = (): ChartProps => {
 };
 
 beforeEach(() => {
+  jest.mocked(getCommodities).mockResolvedValue(EMPTY_COMMODITIES);
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();

@@ -3,12 +3,13 @@ import type { ComponentProps } from 'react';
 import { render } from '@testing-library/react-native';
 import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
-import { getDisparityChart } from '@/api/commodities';
+import { getCommodities, getDisparityChart } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { getSettings } from '@/api/settings';
 import { CandleChart } from '@/charts/CandleChart';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
+import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getDisparityChart: jest.fn() }));
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 const mockGet = jest.mocked(getDisparityChart);
@@ -80,6 +81,7 @@ const lastChartProps = (): ChartProps => {
 };
 
 beforeEach(() => {
+  jest.mocked(getCommodities).mockResolvedValue(EMPTY_COMMODITIES);
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR', disparityPeriod: '12M' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();

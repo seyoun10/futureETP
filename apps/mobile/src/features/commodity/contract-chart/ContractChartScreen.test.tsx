@@ -3,12 +3,13 @@ import type { ComponentProps } from 'react';
 import { act, render } from '@testing-library/react-native';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
-import { getContracts } from '@/api/commodities';
+import { getCommodities, getContracts } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { LinesChart } from '@/charts/LinesChart';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import { colors } from '@/theme/tokens';
 
+import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getContracts: jest.fn() }));
 const mockGet = jest.mocked(getContracts);
 const mockChart = jest.mocked(LinesChart);
@@ -38,6 +39,7 @@ const lastChartProps = (): ChartProps => {
 };
 
 beforeEach(() => {
+  jest.mocked(getCommodities).mockResolvedValue(EMPTY_COMMODITIES);
   useDisplaySettings.setState({
     language: 'ko',
     upDownStyle: 'KR',
