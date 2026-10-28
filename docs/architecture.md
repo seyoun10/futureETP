@@ -41,7 +41,8 @@ futureETP/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
 ├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`, VM 배포 단계(`deploy-remote.sh`)
 ├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
-│                                  배포(`deploy.sh`, D-048), (예정) 백업 내려받기·dev 복원
+│                                  배포(`deploy.sh`, D-048), 백업 내려받기(`backup-pull.sh`)·dev 복원(`dev-restore.sh`, D-045),
+│                                  저장소 밖 운영 설정 읽기(`ops-env.sh`)
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`
 ```
@@ -208,6 +209,8 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - `scripts/`의 복원 스크립트가 VM에서 `pg_dump`(custom 형식)를 받아 로컬 dev DB에 `pg_restore`한다. 받은 덤프 파일은 VM 밖 보관 사본도 겸한다(D-034 백업 후속).
 - 복원 직후 `device`(prod 기기 푸시 토큰)와 보류 알림을 비운다. dev 서버가 prod 기기로 푸시를 보내지 않게 하기 위해서다.
 - 복원은 수동으로 필요할 때만 한다. 스키마가 덤프보다 앞서 있으면 복원 뒤 Drizzle 마이그레이션을 적용한다.
+  - 구현: `npm run dev:restore -- [덤프 파일] [--yes]`(`scripts/dev-restore.sh`). 덤프를 주지 않으면 백업 내려받기 폴더의 최신 덤프를 쓴다. 대상은 `DATABASE_URL`(환경 변수, 없으면 `apps/server/.env`)이고 localhost·127.0.0.1·::1이 아니면 거부한다. 확인 질문에 답하거나 `--yes`를 붙여야 진행한다.
+  - `BEGIN` → `public`·`drizzle` 스키마 삭제·`public` 재생성 → `pg_restore --no-owner --no-privileges -f -` 출력 → `device` 전부와 `alert_record`의 `HELD`·`RETRY` 삭제 → `COMMIT`을 psql 하나로 넣는다. 덤프가 손상돼 중간에 끊기면 `COMMIT`이 오지 않아 기존 dev DB가 그대로 남는다. 그 뒤 항상 `db:migrate`를 돌린다(이미 적용된 것은 건너뜀). psql 오류는 주 메시지만 출력해 COPY 행(푸시 토큰)이 찍히지 않게 한다.
 
 ### prod 배포(D-048)
 - `scripts/`의 배포 스크립트가 ① rsync(`infra/.env`·키 파일 제외) ② VM에서 이미지 빌드 ③ `pg_dump` 덤프 ④ 새 이미지의 일회성 컨테이너로 Drizzle 마이그레이션 ⑤ `docker compose up -d`로 서버 교체 순서로 진행한다. ④가 실패하면 ⑤를 하지 않고 이전 서버를 그대로 둔다.
@@ -265,6 +268,9 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - `BACKUP` 작업(croner, 매일 1회)이 서버 컨테이너에서 `pg_dump -Fc`로 덤프를 만든다. VM의 백업 볼륨에 최근 7개만 둔다. 서버 이미지에 Postgres와 같은 major 버전의 클라이언트를 넣는다.
   - 구현(`jobs/backup.ts`, 16:30 CT): `BACKUP_DIR`에 `futureetp-YYYYMMDDTHHMMSSZ.dump`(UTC, 이름순 = 시간순)로 쓴다. 임시 이름(`.partial`)에 쓴 뒤 바꿔 덜 쓴 덤프가 보관 개수·내려받기에 끼지 않는다. 이 형식의 파일만 세어 최근 7개를 둔다. 덤프 실패 메시지에는 접속 문자열이 든 명령줄을 넣지 않고 `pg_dump` stderr만 남긴다.
 - Mac: `scripts/`의 백업 내려받기 스크립트가 최신 덤프를 저장소 밖 폴더로 받는다(주 1회 목표, 최근 8개 보관). 받을 때 Healthchecks.io의 내려받기 check(주기 7일 + 여유 2일)에 신호를 보내, 오래 받지 않으면 메일이 온다. dev 복원(D-043)은 이 폴더의 최신 덤프를 쓴다.
+  - 구현: `npm run backup:pull`(`scripts/backup-pull.sh`). VM `infra/backups`의 덤프 이름 형식 파일 중 최신 하나를 ssh로 찾아, 아직 없으면 `rsync`로 `.partial`에 받고 `pg_restore --list`로 읽히는지 확인한 뒤 이름을 바꾼다(권한 600, 폴더 700). 받을 폴더는 `BACKUP_LOCAL_DIR`(기본 `~/futureetp-backups`)이고 최근 8개만 둔다. 이미 받은 최신 덤프면 받지 않고 성공으로 본다.
+  - `HEALTHCHECKS_PING_KEY`가 있으면 끝날 때 `backup_pull` check에 성공, 실패하면 `/fail`을 보낸다(키가 든 URL은 출력하지 않음). check는 VM 작업 7개와 별도로 Healthchecks.io에 주기 7일·여유 2일로 만든다.
+  - Mac 스크립트(`deploy.sh`·`backup-pull.sh`·`dev-restore.sh`)는 저장소 밖 `~/.config/futureetp/ops.env`(KEY=VALUE, 권한 600, `OPS_ENV_FILE`로 위치 변경)를 읽는다. `DEPLOY_HOST`·`BACKUP_LOCAL_DIR`·`HEALTHCHECKS_PING_KEY`를 여기 두면 명령만 치면 된다. 명령줄 환경 변수가 파일보다 우선한다.
 - 일봉 원천은 소스에서 다시 받을 수 있고, 설정은 작아서 며칠치 손실은 감수한다. 서명 키(keystore)·`infra/.env`·서비스 계정 키는 DB 백업과 별도로 저장소 밖에 둔다(D-039).
 
 ### 데이터 보관(D-046)

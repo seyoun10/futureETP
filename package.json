@@ -14,7 +14,9 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test",
     "prepare": "husky",
     "access-key": "node scripts/access-key.mjs",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "backup:pull": "bash scripts/backup-pull.sh",
+    "dev:restore": "bash scripts/dev-restore.sh"
   },
   "overrides": {
     "react": "19.3.0",
