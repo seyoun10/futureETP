@@ -110,9 +110,12 @@ describe('createBarBuilder', () => {
 
   it('시가는 첫 체결 전 마지막 값, 고가·저가는 세션 최대·최소다. 휴일·주말 메시지는 다음 거래일이다', () => {
     const b = createBarBuilder();
-    for (const ref of ['2011-01-04', '2011-01-05']) {
+    for (const [ref, price] of [
+      ['2011-01-04', '90'],
+      ['2011-01-05', '89.5'],
+    ]) {
       b.addSettlement(
-        stat({ recv: `${ref}T21:00:00Z`, ref: `${ref}T00:00:00Z`, type: '3', price: '90' }),
+        stat({ recv: `${ref}T21:00:00Z`, ref: `${ref}T00:00:00Z`, type: '3', price }),
       );
     }
     const s = (event: string, type: string, price: string) =>
@@ -145,9 +148,13 @@ describe('createBarBuilder', () => {
 
   it('거래량은 ts_ref 값이 우선이고, 없으면 마감 뒤 처음 받은 값을 직전 거래일에 붙인다', () => {
     const b = createBarBuilder();
-    for (const ref of ['2014-11-26', '2014-11-28', '2014-12-01']) {
+    for (const [ref, price] of [
+      ['2014-11-26', '1'],
+      ['2014-11-28', '2'],
+      ['2014-12-01', '3'],
+    ]) {
       b.addSettlement(
-        stat({ recv: `${ref}T21:00:00Z`, ref: `${ref}T00:00:00Z`, type: '3', price: '1' }),
+        stat({ recv: `${ref}T21:00:00Z`, ref: `${ref}T00:00:00Z`, type: '3', price }),
       );
     }
     const v = (recv: string, qty: string, ref?: string) =>
@@ -169,6 +176,33 @@ describe('createBarBuilder', () => {
       ['2014-12-01', 700],
     ]);
     expect(stats.noVolume).toBe(0);
+  });
+
+  it('모든 월물 정산가가 직전 거래일과 같은 날(휴장일 재전송)은 거래일이 아니다', () => {
+    const b = createBarBuilder();
+    const settle = (ref: string, id: string, price: string) =>
+      b.addSettlement(
+        stat({ recv: `${ref}T21:00:00Z`, ref: `${ref}T00:00:00Z`, type: '3', price }, id),
+      );
+    // 2014-04-18 성금요일: 두 월물 모두 04-17 값 그대로, 새 월물 하나는 비교 대상이 아님
+    settle('2014-04-17', '1', '103.37');
+    settle('2014-04-17', '2', '102.4');
+    settle('2014-04-18', '1', '103.37');
+    settle('2014-04-18', '2', '102.4');
+    settle('2014-04-18', '3', '99');
+    // 04-21은 한 월물만 바뀌어도 거래일
+    settle('2014-04-21', '1', '104');
+    settle('2014-04-21', '2', '102.4');
+    // 04-17 마감 뒤 받은 ts_ref 없는 거래량은 다음 날 아침이어도 04-17 것이다
+    b.addSessionStat(stat({ recv: '2014-04-18T13:00:00Z', type: '6', qty: '181528' }, '1'));
+    expect(b.tradeDates()).toEqual(['2014-04-17', '2014-04-21']);
+    const { bars } = b.bars();
+    expect(bars.map((x) => [x.instrumentId, x.tradeDate, x.volume])).toEqual([
+      ['1', '2014-04-17', 181528],
+      ['2', '2014-04-17', 0],
+      ['1', '2014-04-21', 0],
+      ['2', '2014-04-21', 0],
+    ]);
   });
 
   it('거래가 없거나 OHLC가 어긋나면 OHLC를 비운다', () => {

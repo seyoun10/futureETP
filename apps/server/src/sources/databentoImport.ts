@@ -1,6 +1,7 @@
 // Databento 1회 적재 2단계(D-088): 받은 CSV(databentoDownload.ts) → contract·daily_bar·과거 trading_day.
 // npm run databento:import -w apps/server -- [--dry-run] [--data <폴더>]
-// --dry-run은 변환 결과 통계만 출력하고 DB에 쓰지 않는다. 다시 실행해도 같은 행으로 덮어쓴다.
+// --dry-run은 변환 결과 통계만 출력하고 DB에 쓰지 않는다. 다시 실행하면 같은 행으로 덮어쓰고,
+// 결과에 없는 Databento 봉·과거 trading_day 행(휴장일 재전송 등)은 지운다.
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -8,7 +9,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { parseArgs } from 'node:util';
 import { createZstdDecompress } from 'node:zlib';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, notInArray, sql } from 'drizzle-orm';
 import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
 import { isTargetMonth } from '../calc/monthList.ts';
 import { db } from '../db/client.ts';
@@ -56,7 +57,11 @@ async function eachRow(paths: readonly string[], onRow: (row: CsvRow) => void): 
   }
 }
 
-type Loaded = { contracts: ContractInfo[]; bars: (LoadedBar & { symbol: string })[] };
+type Loaded = {
+  contracts: ContractInfo[];
+  bars: (LoadedBar & { symbol: string })[];
+  tradeDates: string[];
+};
 
 async function loadCommodity(data: string, code: CommodityCode): Promise<Loaded> {
   // 같은 instrument_id가 다른 월물로 다시 쓰이면 매핑이 틀어지므로 멈춘다
@@ -96,7 +101,7 @@ async function loadCommodity(data: string, code: CommodityCode): Promise<Loaded>
     `[${code}] no volume ${barStats.noVolume}, no OHLC ${barStats.noOhlc}, ` +
       `invalid OHLC ${barStats.invalidOhlc}, unknown instruments ${unknown.size}`,
   );
-  return { contracts, bars: known };
+  return { contracts, bars: known, tradeDates: dates };
 }
 
 async function save(code: CommodityCode, loaded: Loaded, now: Date): Promise<void> {
@@ -160,16 +165,44 @@ async function save(code: CommodityCode, loaded: Loaded, now: Date): Promise<voi
           },
         });
     }
+    const removed = await tx
+      .delete(dailyBar)
+      .where(
+        and(
+          eq(dailyBar.source, 'DATABENTO'),
+          inArray(
+            dailyBar.contractSymbol,
+            tx
+              .select({ symbol: contract.symbol })
+              .from(contract)
+              .where(eq(contract.commodityCode, code)),
+          ),
+          notInArray(dailyBar.tradeDate, loaded.tradeDates),
+        ),
+      )
+      .returning({ tradeDate: dailyBar.tradeDate });
+    if (removed.length > 0) {
+      const days = [...new Set(removed.map((r) => r.tradeDate))].sort();
+      console.log(`[${code}] removed ${removed.length} bars on ${days.join(', ')}`);
+    }
   });
 }
 
 // 과거 trading_day(D-048): 어느 원자재든 정산가가 있는 날짜. 달력 입력(세션 시각 있음) 행은 두고,
-// 달력 연도와 겹치는 구간은 차이만 알린다
+// 달력 연도와 겹치는 구간은 차이만 알린다. 데이터에 없는 과거 행은 지운다
 async function saveTradingDays(dates: ReadonlySet<string>, dryRun: boolean): Promise<void> {
   const sorted = [...dates].sort();
-  const calendar = (await db.select({ tradeDate: tradingDay.tradeDate }).from(tradingDay)).map(
-    (r) => r.tradeDate,
-  );
+  const rows = await db
+    .select({ tradeDate: tradingDay.tradeDate, sessionOpenAt: tradingDay.sessionOpenAt })
+    .from(tradingDay);
+  const calendar = rows
+    .filter((r) => r.sessionOpenAt !== null)
+    .map((r) => r.tradeDate)
+    .sort();
+  const stale = rows
+    .filter((r) => r.sessionOpenAt === null && !dates.has(r.tradeDate))
+    .map((r) => r.tradeDate)
+    .sort();
   const last = sorted.at(-1) ?? '';
   const calendarInRange = new Set(calendar.filter((d) => d <= last));
   const onlyData = sorted.filter(
@@ -182,7 +215,13 @@ async function saveTradingDays(dates: ReadonlySet<string>, dryRun: boolean): Pro
   if (onlyData.length > 0) console.log(`[trading_day] not in calendar: ${onlyData.join(', ')}`);
   if (onlyCalendar.length > 0)
     console.log(`[trading_day] calendar only: ${onlyCalendar.join(', ')}`);
+  if (stale.length > 0) console.log(`[trading_day] not in data (removed): ${stale.join(', ')}`);
   if (dryRun) return;
+  if (stale.length > 0) {
+    await db
+      .delete(tradingDay)
+      .where(and(isNull(tradingDay.sessionOpenAt), inArray(tradingDay.tradeDate, stale)));
+  }
   for (let i = 0; i < sorted.length; i += INSERT_CHUNK) {
     await db
       .insert(tradingDay)

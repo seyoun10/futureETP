@@ -124,7 +124,7 @@ type Session = { open: number | null; high: number | null; low: number | null; h
 export type BarStats = { bars: number; noVolume: number; noOhlc: number; invalidOhlc: number };
 
 // statistics를 두 번 읽어 일봉을 만든다.
-// 1차(addSettlement): 정산가와 거래일(ts_ref)이 있는 확정 거래량. 거래일 = 정산가가 있는 날짜
+// 1차(addSettlement): 정산가와 거래일(ts_ref)이 있는 확정 거래량. 거래일 = 정산가가 있는 날짜(휴장일 재전송 제외)
 // 2차(addSessionStat): 거래일 목록으로 세션을 정해 시가·고가·저가와 ts_ref 없는 거래량
 export function createBarBuilder() {
   const key = (instrumentId: string, tradeDate: string) => `${instrumentId}|${tradeDate}`;
@@ -149,8 +149,38 @@ export function createBarBuilder() {
     }
   }
 
+  // 정산가가 있는 날짜 중 모든 월물 정산가가 직전 거래일과 같은 날은 휴장일 재전송이다
+  // (성금요일·2010-12-24, 고가·저가 없음). 거래일에서 빼야 ts_ref 없는 거래량도 직전 거래일에 붙는다
   function getTradeDates(): string[] {
-    tradeDates ??= [...new Set([...settles.keys()].map((k) => k.slice(k.indexOf('|') + 1)))].sort();
+    if (tradeDates) return tradeDates;
+    const byDate = new Map<string, Map<string, number>>();
+    for (const [k, settle] of settles) {
+      const sep = k.indexOf('|');
+      const date = k.slice(sep + 1);
+      let day = byDate.get(date);
+      if (!day) {
+        day = new Map();
+        byDate.set(date, day);
+      }
+      day.set(k.slice(0, sep), settle);
+    }
+    const dates: string[] = [];
+    let prev: Map<string, number> | undefined;
+    for (const date of [...byDate.keys()].sort()) {
+      const day = byDate.get(date)!;
+      let shared = 0;
+      let changed = false;
+      for (const [id, settle] of day) {
+        const before = prev?.get(id);
+        if (before === undefined) continue;
+        shared++;
+        if (before !== settle) changed = true;
+      }
+      if (shared > 0 && !changed) continue;
+      dates.push(date);
+      prev = day;
+    }
+    tradeDates = dates;
     return tradeDates;
   }
 
@@ -190,8 +220,10 @@ export function createBarBuilder() {
   function bars(): { bars: LoadedBar[]; stats: BarStats } {
     const stats: BarStats = { bars: 0, noVolume: 0, noOhlc: 0, invalidOhlc: 0 };
     const out: LoadedBar[] = [];
+    const dates = new Set(getTradeDates());
     for (const [k, settle] of settles) {
       const sep = k.indexOf('|');
+      if (!dates.has(k.slice(sep + 1))) continue;
       const volume = volumes.get(k) ?? lateVolumes.get(k);
       if (volume === undefined) stats.noVolume++;
       let { open, high, low } = sessions.get(k) ?? { open: null, high: null, low: null };
