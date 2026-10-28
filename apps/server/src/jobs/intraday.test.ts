@@ -201,4 +201,20 @@ describe('INTRADAY', () => {
     });
     expect(saved.indexes).toHaveLength(2);
   });
+
+  it('장 상태와 상관없이 먼저 지난 슬롯의 RETRY를 다시 보낸다', async () => {
+    const { store } = memoryStore({ lastSettled: '2026-10-26' });
+    const retry = vi.fn(() => Promise.resolve());
+    const now = ct('2026-10-27', '18:07');
+    await run(createIntradayHandler({ store, source: fakeSource(), retry, log: () => {} }), now);
+    expect(retry).toHaveBeenCalledWith({ before: new Date(ct('2026-10-27', '18:00')), now });
+  });
+
+  it('재발송이 실패해도 장중 값은 저장하고 배치를 실패로 남긴다', async () => {
+    const { store, saved } = memoryStore();
+    const retry = vi.fn(() => Promise.reject(new Error('db down')));
+    const handler = createIntradayHandler({ store, source: fakeSource(), retry, log: () => {} });
+    await expect(run(handler)).rejects.toThrow('alert retry db down');
+    expect(saved.indexes).toHaveLength(2);
+  });
 });

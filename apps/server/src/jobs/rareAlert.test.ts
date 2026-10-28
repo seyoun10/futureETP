@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PushDeviceStore } from '../push/broadcast.ts';
 import { createFakeSender } from '../push/fakeSender.ts';
 import type { IndexSnapshotRow } from './intraday.ts';
-import { createRareAlert, type NewAlertRecord, type RareAlertStore } from './rareAlert.ts';
+import {
+  createAlertRetry,
+  createRareAlert,
+  type NewAlertRecord,
+  type RareAlertStore,
+} from './rareAlert.ts';
 
 // 09:00 KST 슬롯, 실제 실행은 7초 뒤
 const SLOT = new Date('2026-10-28T00:00:00Z');
@@ -84,6 +89,8 @@ function setup({
       );
       return Promise.resolve();
     },
+    retries: (before) =>
+      Promise.resolve(records.filter((r) => r.status === 'RETRY' && r.detectedAt < before)),
   };
   const devices: PushDeviceStore = {
     list: () =>
@@ -94,7 +101,9 @@ function setup({
   };
   const fake = createFakeSender(tokens);
   const log = vi.fn();
-  const alert = createRareAlert({ store, devices, sender: fake.sender, log });
+  const deps = { store, devices, sender: fake.sender, log };
+  const alert = createRareAlert(deps);
+  const retry = createAlertRetry(deps);
   const judge = (indexes: IndexSnapshotRow[], ruleBases: Basis[] = ['FRONT', 'KR', 'US']) =>
     alert({
       commodityCode: 'CL',
@@ -104,7 +113,7 @@ function setup({
       ruleBases,
       indexes,
     });
-  return { judge, records, sent: fake.sent, distributionOf, log };
+  return { judge, retry, records, sent: fake.sent, distributionOf, log };
 }
 
 const statuses = (records: Row[]) =>
@@ -212,5 +221,65 @@ describe('rare 레벨 알림 판정', () => {
     await judge([index('FRONT', 99.5, 0)], ['FRONT', 'KR']);
     expect(records).toHaveLength(0);
     expect(log).toHaveBeenCalledWith('[alert CL KR] skipped: no index');
+  });
+});
+
+// 08:45 슬롯에 감지해 첫 발송이 실패한 기록
+const retryRow = (rareLevel: number, status: Row['status'] = 'RETRY'): Row => ({
+  id: `r-${rareLevel}`,
+  commodityCode: 'CL',
+  basis: 'FRONT',
+  maPeriod: 100,
+  window: 'Y10',
+  tradeDate: '2026-10-28',
+  direction: 'UP',
+  rareLevel,
+  status,
+  disparity: 96,
+  detectedAt: new Date('2026-10-27T23:45:00Z'),
+  sentAt: null,
+});
+
+describe('RETRY 재발송', () => {
+  it('지난 슬롯의 RETRY를 다시 보내 SENT로 바꾼다', async () => {
+    const { retry, records, sent } = setup({ rows: [retryRow(5)] });
+    await retry({ before: SLOT, now: NOW });
+    expect(records[0]).toMatchObject({ status: 'SENT', sentAt: NOW });
+    expect(sent.map((s) => s.message.text)).toEqual([
+      { title: '원유(대표월물) 이격도 상위 5% 도달', body: '+96.0%(고가 기준) · 100일선 · 08:45' },
+    ]);
+  });
+
+  it('다시 모든 기기에 실패하면 FAILED로 끝낸다', async () => {
+    const { retry, records } = setup({
+      rows: [retryRow(5)],
+      tokens: { t1: { status: 'FAILED', error: 'timeout' } },
+    });
+    await retry({ before: SLOT, now: NOW });
+    expect(records[0]).toMatchObject({ status: 'FAILED', sentAt: null });
+  });
+
+  it('같은 방향의 더 드문 레벨이 덮었으면 보내지 않고 SUPPRESSED로 바꾼다', async () => {
+    const { retry, records, sent } = setup({ rows: [retryRow(5), retryRow(1, 'SENT')] });
+    await retry({ before: SLOT, now: NOW });
+    expect(sent).toHaveLength(0);
+    expect(records[0].status).toBe('SUPPRESSED');
+  });
+
+  it('거부 시간이면 RETRY로 두고 기다린다', async () => {
+    const { retry, records, sent } = setup({
+      rows: [retryRow(5)],
+      settings: { quietTime: { startMin: 480, endMin: 600 } },
+    });
+    await retry({ before: SLOT, now: NOW });
+    expect(sent).toHaveLength(0);
+    expect(records[0].status).toBe('RETRY');
+  });
+
+  it('지금 슬롯에서 첫 발송 중인 기록은 건드리지 않는다', async () => {
+    const { retry, records, sent } = setup({ rows: [{ ...retryRow(5), detectedAt: SLOT }] });
+    await retry({ before: SLOT, now: NOW });
+    expect(sent).toHaveLength(0);
+    expect(records[0].status).toBe('RETRY');
   });
 });

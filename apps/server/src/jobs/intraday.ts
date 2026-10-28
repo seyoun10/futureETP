@@ -1,6 +1,7 @@
 // 장중 배치 INTRADAY(D-012, D-022, D-094). 장 상태가 OPEN일 때만 돈다(정산 대기·휴장·정지 구간은 건너뜀).
 // 원자재마다 커브 월물 장중 값(intraday_snapshot) → 기준값별 잠정 지수·이격도(index_snapshot)를 저장한다.
 // 알림 판정 대상 원자재면 저장 뒤 rare 레벨 알림을 판정한다(jobs/rareAlert.ts).
+// 장 상태와 상관없이 먼저 지난 슬롯의 RETRY 알림을 다시 보낸다(D-023).
 import { BASES, type Basis, type CommodityCode } from '@futureetp/shared';
 import {
   indexAnchor,
@@ -13,7 +14,7 @@ import { marketStatus, type TradingDaySession } from '../calc/marketState.ts';
 import type { ListedContract } from '../calc/monthList.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { IntradayQuote, IntradaySource } from '../sources/intraday.ts';
-import type { RareAlert } from './rareAlert.ts';
+import type { AlertRetry, RareAlert } from './rareAlert.ts';
 import { errorMessage, forEachCommodity, type JobHandler } from './runner.ts';
 
 export type IntradaySnapshotRow = IntradayQuote & { capturedAt: Date; tradeDate: string };
@@ -57,6 +58,7 @@ export type IntradayDeps = {
   source: IntradaySource;
   // 없으면 스냅숏만 저장한다(발송기 연결 전)
   alert?: RareAlert;
+  retry?: AlertRetry;
   log?: (message: string) => void;
 };
 
@@ -71,9 +73,26 @@ export function createIntradayHandler({
   store,
   source,
   alert,
+  retry,
   log = console.log,
 }: IntradayDeps): JobHandler {
   return async (ctx) => {
+    const capturedAt = new Date(Math.floor(ctx.now.getTime() / SLOT_MS) * SLOT_MS);
+    // 재발송이 실패해도 장중 값은 받고, 작업은 마지막에 실패로 남긴다
+    let retryFailure: string | null = null;
+    if (retry) {
+      try {
+        await retry({ before: capturedAt, now: ctx.now });
+      } catch (error) {
+        retryFailure = `alert retry ${errorMessage(error)}`;
+        log(`[intraday] ${retryFailure}`);
+      }
+    }
+    await judge(ctx, capturedAt);
+    if (retryFailure !== null) throw new Error(retryFailure);
+  };
+
+  async function judge(ctx: Parameters<JobHandler>[0], capturedAt: Date): Promise<void> {
     const today = ctx.now.toISOString().slice(0, 10);
     const [days, lastSettled] = await Promise.all([
       store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, 1)),
@@ -90,7 +109,6 @@ export function createIntradayHandler({
     const index = days.findIndex((d) => d.tradeDate === tradeDate);
     const sessionOpenAt = days[index].sessionOpenAt!;
     const previous = days[index - 1].tradeDate;
-    const capturedAt = new Date(Math.floor(ctx.now.getTime() / SLOT_MS) * SLOT_MS);
 
     await forEachCommodity('Intraday', async (code) => {
       const [contracts, held] = await Promise.all([
@@ -164,5 +182,5 @@ export function createIntradayHandler({
       }
       if (failures.length > 0) throw new Error(failures.join('; '));
     });
-  };
+  }
 }

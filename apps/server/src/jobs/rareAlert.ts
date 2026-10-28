@@ -1,5 +1,6 @@
 // 장중 rare 레벨 알림 판정·발송(product.md 6, D-006, D-022, D-023, D-026, D-069, D-071).
-// INTRADAY가 원자재마다 잠정 지수를 저장한 뒤 부른다. RETRY 재발송과 HELD 지연 발송은 따로 처리한다.
+// INTRADAY가 원자재마다 잠정 지수를 저장한 뒤 판정을 부른다. RETRY 재발송은 INTRADAY·DEFERRED_PUSH 중
+// 먼저 도는 배치가 한다(product.md 6). HELD 지연 발송은 따로 처리한다.
 import {
   rareLevelPush,
   type Basis,
@@ -12,6 +13,7 @@ import {
 import {
   isQuietTime,
   planDetections,
+  planRetries,
   statusAfterSend,
   type AlertLevelRecord,
 } from '../calc/alert.ts';
@@ -37,6 +39,15 @@ export type NewAlertRecord = AlertCondition & {
   detectedAt: Date;
 };
 
+// RETRY로 남은 기록 한 행
+export type RetryRecord = AlertCondition & {
+  id: string;
+  direction: Direction;
+  rareLevel: number;
+  disparity: number;
+  detectedAt: Date;
+};
+
 export interface RareAlertStore {
   settings(): Promise<Settings>;
   // 정정 확인(SETTLE_REVISION)의 마지막 실행이 실패면 판정을 멈춘다(D-071)
@@ -54,6 +65,8 @@ export interface RareAlertStore {
     rows: readonly NewAlertRecord[],
   ): Promise<{ id: string; direction: Direction; rareLevel: number }[]>;
   updateStatus(id: string, status: AlertStatus, sentAt: Date | null): Promise<void>;
+  // 그 시각 전(미만)에 감지한 RETRY 기록. 지금 배치 슬롯에서 첫 발송 중인 행은 빼려고 슬롯 시각을 넘긴다
+  retries(before: Date): Promise<RetryRecord[]>;
 }
 
 export type RareAlertDeps = {
@@ -75,8 +88,41 @@ export type RareAlertInput = {
   indexes: readonly IndexSnapshotRow[];
 };
 
+// 모든 기기로 보내고 결과로 상태를 바꾼다. 모두 실패면 첫 발송은 RETRY, 재시도는 FAILED(D-023)
+function createSend({ store, devices, sender, log = console.log }: RareAlertDeps) {
+  return async (settings: Settings, row: RetryRecord, now: Date, isRetry: boolean) => {
+    const code = row.commodityCode;
+    const result = await broadcast(
+      { store: devices, sender },
+      {
+        text: rareLevelPush(settings.locale, settings.timezone, {
+          commodity: code,
+          basis: row.basis,
+          direction: row.direction,
+          level: row.rareLevel,
+          disparity: row.disparity,
+          maPeriod: row.maPeriod,
+          detectedAt: row.detectedAt,
+          deferred: false,
+        }),
+        channel: 'alerts',
+        data: { type: 'RARE_LEVEL', commodity: code },
+      },
+    );
+    const status = statusAfterSend(delivered(result), isRetry);
+    await store.updateStatus(row.id, status, status === 'SENT' ? now : null);
+    if (status !== 'SENT') {
+      log(
+        `[alert ${code}] ${status}: not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,
+      );
+    }
+  };
+}
+
 // 보낼 행은 RETRY로 먼저 넣어 키를 차지한 뒤 보낸다. 발송 중 죽어도 다음 재시도 대상이 된다(D-023)
-export function createRareAlert({ store, devices, sender, log = console.log }: RareAlertDeps) {
+export function createRareAlert(deps: RareAlertDeps) {
+  const { store, log = console.log } = deps;
+  const send = createSend(deps);
   return async (input: RareAlertInput): Promise<void> => {
     const { commodityCode: code, tradeDate, detectedAt } = input;
     const settings = await store.settings();
@@ -128,32 +174,49 @@ export function createRareAlert({ store, devices, sender, log = console.log }: R
       const row = inserted.find((r) => r.direction === d.direction && r.rareLevel === d.rareLevel);
       log(`[alert ${code} ${basis}] ${d.direction} ${d.rareLevel}% ${d.action}`);
       if (d.action !== 'SEND' || row === undefined) continue;
-      const result = await broadcast(
-        { store: devices, sender },
-        {
-          text: rareLevelPush(settings.locale, settings.timezone, {
-            commodity: code,
-            basis,
-            direction: d.direction,
-            level: d.rareLevel,
-            disparity: d.disparity,
-            maPeriod,
-            detectedAt,
-            deferred: false,
-          }),
-          channel: 'alerts',
-          data: { type: 'RARE_LEVEL', commodity: code },
-        },
-      );
-      const status = statusAfterSend(delivered(result), false);
-      await store.updateStatus(row.id, status, status === 'SENT' ? input.now : null);
-      if (status !== 'SENT') {
-        log(
-          `[alert ${code}] not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,
-        );
-      }
+      await send(settings, { ...condition, ...d, id: row.id, detectedAt }, input.now, false);
     }
   };
 }
 
 export type RareAlert = ReturnType<typeof createRareAlert>;
+
+// RETRY 기록을 1회 다시 보낸다. 더 드문 레벨이 덮었으면 SUPPRESSED, 거부 시간이면 RETRY로 두고 기다린다(D-023, D-069).
+// 이미 판정한 알림이라 판정 중지(D-071)·알림 원자재 변경과 상관없이 처리한다
+export function createAlertRetry(deps: RareAlertDeps) {
+  const { store, log = console.log } = deps;
+  const send = createSend(deps);
+  return async ({ before, now }: { before: Date; now: Date }): Promise<void> => {
+    const retries = await store.retries(before);
+    if (retries.length === 0) return;
+    const settings = await store.settings();
+    const quiet = isQuietTime(
+      now,
+      settings.timezone,
+      settings.quietTime?.startMin ?? null,
+      settings.quietTime?.endMin ?? null,
+    );
+    const conditions = new Map<string, AlertCondition>();
+    for (const { commodityCode, basis, maPeriod, window, tradeDate } of retries) {
+      const condition = { commodityCode, basis, maPeriod, window, tradeDate };
+      conditions.set(JSON.stringify(condition), condition);
+    }
+    const existing = (
+      await Promise.all(
+        [...conditions.values()].map(async (c) =>
+          (await store.records(c)).map((r) => ({ ...c, ...r })),
+        ),
+      )
+    ).flat();
+    for (const { id, action } of planRetries(retries, existing, quiet)) {
+      const row = retries.find((r) => r.id === id)!;
+      log(
+        `[alert retry ${row.commodityCode} ${row.basis}] ${row.direction} ${row.rareLevel}% ${action}`,
+      );
+      if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
+      if (action === 'SEND') await send(settings, row, now, true);
+    }
+  };
+}
+
+export type AlertRetry = ReturnType<typeof createAlertRetry>;
