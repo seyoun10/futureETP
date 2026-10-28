@@ -5,6 +5,7 @@ import { createFakeSender } from '../push/fakeSender.ts';
 import type { IndexSnapshotRow } from './intraday.ts';
 import {
   createAlertRetry,
+  createDeferredAlert,
   createRareAlert,
   type NewAlertRecord,
   type RareAlertStore,
@@ -91,6 +92,7 @@ function setup({
     },
     retries: (before) =>
       Promise.resolve(records.filter((r) => r.status === 'RETRY' && r.detectedAt < before)),
+    held: () => Promise.resolve(records.filter((r) => r.status === 'HELD')),
   };
   const devices: PushDeviceStore = {
     list: () =>
@@ -104,6 +106,7 @@ function setup({
   const deps = { store, devices, sender: fake.sender, log };
   const alert = createRareAlert(deps);
   const retry = createAlertRetry(deps);
+  const deferred = createDeferredAlert(deps);
   const judge = (indexes: IndexSnapshotRow[], ruleBases: Basis[] = ['FRONT', 'KR', 'US']) =>
     alert({
       commodityCode: 'CL',
@@ -113,7 +116,7 @@ function setup({
       ruleBases,
       indexes,
     });
-  return { judge, retry, records, sent: fake.sent, distributionOf, log };
+  return { judge, retry, deferred, records, sent: fake.sent, distributionOf, log };
 }
 
 const statuses = (records: Row[]) =>
@@ -281,5 +284,94 @@ describe('RETRY 재발송', () => {
     await retry({ before: SLOT, now: NOW });
     expect(sent).toHaveLength(0);
     expect(records[0].status).toBe('RETRY');
+  });
+});
+
+// 거부 시간(23:00~07:00 KST) 중에 보류한 기록
+const heldRow = (
+  id: string,
+  over: Partial<Row> & Pick<Row, 'direction' | 'rareLevel' | 'detectedAt'>,
+): Row => ({
+  id,
+  commodityCode: 'CL',
+  basis: 'FRONT',
+  maPeriod: 100,
+  window: 'Y10',
+  tradeDate: '2026-10-27',
+  status: 'HELD',
+  disparity: over.direction === 'UP' ? 96 : 2,
+  sentAt: null,
+  ...over,
+});
+
+const NIGHT = { quietTime: { startMin: 1380, endMin: 420 } };
+// 23:30, 03:00 KST
+const AT_2330 = new Date('2026-10-27T14:30:00Z');
+const AT_0300 = new Date('2026-10-27T18:00:00Z');
+
+describe('HELD 지연 발송', () => {
+  it('원자재·방향별 가장 드문 1건만 지연 발송 문구로 보내고 나머지는 SUPPRESSED로 바꾼다', async () => {
+    const { deferred, records, sent } = setup({
+      settings: NIGHT,
+      rows: [
+        heldRow('u10', { direction: 'UP', rareLevel: 10, detectedAt: AT_2330 }),
+        // 보류 중 거래일이 바뀐 건도 같은 묶음이다
+        heldRow('u5', {
+          direction: 'UP',
+          rareLevel: 5,
+          detectedAt: AT_0300,
+          tradeDate: '2026-10-28',
+        }),
+        heldRow('d20', { direction: 'DOWN', rareLevel: 20, detectedAt: AT_2330 }),
+      ],
+    });
+    await deferred({ now: NOW });
+
+    expect(Object.fromEntries(records.map((r) => [r.id, [r.status, r.sentAt]]))).toEqual({
+      u10: ['SUPPRESSED', null],
+      u5: ['SENT', NOW],
+      d20: ['SENT', NOW],
+    });
+    expect(sent.map((s) => s.message.text)).toEqual([
+      {
+        title: '원유(대표월물) 이격도 상위 5% 도달',
+        body: '+96.0%(고가 기준) · 100일선 · 03:00 감지 · 지연 발송',
+      },
+      {
+        title: '원유(대표월물) 이격도 하위 20% 도달',
+        body: '+2.0%(저가 기준) · 100일선 · 23:30 감지 · 지연 발송',
+      },
+    ]);
+  });
+
+  it('아직 거부 시간이면 아무것도 하지 않는다', async () => {
+    const { deferred, records, sent } = setup({
+      settings: NIGHT,
+      rows: [heldRow('u5', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 })],
+    });
+    // 06:30 KST
+    await deferred({ now: new Date('2026-10-27T21:30:00Z') });
+    expect(sent).toHaveLength(0);
+    expect(records[0].status).toBe('HELD');
+  });
+
+  it('모든 기기에 실패하면 첫 발송처럼 RETRY로 남긴다', async () => {
+    const { deferred, records } = setup({
+      settings: NIGHT,
+      rows: [heldRow('u5', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 })],
+      tokens: { t1: { status: 'FAILED', error: 'timeout' } },
+    });
+    await deferred({ now: NOW });
+    expect(records[0]).toMatchObject({ status: 'RETRY', sentAt: null });
+  });
+
+  it('알림 원자재가 바뀌었거나 판정이 멈췄어도 보낸다', async () => {
+    const { deferred, records } = setup({
+      settings: { ...NIGHT, alertCommodity: 'GC' },
+      suspended: true,
+      rows: [heldRow('u5', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 })],
+    });
+    await deferred({ now: NOW });
+    expect(records[0].status).toBe('SENT');
   });
 });

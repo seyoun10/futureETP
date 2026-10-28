@@ -69,6 +69,8 @@ export const INDEX_HISTORY_ROWS = 260;
 // captured_at은 배치 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수) 시각이다. 재시도해도 같은 행이 된다
 const SLOT_MS = 15 * 60_000;
 
+export const batchSlot = (now: Date) => new Date(Math.floor(now.getTime() / SLOT_MS) * SLOT_MS);
+
 export function createIntradayHandler({
   store,
   source,
@@ -77,7 +79,7 @@ export function createIntradayHandler({
   log = console.log,
 }: IntradayDeps): JobHandler {
   return async (ctx) => {
-    const capturedAt = new Date(Math.floor(ctx.now.getTime() / SLOT_MS) * SLOT_MS);
+    const capturedAt = batchSlot(ctx.now);
     // 재발송이 실패해도 장중 값은 받고, 작업은 마지막에 실패로 남긴다
     let retryFailure: string | null = null;
     if (retry) {

@@ -1,5 +1,5 @@
 // 장중 rare 레벨 알림 판정 조회·기록(D-069). 흐름은 jobs/rareAlert.ts
-import { and, eq, lt } from 'drizzle-orm';
+import { and, eq, lt, type SQL } from 'drizzle-orm';
 import type { RareAlertStore } from '../jobs/rareAlert.ts';
 import type { db as Db } from './client.ts';
 import { alertRecord, disparityDistribution } from './schema.ts';
@@ -67,21 +67,26 @@ export function createRareAlertStore(db: typeof Db): RareAlertStore {
       await db.update(alertRecord).set({ status, sentAt }).where(eq(alertRecord.id, id));
     },
     retries: (before) =>
-      db
-        .select({
-          id: alertRecord.id,
-          commodityCode: alertRecord.commodityCode,
-          basis: alertRecord.basis,
-          maPeriod: alertRecord.maPeriod,
-          window: alertRecord.window,
-          tradeDate: alertRecord.tradeDate,
-          direction: alertRecord.direction,
-          rareLevel: alertRecord.rareLevel,
-          disparity: alertRecord.disparity,
-          detectedAt: alertRecord.detectedAt,
-        })
-        .from(alertRecord)
-        .where(and(eq(alertRecord.status, 'RETRY'), lt(alertRecord.detectedAt, before)))
-        .orderBy(alertRecord.detectedAt),
+      pending(and(eq(alertRecord.status, 'RETRY'), lt(alertRecord.detectedAt, before))),
+    held: () => pending(eq(alertRecord.status, 'HELD')),
   };
+
+  function pending(where: SQL | undefined) {
+    return db
+      .select({
+        id: alertRecord.id,
+        commodityCode: alertRecord.commodityCode,
+        basis: alertRecord.basis,
+        maPeriod: alertRecord.maPeriod,
+        window: alertRecord.window,
+        tradeDate: alertRecord.tradeDate,
+        direction: alertRecord.direction,
+        rareLevel: alertRecord.rareLevel,
+        disparity: alertRecord.disparity,
+        detectedAt: alertRecord.detectedAt,
+      })
+      .from(alertRecord)
+      .where(where)
+      .orderBy(alertRecord.detectedAt);
+  }
 }
