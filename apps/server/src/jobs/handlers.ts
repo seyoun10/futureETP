@@ -1,10 +1,12 @@
 import { config } from '../config.ts';
+import { createPgDumpTarget } from '../db/backupTarget.ts';
 import { createCalendarStore } from '../db/calendarStore.ts';
 import { db } from '../db/client.ts';
 import { createPushDeviceStore } from '../db/devicesStore.ts';
 import { createEtpStore } from '../db/etpStore.ts';
 import { createIntradayStore } from '../db/intraday.ts';
 import { createRareAlertStore } from '../db/rareAlertStore.ts';
+import { createRetentionStore } from '../db/retentionStore.ts';
 import { createSettingsStore } from '../db/settingsStore.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { pushSender } from '../push/configuredSender.ts';
@@ -16,6 +18,7 @@ import { createNaverEtfSource } from '../sources/naverEtf.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { createYahooEtpSource } from '../sources/yahooEtp.ts';
 import { createYahooIntradaySource } from '../sources/yahooIntraday.ts';
+import { createBackupHandler } from './backup.ts';
 import { createCalendarHandler } from './calendar.ts';
 import { createDeferredPushHandler } from './deferredPush.ts';
 import { createEtpHandler } from './etp.ts';
@@ -81,4 +84,10 @@ export const JOB_HANDLERS: JobHandlers = {
     }),
   }),
   CALENDAR: createCalendarHandler({ store: createCalendarStore(db) }),
+  BACKUP: createBackupHandler({
+    target: config.BACKUP_DIR
+      ? createPgDumpTarget({ dir: config.BACKUP_DIR, databaseUrl: config.DATABASE_URL })
+      : null,
+    retention: createRetentionStore(db),
+  }),
 };

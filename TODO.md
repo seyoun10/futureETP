@@ -238,6 +238,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 ### 5-10. 운영과 첫 배포
 - [ ] `CALENDAR` 작업(60일 공백 점검), `BACKUP` 작업(`pg_dump`·7개 보관·보관 기간 행 정리, D-045, D-046), Healthchecks.io ping (운영 알림은 5-8에서 완료)
   - [x] `CALENDAR` 작업(`jobs/calendar.ts`): 앞으로 60일이 걸친 연도의 `trading_day` 행 유무 점검(휴장일은 행이 없어 연도 단위), 빠지면 실패 → 운영 알림. dev 2026·2027 입력 상태에서 성공, 2028이 필요한 기준 시각에서 실패 확인 (2026-10-28)
+  - [x] `BACKUP` 작업(`jobs/backup.ts`): `pg_dump -Fc`를 `.partial`로 쓴 뒤 이름 변경 → 덤프 이름 형식 파일만 최근 7개 보관 → 스냅숏 90일·`alert_record`·`batch_run` 365일 지난 행 삭제(한 트랜잭션). 덤프 실패면 지우지 않음. `BACKUP_DIR` 없으면 실패. dev에서 덤프(약 19MB, `pg_restore --list` 확인)·7개 보관·실패 메시지(접속 문자열 미포함) 확인 (2026-10-28)
+  - [ ] Healthchecks.io ping(작업마다 시작·성공·`/fail`, D-045)
 - [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Docker 로그 크기 제한, Healthchecks.io check(D-045)
 - [ ] `infra/`(Dockerfile·compose·Caddyfile) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
 - [ ] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체 (D-052)

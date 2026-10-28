@@ -258,11 +258,12 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 
 ### 백업(D-045)
 - `BACKUP` 작업(croner, 매일 1회)이 서버 컨테이너에서 `pg_dump -Fc`로 덤프를 만든다. VM의 백업 볼륨에 최근 7개만 둔다. 서버 이미지에 Postgres와 같은 major 버전의 클라이언트를 넣는다.
+  - 구현(`jobs/backup.ts`, 16:30 CT): `BACKUP_DIR`에 `futureetp-YYYYMMDDTHHMMSSZ.dump`(UTC, 이름순 = 시간순)로 쓴다. 임시 이름(`.partial`)에 쓴 뒤 바꿔 덜 쓴 덤프가 보관 개수·내려받기에 끼지 않는다. 이 형식의 파일만 세어 최근 7개를 둔다. 덤프 실패 메시지에는 접속 문자열이 든 명령줄을 넣지 않고 `pg_dump` stderr만 남긴다.
 - Mac: `scripts/`의 백업 내려받기 스크립트가 최신 덤프를 저장소 밖 폴더로 받는다(주 1회 목표, 최근 8개 보관). 받을 때 Healthchecks.io의 내려받기 check(주기 7일 + 여유 2일)에 신호를 보내, 오래 받지 않으면 메일이 온다. dev 복원(D-043)은 이 폴더의 최신 덤프를 쓴다.
 - 일봉 원천은 소스에서 다시 받을 수 있고, 설정은 작아서 며칠치 손실은 감수한다. 서명 키(keystore)·`infra/.env`·서비스 계정 키는 DB 백업과 별도로 저장소 밖에 둔다(D-039).
 
 ### 데이터 보관(D-046)
-- `BACKUP` 작업이 덤프 뒤에 오래된 행을 지운다(지우기 전 덤프가 있어야 하므로 이 순서).
+- `BACKUP` 작업이 덤프 뒤에 오래된 행을 지운다(지우기 전 덤프가 있어야 하므로 이 순서). 덤프가 실패하면 지우지 않는다. 기준은 작업 시각에서 90일·365일 전이고(스냅숏 `captured_at`, `alert_record.detected_at`, `batch_run.started_at`), 네 테이블을 한 트랜잭션으로 지운다(`db/retentionStore.ts`).
 
 | 테이블 | 보관 |
 |---|---|
