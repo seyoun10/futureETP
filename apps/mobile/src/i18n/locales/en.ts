@@ -123,8 +123,35 @@ export const en: Translation = {
     provisional: '(provisional)',
     noData: 'No contracts to show.',
   },
+  // C-d ETP list, C-d-a details (screens.md C-d, C-d-a)
   etp: {
     detailTitle: 'ETP details',
+    market: 'Market',
+    type: 'Type',
+    leverage: 'Leverage',
+    fxHedge: 'FX hedge',
+    sort: 'Sort',
+    all: 'All',
+    leverageValue: '{{n}}x',
+    fxHedges: {
+      HEDGED: 'Hedged',
+      UNHEDGED: 'Unhedged',
+      NA: 'N/A',
+    },
+    sorts: {
+      DEFAULT: 'Default',
+      AUM: 'AUM',
+      TRADING_VALUE: 'Volume',
+    },
+    sortValue: '{{label}} {{amount}}',
+    noValue: '—',
+    krwScheme: 'si',
+    amount: {
+      KRX: '₩{{n}}',
+      US: '${{n}}',
+    },
+    empty: 'No ETPs for this commodity.',
+    noMatch: 'No products match the filters.',
   },
   settings: {
     title: 'Settings',

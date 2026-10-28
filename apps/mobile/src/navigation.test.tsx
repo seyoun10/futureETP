@@ -23,6 +23,10 @@ jest.mock('@/api/commodities', () => ({
   getCommodities: jest.fn(),
   getCurve: jest.fn(() => new Promise(() => {})),
 }));
+jest.mock('@/api/etps', () => ({
+  getEtps: jest.fn(() => new Promise(() => {})),
+  getEtp: jest.fn(() => new Promise(() => {})),
+}));
 
 // 창 모양은 테스트마다 바꾼다(가로 레이아웃 판정).
 const mockWindow = { width: 390, height: 844 };

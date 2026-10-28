@@ -1,5 +1,6 @@
-import type { CommodityCode, CurveState, MarketState } from '@futureetp/shared';
+import type { CommodityCode, CurveState, EtpMarket, FxHedge, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
+import type { EtpSort } from '@/features/commodity/etp/etpListModel';
 import type { ChartPeriod } from '@/stores/displaySettings';
 
 // 번역 리소스의 기준 언어. en은 이 구조를 그대로 따라야 한다(키 누락은 타입 오류).
@@ -129,8 +130,36 @@ export const ko = {
     provisional: '(잠정)',
     noData: '표시할 월물이 없습니다.',
   },
+  // C-d ETP 목록·C-d-a 상세(screens.md C-d, C-d-a)
   etp: {
     detailTitle: 'ETP 상세',
+    market: '시장',
+    type: '유형',
+    leverage: '배수',
+    fxHedge: '환헤지',
+    sort: '정렬',
+    all: '전체',
+    leverageValue: '{{n}}x',
+    fxHedges: {
+      HEDGED: '환헤지',
+      UNHEDGED: '환노출',
+      NA: '해당 없음',
+    } satisfies Record<FxHedge, string>,
+    sorts: {
+      DEFAULT: '기본',
+      AUM: '순자산',
+      TRADING_VALUE: '거래대금',
+    } satisfies Record<EtpSort, string>,
+    sortValue: '{{label}} {{amount}}',
+    noValue: '—',
+    // 원화 금액 줄임 방식(AmountScheme). 달러는 언어와 상관없이 si다
+    krwScheme: 'eok',
+    amount: {
+      KRX: '{{n}} 원',
+      US: '${{n}}',
+    } satisfies Record<EtpMarket, string>,
+    empty: '이 원자재의 ETP가 없습니다.',
+    noMatch: '조건에 맞는 상품이 없습니다.',
   },
   settings: {
     title: '설정',
