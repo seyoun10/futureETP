@@ -7,6 +7,7 @@ import { formatTradeDate } from '@/lib/formatDateTime';
 import { formatChangePct, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
 import { chartParagraph } from './chartText';
+import { extremeTagTop } from './extremeTagLayout';
 import { indexRange } from './fitTransform';
 
 type ExtremeBar = { tradeDate: string; high: number; low: number };
@@ -45,6 +46,8 @@ export function ExtremeTagsLayer({
     if (bars[i].low < bars[lo].low) lo = i;
   }
 
+  // 현재가 점선(YAxisLayer)과 같은 위치
+  const currentY = ky * yScale(currentPrice) + ty;
   const tag = (index: number, kind: 'high' | 'low') => {
     const bar = bars[index];
     const price = kind === 'high' ? bar.high : bar.low;
@@ -63,10 +66,7 @@ export function ExtremeTagsLayer({
       Math.max(kind === 'high' ? x - width : x, chartBounds.left),
       chartBounds.right - width,
     );
-    const top = Math.min(
-      Math.max(kind === 'high' ? y - height - GAP : y + GAP, chartBounds.top),
-      chartBounds.bottom - height,
-    );
+    const top = extremeTagTop(kind, y, height, GAP, currentY, chartBounds.top, chartBounds.bottom);
     return <Paragraph key={kind} paragraph={paragraph} x={left} y={top} width={width + 4} />;
   };
 
