@@ -38,9 +38,9 @@ const pastRow = (tradeDate: string): TradingDaySession => ({
 });
 
 describe('상수', () => {
-  it('일일 정산은 18:30 CT, ①은 약 20분, 장중 배치 예상 시간은 5분이다', () => {
-    expect(SETTLE_AT).toBe('18:30');
-    expect(SETTLE_STEP1_EXPECTED_MS).toBe(20 * 60_000);
+  it('일일 정산은 16:05 CT, ①은 약 25분, 장중 배치 예상 시간은 5분이다', () => {
+    expect(SETTLE_AT).toBe('16:05');
+    expect(SETTLE_STEP1_EXPECTED_MS).toBe(25 * 60_000);
     expect(INTRADAY_EXPECTED_MS).toBe(5 * 60_000);
   });
 });
@@ -135,11 +135,11 @@ describe('marketStatus', () => {
       );
     });
 
-    it('마감 직전 마지막 배치 뒤에는 정산 ① 뒤 첫 배치(19:00 CT)로 넘어간다', () => {
+    it('마감 직전 마지막 배치 뒤에는 개장 첫 배치(17:00 CT)로 넘어간다(정산 ①은 그 전에 끝남)', () => {
       expect(marketStatus(ct('2026-10-21', '15:52'), days, '2026-10-20')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '19:05'),
+        nextUpdateAt: ct('2026-10-21', '17:05'),
       });
     });
 
@@ -161,11 +161,11 @@ describe('marketStatus', () => {
   });
 
   describe('16~17시 휴식과 야간 정산 대기', () => {
-    it('16:30 CT는 휴장이고 정산 ① 뒤 첫 배치(19:00 CT) 완료 예상 시각을 준다', () => {
-      expect(marketStatus(ct('2026-10-21', '16:30'), days, '2026-10-20')).toEqual({
+    it('16:20 CT는 휴장이고 정산 ① 예상 완료(16:30) 뒤 첫 배치(17:00 CT) 완료 예상 시각을 준다', () => {
+      expect(marketStatus(ct('2026-10-21', '16:20'), days, '2026-10-20')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '19:05'),
+        nextUpdateAt: ct('2026-10-21', '17:05'),
       });
     });
 
@@ -176,40 +176,32 @@ describe('marketStatus', () => {
       });
     });
 
-    it('17:00 CT 거래일이 바뀐 뒤 직전 거래일 정산 전에는 정산 대기다', () => {
+    it('17:00 CT 거래일이 바뀐 뒤 직전 거래일 정산 전에는 정산 대기이고 지금 뒤 다음 배치로 미룬다', () => {
       expect(marketStatus(ct('2026-10-21', '17:00'), days, '2026-10-20')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '19:05'),
+        nextUpdateAt: ct('2026-10-21', '17:20'),
       });
       expect(marketStatus(ct('2026-10-21', '17:30'), days, '2026-10-20')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '19:05'),
-      });
-    });
-
-    it('정산이 늦어 예상 시각이 지났는데 아직 대기면 지금 뒤 다음 배치로 미룬다', () => {
-      expect(marketStatus(ct('2026-10-21', '19:10'), days, '2026-10-20')).toEqual({
-        state: 'SETTLEMENT_PENDING',
-        tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '19:20'),
+        nextUpdateAt: ct('2026-10-21', '17:50'),
       });
     });
 
     it('정산이 끝나면 새 거래일 장중이다', () => {
-      expect(marketStatus(ct('2026-10-21', '19:10'), days, '2026-10-21')).toEqual({
+      expect(marketStatus(ct('2026-10-21', '17:10'), days, '2026-10-21')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-22',
-        nextUpdateAt: ct('2026-10-21', '19:20'),
+        nextUpdateAt: ct('2026-10-21', '17:20'),
       });
     });
 
-    it('정산이 예상보다 일찍 끝나면 바로 다음 배치를 준다', () => {
-      expect(marketStatus(ct('2026-10-21', '18:40'), days, '2026-10-21')).toEqual({
-        state: 'OPEN',
-        tradeDate: '2026-10-22',
-        nextUpdateAt: ct('2026-10-21', '18:50'),
+    it('개장 전에 정산이 끝나면 휴장이고 개장 첫 배치를 준다', () => {
+      expect(marketStatus(ct('2026-10-21', '16:40'), days, '2026-10-21')).toEqual({
+        state: 'CLOSED',
+        tradeDate: '2026-10-21',
+        nextUpdateAt: ct('2026-10-21', '17:05'),
       });
     });
   });

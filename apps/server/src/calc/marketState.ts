@@ -13,10 +13,10 @@ export type TradingDaySession = {
 };
 
 const MINUTE = 60_000;
-// 일일 정산 시작 시각(CT). jobs/scheduler.ts TRIGGERS와 같다(D-019).
-export const SETTLE_AT = '18:30';
-// 일일 정산 ① 예상 소요(D-047)
-export const SETTLE_STEP1_EXPECTED_MS = 20 * MINUTE;
+// 일일 정산 시작 시각(CT). jobs/scheduler.ts TRIGGERS와 같다(D-019, D-101).
+export const SETTLE_AT = '16:05';
+// 일일 정산 ① 예상 소요(D-047). Massive 실측 약 23분(D-101)
+export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE;
 // 장중 배치 예상 소요. 실측 전 임시값이다(D-062).
 export const INTRADAY_EXPECTED_MS = 5 * MINUTE;
 // 장중 배치는 CT :00/:15/:30/:45. CT 오프셋이 정시 단위라 UTC 15분 배수와 같다.

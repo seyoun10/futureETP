@@ -15,7 +15,8 @@ export type Trigger = { cron: string; timezone: string; jobs: readonly JobName[]
 // :00/:30에는 지연 발송을 장중 판정보다 먼저 처리한다(D-026).
 // 정산 ①이 끝나야(재시도 포함) 정정 확인 ②가 돈다(D-047, D-071).
 export const TRIGGERS: readonly Trigger[] = [
-  { cron: '30 18 * * 1-5', timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
+  // 마감(16:00) 뒤, Massive가 드문 월물의 그날 봉을 다음 세션 봉으로 바꾸는 17:00 전에 받는다(D-101).
+  { cron: '5 16 * * 1-5', timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
   { cron: '0,30 * * * *', timezone: CHICAGO, jobs: ['DEFERRED_PUSH', 'INTRADAY'] },
   { cron: '15,45 * * * *', timezone: CHICAGO, jobs: ['INTRADAY'] },
   { cron: '30 8 * * *', timezone: SEOUL, jobs: ['ETP'] },

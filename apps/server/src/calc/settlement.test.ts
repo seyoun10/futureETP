@@ -31,6 +31,11 @@ describe('planSettle', () => {
     });
   });
 
+  it('정산 작업 시각(16:05 CT, 마감 뒤)에도 그날 거래일을 받고, 마감 전이면 전 거래일이다(D-101)', () => {
+    expect(planSettle(ct('2026-10-27', '16:05'), days, '2026-10-26').dates).toEqual(['2026-10-27']);
+    expect(planSettle(ct('2026-10-27', '15:59'), days, '2026-10-26').dates).toEqual([]);
+  });
+
   it('정산 이력이 없으면 가장 최근 거래일만 받는다', () => {
     expect(planSettle(ct('2026-10-27', '18:30'), days, null).dates).toEqual(['2026-10-27']);
   });

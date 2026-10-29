@@ -23,12 +23,12 @@ describe('TRIGGERS', () => {
     expect([...JOB_NAMES].filter((job) => !scheduled.has(job))).toEqual([]);
   });
 
-  it('일일 정산은 서머타임과 관계없이 18:30 CT 평일이다', () => {
+  it('일일 정산은 서머타임과 관계없이 16:05 CT 평일이다', () => {
     const { cron, timezone } = TRIGGERS.find((t) => t.jobs.includes('DAILY_SETTLE'))!;
-    // CDT(UTC-5): 금요일 18:30 CT 다음은 월요일
-    expect(nextRun(cron, timezone, '2026-10-23T23:31:00Z')).toBe('2026-10-26T23:30:00.000Z');
-    // CST(UTC-6): 월요일 18:00 CT 다음은 같은 날 18:30 CT
-    expect(nextRun(cron, timezone, '2026-12-01T00:00:00Z')).toBe('2026-12-01T00:30:00.000Z');
+    // CDT(UTC-5): 금요일 16:05 CT 다음은 월요일
+    expect(nextRun(cron, timezone, '2026-10-23T21:06:00Z')).toBe('2026-10-26T21:05:00.000Z');
+    // CST(UTC-6): 월요일 16:00 CT 다음은 같은 날 16:05 CT
+    expect(nextRun(cron, timezone, '2026-11-30T22:00:00Z')).toBe('2026-11-30T22:05:00.000Z');
   });
 
   it('ETP는 08:30 KST다', () => {

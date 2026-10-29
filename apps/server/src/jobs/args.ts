@@ -8,7 +8,7 @@ const argsSchema = z.union([
   z.tuple([z.enum(JOB_NAMES), z.iso.datetime({ offset: true })]),
 ]);
 
-// `npm run job -- <작업 이름> [기준 시각]`. 기준 시각 예: 2026-10-27T18:30:00-05:00
+// `npm run job -- <작업 이름> [기준 시각]`. 기준 시각 예: 2026-10-27T16:05:00-05:00
 export function parseJobArgs(argv: readonly string[]): { job: JobName; asOf?: Date } {
   const result = argsSchema.safeParse(argv);
   if (!result.success) throw new Error(`Invalid arguments: ${argv.join(' ')}\n${USAGE}`);
