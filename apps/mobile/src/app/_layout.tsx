@@ -10,12 +10,14 @@ import { AccessKeyScreen } from '@/features/access-key/AccessKeyScreen';
 import { TimezoneSync } from '@/features/settings/TimezoneSync';
 import { setupI18n } from '@/i18n';
 import { lockPortrait } from '@/lib/orientation';
+import { setupForegroundNotifications } from '@/push/foregroundNotifications';
 import { NotificationTapHandler } from '@/push/NotificationTapHandler';
 import { PushRegistration } from '@/push/PushRegistration';
 import { colors } from '@/theme/tokens';
 
 setupFocusManager();
 setupI18n();
+setupForegroundNotifications();
 // app config는 가로도 허용하므로(iOS 잠금 조건) 시작할 때 세로로 잠근다(D-076).
 void lockPortrait();
 
