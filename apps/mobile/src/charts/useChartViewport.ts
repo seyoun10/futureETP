@@ -28,12 +28,14 @@ const applyTransform = (state: ChartTransform, t: Transform) => {
 };
 
 export type ChartDetail = { index: number; side: 'left' | 'right' };
+// 드래그(이동)는 보이는 봉 수가 그대로라 기간 선택 표시를 남기고, 핀치(확대·축소)는 지운다(screens.md C-a)
+export type ChartGesture = 'pan' | 'zoom';
 
 type ViewportOptions = {
   press: CrosshairPress;
   // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onGestureStart 뒤 null로 받는다
   periodBars: number | null;
-  onGestureStart: () => void;
+  onGestureStart: (gesture: ChartGesture) => void;
   onVisibleRangeChange?: (i0: number, i1: number) => void;
 };
 
@@ -124,11 +126,17 @@ export function useChartViewport({
     },
   );
 
-  // 제스처가 시작되면 기간 선택 해제(screens.md C-a)
+  // 제스처가 시작되면 알린다. 기간 맞춤은 멈추고, 선택 표시는 핀치일 때만 지운다(screens.md C-a)
   useAnimatedReaction(
-    () => transform.panActive.get() || transform.zoomActive.get(),
+    () => transform.panActive.get(),
     (active, prev) => {
-      if (active && !prev) scheduleOnRN(onGestureStart);
+      if (active && !prev) scheduleOnRN(onGestureStart, 'pan');
+    },
+  );
+  useAnimatedReaction(
+    () => transform.zoomActive.get(),
+    (active, prev) => {
+      if (active && !prev) scheduleOnRN(onGestureStart, 'zoom');
     },
   );
 

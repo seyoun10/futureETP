@@ -13,6 +13,7 @@ import type { CandleGeom } from './fitTransform';
 import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { LONG_PRESS_MS, useChartViewport, useReportGeom, X_LABEL_HEIGHT } from './useChartViewport';
+import type { ChartGesture } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { priceLabelText, YAxisLayer } from './YAxisLayer';
 import type { PriceLabel } from './YAxisLayer';
@@ -29,7 +30,7 @@ type LinesChartProps = {
   widestLabels: readonly PriceLabel[];
   priceDecimals: number;
   periodBars: number | null;
-  onGestureStart: () => void;
+  onGestureStart: (gesture: ChartGesture) => void;
   onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
 };

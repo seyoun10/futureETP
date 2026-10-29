@@ -84,13 +84,20 @@ describe('C-c 월물차트', () => {
     ]);
   });
 
-  it('기간은 C-a와 따로 기억한다: 12M으로 시작하고, 제스처 뒤 선택이 풀리며, 칩을 누르면 기억한다', async () => {
+  it('기간은 C-a와 따로 기억한다: 12M으로 시작하고, 드래그 뒤에는 선택이 남고 핀치 뒤에는 풀리며, 칩을 누르면 기억한다', async () => {
     await renderScreen();
 
     expect(lastChartProps().periodBars).toBe(252);
     expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
 
-    await act(() => lastChartProps().onGestureStart());
+    // 드래그는 기간 맞춤만 멈추고 선택 표시는 남긴다
+    await act(() => lastChartProps().onGestureStart('pan'));
+    expect(lastChartProps().periodBars).toBeNull();
+    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+
+    // 핀치하면 선택 표시가 풀리고, 이어서 드래그해도 돌아오지 않는다
+    await act(() => lastChartProps().onGestureStart('zoom'));
+    await act(() => lastChartProps().onGestureStart('pan'));
     expect(lastChartProps().periodBars).toBeNull();
     expect(screen.getByRole('radio', { name: '12M' })).not.toBeChecked();
 

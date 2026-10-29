@@ -6,8 +6,8 @@ describe('defaultDisplaySettings', () => {
     expect(defaultDisplaySettings({ languageCode: 'ko', regionCode: 'KR' })).toEqual({
       language: 'ko',
       upDownStyle: 'KR',
-      disparityPeriod: '12M',
-      contractPeriod: '12M',
+      disparityPeriod: '6M',
+      contractPeriod: '6M',
     });
   });
 

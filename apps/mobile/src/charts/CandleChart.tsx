@@ -18,6 +18,7 @@ import type { ChartLine } from './LineLayer';
 import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
 import { LONG_PRESS_MS, useChartViewport, useReportGeom, X_LABEL_HEIGHT } from './useChartViewport';
+import type { ChartGesture } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { YAxisLayer } from './YAxisLayer';
 import type { PriceLabel } from './YAxisLayer';
@@ -42,7 +43,7 @@ type CandleChartProps = {
   roll: RollMarks;
   // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onGestureStart 뒤 null로 받는다
   periodBars: number | null;
-  onGestureStart: () => void;
+  onGestureStart: (gesture: ChartGesture) => void;
   // 보이는 봉 [i0, i1]이 바뀔 때(저점대비·고점대비 같은 차트 밖 표시용)
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 십자선 상세 박스 내용. 박스 위치는 차트가 손가락 반대편으로 정한다

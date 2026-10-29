@@ -47,8 +47,8 @@ export const defaultDisplaySettings = (
 ): DisplaySettingsValues => ({
   language: locale?.languageCode === 'ko' ? 'ko' : 'en',
   upDownStyle: locale?.regionCode === 'KR' ? 'KR' : 'US',
-  disparityPeriod: '12M',
-  contractPeriod: '12M',
+  disparityPeriod: '6M',
+  contractPeriod: '6M',
 });
 
 // 동기 API로 읽어 앱 시작 때 언어·색이 바뀌며 깜빡이지 않게 한다(D-030).
