@@ -126,7 +126,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
   return (
     <>
       <FreshnessLine freshness={data.freshness} />
-      <Text style={[styles.line, styles.center]} numberOfLines={1} testID="curve-legend">
+      <Text style={styles.line} numberOfLines={1} testID="curve-legend">
         <Text style={styles.legendBase}>{'╌╌ '}</Text>
         {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
         {'   '}
@@ -272,8 +272,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
-  },
-  center: {
     textAlign: 'center',
   },
   legendBase: {

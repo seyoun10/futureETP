@@ -151,7 +151,7 @@ function TodayLine({
 
   return (
     <View style={styles.today}>
-      <Text style={[styles.line, styles.center]} numberOfLines={1}>
+      <Text style={styles.line} numberOfLines={1}>
         <Text
           accessibilityRole="button"
           onPress={() => setHintOpen((open) => !open)}
@@ -283,8 +283,6 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
-  },
-  center: {
     textAlign: 'center',
   },
   // 안내 상자가 차트 위에 오도록
