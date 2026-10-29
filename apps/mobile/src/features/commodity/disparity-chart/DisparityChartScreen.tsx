@@ -94,8 +94,8 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
 
   return (
     <>
-      <TodayLine code={code} data={data} model={model} requestedBasis={requestedBasis} />
       <FreshnessLine freshness={data.freshness} />
+      <TodayLine code={code} data={data} model={model} requestedBasis={requestedBasis} />
       <View style={styles.chart}>
         <CandleChart
           bars={model.bars}
@@ -151,7 +151,7 @@ function TodayLine({
 
   return (
     <View style={styles.today}>
-      <Text style={styles.line} numberOfLines={1}>
+      <Text style={[styles.line, styles.center]} numberOfLines={1}>
         <Text
           accessibilityRole="button"
           onPress={() => setHintOpen((open) => !open)}
@@ -284,7 +284,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
   },
-  // 안내 상자가 아래 줄·차트 위에 오도록
+  center: {
+    textAlign: 'center',
+  },
+  // 안내 상자가 차트 위에 오도록
   today: {
     zIndex: 1,
   },

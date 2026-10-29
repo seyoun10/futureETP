@@ -125,14 +125,14 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
 
   return (
     <>
-      <Text style={styles.line} numberOfLines={1} testID="curve-legend">
+      <FreshnessLine freshness={data.freshness} />
+      <Text style={[styles.line, styles.center]} numberOfLines={1} testID="curve-legend">
         <Text style={styles.legendBase}>{'╌╌ '}</Text>
         {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
         {'   '}
         <Text style={styles.legendCurrent}>{'── '}</Text>
         {t('curve.legendCurrent', { date: formatLegendDate(currentDate, currentDate) })}
       </Text>
-      <FreshnessLine freshness={data.freshness} />
       <View style={styles.chart}>
         {points.length === 0 ? (
           <Text style={styles.message}>{t('curve.noData')}</Text>
@@ -272,6 +272,9 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
+  },
+  center: {
+    textAlign: 'center',
   },
   legendBase: {
     color: colors.chart.curveBase,
