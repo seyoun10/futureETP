@@ -142,3 +142,40 @@ export function buildDisparityChart(input: DisparityChartInput): DisparityChartR
 
   return { bars, rareLevels, currentTail, provisional };
 }
+
+// 응답 크기용 반올림(실측: CL 봉 4,125개 gzip 264KB → 125KB). 가격은 표시 자릿수보다 2자리 더,
+// 이격도·백분위(%)는 3자리. 꼬리 백분위·rare-level은 반올림 전 값으로 이미 계산했다
+const DISPARITY_DECIMALS = 3;
+const PRICE_EXTRA_DECIMALS = 2;
+
+const roundTo = (value: number, decimals: number) => Number(value.toFixed(decimals));
+const roundOrNull = (value: number | null, decimals: number) =>
+  value === null ? null : roundTo(value, decimals);
+
+export function roundDisparityChart(
+  chart: DisparityChartResult,
+  priceDecimals: number,
+): DisparityChartResult {
+  const p = priceDecimals + PRICE_EXTRA_DECIMALS;
+  return {
+    ...chart,
+    bars: chart.bars.map((bar) => ({
+      ...bar,
+      open: roundOrNull(bar.open, p),
+      high: roundOrNull(bar.high, p),
+      low: roundOrNull(bar.low, p),
+      close: roundOrNull(bar.close, p),
+      ma: roundOrNull(bar.ma, p),
+      disparity: roundOrNull(bar.disparity, DISPARITY_DECIMALS),
+    })),
+    rareLevels: chart.rareLevels.map((line) => ({
+      ...line,
+      disparity: roundTo(line.disparity, DISPARITY_DECIMALS),
+      price: roundOrNull(line.price, p),
+    })),
+    currentTail:
+      chart.currentTail === null
+        ? null
+        : { ...chart.currentTail, pct: roundTo(chart.currentTail.pct, DISPARITY_DECIMALS) },
+  };
+}

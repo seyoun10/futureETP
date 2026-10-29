@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDisparityChart } from './disparityChart.ts';
+import { buildDisparityChart, roundDisparityChart } from './disparityChart.ts';
 import type { DisparityChartInput, StoredIndexBar } from './disparityChart.ts';
 
 const bar = (tradeDate: string, close: number | null, inRollPeriod = false): StoredIndexBar => ({
@@ -128,5 +128,42 @@ describe('buildDisparityChart', () => {
       currentTail: null,
       provisional: false,
     });
+  });
+});
+
+describe('roundDisparityChart', () => {
+  it('가격은 표시 자릿수+2, 이격도·백분위는 3자리로 반올림하고 null은 그대로 둔다', () => {
+    const chart = roundDisparityChart(
+      {
+        bars: [
+          {
+            tradeDate: '2026-10-21',
+            open: 101.96000000000001,
+            high: null,
+            low: 99.123456,
+            close: 100.000049,
+            ma: 3.5763059453574564,
+            disparity: -15.247743165411764,
+            inRoll: false,
+            holdings: [{ contractMonth: '2026-12', weight: 1 }],
+          },
+        ],
+        rareLevels: [{ direction: 'UP', level: 1, disparity: 50.66927245017293, price: null }],
+        currentTail: { side: 'DOWN', pct: 24.27554663826406 },
+        provisional: false,
+      },
+      2,
+    );
+
+    expect(chart.bars[0]).toMatchObject({
+      open: 101.96,
+      high: null,
+      low: 99.1235,
+      close: 100,
+      ma: 3.5763,
+      disparity: -15.248,
+    });
+    expect(chart.rareLevels[0]).toMatchObject({ disparity: 50.669, price: null });
+    expect(chart.currentTail).toEqual({ side: 'DOWN', pct: 24.276 });
   });
 });

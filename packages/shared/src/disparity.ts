@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { BASES, DIRECTIONS, MA_PERIODS, WINDOWS } from './domain.ts';
 import { freshnessSchema } from './freshness.ts';
 
-// C-a 지수 일봉 하나(product.md 이격도차트, D-086). 가격은 맞춤 비율을 곱한 값이고 소수 자릿수를 맞추지 않았다.
+// C-a 지수 일봉 하나(product.md 이격도차트, D-086). 가격은 맞춤 비율을 곱해 표시 자릿수+2로, 이격도(%)는 3자리로 반올림한 값이다(D-046).
 export const disparityBarSchema = z.object({
   tradeDate: z.iso.date(),
   // 산출 불가일은 모두 null

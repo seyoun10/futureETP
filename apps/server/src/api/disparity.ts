@@ -2,7 +2,7 @@ import { BASES, COMMODITY_CODES, MA_PERIODS, rareLevelsSchema, WINDOWS } from '@
 import type { Basis, CommodityCode, DisparityChart, MaPeriod, Window } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { buildDisparityChart } from '../calc/disparityChart.ts';
+import { buildDisparityChart, roundDisparityChart } from '../calc/disparityChart.ts';
 import type {
   StoredDisparity,
   StoredIndexBar,
@@ -89,16 +89,19 @@ export async function loadDisparityChart(
     store.latestIndexSnapshot(code, basis, tradeDate),
     store.distribution(code, basis, query.ma, query.window),
   ]);
-  const chart = buildDisparityChart({
-    maPeriod: query.ma,
-    levels: query.levels,
-    bars,
-    disparities,
-    weights,
-    ratio: scale?.ratio ?? null,
-    snapshot,
-    sortedValues: distribution?.sortedValues ?? null,
-  });
+  const chart = roundDisparityChart(
+    buildDisparityChart({
+      maPeriod: query.ma,
+      levels: query.levels,
+      bars,
+      disparities,
+      weights,
+      ratio: scale?.ratio ?? null,
+      snapshot,
+      sortedValues: distribution?.sortedValues ?? null,
+    }),
+    priceDecimals,
+  );
 
   return {
     freshness: {
