@@ -197,8 +197,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.caption,
   },
   filters: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   message: {
     padding: spacing.xl,
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   rowText: {
     flex: 1,

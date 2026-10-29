@@ -164,8 +164,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   row: {
     flexDirection: 'row',
@@ -173,8 +173,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   label: {
     flex: 1,
