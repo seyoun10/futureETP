@@ -160,6 +160,20 @@ describe('C-a 이격도차트', () => {
     expect(useDisplaySettings.getState().disparityPeriod).toBe('3M');
   });
 
+  it('드래그·핀치 뒤에만 [↻]이 보이고, 누르면 선택한 기간의 최근 위치로 돌아간다', async () => {
+    await renderScreen();
+    await screen.findByRole('radio', { name: '12M' });
+    expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
+
+    await act(() => lastChartProps().onGestureStart('zoom'));
+    expect(lastChartProps().periodBars).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' }));
+    expect(lastChartProps().periodBars).toBe(252);
+    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
+  });
+
   it('십자선 상세는 날짜·시고저종·전일 대비·이격도·월물 비중이다', async () => {
     await renderScreen();
     await screen.findByTestId('disparity-stats');

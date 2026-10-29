@@ -74,6 +74,7 @@ export const ko = {
     periodsLabel: '기간',
     scrollPrev: '앞 기간 보기',
     scrollNext: '뒤 기간 보기',
+    resetView: '선택한 기간의 최근 위치로',
   },
   // C-a 이격도차트 차트 밖 줄과 십자선 상세(screens.md C-a)
   disparity: {

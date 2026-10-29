@@ -69,6 +69,7 @@ export const en: Translation = {
     periodsLabel: 'Period',
     scrollPrev: 'Show earlier periods',
     scrollNext: 'Show later periods',
+    resetView: 'Back to the latest selected period',
   },
   disparity: {
     basisFallback: '{{basis}}*',

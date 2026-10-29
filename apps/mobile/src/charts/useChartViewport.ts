@@ -19,8 +19,6 @@ import type { CandleGeom, Transform } from './fitTransform';
 
 const EPSILON = 1e-3;
 export const LONG_PRESS_MS = 300;
-// 차트 아래 x축 라벨 자리
-export const X_LABEL_HEIGHT = 20;
 
 const applyTransform = (state: ChartTransform, t: Transform) => {
   'worklet';

@@ -109,6 +109,20 @@ describe('C-c 월물차트', () => {
     });
   });
 
+  it('드래그·핀치 뒤에만 [↻]이 보이고, 누르면 선택한 기간의 최근 위치로 돌아간다', async () => {
+    await renderScreen();
+    await screen.findByRole('radio', { name: '12M' });
+    expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
+
+    await act(() => lastChartProps().onGestureStart('zoom'));
+    expect(lastChartProps().periodBars).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' }));
+    expect(lastChartProps().periodBars).toBe(252);
+    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
+  });
+
   it('십자선 상세는 날짜와 그날 값이 있는 월물 가격이고, 오늘 잠정 값은 표시한다', async () => {
     await renderScreen();
 

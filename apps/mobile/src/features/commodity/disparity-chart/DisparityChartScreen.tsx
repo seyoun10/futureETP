@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { CandleChart } from '@/charts/CandleChart';
 import { PERIOD_BARS } from '@/charts/chartPeriods';
+import { ChartResetButton } from '@/charts/ChartResetButton';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
 import { FreshnessLine } from '@/components/FreshnessLine';
@@ -115,6 +116,7 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
         />
+        {gesture && <ChartResetButton onPress={() => setGesture(null)} />}
       </View>
       <StatsLine data={data} bars={model.bars} range={range} />
       <PeriodChips selected={gesture === 'zoom' ? null : period} onSelect={onSelectPeriod} />

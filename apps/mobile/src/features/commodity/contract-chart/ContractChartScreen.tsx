@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { PERIOD_BARS } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
+import { ChartResetButton } from '@/charts/ChartResetButton';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
 import { FreshnessLine } from '@/components/FreshnessLine';
@@ -98,6 +99,7 @@ function ContractChartView({ data }: { data: ContractsChart }) {
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
         />
+        {gesture && <ChartResetButton onPress={() => setGesture(null)} />}
       </View>
       <PeriodChips selected={gesture === 'zoom' ? null : period} onSelect={onSelectPeriod} />
     </>
