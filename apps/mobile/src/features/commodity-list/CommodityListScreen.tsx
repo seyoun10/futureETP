@@ -50,7 +50,7 @@ export function CommodityListScreen() {
       <QueryStateView query={query}>
         {(data) => (
           <>
-            <FreshnessLine freshness={data.freshness} />
+            <FreshnessLine freshness={data.freshness} style={styles.freshness} />
             <FlatList
               testID="commodity-list"
               data={data.commodities}
@@ -152,6 +152,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  freshness: {
+    textAlign: 'center',
   },
   row: {
     flexDirection: 'row',
