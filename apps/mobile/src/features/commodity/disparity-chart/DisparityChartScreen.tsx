@@ -79,9 +79,10 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
     setPeriod(next);
     setGesture(null);
   };
-  // 한 번 핀치하면 이후 드래그해도 선택 표시를 되살리지 않는다
-  const onGestureStart = useCallback(
-    (next: ChartGesture) => setGesture((prev) => (prev === 'zoom' ? prev : next)),
+  // 한 번 핀치하면 이후 드래그해도 선택 표시를 되살리지 않는다. 기간 범위로 돌아오면(null) 처음 상태다
+  const onViewChange = useCallback(
+    (next: ChartGesture | null) =>
+      setGesture((prev) => (next !== null && prev === 'zoom' ? prev : next)),
     [],
   );
   const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
@@ -112,7 +113,7 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
           priceDecimals={data.priceDecimals}
           roll={model.roll}
           periodBars={gesture ? null : PERIOD_BARS[period]}
-          onGestureStart={onGestureStart}
+          onViewChange={onViewChange}
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
         />

@@ -42,9 +42,9 @@ type CandleChartProps = {
   priceLabels: readonly PriceLabel[];
   priceDecimals: number;
   roll: RollMarks;
-  // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onGestureStart 뒤 null로 받는다
+  // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onViewChange 뒤 null로 받는다
   periodBars: number | null;
-  onGestureStart: (gesture: ChartGesture) => void;
+  onViewChange: (gesture: ChartGesture | null) => void;
   // 보이는 봉 [i0, i1]이 바뀔 때(저점대비·고점대비 같은 차트 밖 표시용)
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 십자선 상세 박스 내용. 박스 위치는 차트가 손가락 반대편으로 정한다
@@ -61,7 +61,7 @@ export const CandleChart = memo(function CandleChart({
   priceDecimals,
   roll,
   periodBars,
-  onGestureStart,
+  onViewChange,
   onVisibleRangeChange,
   renderDetail,
 }: CandleChartProps) {
@@ -71,7 +71,7 @@ export const CandleChart = memo(function CandleChart({
     y: { open: 0, high: 0, low: 0, close: 0, hi: 0, lo: 0 },
   });
   const { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap } =
-    useChartViewport({ press, periodBars, onGestureStart, onVisibleRangeChange });
+    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange });
 
   const data = useMemo(
     () =>

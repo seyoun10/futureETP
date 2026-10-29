@@ -31,7 +31,7 @@ type LinesChartProps = {
   widestLabels: readonly PriceLabel[];
   priceDecimals: number;
   periodBars: number | null;
-  onGestureStart: (gesture: ChartGesture) => void;
+  onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
 };
@@ -46,13 +46,13 @@ export const LinesChart = memo(function LinesChart({
   widestLabels,
   priceDecimals,
   periodBars,
-  onGestureStart,
+  onViewChange,
   onVisibleRangeChange,
   renderDetail,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
   const { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap } =
-    useChartViewport({ press, periodBars, onGestureStart, onVisibleRangeChange });
+    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange });
 
   const data = useMemo(
     () =>

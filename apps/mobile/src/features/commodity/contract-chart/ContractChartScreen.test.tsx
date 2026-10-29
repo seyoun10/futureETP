@@ -91,13 +91,13 @@ describe('C-c 월물차트', () => {
     expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
 
     // 드래그는 기간 맞춤만 멈추고 선택 표시는 남긴다
-    await act(() => lastChartProps().onGestureStart('pan'));
+    await act(() => lastChartProps().onViewChange('pan'));
     expect(lastChartProps().periodBars).toBeNull();
     expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
 
     // 핀치하면 선택 표시가 풀리고, 이어서 드래그해도 돌아오지 않는다
-    await act(() => lastChartProps().onGestureStart('zoom'));
-    await act(() => lastChartProps().onGestureStart('pan'));
+    await act(() => lastChartProps().onViewChange('zoom'));
+    await act(() => lastChartProps().onViewChange('pan'));
     expect(lastChartProps().periodBars).toBeNull();
     expect(screen.getByRole('radio', { name: '12M' })).not.toBeChecked();
 
@@ -114,10 +114,23 @@ describe('C-c 월물차트', () => {
     await screen.findByRole('radio', { name: '12M' });
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
 
-    await act(() => lastChartProps().onGestureStart('zoom'));
+    await act(() => lastChartProps().onViewChange('zoom'));
     expect(lastChartProps().periodBars).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' }));
+    expect(lastChartProps().periodBars).toBe(252);
+    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
+  });
+
+  it('드래그로 벗어났다가 기간의 최근 위치로 돌아오면 [↻]이 사라진다', async () => {
+    await renderScreen();
+    await screen.findByRole('radio', { name: '12M' });
+
+    await act(() => lastChartProps().onViewChange('pan'));
+    expect(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeOnTheScreen();
+
+    await act(() => lastChartProps().onViewChange(null));
     expect(lastChartProps().periodBars).toBe(252);
     expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
