@@ -153,12 +153,13 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - [ ] 기기에서 긴 값 줄바꿈·가로 화면 확인
 - [x] A 원자재 목록: `GET /v1/commodities` + 화면(당겨서 새로고침, 대표월물·알림 표시)
   - [x] `GET /v1/commodities` + shared 스키마(기준 거래일·대표월물·표시 값 우선순위·freshness) (2026-10-27, D-085)
-    - [ ] 5-4 적재 뒤 dev DB에서 실제 값으로 확인
+    - [x] 5-4 적재 뒤 dev DB에서 실제 값으로 확인: 원자재마다 5개 월물·대표월물 1개, 가격·전일 대비 정상, CL만 알림 표시, GCQ27 거래 없음 표시. 응답 3.4KB·63ms (2026-10-28 21:30 CT)
   - [x] A 화면(목록·● 대표월물·🔔·거래 없음·당겨서 새로고침·자동 새로고침, C-a 이동) (2026-10-27)
     - [ ] 기기에서 열 너비·긴 가격(천 단위)·당겨서 새로고침 확인(5-4 적재 뒤 실제 값)
 - [ ] C-a 이격도차트: `GET /v1/commodities/:code/disparity`(기준값 없는 원자재 대체 표시 포함) + 차트 본 구현(스파이크 이관, `src/charts/`), 롤 마커·음영, rare-level 밴드·특수 라벨, 십자선 상세, 기간 버튼(Zustand), 스파이크 삭제
   - [x] `GET /v1/commodities/:code/disparity?basis&ma&window&levels` + shared 스키마(맞춤 비율·보유 월물·잠정 봉·rare 레벨·꼬리 백분위·대체) (2026-10-27, D-086)
     - [ ] 5-4 적재 뒤 dev DB에서 실제 값·응답 크기·앱 파싱 시간 확인(행 객체 유지 여부, D-046)
+      - 서버 측 실측(2026-10-28): 원자재 4개 × 기준값 3개 모두 200, 봉 4,125개, 응답 약 1.03MB(dev 서버는 압축 없음), 서버 처리 30~60ms. gzip 264KB로 D-046 가정(약 100KB)의 2.6배. 소수점 끝자리(부동소수 17자리)가 주원인이라 가격·이평선 4자리·이격도 3자리로 반올림하면 gzip 125KB. Node의 JSON.parse + zod 8~15ms. 남은 것: 기기(Hermes) 파싱 시간
     - [ ] `INTRADAY` 구현 때 잠정 봉의 롤 중 판정(롤 첫날 장중) 다시 보기
   - [x] 차트 부품(`src/charts/` `CandleChart`, 스파이크 이관, 한글 Paragraph·선 경로 변환·특수 라벨) (2026-10-27, D-087)
     - [ ] C-a 연결 뒤 에뮬레이터·실기기에서 한글 라벨·선 굵기·제스처 FPS 확인
@@ -241,7 +242,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `BACKUP` 작업(`jobs/backup.ts`): `pg_dump -Fc`를 `.partial`로 쓴 뒤 이름 변경 → 덤프 이름 형식 파일만 최근 7개 보관 → 스냅숏 90일·`alert_record`·`batch_run` 365일 지난 행 삭제(한 트랜잭션). 덤프 실패면 지우지 않음. `BACKUP_DIR` 없으면 실패. dev에서 덤프(약 19MB, `pg_restore --list` 확인)·7개 보관·실패 메시지(접속 문자열 미포함) 확인 (2026-10-28)
   - [x] Healthchecks.io ping(`jobs/healthcheck.ts`): 스케줄러가 작업마다 재시도까지 묶어 `/start` → 성공 또는 `/fail`, `rid`로 짝지음, slug는 작업 이름 소문자, 키 없으면(dev) 보내지 않음, ping 실패는 로그만 (2026-10-28)
 - [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Healthchecks.io check(D-045: 작업 7개 + Mac 내려받기 `backup_pull` 7일·여유 2일)
-- [ ] `infra/`(Dockerfile·compose·Caddyfile) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
+- [ ] `infra/`(Dockerfile·compose·Caddyfile, Caddy `encode`로 응답 압축: C-a 응답이 압축 전 약 1MB) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
   - [x] `apps/server/Dockerfile`·`.dockerignore`·`infra/docker-compose.yml`·`Caddyfile`·`.env.example`, 로그 크기 제한. 이미지와 같은 파일 구성으로 `npm ci --omit=dev` 후 서버 기동·health 확인(Mac에 Docker가 없어 이미지 빌드·compose 기동은 미확인) (2026-10-28)
   - [x] 로컬 Docker(Colima)로 `deploy-remote.sh` 실제 실행: 이미지 빌드(452MB, `.env`·테스트·앱 소스 없음) → 배포 전 덤프 → 일회성 컨테이너 마이그레이션(테이블 19·마이그레이션 5) → 교체·health, Caddy 경유 HTTPS health·HTTP→HTTPS 308·키 없음 401, 컨테이너에서 `BACKUP`(pg_dump 18.6, `/backups` 쓰기)·`calendar:import`·`CALENDAR` 성공, 잘못된 FCM 키면 서버가 뜨지 않아 `--wait`가 배포 실패로 끝남. 이미지에 빠져 있던 `scripts/calendar` 추가. 시험은 스케줄러 끄고 포트 8080·8443, sudo·uid 변경은 가짜(실제 VM은 첫 배포 때) (2026-10-28)
   - [x] prod 초기 데이터(D-100): `npm run prod:seed`가 dev DB를 빈 prod DB에 넣음(`device`·`alert_record`·`batch_run` 행 제외). Colima 시험 VM에서 배포 → 시드(37초, 뺀 3개 외 모든 테이블 행 수가 dev와 같음, 마이그레이션 5) → Caddy 경유 시세 조회·`CALENDAR` 성공, 재실행·비대화 입력·마이그레이션 수 불일치는 거부 확인. 실제 VM은 첫 배포 때 (2026-10-28)
