@@ -33,6 +33,7 @@ type ViewportOptions = {
   press: CrosshairPress;
   // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onGestureStart 뒤 null로 받는다
   periodBars: number | null;
+  // 제스처가 보이는 범위를 처음 바꿀 때 한 번. 범위 끝에서 더 밀어 그대로면 부르지 않는다
   onGestureStart: (gesture: ChartGesture) => void;
   onVisibleRangeChange?: (i0: number, i1: number) => void;
 };
@@ -78,6 +79,9 @@ export function useChartViewport({
     });
   }, [geom, geomVersion, periodBars, transform]);
 
+  // 진행 중인 제스처와 시작 때의 x 배율·이동. 범위를 바꾸면 알리고 비운다
+  const pending = useSharedValue<{ gesture: ChartGesture; k: number; tx: number } | null>(null);
+
   // 제스처가 행렬을 바꿀 때마다 x 범위 제한 + y 자동 맞춤(UI 스레드, D-056)
   useAnimatedReaction(
     () => transform.matrix.get(),
@@ -86,6 +90,12 @@ export function useChartViewport({
       if (!g) return;
       const c = getTransformComponents(m);
       const t = fitTransform(g, c.scaleX, c.translateX);
+      // 제한한 뒤의 값으로 비교한다. 끝에서 더 밀면 제한이 시작 위치로 되돌려 보이는 범위가 그대로다
+      const p = pending.get();
+      if (p && (Math.abs(t.k - p.k) > EPSILON || Math.abs(t.tx - p.tx) > EPSILON)) {
+        pending.set(null);
+        scheduleOnRN(onGestureStart, p.gesture);
+      }
       if (
         Math.abs(t.k - c.scaleX) < EPSILON &&
         Math.abs(t.tx - c.translateX) < EPSILON &&
@@ -124,18 +134,30 @@ export function useChartViewport({
     },
   );
 
-  // 제스처가 시작되면 알린다. 기간 맞춤은 멈추고, 선택 표시는 핀치일 때만 지운다(screens.md C-a)
+  // 제스처가 시작되면 시작 위치를 기억하고, 범위가 실제로 바뀔 때 알린다(위 반응).
+  // 받는 쪽은 기간 맞춤을 멈추고, 선택 표시는 핀치일 때만 지운다(screens.md C-a)
+  const onGestureActive = (gesture: ChartGesture, active: boolean, prev: boolean | null) => {
+    'worklet';
+    if (active && !prev) {
+      const p = pending.get();
+      if (p) {
+        // 드래그와 핀치가 겹치면 핀치로 알린다
+        if (gesture === 'zoom') pending.set({ ...p, gesture });
+        return;
+      }
+      const c = getTransformComponents(transform.matrix.get());
+      pending.set({ gesture, k: c.scaleX, tx: c.translateX });
+    } else if (!active && !transform.panActive.get() && !transform.zoomActive.get()) {
+      pending.set(null);
+    }
+  };
   useAnimatedReaction(
     () => transform.panActive.get(),
-    (active, prev) => {
-      if (active && !prev) scheduleOnRN(onGestureStart, 'pan');
-    },
+    (active, prev) => onGestureActive('pan', active, prev),
   );
   useAnimatedReaction(
     () => transform.zoomActive.get(),
-    (active, prev) => {
-      if (active && !prev) scheduleOnRN(onGestureStart, 'zoom');
-    },
+    (active, prev) => onGestureActive('zoom', active, prev),
   );
 
   // 십자선은 손을 떼도 남고, 차트를 한 번 더 누르면 사라진다(D-056).
