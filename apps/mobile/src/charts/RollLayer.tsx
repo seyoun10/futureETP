@@ -1,10 +1,10 @@
 import { Group, Paragraph, Path, Rect, Skia } from '@shopify/react-native-skia';
-import { useCartesianTransformContext } from 'victory-native';
 import type { SkParagraph } from '@shopify/react-native-skia';
 import type { ChartBounds } from 'victory-native';
 
 import { colors } from '@/theme/tokens';
 import { chartParagraph } from './chartText';
+import { useClampedTransform } from './useClampedTransform';
 
 // 롤 표시(screens.md C-a 롤 표시). 음영은 [시작, 끝] 봉 순번 구간, 마커는 x축 위 ▲와 짧은 라벨(새 월물의 월 번호)이다
 export type RollMarks = {
@@ -13,6 +13,8 @@ export type RollMarks = {
 };
 
 type RollLayerProps = RollMarks & {
+  // 봉 수
+  count: number;
   chartBounds: ChartBounds;
   // 변환 전 첫 봉의 x와 봉 간격
   x0: number;
@@ -22,8 +24,8 @@ type RollLayerProps = RollMarks & {
 const MARKER_SIZE = 5;
 const LABEL_GAP = 4;
 
-export function RollLayer({ shading, markers, chartBounds, x0, dx }: RollLayerProps) {
-  const { k, tx } = useCartesianTransformContext();
+export function RollLayer({ shading, markers, count, chartBounds, x0, dx }: RollLayerProps) {
+  const { k, tx } = useClampedTransform(count, chartBounds);
   if (dx <= 0) return null;
   const toScreen = (i: number) => k * (x0 + i * dx) + tx;
   const half = (k * dx) / 2;

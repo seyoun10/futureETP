@@ -1,7 +1,6 @@
 import { Group, Line, Paragraph, vec } from '@shopify/react-native-skia';
 import { useTranslation } from 'react-i18next';
 import { useDerivedValue } from 'react-native-reanimated';
-import { useCartesianTransformContext } from 'victory-native';
 import type { ChartBounds } from 'victory-native';
 
 import { colors } from '@/theme/tokens';
@@ -9,6 +8,7 @@ import { chartParagraph, numberFont } from './chartText';
 import { crosshairDateWidth } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
 import { monthTicks } from './monthTicks';
+import { useClampedTransform } from './useClampedTransform';
 
 type XAxisLayerProps = {
   dates: readonly string[];
@@ -23,7 +23,7 @@ type XAxisLayerProps = {
 // 월 라벨에 한글이 들어가 Paragraph로 그린다(D-087).
 export function XAxisLayer({ dates, chartBounds, x0, dx, crosshair }: XAxisLayerProps) {
   const { t } = useTranslation();
-  const { k, tx } = useCartesianTransformContext();
+  const { k, tx } = useClampedTransform(dates.length, chartBounds);
   if (dx <= 0) return null;
 
   const toScreen = (i: number) => k * (x0 + i * dx) + tx;

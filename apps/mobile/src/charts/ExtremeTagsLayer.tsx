@@ -1,6 +1,5 @@
 import { Paragraph } from '@shopify/react-native-skia';
 import { useTranslation } from 'react-i18next';
-import { useCartesianTransformContext } from 'victory-native';
 import type { ChartBounds, Scale } from 'victory-native';
 
 import { formatTradeDate } from '@/lib/formatDateTime';
@@ -9,6 +8,7 @@ import { colors } from '@/theme/tokens';
 import { chartParagraph } from './chartText';
 import { extremeTagTop } from './extremeTagLayout';
 import { indexRange } from './fitTransform';
+import { useClampedTransform } from './useClampedTransform';
 
 type ExtremeBar = { tradeDate: string; high: number; low: number };
 
@@ -35,7 +35,7 @@ export function ExtremeTagsLayer({
   dx,
 }: ExtremeTagsLayerProps) {
   const { t } = useTranslation();
-  const { k, tx, ky, ty } = useCartesianTransformContext();
+  const { k, tx, ky, ty } = useClampedTransform(bars.length, chartBounds);
   if (dx <= 0 || bars.length === 0) return null;
 
   const [i0, i1] = indexRange(chartBounds.left, chartBounds.right, x0, dx, bars.length, k, tx);

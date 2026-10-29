@@ -113,7 +113,7 @@ export const CandleChart = memo(function CandleChart({
           const dx = (points.high[1]?.x ?? 0) - x0;
           return (
             <>
-              <RollLayer {...roll} chartBounds={chartBounds} x0={x0} dx={dx} />
+              <RollLayer {...roll} count={dates.length} chartBounds={chartBounds} x0={x0} dx={dx} />
               <XAxisLayer
                 dates={dates}
                 chartBounds={chartBounds}

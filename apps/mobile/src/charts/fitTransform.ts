@@ -49,13 +49,22 @@ export function visibleRange(g: CandleGeom, k: number, tx: number): [number, num
   return indexRange(g.left, g.right, g.x0, g.dx, g.highY.length, k, tx);
 }
 
+// x 배율·이동 제한. 축소는 '전체'(k=1)까지, 확대는 최소 봉 수까지, 이동은 데이터 시작부터 끝까지
+export function clampX(
+  n: number,
+  left: number,
+  right: number,
+  k0: number,
+  tx0: number,
+): { k: number; tx: number } {
+  'worklet';
+  const k = clamp(k0, 1, Math.max(1, n / MIN_VISIBLE_BARS));
+  return { k, tx: clamp(tx0, right * (1 - k), left * (1 - k)) };
+}
+
 export function fitTransform(g: CandleGeom, k0: number, tx0: number): Transform {
   'worklet';
-  const n = g.highY.length;
-  // 축소는 '전체'(k=1)까지, 확대는 최소 봉 수까지
-  const k = clamp(k0, 1, Math.max(1, n / MIN_VISIBLE_BARS));
-  // 이동은 데이터 시작부터 끝까지
-  const tx = clamp(tx0, g.right * (1 - k), g.left * (1 - k));
+  const { k, tx } = clampX(g.highY.length, g.left, g.right, k0, tx0);
 
   const [i0, i1] = visibleRange(g, k, tx);
   let yTop = Infinity;
