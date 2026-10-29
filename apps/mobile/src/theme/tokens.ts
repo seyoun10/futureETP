@@ -6,6 +6,8 @@ export const colors = {
   border: '#2a2a2a',
   // 목록 항목 사이 구분선. border보다 밝게
   separator: '#4a4a4a',
+  // title-bar 아래·tab-bar 위 구분선. 목록 구분선보다 밝게
+  barSeparator: '#6a6a6a',
   text: '#e0e0e0',
   textSecondary: '#9e9e9e',
   // 등락 0, 데이터 없음 등 방향이 없는 값

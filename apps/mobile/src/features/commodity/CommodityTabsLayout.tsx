@@ -33,7 +33,11 @@ export function CommodityTabsLayout() {
         header: () => <CommodityTitleBar />,
         sceneStyle: { backgroundColor: colors.background },
         tabBarStyle: [
-          { backgroundColor: colors.background, borderTopColor: colors.border },
+          {
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.barSeparator,
+          },
           isLandscape && { height: COMPACT_TAB_BAR_HEIGHT + insets.bottom },
         ],
         tabBarActiveTintColor: colors.text,
