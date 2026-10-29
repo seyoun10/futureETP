@@ -40,7 +40,8 @@ type CurveChartProps = {
 const TICK_COUNT = 5;
 const TOP = CHART_FONT_SIZE + spacing.sm;
 const BOTTOM = CHART_FONT_SIZE + spacing.sm;
-const RIGHT = spacing.md;
+// y축 눈금은 다른 탭처럼 그림 영역 오른쪽(YAxisLayer와 같은 간격)
+const Y_LABEL_GAP = 4;
 const DOT = 3;
 const LABEL_GAP = 4;
 
@@ -70,12 +71,14 @@ export const CurveChart = memo(function CurveChart({
     const ticks = niceTicks(yMin, yMax, TICK_COUNT);
     const decimals = tickDecimals(ticks, priceDecimals);
     const tickLabels = ticks.map((t) => formatPrice(t, decimals));
-    const left = Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) + spacing.sm;
+    const left = 0;
+    const right =
+      size.width - Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) - 10;
     const plotBottom = size.height - BOTTOM;
-    const slot = (size.width - left - RIGHT) / points.length;
+    const slot = (right - left) / points.length;
     const x = (i: number) => left + slot * (i + 0.5);
     const y = (v: number) => TOP + ((yMax - v) / (yMax - yMin)) * (plotBottom - TOP);
-    return { ticks, tickLabels, left, plotBottom, slot, x, y };
+    return { ticks, tickLabels, left, right, plotBottom, slot, x, y };
   }, [points, priceDecimals, size]);
 
   const paths = useMemo(() => {
@@ -135,13 +138,13 @@ export const CurveChart = memo(function CurveChart({
                 <Line
                   key={`g${t}`}
                   p1={vec(layout.left, ty)}
-                  p2={vec(size.width - RIGHT, ty)}
+                  p2={vec(layout.right, ty)}
                   color={colors.chart.grid}
                   strokeWidth={0}
                 />,
                 <SkText
                   key={`l${t}`}
-                  x={0}
+                  x={layout.right + Y_LABEL_GAP}
                   y={ty + CHART_FONT_SIZE / 2 - 1}
                   text={layout.tickLabels[i]}
                   font={numberFont}
@@ -227,7 +230,9 @@ export const CurveChart = memo(function CurveChart({
           pointerEvents="none"
           style={[
             styles.detail,
-            selected.side === 'left' ? { left: layout?.left ?? 0 } : { right: RIGHT },
+            selected.side === 'left'
+              ? { left: layout?.left ?? 0 }
+              : { right: size.width - (layout?.right ?? size.width) },
           ]}
         >
           {renderDetail(selected.index)}
