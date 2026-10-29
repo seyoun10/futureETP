@@ -4,6 +4,8 @@ export const colors = {
   surface: '#1e1e1e',
   surfaceSelected: '#3a3a6a',
   border: '#2a2a2a',
+  // 목록 항목 사이 구분선. border보다 밝게
+  separator: '#4a4a4a',
   text: '#e0e0e0',
   textSecondary: '#9e9e9e',
   // 등락 0, 데이터 없음 등 방향이 없는 값

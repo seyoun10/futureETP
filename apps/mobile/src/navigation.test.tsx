@@ -65,7 +65,7 @@ const renderApp = (initialUrl = '/') => renderRouter('src/app', { initialUrl });
 describe('라우트 골격', () => {
   it('A에서 원자재를 누르면 C-a 탭이 열리고 title-bar에 원자재명이 보인다', async () => {
     await renderApp();
-    await fireEvent.press(await screen.findByText('원유 / CL'));
+    await fireEvent.press(await screen.findByText('원유\n(CL)'));
 
     expect(screen).toHavePathname('/commodity/CL');
     expect(screen.getByRole('header', { name: '원유 / CL' })).toBeOnTheScreen();
@@ -91,7 +91,7 @@ describe('라우트 골격', () => {
     await fireEvent.press(screen.getByLabelText('뒤로'));
 
     expect(screen).toHavePathname('/');
-    expect(await screen.findByText('원유 / CL')).toBeOnTheScreen();
+    expect(await screen.findByText('원유\n(CL)')).toBeOnTheScreen();
   });
 
   it('C [⚙]는 B로 가고, B에서 돌아오면 C다', async () => {

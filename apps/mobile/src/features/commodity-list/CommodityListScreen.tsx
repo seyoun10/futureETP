@@ -93,7 +93,7 @@ function CommodityRow({
             🔔
           </Text>
         )}
-        <Text style={styles.name}>{`${t(`commodities.${code}`)} / ${code}`}</Text>
+        <Text style={styles.name}>{`${t(`commodities.${code}`)}\n(${code})`}</Text>
       </View>
       <View style={styles.quotes}>
         {commodity.contracts.map((quote) => (
@@ -158,14 +158,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   nameColumn: {
     width: 104,
-    flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
     gap: spacing.xs,
   },
   bell: {
@@ -174,6 +172,7 @@ const styles = StyleSheet.create({
   name: {
     color: colors.text,
     fontSize: fontSize.body,
+    textAlign: 'center',
   },
   quotes: {
     flex: 1,
@@ -181,17 +180,16 @@ const styles = StyleSheet.create({
   },
   quoteLine: {
     flexDirection: 'row',
-    alignItems: 'baseline',
+    alignItems: 'center',
   },
   cell: {
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
-    textAlign: 'right',
+    textAlign: 'center',
   },
   month: {
     width: 52,
     color: colors.textSecondary,
-    textAlign: 'left',
   },
   price: {
     flex: 1,

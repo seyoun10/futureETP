@@ -83,9 +83,9 @@ describe('A 원자재 목록', () => {
     await renderList();
 
     expect(await screen.findByText(/기준 · 거래일 10\/22 · 지연 · 장중$/)).toBeOnTheScreen();
-    const names = screen.getAllByText(/ \/ (GC|CL)$/).map((n) => n.props.children as string);
-    expect(names).toEqual(['금 / GC', '원유 / CL']);
-    const gcRow = screen.getByRole('button', { name: /금 \/ GC/ });
+    const names = screen.getAllByText(/\s\((GC|CL)\)$/).map((n) => n.props.children as string);
+    expect(names).toEqual(['금\n(GC)', '원유\n(CL)']);
+    const gcRow = screen.getByRole('button', { name: /금\s\(GC\)/ });
     expect(within(gcRow).getByText('DEC26●')).toBeOnTheScreen();
     expect(within(gcRow).getByText('FEB27')).toBeOnTheScreen();
     expect(within(gcRow).getByText('2,418.2')).toBeOnTheScreen();
@@ -106,7 +106,7 @@ describe('A 원자재 목록', () => {
 
     const bells = await screen.findAllByLabelText('알림 대상');
     expect(bells).toHaveLength(1);
-    const clRow = screen.getByRole('button', { name: /원유 \/ CL/ });
+    const clRow = screen.getByRole('button', { name: /원유\s\(CL\)/ });
     expect(within(clRow).getByLabelText('알림 대상')).toBeOnTheScreen();
     expect(within(clRow).getByText('79.00')).toBeOnTheScreen();
     expect(within(clRow).getByText('거래 없음')).toBeOnTheScreen();
@@ -114,7 +114,7 @@ describe('A 원자재 목록', () => {
 
   it('원자재를 누르면 C-a로 간다', async () => {
     await renderList();
-    await fireEvent.press(await screen.findByText('원유 / CL'));
+    await fireEvent.press(await screen.findByText('원유\n(CL)'));
 
     expect(screen).toHavePathname('/commodity/CL');
   });
@@ -126,12 +126,12 @@ describe('A 원자재 목록', () => {
 
     expect(await screen.findByText(/앱과 서버 버전이 맞지 않습니다/)).toBeOnTheScreen();
     await fireEvent.press(screen.getByRole('button', { name: '다시 시도' }));
-    expect(await screen.findByText('금 / GC')).toBeOnTheScreen();
+    expect(await screen.findByText('금\n(GC)')).toBeOnTheScreen();
   });
 
   it('당겨서 새로고침하면 다시 조회한다', async () => {
     await renderList();
-    await screen.findByText('금 / GC');
+    await screen.findByText('금\n(GC)');
     // 목록 호스트 요소가 refreshControl 요소를 그대로 받는다
     const { refreshControl } = screen.getByTestId('commodity-list').props as {
       refreshControl: ReactElement<RefreshControlProps>;
