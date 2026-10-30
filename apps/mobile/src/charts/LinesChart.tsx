@@ -15,7 +15,7 @@ import type { ChartLine } from './LineLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import { useChartViewport, useReportGeom } from './useChartViewport';
-import type { ChartGesture } from './useChartViewport';
+import type { ChartGesture, DateSpan } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { priceLabelText, YAxisLayer } from './YAxisLayer';
 import type { PriceLabel } from './YAxisLayer';
@@ -79,7 +79,6 @@ export const LinesChart = memo(function LinesChart({
   } = useChartViewport({
     press,
     periodBars,
-    dates,
     onViewChange,
     onVisibleRangeChange,
   });
@@ -163,7 +162,7 @@ export const LinesChart = memo(function LinesChart({
         }}
       >
         {({ points, chartBounds }) => (
-          <GeomReporter points={points} chartBounds={chartBounds} onGeom={onGeom} />
+          <GeomReporter points={points} chartBounds={chartBounds} dates={dates} onGeom={onGeom} />
         )}
       </CartesianChart>
       <ChartOverlay bottomOffset={X_LABEL_HEIGHT} floating={floating} onInsets={noop} />
@@ -185,12 +184,13 @@ export const LinesChart = memo(function LinesChart({
 type GeomReporterProps = {
   points: Record<'close' | 'hi' | 'lo', PointsArray>;
   chartBounds: ChartBounds;
-  onGeom: (g: CandleGeom) => void;
+  dates: readonly string[];
+  onGeom: (g: CandleGeom, span: DateSpan) => void;
 };
 
 // 선은 renderOutside의 LineLayer가 그린다. 여기서는 변환 전 좌표만 넘긴다.
-function GeomReporter({ points, chartBounds, onGeom }: GeomReporterProps) {
-  useReportGeom(points.hi, points.lo, chartBounds, onGeom);
+function GeomReporter({ points, chartBounds, dates, onGeom }: GeomReporterProps) {
+  useReportGeom(points.hi, points.lo, chartBounds, dates, onGeom);
   return null;
 }
 

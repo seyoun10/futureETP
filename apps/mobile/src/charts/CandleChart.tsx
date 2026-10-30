@@ -21,7 +21,7 @@ import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { useChartViewport, useReportGeom } from './useChartViewport';
-import type { ChartGesture } from './useChartViewport';
+import type { ChartGesture, DateSpan } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { YAxisLayer } from './YAxisLayer';
 import type { PriceLabel } from './YAxisLayer';
@@ -114,7 +114,6 @@ export const CandleChart = memo(function CandleChart({
     periodBars,
     onViewChange,
     onVisibleRangeChange,
-    dates,
     dataInsets,
   });
 
@@ -204,6 +203,7 @@ export const CandleChart = memo(function CandleChart({
           <CandleLayer
             points={points}
             chartBounds={chartBounds}
+            dates={dates}
             onGeom={onGeom}
             colors={{ positive: palette.up, negative: palette.down }}
           />
@@ -235,13 +235,14 @@ export const CandleChart = memo(function CandleChart({
 type CandleLayerProps = {
   points: Record<'open' | 'high' | 'low' | 'close' | 'hi' | 'lo', PointsArray>;
   chartBounds: ChartBounds;
-  onGeom: (g: CandleGeom) => void;
+  dates: readonly string[];
+  onGeom: (g: CandleGeom, span: DateSpan) => void;
   colors: { positive: string; negative: string };
 };
 
 // 봉을 그리고, 변환 전 픽셀 좌표(봉과 선의 위·아래 끝)를 worklet이 읽을 수 있게 넘긴다.
-function CandleLayer({ points, chartBounds, onGeom, colors }: CandleLayerProps) {
-  useReportGeom(points.hi, points.lo, chartBounds, onGeom);
+function CandleLayer({ points, chartBounds, dates, onGeom, colors }: CandleLayerProps) {
+  useReportGeom(points.hi, points.lo, chartBounds, dates, onGeom);
 
   return (
     <Candlestick
