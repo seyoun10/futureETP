@@ -7,6 +7,8 @@ export function CommodityLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        // 루트 스택과 같은 전환(src/app/_layout.tsx)
+        animation: 'simple_push',
         contentStyle: { backgroundColor: colors.background },
       }}
     />

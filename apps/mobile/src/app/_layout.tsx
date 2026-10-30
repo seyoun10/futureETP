@@ -44,6 +44,8 @@ export default function RootLayout() {
             <Stack
               screenOptions={{
                 headerShown: false,
+                // iOS 26+ 기본 push 전환은 화면 가장자리에 밝은 테두리가 비친다. 그림자·모서리 효과 없는 전환을 쓴다.
+                animation: 'simple_push',
                 contentStyle: { backgroundColor: colors.background },
               }}
             />
