@@ -1363,7 +1363,7 @@
   - 가격(OHLC·이평선·rare-level `price`)은 `index_scale.ratio`를 곱한 값이다. 산출 불가일도 봉 행을 두고 OHLC를 null로 준다.
   - 대체: `basis`가 KR·US인데 그 원자재의 `roll_rule`이 없으면 FRONT로 응답하고 `fallback: true`다.
   - `holdings`: 봉 t를 만든 보유 월물 = 직전 거래일 `roll_weight`(종가 뒤 비중) 행, 만기순 `{ contractMonth, weight }`. 첫 봉은 빈 배열. 대표월물 전환 마커는 앱이 연속한 두 봉의 `holdings`가 바뀌는 곳(옛 월물의 마지막 날)에서 찾는다.
-  - 오늘 잠정 봉: 기준 거래일 T(`marketStatus`, D-085)의 최근 `index_snapshot`이 저장된 마지막 봉보다 늦은 거래일이고 `last`가 있으면 붙인다(`provisional: true`). 이평선·이격도는 저장된 유효 종가로 `liveMovingAverage`·`liveDisparity`(D-067)를 그 자리에서 부른다. `inRoll`은 보유 월물이 둘 이상인지로 정한다(롤 첫날 장중은 놓친다, INTRADAY 구현 때 다시 본다).
+  - 오늘 잠정 봉: 기준 거래일 T(`marketStatus`, D-085)의 최근 `index_snapshot`이 저장된 마지막 봉보다 늦은 거래일이고 `last`가 있으면 붙인다(`provisional: true`). 이평선·이격도는 저장된 유효 종가로 `liveMovingAverage`·`liveDisparity`(D-067)를 그 자리에서 부른다. `inRoll`은 한국형·미국형이면 규칙의 영업일 순번으로 그날이 롤 영업일인지 정한다(`isRollPeriodDay`, 저장된 봉의 `in_roll_period`와 같은 판정). 대표월물은 전환이 그날 거래량으로 정해져 장중에는 모르므로 `false`다(2026-10-30 수정: 처음에는 보유 월물이 둘 이상인지로 정해 롤 첫날 장중을 놓치고, 3 leg인 미국형 CL BCBCLI는 늘 롤 중으로 나왔다).
   - rare 레벨·꼬리 백분위는 저장된 `disparity_distribution.sorted_values`로 조회 때 `rareLevelDisparity`·`tailPercentile`을 부른다. 기간별 rare-level 선은 보내지 않고 앱이 `ma(t) × (1 + disparity / 100)`로 그린다.
   - `asOf`: 잠정 봉이면 스냅숏 `capturedAt`(`delayed: true`), 아니면 `index_scale.updated_at`(마지막 재계산), 적재 전이면 조회 시각. 적재 전에는 빈 `bars`와 null 분포로 200을 준다.
   - 조회는 `db/disparityStore.ts`(`DisparityStore`), 조립은 `calc/disparityChart.ts` `buildDisparityChart`와 `api/disparity.ts` `loadDisparityChart`다.

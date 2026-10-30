@@ -3,6 +3,7 @@ import type { Basis } from '@futureetp/shared';
 import { describe, expect, it } from 'vitest';
 import type { StoredIndexSnapshot } from '../calc/disparityChart.ts';
 import type { TradingDaySession } from '../calc/marketState.ts';
+import { ROLL_RULE_SEEDS } from '../calc/rollWeight.ts';
 import { createApp } from './app.ts';
 import {
   UNUSED_COMMODITIES,
@@ -50,7 +51,10 @@ function setup(path: string, data: Data = {}) {
       Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
     lastSettledTradeDate: () => Promise.resolve('2026-10-21'),
     priceDecimals: () => Promise.resolve(2),
-    hasRollRule: (_code, basis) => Promise.resolve((data.rules ?? ['KR', 'US']).includes(basis)),
+    rollRule: (_code, basis) =>
+      Promise.resolve(
+        (data.rules ?? ['KR', 'US']).includes(basis) ? ROLL_RULE_SEEDS[0].params : null,
+      ),
     indexBars: (_code, basis) =>
       Promise.resolve(
         data.empty ? [] : [bar('2026-10-20', level(basis)), bar('2026-10-21', level(basis) * 1.5)],

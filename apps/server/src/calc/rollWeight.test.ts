@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   businessDays,
   expandRollWeights,
+  isRollPeriodDay,
   NYSE_ONLY_CLOSED,
   ROLL_RULE_SEEDS,
   rollRuleParamsSchema,
@@ -371,6 +372,56 @@ describe('expandRollWeights: BCBCLI(여러 leg, 수량)', () => {
     expect(() =>
       expandRollWeights('CL', BCBCLI, input(FIRST_PRICES, { CLM27: 48, CLZ27: 30 })),
     ).toThrow();
+  });
+});
+
+describe('isRollPeriodDay', () => {
+  // 그 달 1일부터 T까지 거래일만 받아도 전체 펼치기의 롤 구간과 같아야 한다
+  const sameAsExpand = (
+    code: 'GC' | 'SI' | 'CL' | 'NG',
+    params: RollRuleParams,
+    dates: string[],
+  ) => {
+    const expanded = expandRollWeights(code, params, noPrices(dates));
+    for (const { tradeDate, inRollPeriod } of expanded) {
+      const month = dates.filter((d) => d.slice(0, 7) === tradeDate.slice(0, 7) && d <= tradeDate);
+      expect([tradeDate, isRollPeriodDay(code, params, tradeDate, month)]).toEqual([
+        tradeDate,
+        inRollPeriod,
+      ]);
+    }
+  };
+
+  it('leg 하나 규칙(GSCI·BCOM 시드)은 1년 동안 펼치기의 롤 구간과 같다', () => {
+    const dates = weekdays('2026-01-01', '2026-12-31');
+    for (const seed of ROLL_RULE_SEEDS.filter((r) => r.ruleId !== 'BCBCLI')) {
+      sameAsExpand(seed.commodityCode, seed.params, dates);
+    }
+  });
+
+  it('NYSE만 쉰 날은 GSCI 영업일에서 빼고 그날은 롤 구간이 아니다(2018-12)', () => {
+    sameAsExpand('CL', GSCI_CL, weekdays('2018-12-03', '2018-12-31'));
+    expect(isRollPeriodDay('CL', GSCI_CL, '2018-12-05', weekdays('2018-12-03', '2018-12-05'))).toBe(
+      false,
+    );
+  });
+
+  it('롤 첫날(5영업일)도 롤 구간이다', () => {
+    expect(isRollPeriodDay('CL', GSCI_CL, '2026-10-07', weekdays('2026-10-01', '2026-10-07'))).toBe(
+      true,
+    );
+  });
+
+  it('BCBCLI는 월간 leg가 롤 하는 달과 재조정 달의 2·3영업일만 롤 구간이다', () => {
+    const roll = (date: string) =>
+      isRollPeriodDay('CL', BCBCLI, date, weekdays(`${date.slice(0, 8)}01`, date));
+    expect(['2027-04-01', '2027-04-02', '2027-04-05', '2027-04-06'].map(roll)).toEqual([
+      false,
+      true,
+      true,
+      false,
+    ]);
+    expect(['2027-03-01', '2027-03-02', '2027-03-03'].map(roll)).toEqual([false, true, true]);
   });
 });
 

@@ -10,6 +10,7 @@ import type {
   StoredWeight,
 } from '../calc/disparityChart.ts';
 import { marketStatus } from '../calc/marketState.ts';
+import type { RollRuleParams } from '../calc/rollWeight.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import { ApiException } from './errors.ts';
@@ -17,7 +18,8 @@ import { ok } from './response.ts';
 
 export type DisparityStore = Pick<CommoditiesStore, 'tradingDays' | 'lastSettledTradeDate'> & {
   priceDecimals: (code: CommodityCode) => Promise<number | null>;
-  hasRollRule: (code: CommodityCode, basis: Basis) => Promise<boolean>;
+  // 한국형·미국형 roll_rule.params. 없으면 null
+  rollRule: (code: CommodityCode, basis: Exclude<Basis, 'FRONT'>) => Promise<RollRuleParams | null>;
   // 아래는 모두 거래일 오름차순
   indexBars: (code: CommodityCode, basis: Basis) => Promise<StoredIndexBar[]>;
   disparities: (code: CommodityCode, basis: Basis, ma: MaPeriod) => Promise<StoredDisparity[]>;
@@ -68,18 +70,18 @@ export async function loadDisparityChart(
   now: Date,
 ): Promise<DisparityChart> {
   const today = now.toISOString().slice(0, 10);
-  const [days, lastSettled, priceDecimals, hasRule] = await Promise.all([
+  const [days, lastSettled, priceDecimals, rule] = await Promise.all([
     store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, LOOKAHEAD_DAYS)),
     store.lastSettledTradeDate(),
     store.priceDecimals(code),
-    query.basis === 'FRONT' ? Promise.resolve(true) : store.hasRollRule(code, query.basis),
+    query.basis === 'FRONT' ? Promise.resolve(null) : store.rollRule(code, query.basis),
   ]);
   if (priceDecimals === null) throw new ApiException('INTERNAL', `Commodity ${code} is missing`);
   const status = marketStatus(now, days, lastSettled);
   const tradeDate = status.tradeDate;
   if (tradeDate === null) throw new ApiException('INTERNAL', 'Trading calendar is missing');
   // 규칙이 없는 원자재는 대표월물로 대신 보여 준다(product.md 기준값이 없는 원자재)
-  const basis: Basis = hasRule ? query.basis : 'FRONT';
+  const basis: Basis = rule === null ? 'FRONT' : query.basis;
 
   const [bars, disparities, weights, scale, snapshot, distribution] = await Promise.all([
     store.indexBars(code, basis),
@@ -98,6 +100,7 @@ export async function loadDisparityChart(
       weights,
       ratio: scale?.ratio ?? null,
       snapshot,
+      rule: rule === null ? null : { commodityCode: code, params: rule },
       sortedValues: distribution?.sortedValues ?? null,
     }),
     priceDecimals,

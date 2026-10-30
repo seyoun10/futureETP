@@ -22,7 +22,7 @@ export const UNUSED_DISPARITY: DisparityStore = {
   tradingDays: unused,
   lastSettledTradeDate: unused,
   priceDecimals: unused,
-  hasRollRule: unused,
+  rollRule: unused,
   indexBars: unused,
   disparities: unused,
   weights: unused,

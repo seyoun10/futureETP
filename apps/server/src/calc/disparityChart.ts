@@ -1,5 +1,5 @@
 // C-a 이격도차트 응답의 봉·rare-level·꼬리 백분위를 조립한다(product.md 이격도차트, D-086).
-import type { DisparityBar, RareLevelLine } from '@futureetp/shared';
+import type { CommodityCode, DisparityBar, RareLevelLine } from '@futureetp/shared';
 import { DIRECTIONS } from '@futureetp/shared';
 import {
   liveDisparity,
@@ -8,6 +8,8 @@ import {
   rareLevelPrice,
   tailPercentile,
 } from './disparity.ts';
+import { isRollPeriodDay } from './rollWeight.ts';
+import type { RollRuleParams } from './rollWeight.ts';
 
 // index_bar 한 행(맞춤 전 원래 지수)
 export type StoredIndexBar = {
@@ -46,6 +48,8 @@ export type DisparityChartInput = {
   // index_scale.ratio. 없으면 봉을 내지 않는다
   ratio: number | null;
   snapshot: StoredIndexSnapshot | null;
+  // 한국형·미국형 롤 규칙(잠정 봉의 롤 구간 판정). 대표월물은 null
+  rule: { commodityCode: CommodityCode; params: RollRuleParams } | null;
   // 오름차순 이격도 분포. 없으면 null
   sortedValues: readonly number[] | null;
 };
@@ -113,8 +117,14 @@ export function buildDisparityChart(input: DisparityChartInput): DisparityChartR
       close: last * ratio,
       ma: scale(liveMovingAverage(prevCloses, last, input.maPeriod), ratio),
       disparity: liveDisparity(prevCloses, last, input.maPeriod),
-      // 롤 중이면 종가 뒤 비중이 둘 이상 월물에 나뉘어 있다(롤 첫날 장중은 아직 하나라 잡지 못한다)
-      inRoll: today.length > 1,
+      // 저장된 봉처럼 그날 종가에 비중이 옮겨지는 영업일인지 규칙으로 정한다(보유 월물 수로는 롤 첫날을 놓치고
+      // 여러 leg 규칙은 늘 둘 이상이다). 대표월물 전환은 그날 거래량으로 정해져 장중에는 모른다
+      inRoll:
+        input.rule !== null &&
+        isRollPeriodDay(input.rule.commodityCode, input.rule.params, snapshot.tradeDate, [
+          ...input.bars.map((b) => b.tradeDate),
+          snapshot.tradeDate,
+        ]),
       holdings: today,
     });
   }

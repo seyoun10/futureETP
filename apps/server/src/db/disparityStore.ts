@@ -1,5 +1,6 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import type { DisparityStore } from '../api/disparity.ts';
+import { rollRuleParamsSchema } from '../calc/rollWeight.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
 import {
@@ -27,13 +28,12 @@ export function createDisparityStore(db: typeof Db): DisparityStore {
         .where(eq(commodity.code, code));
       return row?.priceDecimals ?? null;
     },
-    async hasRollRule(code, basis) {
-      if (basis === 'FRONT') return true;
-      const rows = await db
-        .select({ code: rollRule.commodityCode })
+    async rollRule(code, basis) {
+      const [row] = await db
+        .select({ params: rollRule.params })
         .from(rollRule)
         .where(and(eq(rollRule.commodityCode, code), eq(rollRule.basis, basis)));
-      return rows.length > 0;
+      return row === undefined ? null : rollRuleParamsSchema.parse(row.params);
     },
     indexBars: (code, basis) =>
       db

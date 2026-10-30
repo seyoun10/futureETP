@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildDisparityChart, roundDisparityChart } from './disparityChart.ts';
 import type { DisparityChartInput, StoredIndexBar } from './disparityChart.ts';
+import { ROLL_RULE_SEEDS } from './rollWeight.ts';
 
 const bar = (tradeDate: string, close: number | null, inRollPeriod = false): StoredIndexBar => ({
   tradeDate,
@@ -28,6 +29,7 @@ const BASE: DisparityChartInput = {
   ],
   ratio: 2,
   snapshot: null,
+  rule: null,
   // 0~10 균등
   sortedValues: [0, 2, 4, 6, 8, 10],
 };
@@ -91,13 +93,60 @@ describe('buildDisparityChart', () => {
     // 이평선 (110 + 120) / 2 = 115, 이격도 (120 / 115 − 1) × 100
     expect(today).toMatchObject({ tradeDate: '2026-10-22', open: 222, close: 240, ma: 230 });
     expect(today.disparity).toBeCloseTo(4.3478);
-    // 10/21 종가 뒤 비중이 둘로 나뉘어 롤 중
-    expect(today.inRoll).toBe(true);
+    // 대표월물(규칙 없음)은 장중에 전환을 모르므로 롤 구간이 아니다. 보유 월물은 10/21 종가 뒤 비중
+    expect(today.inRoll).toBe(false);
     expect(today.holdings).toEqual([
       { contractMonth: '2026-12', weight: 0.8 },
       { contractMonth: '2027-01', weight: 0.2 },
     ]);
     expect(currentTail?.side).toBe('DOWN');
+  });
+
+  describe('잠정 봉의 롤 구간은 규칙의 영업일 순번으로 정한다', () => {
+    // 한국형 CL(GSCI 5~9영업일): 2026-10은 10/7~10/13
+    const clKr = ROLL_RULE_SEEDS.find((r) => r.commodityCode === 'CL' && r.basis === 'KR');
+    const clUs = ROLL_RULE_SEEDS.find((r) => r.commodityCode === 'CL' && r.basis === 'US');
+    const provisionalOn = (tradeDate: string, stored: string[], seed = clKr) =>
+      buildDisparityChart({
+        ...BASE,
+        bars: stored.map((d) => bar(d, 100)),
+        disparities: [],
+        weights: [],
+        snapshot: {
+          tradeDate,
+          capturedAt: new Date(`${tradeDate}T14:45:00Z`),
+          open: 100,
+          high: 100,
+          low: 100,
+          last: 100,
+        },
+        rule: seed ? { commodityCode: 'CL', params: seed.params } : null,
+      }).bars.at(-1);
+
+    it('롤 첫날 장중은 보유 월물이 아직 하나여도 롤 구간이다', () => {
+      const stored = ['2026-09-30', '2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06'];
+      expect(provisionalOn('2026-10-07', stored)?.inRoll).toBe(true);
+    });
+
+    it('롤을 마친 다음 영업일은 롤 구간이 아니다', () => {
+      const stored = ['2026-10-07', '2026-10-08', '2026-10-09', '2026-10-12', '2026-10-13'];
+      expect(
+        provisionalOn('2026-10-14', [
+          '2026-10-01',
+          '2026-10-02',
+          '2026-10-05',
+          '2026-10-06',
+          ...stored,
+        ])?.inRoll,
+      ).toBe(false);
+    });
+
+    it('여러 leg 규칙(미국형 CL BCBCLI)은 늘 월물이 셋이어도 롤 영업일만 롤 구간이다', () => {
+      expect(
+        provisionalOn('2026-10-06', ['2026-10-01', '2026-10-02', '2026-10-05'], clUs)?.inRoll,
+      ).toBe(false);
+      expect(provisionalOn('2026-10-02', ['2026-10-01'], clUs)?.inRoll).toBe(true);
+    });
   });
 
   it('저장된 마지막 봉과 같은 거래일이거나 가격이 없는 스냅숏은 쓰지 않는다', () => {

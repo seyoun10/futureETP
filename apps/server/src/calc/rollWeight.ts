@@ -175,6 +175,26 @@ function priceOf(day: RollInputDay, symbol: string): number {
   return price;
 }
 
+// 그 달 leg별 이번 달·다음 달 보유 월물. 월물이 바뀌거나 재조정 달이면 롤한다
+function monthLegs(commodityCode: CommodityCode, params: RollRuleParams, tradeDate: string) {
+  const year = Number(tradeDate.slice(0, 4));
+  const mon = Number(tradeDate.slice(5, 7));
+  const rebalanceMonth = params.rebalance?.months.includes(mon) ?? false;
+  return params.legs.map((leg) => {
+    const lead = heldSymbol(commodityCode, leg.hold[mon - 1], year);
+    const next = heldSymbol(commodityCode, leg.hold[mon % 12], mon === 12 ? year + 1 : year);
+    return { lead, next, rolling: lead !== next || rebalanceMonth };
+  });
+}
+
+function rollsOn(
+  params: RollRuleParams,
+  legs: readonly { rolling: boolean }[],
+  businessDay: number,
+): boolean {
+  return legs.some((l) => l.rolling) && params.rollDays.includes(businessDay);
+}
+
 // 거래일(오름차순)마다 그날 종가 뒤 월물 비중을 낸다.
 // leg 수량은 롤해도 유지하고, 재조정 달에는 재조정일 종가에 다음 월물 가격으로 새 수량을 정해
 // 롤 기간에 옮긴다(BCBCLI CIM). leg가 하나면 수량이 정규화로 지워지므로 가격을 쓰지 않는다.
@@ -196,7 +216,6 @@ export function expandRollWeights(
   let qNew: number[] = [];
 
   for (const day of days) {
-    const year = Number(day.tradeDate.slice(0, 4));
     const mon = Number(day.tradeDate.slice(5, 7));
     const first = result.length === 0;
 
@@ -211,11 +230,7 @@ export function expandRollWeights(
     if (isBusinessDay) businessDay++;
 
     const rebalanceMonth = params.rebalance?.months.includes(mon) ?? false;
-    const legs = params.legs.map((leg) => {
-      const lead = heldSymbol(commodityCode, leg.hold[mon - 1], year);
-      const next = heldSymbol(commodityCode, leg.hold[mon % 12], mon === 12 ? year + 1 : year);
-      return { lead, next, rolling: lead !== next || rebalanceMonth };
-    });
+    const legs = monthLegs(commodityCode, params, day.tradeDate);
     const share = oldShareAt(params, businessDay);
     const shareOf = (rolling: boolean) => (rolling ? share : 1);
 
@@ -264,9 +279,25 @@ export function expandRollWeights(
     result.push({
       tradeDate: day.tradeDate,
       weights,
-      inRollPeriod:
-        isBusinessDay && legs.some((l) => l.rolling) && params.rollDays.includes(businessDay),
+      inRollPeriod: isBusinessDay && rollsOn(params, legs, businessDay),
     });
   }
   return result;
+}
+
+// 거래일 T가 롤 구간(그날 종가에 비중이 옮겨지는 영업일)인지. T의 비중을 아직 만들지 않은 장중 잠정 봉에 쓴다.
+// monthTradeDates는 T가 속한 달 1일부터 T까지의 거래일(trading_day)이다
+export function isRollPeriodDay(
+  commodityCode: CommodityCode,
+  params: RollRuleParams,
+  tradeDate: string,
+  monthTradeDates: readonly string[],
+): boolean {
+  const month = tradeDate.slice(0, 7);
+  const biz = businessDays(
+    params.calendar,
+    monthTradeDates.filter((d) => d.slice(0, 7) === month && d <= tradeDate),
+  );
+  if (!biz.has(tradeDate)) return false;
+  return rollsOn(params, monthLegs(commodityCode, params, tradeDate), biz.size);
 }
