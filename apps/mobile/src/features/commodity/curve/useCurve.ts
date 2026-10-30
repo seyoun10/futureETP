@@ -1,5 +1,6 @@
 import type { CommodityCode } from '@futureetp/shared';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { chartCacheOptions } from '@/api/chartCache';
 import { getCurve } from '@/api/commodities';
 import { queryKeys } from '@/api/queryKeys';
 
@@ -9,4 +10,5 @@ export const useCurve = (code: CommodityCode, baseDate: string | null) =>
     queryKey: queryKeys.commodities.curve(code, baseDate),
     queryFn: ({ signal }) => getCurve(code, baseDate, signal),
     placeholderData: keepPreviousData,
+    ...chartCacheOptions,
   });

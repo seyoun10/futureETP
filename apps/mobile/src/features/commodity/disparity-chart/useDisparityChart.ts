@@ -1,5 +1,6 @@
 import type { CommodityCode } from '@futureetp/shared';
 import { skipToken, useQuery } from '@tanstack/react-query';
+import { chartCacheOptions } from '@/api/chartCache';
 import { getDisparityChart } from '@/api/commodities';
 import { queryKeys } from '@/api/queryKeys';
 import { useSettings } from '@/features/settings/useSettings';
@@ -18,6 +19,7 @@ export function useDisparityChart(code: CommodityCode) {
       ? queryKeys.commodities.disparity(code, params)
       : [...queryKeys.commodities.detail(code), 'disparity'],
     queryFn: params ? ({ signal }) => getDisparityChart(code, params, signal) : skipToken,
+    ...chartCacheOptions,
   });
   return { settings, chart };
 }
