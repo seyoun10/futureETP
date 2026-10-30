@@ -96,6 +96,9 @@ export const CurveChart = memo(function CurveChart({
     const slot = (right - left) / points.length;
     const x = (i: number) => left + slot * (i + 0.5);
     const y = (v: number) => dataTop + (yMax - v) / perPx;
+    // 점 가운데에 맞춘 글자. 첫·끝 칸에서 칸 반폭보다 넓으면 그림 영역 안으로 민다
+    const textX = (i: number, width: number) =>
+      Math.min(Math.max(x(i) - width / 2, left), right - width);
     return {
       ticks: fullTicks,
       tickLabels,
@@ -105,6 +108,7 @@ export const CurveChart = memo(function CurveChart({
       slot,
       x,
       y,
+      textX,
     };
   }, [points, priceDecimals, size, overlay]);
 
@@ -230,7 +234,7 @@ export const CurveChart = memo(function CurveChart({
                 pct !== null && (
                   <SkText
                     key={`p${p.label}`}
-                    x={px - numberFont.measureText(pct.text).width / 2}
+                    x={layout.textX(i, numberFont.measureText(pct.text).width)}
                     y={top - DOT - LABEL_GAP}
                     text={pct.text}
                     font={numberFont}
@@ -240,7 +244,7 @@ export const CurveChart = memo(function CurveChart({
                 i % monthStride === 0 && (
                   <SkText
                     key={`m${p.label}`}
-                    x={px - numberFont.measureText(p.label).width / 2}
+                    x={layout.textX(i, numberFont.measureText(p.label).width)}
                     y={size.height - spacing.xs}
                     text={p.label}
                     font={numberFont}
