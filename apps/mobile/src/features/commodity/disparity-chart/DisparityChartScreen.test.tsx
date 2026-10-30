@@ -99,7 +99,7 @@ beforeEach(() => {
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
-  it('가장 과거 봉이 보이면 그 날짜 이전 5년을 받아 앞에 붙이고, 받는 동안 로딩 표시를 띄운다', async () => {
+  it('가장 과거 봉이 보이면 그 날짜 이전 3년을 받아 앞에 붙이고, 받는 동안 로딩 표시를 띄운다', async () => {
     let resolveOlder: (data: DisparityChart) => void = () => {};
     mockGet
       .mockResolvedValueOnce({ ...DATA, hasMore: true })

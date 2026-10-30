@@ -28,7 +28,7 @@ export function mergeContractPages(data: InfiniteData<ContractsChart>): Contract
   };
 }
 
-// 서버는 5년씩 준다(D-104). 다음 페이지는 지금까지 받은 가장 이른 날보다 이전 5년이다
+// 서버는 3년씩 준다(D-104). 다음 페이지는 지금까지 받은 가장 이른 날보다 이전 3년이다
 export const useContracts = (code: CommodityCode) =>
   useInfiniteQuery({
     queryKey: queryKeys.commodities.contracts(code),

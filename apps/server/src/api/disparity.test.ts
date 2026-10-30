@@ -123,7 +123,7 @@ describe('GET /v1/commodities/:code/disparity', () => {
     ]);
   });
 
-  it('before를 주면 그 날짜보다 이른 봉만 준다(이전 5년 더 받기)', async () => {
+  it('before를 주면 그 날짜보다 이른 봉만 준다(이전 3년 더 받기)', async () => {
     const data = await parse(
       await setup(`/v1/commodities/CL/disparity?${QUERY}&before=2026-10-21`),
     );

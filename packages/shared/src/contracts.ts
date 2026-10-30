@@ -16,8 +16,8 @@ export const contractsChartSchema = z
   .object({
     freshness: freshnessSchema,
     priceDecimals: z.number().int().nonnegative(),
-    // 거래일 오름차순. 가장 이른 월물의 첫 일봉부터 D까지 중 최근 5년씩 준다.
-    // before를 주면 그 날짜보다 이른 5년이다(D-104)
+    // 거래일 오름차순. 가장 이른 월물의 첫 일봉부터 D까지 중 최근 3년씩 준다.
+    // before를 주면 그 날짜보다 이른 3년이다(D-104)
     dates: z.array(z.iso.date()),
     // dates보다 이른 날이 더 있는지
     hasMore: z.boolean(),

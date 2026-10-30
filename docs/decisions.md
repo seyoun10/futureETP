@@ -1651,16 +1651,16 @@
   - 가로 모드(C-a~C-c)는 title-bar와 차트 영역만 남긴다. tab-bar·기준 시각 줄·차트 아래 줄(기간 칩, C-b 기준일 버튼, 스켈레톤의 같은 자리)을 숨기고 홈 인디케이터 여백만 둔다. 탭 전환·기간 선택·기준일 이동은 [⟲]로 세로로 돌아가서 한다. 기준 시각 줄이 없어 가로에서는 지연·장 상태가 보이지 않는다.
 - 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, `CommodityTabsLayout`(가로 tab-bar 높이 32 삭제), `PeriodChips`·`ChartSkeleton`·`CurveScreen` 가로 숨김, screens.md C-a 롤 표시·C 가로 모드. D-087의 대표월물 마커와 D-076의 가로 tab-bar 유지를 대체한다.
 
-## D-104: 차트 데이터는 5년 단위로 받고, 가장 과거 봉이 보이면 이전 5년을 더 받는다
+## D-104: 차트 데이터는 3년 단위로 받고, 가장 과거 봉이 보이면 이전 3년을 더 받는다
 - 날짜: 2026-10-30
-- 상태: 확정 (사용자 요청. 처음에는 앱에서 최근 5년만 그리기로 했다가 서버 5년 단위 + 이어 받기로 바꿈)
+- 상태: 확정 (사용자 요청. 앱에서 최근 5년만 그리기 → 서버 5년 단위 + 이어 받기 → 3년 단위로 바꿈)
 - 맥락: iPhone dev 번들 측정에서 C-a 첫 그리기(봉 4,126개, 봉 경로·선 11개)가 JS 스레드를 약 1.6초 막았다. 응답 수신·파싱·zod·모델 계산은 합쳐 0.3~0.6초다. CartesianChart props 고정으로 반복 재계산은 없앴고(9~13초 → 0.6~2.3초), 남은 것은 봉 수에 비례하는 첫 그리기 비용이다. 기간 버튼은 최대 12M이다(D-102).
 - 결정
-  - 서버: `GET /v1/commodities/:code/disparity`·`/contracts`에 `before`(날짜, 선택)를 받는다. 전체를 계산한 뒤 `before`보다 이른 마지막 1,260거래일(5 × 252, `api/chartPage.ts`)을 주고, 그보다 이른 날이 남았는지 `hasMore`로 알린다. `before`가 없으면 최근 5년이다. 이평선·보유 월물·rare 레벨·꼬리 백분위·분포는 전체 기간 기준 그대로다.
+  - 서버: `GET /v1/commodities/:code/disparity`·`/contracts`에 `before`(날짜, 선택)를 받는다. 전체를 계산한 뒤 `before`보다 이른 마지막 756거래일(3 × 252, `api/chartPage.ts`)을 주고, 그보다 이른 날이 남았는지 `hasMore`로 알린다. `before`가 없으면 최근 3년이다. 이평선·보유 월물·rare 레벨·꼬리 백분위·분포는 전체 기간 기준 그대로다.
   - 앱: C-a·C-c 조회는 `useInfiniteQuery`다. 다음 페이지 `before`는 받은 가장 이른 봉의 날짜이고, `select`가 페이지를 한 응답으로 합친다(C-c 월물은 최근 페이지 목록 기준, 이전 페이지에 없는 월물은 null). 새로고침은 모든 페이지를 차례로 다시 받는다.
-  - 보이는 범위의 첫 봉이 순번 0(가장 과거 봉)이 되면(왼쪽으로 끌기·축소) 이전 5년을 받는다(`charts/useOlderPages.ts`). 범위가 바뀔 때만 확인해 실패해도 같은 자리에서 반복 요청하지 않는다.
+  - 보이는 범위의 첫 봉이 순번 0(가장 과거 봉)이 되면(왼쪽으로 끌기·축소) 이전 3년을 받는다(`charts/useOlderPages.ts`). 범위가 바뀔 때만 확인해 실패해도 같은 자리에서 반복 요청하지 않는다.
   - 받는 동안 차트 왼쪽 가운데에 로딩 표시를 띄운다(`OlderDataIndicator`).
   - 앞에 봉이 붙으면 보던 날짜 범위를 같은 화면 위치에 다시 맞춘다(`fitTransform.shiftedView`, `useChartViewport`의 `dates`).
-- 근거: 처음 그리는 봉이 약 3분의 1이고 응답도 800KB → 약 250KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
-- 위험: 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
+- 근거: 처음 그리는 봉이 약 5분의 1이고 응답도 800KB → 약 150KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
+- 위험: 앞에 붙기 전 좌표는 JS ref(`rawGeom`)에서 읽는다(`geom.get()`은 JS에서 이전 값을 읽어 보던 범위를 잃었다). 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
 - 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md.

@@ -14,7 +14,7 @@ const disparityParams = (settings: Settings): DisparityParams => ({
   levels: settings.rareLevels,
 });
 
-// 서버는 5년씩 준다(D-104). 다음 페이지는 지금까지 받은 가장 이른 봉보다 이전 5년이다
+// 서버는 3년씩 준다(D-104). 다음 페이지는 지금까지 받은 가장 이른 봉보다 이전 3년이다
 const nextBefore = (last: DisparityChart) => (last.hasMore ? last.bars[0]?.tradeDate : undefined);
 
 // 최근 페이지(pages[0])의 값에 이전 페이지 봉을 앞에 붙여 한 응답처럼 만든다

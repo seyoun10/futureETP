@@ -50,7 +50,7 @@ export const disparityChartSchema = z.object({
   currentTail: z.object({ side: z.enum(DIRECTIONS), pct: z.number() }).nullable(),
   // 마지막 봉이 장중 스냅숏으로 만든 오늘 잠정 봉인지
   provisional: z.boolean(),
-  // 거래일 오름차순. 최근 5년씩 준다. before를 주면 그 날짜보다 이른 5년이다(D-104)
+  // 거래일 오름차순. 최근 3년씩 준다. before를 주면 그 날짜보다 이른 3년이다(D-104)
   bars: z.array(disparityBarSchema),
   // bars보다 이른 봉이 더 있는지
   hasMore: z.boolean(),

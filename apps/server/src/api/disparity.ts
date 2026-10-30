@@ -46,7 +46,7 @@ export type DisparityQuery = {
   window: Window;
   // 오름차순 5개
   levels: number[];
-  // 이 날짜보다 이른 봉만(이전 5년 더 받기). 없으면 최근 5년
+  // 이 날짜보다 이른 봉만(이전 3년 더 받기). 없으면 최근 3년
   before?: string;
 };
 

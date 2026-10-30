@@ -14,7 +14,7 @@ export const getCommodities = (signal?: AbortSignal) =>
 export const getDisparityChart = (
   code: CommodityCode,
   { basis, ma, window, levels }: DisparityParams,
-  // 이 날짜보다 이른 5년(없으면 최근 5년, D-104)
+  // 이 날짜보다 이른 3년(없으면 최근 3년, D-104)
   before: string | undefined,
   signal?: AbortSignal,
 ) =>

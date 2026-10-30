@@ -29,8 +29,8 @@ export type ContractsStore = Pick<
 const LOOKBACK_DAYS = 30;
 const LOOKAHEAD_DAYS = 10;
 
-// GET /v1/commodities/:code/contracts(C-c, D-092). A와 같은 월물 목록의 원가격 선을 최근 5년씩 준다(D-104).
-// before를 주면 그 날짜보다 이른 5년이다
+// GET /v1/commodities/:code/contracts(C-c, D-092). A와 같은 월물 목록의 원가격 선을 최근 3년씩 준다(D-104).
+// before를 주면 그 날짜보다 이른 3년이다
 export async function loadContracts(
   store: ContractsStore,
   code: CommodityCode,

@@ -121,7 +121,8 @@ export function useChartViewport({
     const shift = prepended.current;
     prepended.current = 0;
     const prev = fittedGeom.current;
-    fittedGeom.current = geom.get();
+    // geom.get()은 JS에서 이전 값을 읽을 수 있어 onGeom이 바로 쓰는 ref를 쓴다(x 좌표는 정보 줄 높이와 무관)
+    fittedGeom.current = rawGeom.current;
     scheduleOnUI(() => {
       'worklet';
       const g = geom.get();
