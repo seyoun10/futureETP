@@ -1,5 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
-import { AndroidConfig, withAndroidStyles } from 'expo/config-plugins';
+import { AndroidConfig, withAndroidStyles, withEntitlementsPlist } from 'expo/config-plugins';
 import type { ConfigPlugin } from 'expo/config-plugins';
 
 // expo-modules-core가 process.env 값을 any로 선언해서 string으로 좁혀 읽는다.
@@ -46,65 +46,79 @@ const withDarkDatePickerDialog: ConfigPlugin = (config) =>
     return mod;
   });
 
-export default ({ config }: ConfigContext): ExpoConfig =>
-  withDarkDatePickerDialog({
-    ...config,
-    name: isDev ? 'futureETP Dev' : 'futureETP',
-    slug: 'futureetp',
-    version: '1.0.0',
-    // 가로 잠금은 C-a~C-c [⟲]에서만 한다. 'portrait'면 iOS가 가로 잠금을 거부한다(D-076).
-    orientation: 'default',
-    icon: './assets/images/icon.png',
-    scheme: isDev ? 'futureetp-dev' : 'futureetp',
-    userInterfaceStyle: 'dark',
-    backgroundColor: '#000000',
-    ios: {
-      bundleIdentifier: appId,
-      // iPad에서 화면 잠금이 동작하는 조건(expo-screen-orientation)
-      requireFullScreen: true,
-    },
-    android: {
-      package: appId,
-      adaptiveIcon: {
-        backgroundColor: '#000000',
-        foregroundImage: './assets/images/android-icon-foreground.png',
-        backgroundImage: './assets/images/android-icon-background.png',
-        monochromeImage: './assets/images/android-icon-monochrome.png',
-      },
-      predictiveBackGestureEnabled: false,
-      // Firebase 설정(D-037). dev·prod 두 package가 한 파일에 들어 있다. API 키가 있어 커밋하지 않는다(.gitignore).
-      googleServicesFile: './google-services.json',
-    },
-    plugins: [
-      'expo-router',
-      'expo-localization',
-      'expo-sqlite',
-      // 기본값으로 Android 자동 백업에서 SecureStore 값을 뺀다(복원된 암호문은 읽을 수 없음)
-      'expo-secure-store',
-      // 접근 키 QR 읽기만 쓴다(D-044). 녹화를 하지 않으므로 마이크 권한은 넣지 않는다.
-      [
-        'expo-camera',
-        {
-          cameraPermission: 'Allow $(PRODUCT_NAME) to scan the server access key QR code.',
-          microphonePermission: false,
-          recordAudioAndroid: false,
-        },
-      ],
-      // 서버가 채널을 지정해 보내므로(shared ANDROID_CHANNELS) 기본 채널은 두지 않는다. 채널은 앱이 실행 때 만든다.
-      'expo-notifications',
-      ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
-      [
-        'expo-splash-screen',
-        {
-          backgroundColor: '#000000',
-          image: './assets/images/splash-icon.png',
-          imageWidth: 76,
-        },
-      ],
-    ],
-    experiments: {
-      typedRoutes: true,
-      reactCompiler: true,
-    },
-    extra,
+// 무료 Apple ID(Personal Team)는 Push 권한을 서명하지 못해 실기기 빌드가 실패한다(D-039).
+// IOS_PERSONAL_TEAM=1일 때만 expo-notifications가 넣는 aps-environment를 뺀다. iOS 푸시 등록은 원래 하지 않는다.
+const withoutPushEntitlement: ConfigPlugin = (config) =>
+  withEntitlementsPlist(config, (mod) => {
+    delete mod.modResults['aps-environment'];
+    return mod;
   });
+
+// 나중에 등록한 mod가 먼저 실행된다. plugins 배열(expo-notifications)보다 먼저 등록해 마지막에 돌게 한다.
+const withPersonalTeam: ConfigPlugin = (config) =>
+  env.IOS_PERSONAL_TEAM === '1' ? withoutPushEntitlement(config) : config;
+
+export default ({ config }: ConfigContext): ExpoConfig =>
+  withPersonalTeam(
+    withDarkDatePickerDialog({
+      ...config,
+      name: isDev ? 'futureETP Dev' : 'futureETP',
+      slug: 'futureetp',
+      version: '1.0.0',
+      // 가로 잠금은 C-a~C-c [⟲]에서만 한다. 'portrait'면 iOS가 가로 잠금을 거부한다(D-076).
+      orientation: 'default',
+      icon: './assets/images/icon.png',
+      scheme: isDev ? 'futureetp-dev' : 'futureetp',
+      userInterfaceStyle: 'dark',
+      backgroundColor: '#000000',
+      ios: {
+        bundleIdentifier: appId,
+        // iPad에서 화면 잠금이 동작하는 조건(expo-screen-orientation)
+        requireFullScreen: true,
+      },
+      android: {
+        package: appId,
+        adaptiveIcon: {
+          backgroundColor: '#000000',
+          foregroundImage: './assets/images/android-icon-foreground.png',
+          backgroundImage: './assets/images/android-icon-background.png',
+          monochromeImage: './assets/images/android-icon-monochrome.png',
+        },
+        predictiveBackGestureEnabled: false,
+        // Firebase 설정(D-037). dev·prod 두 package가 한 파일에 들어 있다. API 키가 있어 커밋하지 않는다(.gitignore).
+        googleServicesFile: './google-services.json',
+      },
+      plugins: [
+        'expo-router',
+        'expo-localization',
+        'expo-sqlite',
+        // 기본값으로 Android 자동 백업에서 SecureStore 값을 뺀다(복원된 암호문은 읽을 수 없음)
+        'expo-secure-store',
+        // 접근 키 QR 읽기만 쓴다(D-044). 녹화를 하지 않으므로 마이크 권한은 넣지 않는다.
+        [
+          'expo-camera',
+          {
+            cameraPermission: 'Allow $(PRODUCT_NAME) to scan the server access key QR code.',
+            microphonePermission: false,
+            recordAudioAndroid: false,
+          },
+        ],
+        // 서버가 채널을 지정해 보내므로(shared ANDROID_CHANNELS) 기본 채널은 두지 않는다. 채널은 앱이 실행 때 만든다.
+        'expo-notifications',
+        ['expo-screen-orientation', { initialOrientation: 'PORTRAIT_UP' }],
+        [
+          'expo-splash-screen',
+          {
+            backgroundColor: '#000000',
+            image: './assets/images/splash-icon.png',
+            imageWidth: 76,
+          },
+        ],
+      ],
+      experiments: {
+        typedRoutes: true,
+        reactCompiler: true,
+      },
+      extra,
+    }),
+  );
