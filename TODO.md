@@ -115,7 +115,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 지수 재현 검증(D-048): 한국형·미국형 지수 일일 수익률을 대표 ETP(KODEX WTI원유선물(H), UCO·BOIL 등 1x 환산)와 비교 (2026-10-28, D-089: 미국형 3규칙 ProShares NAV와 일치, 금·은 한국형은 미국형으로 대신)
   - [x] 한국형 CL·NG: KRX Open API 인증키 발급 뒤 KODEX WTI원유선물(H) NAV 이력으로 다시 비교(종가로는 FRONT와 구분 안 됨) (2026-10-28, KRX가 주는 S&P GSCI 지수 값으로 CL·GC·SI KR 일치, NG는 비교 대상 없음, D-089)
     - [x] `NYSE_ONLY_CLOSED`에서 2025-01-09 빼기(S&P가 그날 계산·롤함, 2018-12-05는 지금대로) 후 재계산 (2026-10-28)
-- [ ] **[다음 작업]** Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
+- [x] Massive Basic 가입·실측: 정산가 필드·반영 시각·티커 형식·여러 월물 일괄 조회, Databento와 정산가 일치 → Massive 수집기(`SettlementSource`) + `DAILY_SETTLE`·`SETTLE_REVISION` 실소스 연결(`handlers.ts`의 prod 소스, D-071)
   - [x] 가입·필드·티커 형식·일괄 조회·Databento 정산가 일치 실측 (2026-10-28, `docs/research/market-data.md`: 정산가 일치, 월물별 1회, 거래 없는 날 봉 없음, 거래량 기준 다름)
   - [x] Massive 수집기(`sources/massiveSettlement.ts`) + `DAILY_SETTLE`·`SETTLE_REVISION` 연결(prod·키 있는 dev), 가까운 26개 제한, 정정은 같은 소스 일봉만 (2026-10-28, D-095)
   - [x] 정산가 반영 시각 실측: 대표월물 13:00~13:35 CT 반영, 17:00 CT 뒤 드문 월물 봉이 다음 세션으로 넘어가 18:30 실행은 26개 중 일부만 받음 → 정산 16:05 CT로 당김 (2026-10-29, D-101)
@@ -182,14 +182,14 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - [ ] 실기기에서 같은 항목·핀치 확대 확인
 
 ### 5-7. 장중 배치
-- [ ] Yahoo 실측: 다중 심볼 quote·당일 고가·저가 누적 시작 시각(17:00 CT 여부)·지연 시각 → 호출 전략 결정
+- [x] Yahoo 실측: 다중 심볼 quote·당일 고가·저가 누적 시작 시각(17:00 CT 여부)·지연 시각 → 호출 전략 결정
   - [x] 실측: quote는 crumb 필요(401), spark는 20개·종가만, chart는 월물별·제한 없음, 고가·저가·거래량은 17:00 CT 세션 누적, 약 10분 지연 (2026-10-28, `docs/research/market-data.md`)
   - [x] 호출 전략 결정: 지수 월물은 chart, 나머지 커브 월물은 spark (2026-10-28, D-094)
-- [ ] `INTRADAY` 작업: `intraday_snapshot`·`index_snapshot`(이평선 4종 이격도), 정산 대기·휴장 중지, 응답 형식 검증 실패 = 배치 실패
+- [x] `INTRADAY` 작업: `intraday_snapshot`·`index_snapshot`(이평선 4종 이격도), 정산 대기·휴장 중지, 응답 형식 검증 실패 = 배치 실패
   - [x] Yahoo 장중 소스(`sources/yahooIntraday.ts`): chart 세션 값·spark 현재가, 404 월물은 빠짐, 응답 zod 검증 (2026-10-28, D-094)
   - [x] 작업 본체(`jobs/intraday.ts`): OPEN일 때만, 커브 월물 24개 + 보유 월물 → `intraday_snapshot`, 기준값별 잠정 지수·이평선 4종 이격도 → `index_snapshot` (2026-10-28, D-094). 실데이터 확인은 저장 없이만 했다(dev DB가 10/26까지라 정산 대기)
   - [x] 첫 `DAILY_SETTLE` 뒤 dev에서 저장까지 1회 실행, `INTRADAY_EXPECTED_MS` 실측: 10/28 20:58 CT(10/29 세션 야간) 1회 7.4초, `intraday_snapshot` 52행·`index_snapshot` 12행, CL 알림 UP 5% 1건 FCM 접수(나머지 레벨 SUPPRESSED). 기기(에뮬레이터)는 꺼져 있었고, 뒤에 보낸 테스트 푸시가 FCM 보관 메시지를 덮어써 이 알림은 받지 못함(notification 메시지는 기본 덮어쓰기, 기기가 꺼진 동안 쌓인 알림은 마지막 1건만 남음). 테스트 푸시는 백그라운드에서 수신 확인. 야간이라 Yahoo spark 현재가 없는 먼 월물이 많음(GC 6·SI 5·CL 17·NG 24개 수집) (2026-10-28)
-- [ ] A·C freshness 장중 값·오늘 잠정 봉 반영 확인
+- [x] A·C freshness 장중 값·오늘 잠정 봉 반영 확인 (2026-10-30, 10/29 19:20 CT dev `INTRADAY` 1회 5.2초 뒤 API로 확인: A·C-a·C-b·C-c 모두 `tradeDate 2026-10-30`·`OPEN`·`asOf` 19:15 CT 슬롯·`delayed`·`nextUpdateAt` 19:35 CT, A 가격·C-a 잠정 봉 종가·C-b 현재 커브·C-c 마지막 값이 같은 장중 값(CLZ26 102.69), C-a·C-c `provisional: true`. 에뮬레이터 화면은 꺼져 있어 보지 않음)
 
 ### 5-8. 알림
 - [x] 첫 푸시 준비: Firebase 프로젝트(두 package 등록)·`google-services.json`·서비스 계정 키 (D-037) (2026-10-28, 키는 저장소 밖, dry run으로 인증 확인)
