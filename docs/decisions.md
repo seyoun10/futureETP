@@ -1661,6 +1661,7 @@
   - 보이는 범위의 첫 봉이 순번 0(가장 과거 봉)이 되면(왼쪽으로 끌기·축소) 이전 3년을 받는다(`charts/useOlderPages.ts`). 범위가 바뀔 때만 확인해 실패해도 같은 자리에서 반복 요청하지 않는다.
   - 받는 동안 차트 왼쪽 가운데에 로딩 표시를 띄운다(`OlderDataIndicator`).
   - 앞에 봉이 붙으면 보던 날짜 범위를 같은 화면 위치에 다시 맞춘다(`fitTransform.shiftedView`, `useChartViewport`의 `dates`).
+  - 첫 기간 맞춤 전(기본 행렬 = 전체 봉)에는 보이는 범위를 알리지 않는다. 알리면 진입하자마자 가장 과거 봉이 보인다고 판단해 과거 데이터를 받았다.
 - 근거: 처음 그리는 봉이 약 5분의 1이고 응답도 800KB → 약 150KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
 - 위험: 앞에 붙기 전 좌표는 JS ref(`rawGeom`)에서 읽는다(`geom.get()`은 JS에서 이전 값을 읽어 보던 범위를 잃었다). 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
 - 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md.

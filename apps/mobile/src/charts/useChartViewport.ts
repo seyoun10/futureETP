@@ -199,10 +199,11 @@ export function useChartViewport({
     (i0: number, i1: number) => onVisibleRangeChange?.(i0, i1),
     [onVisibleRangeChange],
   );
+  // 첫 맞춤 전(기본 행렬 = 전체 봉)에는 알리지 않는다. 가장 과거 봉이 보인다고 잘못 알려 진입하자마자 과거 데이터를 받았다
   useAnimatedReaction(
     () => {
       const g = geom.get();
-      if (!g) return null;
+      if (!g || !fitted.get()) return null;
       const c = getTransformComponents(transform.matrix.get());
       return visibleRange(g, c.scaleX, c.translateX);
     },
