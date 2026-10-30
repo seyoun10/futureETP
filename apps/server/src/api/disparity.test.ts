@@ -110,7 +110,7 @@ describe('GET /v1/commodities/:code/disparity', () => {
       tradeDate: '2026-10-22',
       delayed: false,
       marketState: 'OPEN',
-      nextUpdateAt: '2026-10-22T15:05:00.000Z',
+      nextUpdateAt: '2026-10-22T15:01:00.000Z',
     });
     expect(data.bars.map((b) => b.close)).toEqual([100, 150]);
     expect(data.rareLevels.filter((l) => l.direction === 'UP').map((l) => l.level)).toEqual([

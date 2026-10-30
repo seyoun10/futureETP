@@ -38,10 +38,10 @@ const pastRow = (tradeDate: string): TradingDaySession => ({
 });
 
 describe('상수', () => {
-  it('일일 정산은 16:05 CT, ①은 약 25분, 장중 배치 예상 시간은 5분이다', () => {
+  it('일일 정산은 16:05 CT, ①은 약 25분, 장중 배치 예상 시간은 1분이다', () => {
     expect(SETTLE_AT).toBe('16:05');
     expect(SETTLE_STEP1_EXPECTED_MS).toBe(25 * 60_000);
-    expect(INTRADAY_EXPECTED_MS).toBe(5 * 60_000);
+    expect(INTRADAY_EXPECTED_MS).toBe(60_000);
   });
 });
 
@@ -119,19 +119,19 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '10:07'), days, '2026-10-20')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '10:20'),
+        nextUpdateAt: ct('2026-10-21', '10:16'),
       });
     });
 
     it('도는 중인 장중 배치가 있으면 그 완료 예상 시각을 준다', () => {
-      expect(marketStatus(ct('2026-10-21', '10:02'), days, '2026-10-20').nextUpdateAt).toEqual(
-        ct('2026-10-21', '10:05'),
+      expect(marketStatus(ct('2026-10-21', '10:00'), days, '2026-10-20').nextUpdateAt).toEqual(
+        ct('2026-10-21', '10:01'),
       );
     });
 
     it('완료 예상 시각 정각이면 그 배치는 끝난 것으로 본다', () => {
-      expect(marketStatus(ct('2026-10-21', '10:05'), days, '2026-10-20').nextUpdateAt).toEqual(
-        ct('2026-10-21', '10:20'),
+      expect(marketStatus(ct('2026-10-21', '10:01'), days, '2026-10-20').nextUpdateAt).toEqual(
+        ct('2026-10-21', '10:16'),
       );
     });
 
@@ -139,7 +139,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '15:52'), days, '2026-10-20')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '17:05'),
+        nextUpdateAt: ct('2026-10-21', '17:01'),
       });
     });
 
@@ -147,7 +147,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '10:07'), days, '2026-10-19')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-20',
-        nextUpdateAt: ct('2026-10-21', '10:20'),
+        nextUpdateAt: ct('2026-10-21', '10:16'),
       });
     });
 
@@ -155,7 +155,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '10:07'), days, null)).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-20',
-        nextUpdateAt: ct('2026-10-21', '10:20'),
+        nextUpdateAt: ct('2026-10-21', '10:16'),
       });
     });
   });
@@ -165,7 +165,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '16:20'), days, '2026-10-20')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '17:05'),
+        nextUpdateAt: ct('2026-10-21', '17:01'),
       });
     });
 
@@ -180,12 +180,12 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '17:00'), days, '2026-10-20')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '17:20'),
+        nextUpdateAt: ct('2026-10-21', '17:16'),
       });
       expect(marketStatus(ct('2026-10-21', '17:30'), days, '2026-10-20')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '17:50'),
+        nextUpdateAt: ct('2026-10-21', '17:46'),
       });
     });
 
@@ -193,7 +193,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '17:10'), days, '2026-10-21')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-22',
-        nextUpdateAt: ct('2026-10-21', '17:20'),
+        nextUpdateAt: ct('2026-10-21', '17:16'),
       });
     });
 
@@ -201,7 +201,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '16:40'), days, '2026-10-21')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '17:05'),
+        nextUpdateAt: ct('2026-10-21', '17:01'),
       });
     });
   });
@@ -211,7 +211,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-24', '12:00'), days, '2026-10-23')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-10-23',
-        nextUpdateAt: ct('2026-10-25', '17:05'),
+        nextUpdateAt: ct('2026-10-25', '17:01'),
       });
     });
 
@@ -219,16 +219,16 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-23', '16:30'), days, '2026-10-22')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-10-23',
-        nextUpdateAt: ct('2026-10-25', '17:05'),
+        nextUpdateAt: ct('2026-10-25', '17:01'),
       });
     });
 
     it('금요일 정산이 끝났으면 일요일 재개는 정산 대기 없이 장중이다', () => {
-      // 17:30 슬롯이 막 시작했으므로 그 완료 예상(17:35)이다
+      // 17:30 슬롯이 막 시작했으므로 그 완료 예상(17:31)이다
       expect(marketStatus(ct('2026-10-25', '17:30'), days, '2026-10-23')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-26',
-        nextUpdateAt: ct('2026-10-25', '17:35'),
+        nextUpdateAt: ct('2026-10-25', '17:31'),
       });
     });
 
@@ -236,14 +236,14 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-25', '17:30'), days, '2026-10-22')).toEqual({
         state: 'SETTLEMENT_PENDING',
         tradeDate: '2026-10-23',
-        nextUpdateAt: ct('2026-10-25', '17:50'),
+        nextUpdateAt: ct('2026-10-25', '17:46'),
       });
     });
 
-    it('서머타임이 끝나는 주말에는 CST 기준 일요일 17:05를 준다', () => {
+    it('서머타임이 끝나는 주말에는 CST 기준 일요일 17:01를 준다', () => {
       const status = marketStatus(ct('2026-10-31', '12:00'), days, '2026-10-30');
       expect(status).toMatchObject({ state: 'CLOSED', tradeDate: '2026-10-30' });
-      expect(status.nextUpdateAt?.toISOString()).toBe('2026-11-01T23:05:00.000Z');
+      expect(status.nextUpdateAt?.toISOString()).toBe('2026-11-01T23:01:00.000Z');
     });
   });
 
@@ -252,7 +252,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-11-26', '13:20'), days, '2026-11-25')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-11-27',
-        nextUpdateAt: ct('2026-11-26', '17:05'),
+        nextUpdateAt: ct('2026-11-26', '17:01'),
       });
     });
 
@@ -267,7 +267,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-11-26', '14:00'), days, '2026-11-25')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-11-27',
-        nextUpdateAt: ct('2026-11-26', '17:05'),
+        nextUpdateAt: ct('2026-11-26', '17:01'),
       });
     });
 
@@ -282,7 +282,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-11-26', '17:00'), days, '2026-11-25')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-11-27',
-        nextUpdateAt: ct('2026-11-26', '17:05'),
+        nextUpdateAt: ct('2026-11-26', '17:01'),
       });
     });
 
@@ -290,7 +290,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-11-27', '13:00'), days, '2026-11-25')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-11-27',
-        nextUpdateAt: ct('2026-11-29', '17:05'),
+        nextUpdateAt: ct('2026-11-29', '17:01'),
       });
     });
   });
@@ -300,7 +300,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-12-24', '16:30'), days, '2026-12-23')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-12-24',
-        nextUpdateAt: ct('2026-12-27', '17:05'),
+        nextUpdateAt: ct('2026-12-27', '17:01'),
       });
     });
 
@@ -308,14 +308,14 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-12-25', '10:00'), days, '2026-12-24')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-12-24',
-        nextUpdateAt: ct('2026-12-27', '17:05'),
+        nextUpdateAt: ct('2026-12-27', '17:01'),
       });
     });
 
     it('연말에서 새해 휴장을 넘어 다음 해 첫 세션을 찾는다', () => {
       const status = marketStatus(ct('2026-12-31', '16:30'), days, '2026-12-30');
       expect(status).toMatchObject({ state: 'CLOSED', tradeDate: '2026-12-31' });
-      expect(status.nextUpdateAt?.toISOString()).toBe('2027-01-03T23:05:00.000Z');
+      expect(status.nextUpdateAt?.toISOString()).toBe('2027-01-03T23:01:00.000Z');
     });
   });
 
@@ -352,7 +352,7 @@ describe('marketStatus', () => {
       expect(marketStatus(ct('2026-10-21', '10:07'), rows, '2026-10-20')).toEqual({
         state: 'OPEN',
         tradeDate: '2026-10-21',
-        nextUpdateAt: ct('2026-10-21', '10:20'),
+        nextUpdateAt: ct('2026-10-21', '10:16'),
       });
     });
   });

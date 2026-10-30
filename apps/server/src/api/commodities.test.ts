@@ -157,7 +157,7 @@ describe('GET /v1/commodities', () => {
       tradeDate: '2026-10-22',
       delayed: true,
       marketState: 'OPEN',
-      nextUpdateAt: '2026-10-22T15:05:00.000Z',
+      nextUpdateAt: '2026-10-22T15:01:00.000Z',
     });
     expect(data.commodities.map((c) => [c.code, c.priceDecimals, c.alert])).toEqual([
       ['GC', 1, false],
@@ -200,7 +200,7 @@ describe('GET /v1/commodities', () => {
       tradeDate: '2026-10-23',
       delayed: false,
       marketState: 'CLOSED',
-      nextUpdateAt: '2026-10-25T22:05:00.000Z',
+      nextUpdateAt: '2026-10-25T22:01:00.000Z',
     });
     const cl = data.commodities[1].contracts;
     expect(cl[0]).toMatchObject({ symbol: 'CLZ26', price: 78, change: -2, isFront: false });

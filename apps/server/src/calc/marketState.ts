@@ -17,8 +17,8 @@ const MINUTE = 60_000;
 export const SETTLE_AT = '16:05';
 // 일일 정산 ① 예상 소요(D-047). Massive 실측 약 23분(D-101)
 export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE;
-// 장중 배치 예상 소요. 실측 전 임시값이다(D-062).
-export const INTRADAY_EXPECTED_MS = 5 * MINUTE;
+// 장중 배치 예상 소요. 실측 5~8초에 여유를 둔 값이다(D-062).
+export const INTRADAY_EXPECTED_MS = MINUTE;
 // 장중 배치는 CT :00/:15/:30/:45. CT 오프셋이 정시 단위라 UTC 15분 배수와 같다.
 const SLOT_MS = 15 * MINUTE;
 
