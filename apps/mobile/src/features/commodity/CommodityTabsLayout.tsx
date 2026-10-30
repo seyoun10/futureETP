@@ -50,7 +50,10 @@ export function CommodityTabsLayout() {
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarIcon: () => null,
         tabBarIconStyle: { display: 'none' },
-        tabBarLabelStyle: { fontSize: fontSize.body },
+        // 아이콘 아래 라벨 배치는 탭 안쪽이 위쪽 정렬이라 아이콘 없이 라벨이 위로 붙는다.
+        // 옆 배치(가운데 정렬)로 두고 아이콘 옆 여백을 없애 라벨을 탭 한가운데에 둔다
+        tabBarLabelPosition: 'beside-icon',
+        tabBarLabelStyle: { fontSize: fontSize.body, marginStart: 0, marginEnd: 0 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: t('commodity.tabs.disparity') }} />
