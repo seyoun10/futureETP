@@ -41,6 +41,15 @@ type LinesChartProps = {
 
 const noop = () => {};
 
+// CartesianChart에 넘기는 설정은 모듈 상수·memo로 고정한다. victory-native는 yKeys·padding·축 설정이
+// 바뀌면(새 배열·객체여도) 모든 봉의 좌표를 다시 계산해, 보이는 범위가 바뀔 때마다 JS 스레드가 수 초 멈췄다
+const Y_KEYS: ('close' | 'hi' | 'lo')[] = ['close', 'hi', 'lo'];
+// 핀치·드래그는 useChartViewport의 gestures가 맡는다
+const TRANSFORM_CONFIG = { pan: { enabled: false }, pinch: { enabled: false } };
+// 라이브러리 축은 끄고 레이어로 그린다
+const X_AXIS = { font: null, lineColor: 'transparent' };
+const Y_AXES = [{ font: null, lineColor: 'transparent' }];
+
 // C-c 겹친 선차트(screens.md C-c). 선형 y축, 확대·이동·십자선은 C-a와 같은 useChartViewport다.
 // 십자선 가로선은 그날 값이 있는 첫 선(만기가 가장 가까운 월물)을 따라간다.
 export const LinesChart = memo(function LinesChart({
@@ -91,6 +100,8 @@ export const LinesChart = memo(function LinesChart({
     );
     return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + 10;
   }, [widestLabels, priceDecimals]);
+  // 여백은 x축·y축 라벨 자리
+  const padding = useMemo(() => ({ bottom: X_LABEL_HEIGHT, right: yLabelWidth }), [yLabelWidth]);
 
   if (dates.length === 0) return null;
 
@@ -99,17 +110,16 @@ export const LinesChart = memo(function LinesChart({
       <CartesianChart
         data={data}
         xKey="i"
-        yKeys={['close', 'hi', 'lo']}
+        yKeys={Y_KEYS}
         transformState={transform}
-        // 핀치·드래그는 useChartViewport의 gestures가 맡는다
-        transformConfig={{ pan: { enabled: false }, pinch: { enabled: false } }}
+        transformConfig={TRANSFORM_CONFIG}
         chartPressState={press}
         chartPressConfig={pressConfig}
         // CandleChart와 같은 이유로 legacy Gesture.Race를 넘긴다(D-056).
         customGestures={gestures as unknown as ComposedGesture}
-        xAxis={{ font: null, lineColor: 'transparent' }}
-        yAxis={[{ font: null, lineColor: 'transparent' }]}
-        padding={{ bottom: X_LABEL_HEIGHT, right: yLabelWidth }}
+        xAxis={X_AXIS}
+        yAxis={Y_AXES}
+        padding={padding}
         renderOutside={({ points, chartBounds, canvasSize, xScale, yScale }) => {
           const x0 = points.hi[0]?.x ?? 0;
           const dx = (points.hi[1]?.x ?? 0) - x0;
