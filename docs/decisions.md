@@ -118,7 +118,7 @@
 - 결정:
   - 게스트가 B에서 알림을 누르면 B-b로 가고, 로그인하면 B-a로 간다.
   - 기준 시각 줄은 `현지 일시 기준 · 거래일 MM/DD · 지연 · 장중|휴장` 형식이다.
-  - 기간 버튼은 50×44pt 고정 칩의 가로 스크롤 한 줄이다. 넘치면 `<` `>`를 두고, 끝에 닿은 방향은 비활성으로 표시한다.
+  - 기간 버튼은 50×44pt 고정 칩의 가로 스크롤 한 줄이다. 넘치면 `<` `>`를 두고, 끝에 닿은 방향은 비활성으로 표시한다. (D-102로 6개·스크롤 없는 한 줄로 대체)
   - 계정을 삭제하면 이격도차트 설정만 초기화한다.
 - 근거:
   - 현지 날짜와 CME 거래일이 다를 수 있다.
@@ -1155,7 +1155,7 @@
 - 상태: 확정
 - 맥락: TODO 5-5 두 번째 항목. D-030·D-031·D-033·D-047이 도구와 범위를 정했지만 저장 값의 형태, 기기 기본값 판정, 등락·차트 색 값, i18n 초기화와 언어 연동 방법은 정하지 않았다.
 - 결정:
-  - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
+  - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. (기간 목록·version은 D-102로 대체) 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
   - 저장소는 `expo-sqlite/kv-store`의 `Storage`를 `getItemSync`·`setItemSync`·`removeItemSync`로 감싸 넘긴다. persist 복원이 동기라 첫 렌더부터 저장된 언어·색이다.
   - 기기 기본값: 첫 기기 언어가 `ko`면 한국어, 그 밖은 영어. 첫 기기 지역이 `KR`이면 한국식, 그 밖은 미국식.
   - 테마 토큰(`src/theme/tokens.ts`)은 `colors`(배경·표면·글자·차트: 격자·눈금·십자선·현재가 회색·이평선 노랑·rare-level 5색)·`spacing`·`fontSize`다. rare-level 색은 연보라 → 진보라 5단계를 순위(0 = 가장 덜 드묾)로 고른다. 정확한 값은 차트 본 구현 때 실기기에서 조정한다.
@@ -1627,3 +1627,13 @@
   - 17:00 뒤 사라진 봉은 하루 가까이 다시 나오지 않았다(10/28 봉 7개, 10/29 12:24 CT까지). 사라지면 되찾을 수 없다고 보고 16:05 첫 실행을 놓치지 않는 것을 우선한다.
   - ②가 확인하는 전 거래일 봉은 다음 세션이 열린 뒤에도 남아 있다. 10/27 정정 확인(10/28 20:25 CT)은 저장된 62개를 모두 다시 받아 성공했고(`missing` 실패 없음), SI 드문 월물 2개(SIX26·SIF27)를 정정했다.
 - 영향: `jobs/scheduler.ts` TRIGGERS, `calc/marketState.ts` 상수, `product.md` 배치 표. D-019의 18:30 CT를 대체한다.
+
+## D-102: 기간 버튼 6개(2M~12M)·스크롤 없는 한 줄
+- 날짜: 2026-10-30
+- 상태: 확정 (사용자 요청)
+- 맥락: C-a·C-c 기간 버튼은 10개(3M~10Y·전체)라 세로 화면에서 가로 스크롤과 `<` `>` 버튼이 필요했다.
+- 결정: 기간 버튼을 2M·4M·6M·8M·10M·12M(봉 42~252개, 월 21일 어림)으로 줄이고, 칩이 줄 너비를 똑같이 나누는 스크롤 없는 한 줄로 둔다. 기본은 6M 그대로다.
+  - 12M보다 긴 범위는 핀치로 축소해서 본다. 축소 한계(데이터 전체)와 전체에서 이동 막기는 그대로다.
+  - 핀치 뒤 가장 가까운 기간 테두리는 12M보다 넓으면 12M이다.
+  - 표시 설정 persist를 version 2로 올리고, 없어진 기간(3M·9M·2Y~10Y·전체)이 저장돼 있으면 6M으로 바꾼다.
+- 영향: `stores/displaySettings.ts`, `charts/chartPeriods.ts`, `charts/PeriodChips.tsx`, i18n `chart.periods`(`scrollPrev`·`scrollNext` 삭제), screens.md C-a·C-c, product.md. D-073의 기간 목록·persist version과 D-102 이전 기간 버튼 모양(위 2026-10-22 역검증 항목)을 대체한다.

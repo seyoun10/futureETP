@@ -10,20 +10,11 @@ export type Language = (typeof LANGUAGES)[number];
 export const UP_DOWN_STYLES = ['KR', 'US'] as const;
 export type UpDownStyle = (typeof UP_DOWN_STYLES)[number];
 
-// C-a·C-c 기간 버튼. 제스처로 범위를 바꿨을 때의 선택 해제는 화면 상태라 여기 두지 않는다.
-export const CHART_PERIODS = [
-  '3M',
-  '6M',
-  '9M',
-  '12M',
-  '2Y',
-  '4Y',
-  '6Y',
-  '8Y',
-  '10Y',
-  'ALL',
-] as const;
+// C-a·C-c 기간 버튼. 한 줄에 다 들어가게 6개만 둔다. 더 긴 범위는 핀치로 본다.
+// 제스처로 범위를 바꿨을 때의 선택 해제는 화면 상태라 여기 두지 않는다.
+export const CHART_PERIODS = ['2M', '4M', '6M', '8M', '10M', '12M'] as const;
 export type ChartPeriod = (typeof CHART_PERIODS)[number];
+const DEFAULT_PERIOD: ChartPeriod = '6M';
 
 type DisplaySettingsValues = {
   language: Language;
@@ -47,9 +38,13 @@ export const defaultDisplaySettings = (
 ): DisplaySettingsValues => ({
   language: locale?.languageCode === 'ko' ? 'ko' : 'en',
   upDownStyle: locale?.regionCode === 'KR' ? 'KR' : 'US',
-  disparityPeriod: '6M',
-  contractPeriod: '6M',
+  disparityPeriod: DEFAULT_PERIOD,
+  contractPeriod: DEFAULT_PERIOD,
 });
+
+// 없어진 기간(v1의 3M·2Y·전체 등)은 기본 기간으로 바꾼다
+const knownPeriod = (value: unknown): ChartPeriod =>
+  CHART_PERIODS.find((period) => period === value) ?? DEFAULT_PERIOD;
 
 // 동기 API로 읽어 앱 시작 때 언어·색이 바뀌며 깜빡이지 않게 한다(D-030).
 const syncStorage = {
@@ -72,8 +67,16 @@ export const useDisplaySettings = create<DisplaySettingsState>()(
     }),
     {
       name: 'display-settings',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => syncStorage),
+      migrate: (persisted) => {
+        const state = persisted as Partial<DisplaySettingsValues>;
+        return {
+          ...state,
+          disparityPeriod: knownPeriod(state.disparityPeriod),
+          contractPeriod: knownPeriod(state.contractPeriod),
+        };
+      },
       partialize: ({ language, upDownStyle, disparityPeriod, contractPeriod }) => ({
         language,
         upDownStyle,

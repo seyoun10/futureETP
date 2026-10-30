@@ -43,7 +43,7 @@ beforeEach(() => {
   useDisplaySettings.setState({
     language: 'ko',
     upDownStyle: 'KR',
-    disparityPeriod: '3M',
+    disparityPeriod: '2M',
     contractPeriod: '12M',
   });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
@@ -105,7 +105,7 @@ describe('C-c 월물차트', () => {
     expect(lastChartProps().periodBars).toBe(126);
     expect(useDisplaySettings.getState()).toMatchObject({
       contractPeriod: '6M',
-      disparityPeriod: '3M',
+      disparityPeriod: '2M',
     });
   });
 

@@ -35,13 +35,13 @@ describe('useDisplaySettings', () => {
   it('바꾼 값을 kv-store에 저장한다', () => {
     useDisplaySettings.getState().setLanguage('en');
     useDisplaySettings.getState().setUpDownStyle('KR');
-    useDisplaySettings.getState().setDisparityPeriod('2Y');
-    useDisplaySettings.getState().setContractPeriod('ALL');
+    useDisplaySettings.getState().setDisparityPeriod('2M');
+    useDisplaySettings.getState().setContractPeriod('12M');
 
     const saved = JSON.parse(Storage.getItemSync('display-settings') ?? 'null') as unknown;
     expect(saved).toEqual({
-      state: { language: 'en', upDownStyle: 'KR', disparityPeriod: '2Y', contractPeriod: 'ALL' },
-      version: 1,
+      state: { language: 'en', upDownStyle: 'KR', disparityPeriod: '2M', contractPeriod: '12M' },
+      version: 2,
     });
   });
 
@@ -49,7 +49,25 @@ describe('useDisplaySettings', () => {
     Storage.setItemSync(
       'display-settings',
       JSON.stringify({
-        state: { language: 'ko', upDownStyle: 'US', disparityPeriod: '3M', contractPeriod: '6M' },
+        state: { language: 'ko', upDownStyle: 'US', disparityPeriod: '4M', contractPeriod: '6M' },
+        version: 2,
+      }),
+    );
+    await useDisplaySettings.persist.rehydrate();
+
+    expect(useDisplaySettings.getState()).toMatchObject({
+      language: 'ko',
+      upDownStyle: 'US',
+      disparityPeriod: '4M',
+      contractPeriod: '6M',
+    });
+  });
+
+  it('v1에 저장된 없어진 기간은 기본 기간(6M)으로, 남은 기간은 그대로 복원한다', async () => {
+    Storage.setItemSync(
+      'display-settings',
+      JSON.stringify({
+        state: { language: 'ko', upDownStyle: 'US', disparityPeriod: '2Y', contractPeriod: '12M' },
         version: 1,
       }),
     );
@@ -58,8 +76,8 @@ describe('useDisplaySettings', () => {
     expect(useDisplaySettings.getState()).toMatchObject({
       language: 'ko',
       upDownStyle: 'US',
-      disparityPeriod: '3M',
-      contractPeriod: '6M',
+      disparityPeriod: '6M',
+      contractPeriod: '12M',
     });
   });
 });

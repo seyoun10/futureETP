@@ -155,9 +155,9 @@ describe('C-a 이격도차트', () => {
     expect(lastChartProps().periodBars).toBeNull();
     expect(screen.getByRole('radio', { name: '12M' })).not.toBeChecked();
 
-    await fireEvent.press(screen.getByRole('radio', { name: '3M' }));
-    expect(lastChartProps().periodBars).toBe(63);
-    expect(useDisplaySettings.getState().disparityPeriod).toBe('3M');
+    await fireEvent.press(screen.getByRole('radio', { name: '2M' }));
+    expect(lastChartProps().periodBars).toBe(42);
+    expect(useDisplaySettings.getState().disparityPeriod).toBe('2M');
   });
 
   it('드래그·핀치 뒤에만 [↻]이 보이고, 누르면 선택한 기간의 최근 위치로 돌아간다', async () => {
