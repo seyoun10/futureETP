@@ -88,7 +88,7 @@ const lastChartProps = (): ChartProps => {
 
 beforeEach(() => {
   jest.mocked(getCommodities).mockResolvedValue(EMPTY_COMMODITIES);
-  useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR', disparityPeriod: '12M' });
+  useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
   mockChart.mockClear();
@@ -185,53 +185,52 @@ describe('C-a 이격도차트', () => {
     ).toBeOnTheScreen();
   });
 
-  it('기간은 기억한 12M으로 시작하고, 드래그 뒤에는 선택이 남고 핀치 뒤에는 풀리며, 칩을 누르면 그 기간을 기억한다', async () => {
+  it('기간은 6M으로 시작하고, 드래그 뒤에는 선택이 남고 핀치 뒤에는 풀리며, 칩을 누르면 그 기간으로 맞춘다', async () => {
     await renderScreen();
     await screen.findByTestId('disparity-stats');
 
-    expect(lastChartProps().periodBars).toBe(252);
-    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(lastChartProps().periodBars).toBe(126);
+    expect(screen.getByRole('radio', { name: '6M' })).toBeChecked();
 
     // 드래그는 기간 맞춤만 멈추고 선택 표시는 남긴다
     await act(() => lastChartProps().onViewChange('pan'));
     expect(lastChartProps().periodBars).toBeNull();
-    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '6M' })).toBeChecked();
 
     // 핀치하면 선택 표시가 풀리고, 이어서 드래그해도 돌아오지 않는다
     await act(() => lastChartProps().onViewChange('zoom'));
     await act(() => lastChartProps().onViewChange('pan'));
     expect(lastChartProps().periodBars).toBeNull();
-    expect(screen.getByRole('radio', { name: '12M' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: '6M' })).not.toBeChecked();
 
     await fireEvent.press(screen.getByRole('radio', { name: '2M' }));
     expect(lastChartProps().periodBars).toBe(42);
-    expect(useDisplaySettings.getState().disparityPeriod).toBe('2M');
   });
 
   it('드래그·핀치 뒤에만 [↻]이 보이고, 누르면 선택한 기간의 최근 위치로 돌아간다', async () => {
     await renderScreen();
-    await screen.findByRole('radio', { name: '12M' });
+    await screen.findByRole('radio', { name: '6M' });
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
 
     await act(() => lastChartProps().onViewChange('zoom'));
     expect(lastChartProps().periodBars).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' }));
-    expect(lastChartProps().periodBars).toBe(252);
-    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(lastChartProps().periodBars).toBe(126);
+    expect(screen.getByRole('radio', { name: '6M' })).toBeChecked();
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
   });
 
   it('드래그로 벗어났다가 기간의 최근 위치로 돌아오면 [↻]이 사라진다', async () => {
     await renderScreen();
-    await screen.findByRole('radio', { name: '12M' });
+    await screen.findByRole('radio', { name: '6M' });
 
     await act(() => lastChartProps().onViewChange('pan'));
     expect(screen.getByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeOnTheScreen();
 
     await act(() => lastChartProps().onViewChange(null));
-    expect(lastChartProps().periodBars).toBe(252);
-    expect(screen.getByRole('radio', { name: '12M' })).toBeChecked();
+    expect(lastChartProps().periodBars).toBe(126);
+    expect(screen.getByRole('radio', { name: '6M' })).toBeChecked();
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
   });
 

@@ -688,7 +688,7 @@
   - C의 tab-bar는 하단 탭이다. 스와이프로 탭을 바꾸지 않는다. C-d-a는 탭 밖 스택 화면이다.
   - 휴장일·조기 마감 입력은 `scripts/`로 한다. 스케줄 작업 `CALENDAR`는 매일 앞으로 60일 안에 `trading_day` 행이 비어 있으면 운영 알림을 보내는 점검만 한다.
     - 구현(2026-10-28): 휴장일은 행이 없어 날짜 단위로는 누락과 구분되지 않으므로, 60일이 걸친 연도마다 행이 하나라도 있는지 본다(입력이 연도 단위). 빠지면 작업 실패 → 운영 알림(`jobs/calendar.ts`). 거래일 수 점검은 두지 않는다(입력 때 연도 파일을 검증함, 사용자 확인 2026-10-28).
-  - Zustand persist는 기기별 UI 설정(언어·등락 색·C-a/C-c 기간 선택)을 담는다. 서버 데이터는 넣지 않는다.
+  - Zustand persist는 기기별 UI 설정(언어·등락 색·C-a/C-c 기간 선택)을 담는다. 서버 데이터는 넣지 않는다. (기간 선택은 D-107로 화면 상태로 옮김)
   - `daily_bar.open_interest`를 뺀다.
 - 근거:
   - 정정은 드물고 당일 값은 화면·알림에 바로 쓰인다. 해제를 약 20분 앞당기면 한국 아침의 대기 구간이 줄어든다.
@@ -1510,7 +1510,7 @@
   - 끝값 라벨: 보이는 범위에서 각 선의 마지막 값에 월물명을 붙여(`3.402 JAN27`, `PriceLabel.suffix`) 선 색으로 쓴다(2026-10-28 변경: 처음엔 전체 마지막 값이라 과거로 옮기면 라벨이 화면 밖으로 빠져 범례가 사라졌다). 범위 안에 값이 없는 선은 라벨이 없다. 우측 라벨 자리는 이동해도 바뀌지 않게 선마다 글자가 가장 긴 값으로 잰다(`widestLabels`). `YAxisLayer` `labelLayout="stack"`이면 겹치는 라벨을 빼지 않고 위에서부터 아래로 밀고, 아래 끝을 넘으면 위로 되민다(`stackLabels`). 차트 위·아래 밖 라벨은 뺀다.
   - 선 색은 만기순 순번으로 테마 토큰 `chart.contractLines` 6색(6번째는 대표월물 안전장치 월물)에서 고른다. 이평선 노랑·등락 색과 겹치지 않게 골랐다.
   - 십자선 가로선·가격 라벨은 그날 값이 있는 첫 선(만기가 가장 가까운 월물)을 따라간다. 상세 박스는 날짜(오늘 잠정 값이면 `(잠정)`)와 그날 값이 있는 월물별 가격(선 색)이다.
-  - 기간은 Zustand `contractPeriod`(최초 12M, C-a와 따로 기억, D-047)이고, 칩·제스처 동작은 C-a와 같다.
+  - 기간은 Zustand `contractPeriod`(최초 12M, C-a와 따로 기억, D-047)이고, 칩·제스처 동작은 C-a와 같다. (기억 방식은 D-107로 대체)
 - 근거: 선형 y와 봉 없는 그리기를 `CandleChart` 옵션으로 넣으면 C-a 전용 입력(OHLC·롤·꼬리표)이 C-c에 빈 값으로 따라다닌다. 제스처 동작을 hook 하나로 두면 C-a·C-c가 같게 움직인다는 요구(screens.md C-c)를 코드로 보장한다. 월물 가격은 차이가 작아(콘탱고 몇 %) 끝값 라벨이 자주 겹치는데, 우선순위로 숨기면 범례가 사라진다.
 - 영향: `CrosshairPress` 타입이 `close` 키만 요구한다(차트마다 y 키가 더 있어도 된다). `LONG_PRESS_MS`·`X_LABEL_HEIGHT`가 `useChartViewport.ts`로 옮겨졌다. jest 설정이 `LinesChart`도 mock한다.
 
@@ -1682,3 +1682,10 @@
 - 결정: `LineLayer`는 프레임마다 보이는 봉 구간(앞뒤 1봉 포함)만 화면 좌표로 경로를 만든다. 봉 간격이 1px보다 좁으면 2의 거듭제곱 간격으로 건너뛰고, 시작 순번을 간격의 배수로 맞춰 드래그 중 선 모양이 흔들리지 않게 한다(`charts/lineSampling.ts`). 프레임당 점 수는 선마다 화면 폭(px) 정도로 묶인다.
 - 위험: 건너뛴 구간의 짧은 봉우리(특히 C-c 월물 가격선)는 축소 화면에서 보이지 않는다. 확대하면 다시 보인다.
 - 영향: `charts/LineLayer.tsx`, `charts/lineSampling.ts`. 봉(Candlestick)은 그대로다. 개선 뒤에도 축소가 끊기면 봉 묶어 그리기를 검토한다.
+
+## D-107: C-a·C-c 기간은 원자재 화면에 있는 동안만 기억한다
+- 날짜: 2026-10-30
+- 상태: 확정 (사용자 요청)
+- 맥락: 기간 선택은 Zustand persist로 기기에 기억해(D-047, D-073) 다른 원자재나 다음 실행에도 마지막 기간으로 열렸다.
+- 결정: C-a·C-c 기간은 원자재에 들어올 때마다 6M으로 시작한다. 고른 기간은 원자재 스택(C 탭 4개·ETP 상세)이 떠 있는 동안 유지하고, 목록으로 나가면 잊는다. C-a와 C-c는 따로 고른다. 상태는 `CommodityLayout`의 `ChartPeriodProvider`(React state)에 두고 화면은 `useChartPeriod('disparity'|'contract')`로 읽는다. 표시 설정 store에서 `disparityPeriod`·`contractPeriod`를 빼고 persist version 3으로 올려 이전에 저장된 기간은 버린다. 기간 목록 `CHART_PERIODS`는 `charts/chartPeriods.ts`로 옮긴다.
+- 영향: `features/commodity/ChartPeriodProvider.tsx`·`CommodityLayout.tsx`, `DisparityChartScreen`·`ContractChartScreen`, `stores/displaySettings.ts`, `charts/chartPeriods.ts`·`PeriodChips.tsx`, screens.md C-a·C-c, architecture.md, tech-stack.md. D-047·D-073의 기간 persist를 대체한다.

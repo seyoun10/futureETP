@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useIsLandscape } from '@/lib/orientation';
-import { CHART_PERIODS } from '@/stores/displaySettings';
-import type { ChartPeriod } from '@/stores/displaySettings';
+import { CHART_PERIODS } from './chartPeriods';
+import type { ChartPeriod } from './chartPeriods';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 
 type PeriodChipsProps = {

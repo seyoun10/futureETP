@@ -1,5 +1,7 @@
-import { CHART_PERIODS } from '@/stores/displaySettings';
-import type { ChartPeriod } from '@/stores/displaySettings';
+// C-a·C-c 기간 버튼. 한 줄에 다 들어가게 6개만 둔다. 더 긴 범위는 핀치로 본다(D-102).
+export const CHART_PERIODS = ['2M', '4M', '6M', '8M', '10M', '12M'] as const;
+export type ChartPeriod = (typeof CHART_PERIODS)[number];
+export const DEFAULT_PERIOD: ChartPeriod = '6M';
 
 // 기간 버튼이 보여 주는 거래일 봉 수(월 21일로 어림한다)
 export const PERIOD_BARS: Record<ChartPeriod, number> = {

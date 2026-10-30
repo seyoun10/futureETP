@@ -10,24 +10,14 @@ export type Language = (typeof LANGUAGES)[number];
 export const UP_DOWN_STYLES = ['KR', 'US'] as const;
 export type UpDownStyle = (typeof UP_DOWN_STYLES)[number];
 
-// C-a·C-c 기간 버튼. 한 줄에 다 들어가게 6개만 둔다. 더 긴 범위는 핀치로 본다.
-// 제스처로 범위를 바꿨을 때의 선택 해제는 화면 상태라 여기 두지 않는다.
-export const CHART_PERIODS = ['2M', '4M', '6M', '8M', '10M', '12M'] as const;
-export type ChartPeriod = (typeof CHART_PERIODS)[number];
-const DEFAULT_PERIOD: ChartPeriod = '6M';
-
 type DisplaySettingsValues = {
   language: Language;
   upDownStyle: UpDownStyle;
-  disparityPeriod: ChartPeriod;
-  contractPeriod: ChartPeriod;
 };
 
 type DisplaySettingsState = DisplaySettingsValues & {
   setLanguage: (language: Language) => void;
   setUpDownStyle: (upDownStyle: UpDownStyle) => void;
-  setDisparityPeriod: (period: ChartPeriod) => void;
-  setContractPeriod: (period: ChartPeriod) => void;
 };
 
 type DeviceLocale = { languageCode: string | null; regionCode: string | null };
@@ -38,13 +28,7 @@ export const defaultDisplaySettings = (
 ): DisplaySettingsValues => ({
   language: locale?.languageCode === 'ko' ? 'ko' : 'en',
   upDownStyle: locale?.regionCode === 'KR' ? 'KR' : 'US',
-  disparityPeriod: DEFAULT_PERIOD,
-  contractPeriod: DEFAULT_PERIOD,
 });
-
-// 없어진 기간(v1의 3M·2Y·전체 등)은 기본 기간으로 바꾼다
-const knownPeriod = (value: unknown): ChartPeriod =>
-  CHART_PERIODS.find((period) => period === value) ?? DEFAULT_PERIOD;
 
 // 동기 API로 읽어 앱 시작 때 언어·색이 바뀌며 깜빡이지 않게 한다(D-030).
 const syncStorage = {
@@ -62,27 +46,17 @@ export const useDisplaySettings = create<DisplaySettingsState>()(
       ...defaultDisplaySettings(getLocales()[0]),
       setLanguage: (language) => set({ language }),
       setUpDownStyle: (upDownStyle) => set({ upDownStyle }),
-      setDisparityPeriod: (disparityPeriod) => set({ disparityPeriod }),
-      setContractPeriod: (contractPeriod) => set({ contractPeriod }),
     }),
     {
       name: 'display-settings',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => syncStorage),
+      // v1·v2에 저장된 C-a·C-c 기간은 버린다(원자재 화면 상태로 옮김, D-107)
       migrate: (persisted) => {
-        const state = persisted as Partial<DisplaySettingsValues>;
-        return {
-          ...state,
-          disparityPeriod: knownPeriod(state.disparityPeriod),
-          contractPeriod: knownPeriod(state.contractPeriod),
-        };
+        const { language, upDownStyle } = persisted as Partial<DisplaySettingsValues>;
+        return { ...(language && { language }), ...(upDownStyle && { upDownStyle }) };
       },
-      partialize: ({ language, upDownStyle, disparityPeriod, contractPeriod }) => ({
-        language,
-        upDownStyle,
-        disparityPeriod,
-        contractPeriod,
-      }),
+      partialize: ({ language, upDownStyle }) => ({ language, upDownStyle }),
     },
   ),
 );

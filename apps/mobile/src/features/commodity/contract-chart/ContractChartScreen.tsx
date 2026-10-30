@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
+import type { ChartPeriod } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { ChartResetButton } from '@/charts/ChartResetButton';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
@@ -16,9 +17,8 @@ import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
-import { useDisplaySettings } from '@/stores/displaySettings';
-import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
 import { contractChartModel, visibleEndLabels } from './contractChartModel';
 import type { ContractChartModel } from './contractChartModel';
@@ -61,10 +61,9 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   );
   useEffect(() => perfMark('view committed'), []);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
-  const period = useDisplaySettings((s) => s.contractPeriod);
-  const setPeriod = useDisplaySettings((s) => s.setContractPeriod);
+  const [period, setPeriod] = useChartPeriod('contract');
   // 제스처로 범위를 바꾸면 기간 맞춤을 멈춘다. 선택 표시는 핀치(확대·축소)일 때만 지운다.
-  // 기기에 기억한 기간은 그대로 둔다
+  // 고른 기간은 그대로 둔다
   const [gesture, setGesture] = useState<ChartGesture | null>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
   useOlderPages(range?.[0] ?? null, older);
