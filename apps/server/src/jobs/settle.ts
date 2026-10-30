@@ -103,7 +103,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       .slice(0, MAX_SETTLE_CONTRACTS)
       .map((c) => c.symbol);
     const bars = await source.fetchDailyBars(code, symbols, tradeDate);
-    // 소스 반영 전(D-019)이면 15분 뒤 재시도한다
+    // 소스 반영 전(D-019)이면 실패로 끝내 재시도에 맡긴다
     if (bars.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name} yet`);
     const unknown = bars.filter((b) => !symbols.includes(b.contractSymbol));
     if (unknown.length > 0) {

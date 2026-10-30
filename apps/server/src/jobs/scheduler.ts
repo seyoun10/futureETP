@@ -25,11 +25,12 @@ export const TRIGGERS: readonly Trigger[] = [
   { cron: '30 16 * * *', timezone: CHICAGO, jobs: ['BACKUP'] },
 ];
 
-// 실패 시 1회 재시도. 일일 정산은 소스 반영이 늦을 때를 위해 더 기다린다(D-019).
+// 실패 시 1회 재시도. 정산 ①은 실패한 원자재만 다시 받아(원자재당 약 6분) 17:00 CT 전에 끝나도록 짧게 기다리고,
+// 정정 확인 ②는 전 거래일 봉이 남아 있어 소스 회복을 더 기다린다(D-101).
 export const MAX_ATTEMPTS = 2;
 const MINUTE = 60_000;
 export const RETRY_DELAY_MS: Record<JobName, number> = {
-  DAILY_SETTLE: 15 * MINUTE,
+  DAILY_SETTLE: 5 * MINUTE,
   SETTLE_REVISION: 15 * MINUTE,
   INTRADAY: MINUTE,
   DEFERRED_PUSH: MINUTE,
