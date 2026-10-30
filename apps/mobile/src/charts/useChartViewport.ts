@@ -16,7 +16,13 @@ import { PERF_ENABLED, perfMark } from '@/lib/perfLog';
 import type { OverlayInsets } from './ChartOverlay';
 import { useCrosshairPosition } from './CrosshairLayer';
 import type { ChartTransform, CrosshairPress } from './CrosshairLayer';
-import { fitTransform, periodTransform, pinchTransform, visibleRange } from './fitTransform';
+import {
+  fitTransform,
+  periodTransform,
+  pinchTransform,
+  shiftedView,
+  visibleRange,
+} from './fitTransform';
 import type { CandleGeom, PinchStart, Transform } from './fitTransform';
 
 const EPSILON = 1e-3;
@@ -39,6 +45,8 @@ type ViewportOptions = {
   // 돌아오면 null로 부른다. 범위 끝에서 더 밀어 그대로면 부르지 않는다
   onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange?: (i0: number, i1: number) => void;
+  // 봉 날짜(오름차순). 과거 데이터가 앞에 붙으면 보던 날짜 범위를 그대로 둔다(D-104)
+  dates: readonly string[];
   // 차트 안에 겹친 정보 줄 높이. y 자동 맞춤이 이만큼 위·아래를 비워 봉·선이 글자 밑으로 들어가지 않는다
   dataInsets?: OverlayInsets;
 };
@@ -54,6 +62,7 @@ export function useChartViewport({
   periodBars,
   onViewChange,
   onVisibleRangeChange,
+  dates,
   dataInsets = NO_INSETS,
 }: ViewportOptions) {
   const { state: transform } = useChartTransformState();
@@ -90,6 +99,18 @@ export function useChartViewport({
     insets.current = { top: insetTop, bottom: insetBottom };
     if (rawGeom.current) applyGeom(rawGeom.current, insets.current);
   }, [applyGeom, insetTop, insetBottom]);
+  // 과거 데이터가 앞에 붙은 봉 수. 자식(봉 레이어)의 onGeom이 먼저 돌고 이 effect가 그다음이라,
+  // geomVersion이 바뀐 다음 렌더의 맞춤 effect가 이 값을 읽는다
+  const firstDate = useRef(dates[0]);
+  const prepended = useRef(0);
+  useEffect(() => {
+    const first = firstDate.current;
+    firstDate.current = dates[0];
+    const at = first === undefined ? -1 : dates.indexOf(first);
+    if (at > 0) prepended.current += at;
+  }, [dates]);
+  // 마지막으로 맞춘 봉 좌표(앞에 붙기 전 범위를 계산할 때 쓴다)
+  const fittedGeom = useRef<CandleGeom | null>(null);
   // 첫 맞춤 전에는 행렬이 기본값(전체 봉)이라 화면 진입 때 전체 기간이 몇 프레임 보인다. 맞출 때까지 감춘다
   const fitted = useSharedValue(false);
   const reportFit = PERF_ENABLED ? perfMark : null;
@@ -97,6 +118,10 @@ export function useChartViewport({
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
   useEffect(() => {
+    const shift = prepended.current;
+    prepended.current = 0;
+    const prev = fittedGeom.current;
+    fittedGeom.current = geom.get();
     scheduleOnUI(() => {
       'worklet';
       const g = geom.get();
@@ -106,7 +131,11 @@ export function useChartViewport({
         applyTransform(transform, periodTransform(g, periodBars));
       } else {
         const c = getTransformComponents(transform.matrix.get());
-        applyTransform(transform, fitTransform(g, c.scaleX, c.translateX));
+        const view =
+          shift > 0 && prev
+            ? shiftedView(prev, g, shift, c.scaleX, c.translateX)
+            : { k: c.scaleX, tx: c.translateX };
+        applyTransform(transform, fitTransform(g, view.k, view.tx));
       }
       if (!fitted.get() && reportFit) scheduleOnRN(reportFit, 'chart fitted', true);
       fitted.set(true);

@@ -147,7 +147,7 @@ type Freshness = {
   - 장 마감 뒤 그 거래일 정산 전·정산 대기: 일일 정산 ① 뒤 첫 장중 배치 완료 예상 시각(보통 19:00 CT 배치 뒤). 다시 조회했을 때 아직 대기면 서버가 다음 주기로 미룬 값을 준다.
   - 그 밖의 휴장(주말·휴장일): 다음 개장 뒤 첫 장중 배치 완료 예상 시각
 - 앱은 화면이 보이는 동안 `nextUpdateAt` + 여유 1분에 해당 query를 다시 조회한다(D-030 후속). `null`이면 자동 새로고침하지 않고 당겨서 새로고침과 앱 복귀 재조회만 한다.
-- C 차트 query(C-a·C-b·C-c)는 응답이 크고 첫 그리기가 느려 `staleTime`을 `nextUpdateAt`까지, `gcTime`을 1시간으로 둔다(`src/api/chartCache.ts`). 그 전에는 화면 재진입·앱 복귀에 다시 조회하지 않는다. A에서 원자재를 누르면 화면 전환 동안 C-a를 미리 조회한다(`prefetchDisparityChart`).
+- C 차트 query(C-a·C-b·C-c)는 응답이 크고 첫 그리기가 느려 `staleTime`을 `nextUpdateAt`까지, `gcTime`을 1시간으로 둔다(`src/api/chartCache.ts`). 그 전에는 화면 재진입·앱 복귀에 다시 조회하지 않는다. A에서 원자재를 누르면 화면 전환 동안 C-a를 미리 조회한다(`prefetchDisparityChart`). C-a·C-c는 5년 단위 무한 조회이고(`before`·`hasMore`), 가장 과거 봉이 보이면 이전 5년을 더 받는다(D-104).
 
 ### 앱 fetch 래퍼와 AppError
 - `src/api`의 래퍼가 인증 헤더, 타임아웃(15초), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.

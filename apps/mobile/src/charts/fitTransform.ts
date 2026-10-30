@@ -90,6 +90,22 @@ export function periodTransform(g: CandleGeom, barCount: number): Transform {
   return fitTransform(g, k, g.right * (1 - k));
 }
 
+// 과거 봉 shift개를 앞에 붙인 뒤에도 보던 봉 범위가 같은 화면 위치에 오도록 하는 x 배율·이동(D-104).
+// 봉 수가 바뀌면 변환 전 봉 간격(dx)도 바뀌므로 보던 범위를 소수 봉 순번으로 옮겨 다시 맞춘다
+export function shiftedView(
+  prev: CandleGeom,
+  next: CandleGeom,
+  shift: number,
+  k: number,
+  tx: number,
+): { k: number; tx: number } {
+  'worklet';
+  const f0 = ((prev.left - tx) / k - prev.x0) / prev.dx + shift;
+  const f1 = ((prev.right - tx) / k - prev.x0) / prev.dx + shift;
+  const k2 = (next.right - next.left) / ((f1 - f0) * next.dx);
+  return { k: k2, tx: next.left - k2 * (next.x0 + f0 * next.dx) };
+}
+
 // 핀치 시작 때의 x 배율·이동과 두 손가락 가운데(화면 x)
 export type PinchStart = { k: number; tx: number; focalX: number };
 

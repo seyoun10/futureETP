@@ -79,6 +79,7 @@ export const LinesChart = memo(function LinesChart({
   } = useChartViewport({
     press,
     periodBars,
+    dates,
     onViewChange,
     onVisibleRangeChange,
   });

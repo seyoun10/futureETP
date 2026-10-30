@@ -7,8 +7,11 @@ import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CandleChart } from '@/charts/CandleChart';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import { ChartResetButton } from '@/charts/ChartResetButton';
+import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
+import { useOlderPages } from '@/charts/useOlderPages';
+import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { ErrorView, QueryStateView } from '@/components/QueryStateView';
 import {
@@ -57,7 +60,12 @@ function DisparityChartContent({ code }: { code: CommodityCode }) {
   return (
     <QueryStateView query={chart} skeleton={<ChartSkeleton footer="periods" />}>
       {(data) => (
-        <DisparityChartView code={code} data={data} requestedBasis={settings.data?.basis} />
+        <DisparityChartView
+          code={code}
+          data={data}
+          requestedBasis={settings.data?.basis}
+          older={chart}
+        />
       )}
     </QueryStateView>
   );
@@ -69,7 +77,12 @@ type ViewProps = {
   requestedBasis: Basis | undefined;
 };
 
-function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
+function DisparityChartView({
+  code,
+  data,
+  requestedBasis,
+  older,
+}: ViewProps & { older: OlderPagesQuery }) {
   const { t } = useTranslation();
   useTabFreshness(data.freshness);
   const model = useMemo(
@@ -95,6 +108,7 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
     [],
   );
   const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
+  useOlderPages(range?.[0] ?? null, older);
   const renderDetail = useCallback(
     (index: number) => <CrosshairDetail model={model} index={index} data={data} />,
     [model, data],
@@ -128,6 +142,7 @@ function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
           overlayBottom={<StatsLine data={data} bars={model.bars} range={range} />}
           floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
         />
+        <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>
       <PeriodChips
         selected={gesture === 'zoom' ? null : period}

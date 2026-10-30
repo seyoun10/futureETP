@@ -1,7 +1,7 @@
 import type { DisparityBar, DisparityChart, Settings } from '@futureetp/shared';
 import type { ComponentProps } from 'react';
 import { render } from '@testing-library/react-native';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { getCommodities, getDisparityChart } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
@@ -99,6 +99,34 @@ beforeEach(() => {
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
+  it('가장 과거 봉이 보이면 그 날짜 이전 5년을 받아 앞에 붙이고, 받는 동안 로딩 표시를 띄운다', async () => {
+    let resolveOlder: (data: DisparityChart) => void = () => {};
+    mockGet
+      .mockResolvedValueOnce({ ...DATA, hasMore: true })
+      .mockReturnValueOnce(new Promise((resolve) => (resolveOlder = resolve)));
+    await renderScreen();
+    await screen.findByTestId('disparity-stats');
+    const latestCount = lastChartProps().bars.length;
+
+    // 가장 과거 봉이 아니면 받지 않는다
+    await act(() => lastChartProps().onVisibleRangeChange?.(1, 2));
+    expect(mockGet).toHaveBeenCalledTimes(1);
+
+    await act(() => lastChartProps().onVisibleRangeChange?.(0, 2));
+    expect(mockGet).toHaveBeenLastCalledWith(
+      'GC',
+      expect.anything(),
+      '2026-10-20',
+      expect.anything(),
+    );
+    expect(await screen.findByRole('progressbar', { name: '불러오는 중' })).toBeOnTheScreen();
+
+    await act(() => resolveOlder({ ...DATA, bars: [bar('2026-10-19', 88)] }));
+    await waitFor(() => expect(lastChartProps().bars).toHaveLength(latestCount + 1));
+    expect(lastChartProps().bars[0].tradeDate).toBe('2026-10-19');
+    expect(screen.queryByRole('progressbar', { name: '불러오는 중' })).toBeNull();
+  });
+
   it('가로 모드에서는 기간 칩·tab-bar·기준 시각 줄을 숨기고 차트만 남긴다', async () => {
     jest.mocked(useIsLandscape).mockReturnValue(true);
     try {

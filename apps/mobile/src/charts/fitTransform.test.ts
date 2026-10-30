@@ -3,6 +3,7 @@ import {
   MIN_VISIBLE_BARS,
   periodTransform,
   pinchTransform,
+  shiftedView,
   visibleRange,
 } from './fitTransform';
 import type { CandleGeom } from './fitTransform';
@@ -83,5 +84,26 @@ describe('pinchTransform', () => {
     const t = pinchTransform(g, start, 3, 400);
     expect(t.k).toBe(max);
     expect(t.tx).toBeCloseTo(start.tx);
+  });
+});
+
+describe('shiftedView', () => {
+  it('앞에 봉이 붙어도 보던 봉(날짜) 범위를 같은 화면 위치에 둔다', () => {
+    const prev = makeGeom();
+    // 보던 범위: 봉 50~99 근처(k=2, 오른쪽 끝)
+    const k = 2;
+    const tx = prev.right * (1 - k);
+    const before = visibleRange(prev, k, tx);
+    // 봉 100개를 앞에 붙여 200개가 되면 같은 폭에 간격이 절반이다
+    const next = {
+      ...makeGeom(),
+      x0: 2.5,
+      dx: 5,
+      highY: new Array(200).fill(0),
+      lowY: new Array(200).fill(0),
+    };
+    const view = shiftedView(prev, next, 100, k, tx);
+    expect(view.k).toBeCloseTo(4);
+    expect(visibleRange(next, view.k, view.tx)).toEqual([before[0] + 100, before[1] + 100]);
   });
 });

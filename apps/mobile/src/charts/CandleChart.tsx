@@ -98,6 +98,7 @@ export const CandleChart = memo(function CandleChart({
   });
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const dataInsets = overlay;
+  const dates = useMemo(() => bars.map((b) => b.tradeDate), [bars]);
   const {
     transform,
     detail,
@@ -108,14 +109,20 @@ export const CandleChart = memo(function CandleChart({
     gestures,
     pressConfig,
     fittedStyle,
-  } = useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange, dataInsets });
+  } = useChartViewport({
+    press,
+    periodBars,
+    onViewChange,
+    onVisibleRangeChange,
+    dates,
+    dataInsets,
+  });
 
   const data = useMemo(
     () =>
       bars.map((b, i) => ({ ...b, i, hi: envelope.hi[i] ?? b.high, lo: envelope.lo[i] ?? b.low })),
     [bars, envelope],
   );
-  const dates = useMemo(() => bars.map((b) => b.tradeDate), [bars]);
   const current = bars[bars.length - 1];
   // 우측 y축 라벨 자리(가장 큰 가격 라벨 + 여백)
   const yLabelWidth = useMemo(() => {

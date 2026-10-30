@@ -7,8 +7,11 @@ import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { ChartResetButton } from '@/charts/ChartResetButton';
+import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
+import { useOlderPages } from '@/charts/useOlderPages';
+import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
@@ -41,12 +44,12 @@ function ContractChartContent({ code }: { code: CommodityCode }) {
   useAutoRefresh(query);
   return (
     <QueryStateView query={query} skeleton={<ChartSkeleton footer="periods" />}>
-      {(data) => <ContractChartView data={data} />}
+      {(data) => <ContractChartView data={data} older={query} />}
     </QueryStateView>
   );
 }
 
-function ContractChartView({ data }: { data: ContractsChart }) {
+function ContractChartView({ data, older }: { data: ContractsChart; older: OlderPagesQuery }) {
   const { t } = useTranslation();
   useTabFreshness(data.freshness);
   const model = useMemo(() => contractChartModel(data), [data]);
@@ -57,6 +60,7 @@ function ContractChartView({ data }: { data: ContractsChart }) {
   // 기기에 기억한 기간은 그대로 둔다
   const [gesture, setGesture] = useState<ChartGesture | null>(null);
   const [range, setRange] = useState<[number, number] | null>(null);
+  useOlderPages(range?.[0] ?? null, older);
   // 끝값 라벨은 보이는 범위의 마지막 날 값이다(D-093). 범위를 받기 전에는 전체 범위
   const endLabels = useMemo(
     () => visibleEndLabels(data, range?.[0] ?? 0, range?.[1] ?? data.dates.length - 1),
@@ -103,6 +107,7 @@ function ContractChartView({ data }: { data: ContractsChart }) {
           renderDetail={renderDetail}
           floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
         />
+        <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>
       <PeriodChips
         selected={gesture === 'zoom' ? null : period}
