@@ -5,6 +5,7 @@ import type { ChartBounds, Scale } from 'victory-native';
 
 import { formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
+import { GUIDE_DASH } from './chartLayout';
 import { numberFont } from './chartText';
 import { crosshairLabelHeight } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
@@ -98,7 +99,7 @@ export function YAxisLayer({
           color={colors.chart.currentPrice}
           strokeWidth={1}
         >
-          <DashPathEffect intervals={[3, 3]} />
+          <DashPathEffect intervals={GUIDE_DASH} />
         </Line>
       )}
       {special.map((l) => (

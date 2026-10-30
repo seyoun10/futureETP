@@ -1643,7 +1643,9 @@
 - 상태: 확정 (사용자 요청)
 - 맥락: C-a 대표월물 기준은 전환일마다 x축 위에 ▲와 월 번호를 그리는 마커 줄(16pt)이 있었고, 아래 정보 줄은 이 줄을 비켜 그 위에 떠 있었다(C-c도 같은 여백).
 - 결정
-  - 대표월물 기준의 전환 마커를 그리지 않는다. 전환일의 새 월물명은 십자선 상세(`DEC26 → FEB27`)에만 남는다. 한국형·미국형 롤 음영은 그대로다.
+  - 대표월물 기준의 전환 마커 대신 전환일에 세로 점선(토큰 `rollSwitch`, 반투명 청록)을 차트 위아래 전체에 긋는다. 전환일의 새 월물명은 십자선 상세(`DEC26 → FEB27`)에서 본다. 한국형·미국형 롤 음영은 그대로다.
+  - 가이드 점선(십자선·현재가·전환일)은 `GUIDE_DASH`([2, 2])로 촘촘하게 통일한다. 십자선 점선은 라벨 상자보다 옅은 `crosshairLine`(흰색 60%)이다.
+  - C 하단 기준 시각 줄은 freshness가 없을 때(탭 전환 중·첫 조회 중)도 줄 높이를 비워 둬 tab-bar가 흔들리지 않게 한다.
   - 마커 줄 자리(`ROLL_MARKER_ROW_HEIGHT`)를 없애 아래 정보 줄을 x축 라벨 바로 위에 붙인다(C-a·C-c).
   - 가로 모드(C-a~C-c)는 title-bar와 차트 영역만 남긴다. tab-bar·기준 시각 줄·차트 아래 줄(기간 칩, C-b 기준일 버튼, 스켈레톤의 같은 자리)을 숨기고 홈 인디케이터 여백만 둔다. 탭 전환·기간 선택·기준일 이동은 [⟲]로 세로로 돌아가서 한다. 기준 시각 줄이 없어 가로에서는 지연·장 상태가 보이지 않는다.
 - 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, `CommodityTabsLayout`(가로 tab-bar 높이 32 삭제), `PeriodChips`·`ChartSkeleton`·`CurveScreen` 가로 숨김, screens.md C-a 롤 표시·C 가로 모드. D-087의 대표월물 마커와 D-076의 가로 tab-bar 유지를 대체한다.

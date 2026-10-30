@@ -60,10 +60,13 @@ export function disparityChartModel(chart: DisparityChart): DisparityChartModel 
           ? colors.chart.movingAverage
           : (colorByKey.get(label.key) ?? colors.chart.tick),
   }));
-  // 실제로 그린 기준값의 롤 정보만: 한국형·미국형은 음영(screens.md C-a 롤 표시).
-  // 대표월물은 차트에 표시하지 않고, 전환일의 새 월물명을 십자선 상세에서 보여 준다
-  const roll: RollMarks = { shading: chart.basis === 'FRONT' ? [] : rollSegments(bars) };
+  // 실제로 그린 기준값의 롤 정보만: 한국형·미국형은 음영, 대표월물은 전환일 세로 점선(screens.md C-a 롤 표시).
+  // 전환일의 새 월물명은 십자선 상세에서 보여 준다
   const switches = chart.basis === 'FRONT' ? frontSwitches(bars) : [];
+  const roll: RollMarks =
+    chart.basis === 'FRONT'
+      ? { shading: [], switches: switches.map((s) => s.index) }
+      : { shading: rollSegments(bars), switches: [] };
   const frontSwitchAt = new Map(
     switches.map((s) => [s.index, formatContractMonth(s.contractMonth)] as const),
   );

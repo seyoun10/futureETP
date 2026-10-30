@@ -1,12 +1,15 @@
-import { Group, Rect, Skia } from '@shopify/react-native-skia';
+import { DashPathEffect, Group, Line, Rect, Skia, vec } from '@shopify/react-native-skia';
 import type { ChartBounds } from 'victory-native';
 
 import { colors } from '@/theme/tokens';
+import { GUIDE_DASH } from './chartLayout';
 import { useClampedTransform } from './useClampedTransform';
 
-// 롤 표시(screens.md C-a 롤 표시). 한국형·미국형의 롤 기간 음영, [시작, 끝] 봉 순번 구간이다
+// 롤 표시(screens.md C-a 롤 표시). 음영은 한국형·미국형의 롤 기간 [시작, 끝] 봉 순번 구간,
+// switches는 대표월물 전환일 봉 순번(세로 점선)이다
 export type RollMarks = {
   shading: readonly [number, number][];
+  switches: readonly number[];
 };
 
 type RollLayerProps = RollMarks & {
@@ -18,7 +21,7 @@ type RollLayerProps = RollMarks & {
   dx: number;
 };
 
-export function RollLayer({ shading, count, chartBounds, x0, dx }: RollLayerProps) {
+export function RollLayer({ shading, switches, count, chartBounds, x0, dx }: RollLayerProps) {
   const { k, tx } = useClampedTransform(count, chartBounds);
   if (dx <= 0) return null;
   const toScreen = (i: number) => k * (x0 + i * dx) + tx;
@@ -46,6 +49,21 @@ export function RollLayer({ shading, count, chartBounds, x0, dx }: RollLayerProp
             height={chartBounds.bottom - chartBounds.top}
             color={colors.chart.rollShade}
           />
+        );
+      })}
+      {switches.map((index) => {
+        const x = toScreen(index);
+        if (x < chartBounds.left || x > chartBounds.right) return null;
+        return (
+          <Line
+            key={`w${index}`}
+            p1={vec(x, chartBounds.top)}
+            p2={vec(x, chartBounds.bottom)}
+            color={colors.chart.rollSwitch}
+            strokeWidth={1}
+          >
+            <DashPathEffect intervals={GUIDE_DASH} />
+          </Line>
         );
       })}
     </Group>

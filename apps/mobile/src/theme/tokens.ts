@@ -18,6 +18,8 @@ export const colors = {
     grid: '#2a2a2a',
     tick: '#9e9e9e',
     crosshair: '#ffffff',
+    // 십자선 점선은 라벨 상자(흰색)보다 옅게 해 봉·선을 덜 가린다
+    crosshairLine: 'rgba(255, 255, 255, 0.6)',
     crosshairText: '#000000',
     currentPrice: '#9e9e9e',
     // 노랑은 이평선 전용(screens.md C-a)
@@ -26,6 +28,8 @@ export const colors = {
     rareLevels: ['#4a3d66', '#62508a', '#7c62b0', '#9a72d8', '#b884ff'],
     // 한국형·미국형 롤 기간 음영
     rollShade: 'rgba(255, 255, 255, 0.07)',
+    // 대표월물 전환일 세로 점선. 이평선(노랑)·rare-level(보라)·등락 색과 겹치지 않는 청록
+    rollSwitch: 'rgba(77, 208, 225, 0.45)',
     // 보이는 구간 최고가·최저가 꼬리표
     extremeTag: '#e0e0e0',
     // C-b 커브: 기준일은 점선, 현재는 실선(screens.md C-b)

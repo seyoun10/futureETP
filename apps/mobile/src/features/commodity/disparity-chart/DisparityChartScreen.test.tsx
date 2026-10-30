@@ -220,7 +220,7 @@ describe('C-a 이격도차트', () => {
     expect(screen.getByText('DEC26 60% · FEB27 40%')).toBeOnTheScreen();
   });
 
-  it('대표월물은 롤 표시가 없고, 전환일 봉의 십자선 상세는 새 월물명을 이어 쓴다', async () => {
+  it('대표월물은 전환일에 세로 점선을 그리고, 그 봉의 십자선 상세는 새 월물명을 이어 쓴다', async () => {
     mockGet.mockResolvedValue({
       ...DATA,
       basis: 'FRONT',
@@ -233,7 +233,7 @@ describe('C-a 이격도차트', () => {
     await renderScreen();
     await screen.findByTestId('disparity-stats');
 
-    expect(lastChartProps().roll).toEqual({ shading: [] });
+    expect(lastChartProps().roll).toEqual({ shading: [], switches: [1] });
     await render(<>{lastChartProps().renderDetail(1)}</>);
     expect(screen.getByText('DEC26 → JAN27')).toBeOnTheScreen();
   });

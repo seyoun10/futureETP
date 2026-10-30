@@ -6,6 +6,7 @@ import { getTransformComponents } from 'victory-native';
 
 import { formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
+import { GUIDE_DASH } from './chartLayout';
 import type { ChartBounds, ChartPressState, useChartTransformState } from 'victory-native';
 
 export type ChartTransform = ReturnType<typeof useChartTransformState>['state'];
@@ -101,11 +102,11 @@ export function CrosshairLayer({
 
   return (
     <Group opacity={opacity}>
-      <Line p1={vTop} p2={vBottom} color={color} strokeWidth={1}>
-        <DashPathEffect intervals={[4, 4]} />
+      <Line p1={vTop} p2={vBottom} color={colors.chart.crosshairLine} strokeWidth={1}>
+        <DashPathEffect intervals={GUIDE_DASH} />
       </Line>
-      <Line p1={hLeft} p2={hRight} color={color} strokeWidth={1}>
-        <DashPathEffect intervals={[4, 4]} />
+      <Line p1={hLeft} p2={hRight} color={colors.chart.crosshairLine} strokeWidth={1}>
+        <DashPathEffect intervals={GUIDE_DASH} />
       </Line>
       <Rect
         x={chartBounds.right + 1}
