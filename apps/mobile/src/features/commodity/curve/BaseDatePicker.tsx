@@ -118,6 +118,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
+    textAlign: 'center',
   },
   buttons: {
     flexDirection: 'row',
