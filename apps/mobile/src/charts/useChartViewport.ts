@@ -62,7 +62,10 @@ export function useChartViewport({
   onVisibleRangeChange,
   dataInsets = NO_INSETS,
 }: ViewportOptions) {
-  const { state: transform } = useChartTransformState();
+  // victory의 useChartTransformState는 렌더링마다 새 state 객체(panActive·zoomActive도 새 값)를 돌려준다.
+  // 첫 값으로 고정해야 이 값에 의존하는 콜백·effect가 렌더링마다 다시 돌지 않는다(onGeom → setGeomVersion 무한 반복)
+  const { state: transformState } = useChartTransformState();
+  const [transform] = useState(transformState);
   const geom = useSharedValue<CandleGeom | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [detail, setDetail] = useState<ChartDetail | null>(null);
