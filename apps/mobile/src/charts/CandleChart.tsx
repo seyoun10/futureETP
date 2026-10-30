@@ -1,6 +1,7 @@
 import { memo, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, Candlestick, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
@@ -90,8 +91,17 @@ export const CandleChart = memo(function CandleChart({
     }),
     [overlay],
   );
-  const { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig } =
-    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange, dataInsets });
+  const {
+    transform,
+    detail,
+    width,
+    onLayout,
+    onGeom,
+    crosshair,
+    gestures,
+    pressConfig,
+    fittedStyle,
+  } = useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange, dataInsets });
 
   const data = useMemo(
     () =>
@@ -109,7 +119,7 @@ export const CandleChart = memo(function CandleChart({
   if (!current) return null;
 
   return (
-    <View style={styles.container} onLayout={onLayout}>
+    <Animated.View style={[styles.container, fittedStyle]} onLayout={onLayout}>
       <CartesianChart
         data={data}
         xKey="i"
@@ -204,7 +214,7 @@ export const CandleChart = memo(function CandleChart({
           {renderDetail(detail.index)}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 });
 

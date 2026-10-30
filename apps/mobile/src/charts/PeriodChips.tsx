@@ -23,6 +23,8 @@ type PeriodChipsProps = {
 
 const CHIP_WIDTH = 50;
 const CHIP_HEIGHT = 44;
+// 칩 줄 높이(ChartSkeleton이 자리를 맞춘다)
+export const PERIOD_CHIPS_HEIGHT = CHIP_HEIGHT;
 const EDGE = 1;
 
 // C-a·C-c 기간 칩 한 줄(screens.md C-a 기간과 제스처). 칩이 화면을 넘으면 양 끝에 < > 버튼을 두고,

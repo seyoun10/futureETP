@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
-import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
+import { useAnimatedReaction, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import {
   getTransformComponents,
   setScale,
@@ -89,6 +89,9 @@ export function useChartViewport({
     insets.current = { top: insetTop, bottom: insetBottom };
     if (rawGeom.current) applyGeom(rawGeom.current, insets.current);
   }, [applyGeom, insetTop, insetBottom]);
+  // 첫 맞춤 전에는 행렬이 기본값(전체 봉)이라 화면 진입 때 전체 기간이 몇 프레임 보인다. 맞출 때까지 감춘다
+  const fitted = useSharedValue(false);
+  const fittedStyle = useAnimatedStyle(() => ({ opacity: fitted.get() ? 1 : 0 }));
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
   useEffect(() => {
@@ -103,8 +106,9 @@ export function useChartViewport({
         const c = getTransformComponents(transform.matrix.get());
         applyTransform(transform, fitTransform(g, c.scaleX, c.translateX));
       }
+      fitted.set(true);
     });
-  }, [geom, geomVersion, homeBars, periodBars, transform]);
+  }, [fitted, geom, geomVersion, homeBars, periodBars, transform]);
 
   // 진행 중인 제스처(드래그·핀치가 겹치면 핀치)와 기간 범위에서 벗어났다고 알린 제스처
   const active = useSharedValue<ChartGesture | null>(null);
@@ -257,7 +261,17 @@ export function useChartViewport({
     widthValue.set(e.nativeEvent.layout.width);
   };
 
-  return { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig };
+  return {
+    transform,
+    detail,
+    width,
+    onLayout,
+    onGeom,
+    crosshair,
+    gestures,
+    pressConfig,
+    fittedStyle,
+  };
 }
 
 // 변환 전 픽셀 좌표(봉과 선의 위·아래 끝)를 worklet이 읽을 수 있게 넘긴다.

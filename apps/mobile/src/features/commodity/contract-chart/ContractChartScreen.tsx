@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
+import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { ChartResetButton } from '@/charts/ChartResetButton';
@@ -39,7 +40,9 @@ function ContractChartContent({ code }: { code: CommodityCode }) {
   const query = useContracts(code);
   useAutoRefresh(query);
   return (
-    <QueryStateView query={query}>{(data) => <ContractChartView data={data} />}</QueryStateView>
+    <QueryStateView query={query} skeleton={<ChartSkeleton footer="periods" />}>
+      {(data) => <ContractChartView data={data} />}
+    </QueryStateView>
   );
 }
 

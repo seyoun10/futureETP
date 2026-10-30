@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
+import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CandleChart } from '@/charts/CandleChart';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import { ChartResetButton } from '@/charts/ChartResetButton';
@@ -51,7 +52,7 @@ function DisparityChartContent({ code }: { code: CommodityCode }) {
     return <ErrorView error={settings.error} onRetry={() => void settings.refetch()} />;
   }
   return (
-    <QueryStateView query={chart}>
+    <QueryStateView query={chart} skeleton={<ChartSkeleton footer="periods" />}>
       {(data) => (
         <DisparityChartView code={code} data={data} requestedBasis={settings.data?.basis} />
       )}

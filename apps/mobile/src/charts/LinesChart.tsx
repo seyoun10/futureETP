@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
@@ -56,13 +57,22 @@ export const LinesChart = memo(function LinesChart({
   floating,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
-  const { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig } =
-    useChartViewport({
-      press,
-      periodBars,
-      onViewChange,
-      onVisibleRangeChange,
-    });
+  const {
+    transform,
+    detail,
+    width,
+    onLayout,
+    onGeom,
+    crosshair,
+    gestures,
+    pressConfig,
+    fittedStyle,
+  } = useChartViewport({
+    press,
+    periodBars,
+    onViewChange,
+    onVisibleRangeChange,
+  });
 
   const data = useMemo(
     () =>
@@ -85,7 +95,7 @@ export const LinesChart = memo(function LinesChart({
   if (dates.length === 0) return null;
 
   return (
-    <View style={styles.container} onLayout={onLayout}>
+    <Animated.View style={[styles.container, fittedStyle]} onLayout={onLayout}>
       <CartesianChart
         data={data}
         xKey="i"
@@ -161,7 +171,7 @@ export const LinesChart = memo(function LinesChart({
           {renderDetail(detail.index)}
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 });
 

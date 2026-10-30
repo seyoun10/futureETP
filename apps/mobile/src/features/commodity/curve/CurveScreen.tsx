@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
+import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
 import { useTabFreshness } from '@/components/FreshnessLine';
@@ -66,7 +67,7 @@ function CurveContent({ code }: { code: CommodityCode }) {
   }, []);
 
   return (
-    <QueryStateView query={curve}>
+    <QueryStateView query={curve} skeleton={<ChartSkeleton footer="steps" />}>
       {(data) => (
         <CurveView
           data={data}
