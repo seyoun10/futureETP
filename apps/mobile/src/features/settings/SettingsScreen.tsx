@@ -1,8 +1,10 @@
-import { BASES, MA_PERIODS, WINDOWS } from '@futureetp/shared';
+import { BASES, DISPARITY_SETTINGS_DEFAULTS, MA_PERIODS, WINDOWS } from '@futureetp/shared';
 import type { Settings, SettingsPatch } from '@futureetp/shared';
 import type { Href } from 'expo-router';
+import { getLocales } from 'expo-localization';
 import { router } from 'expo-router';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,10 +16,16 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useHasAccessKey } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
+import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { ErrorView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
+import {
+  defaultDisplaySettings,
+  LANGUAGES,
+  UP_DOWN_STYLES,
+  useDisplaySettings,
+} from '@/stores/displaySettings';
 import { Icon } from '@/components/Icon';
 import { KeyboardDoneBar } from '@/components/KeyboardDoneBar';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -33,13 +41,36 @@ export function SettingsScreen() {
   const update = useUpdateSettings();
   const save = (patch: SettingsPatch) => update.mutate(patch);
 
+  // 표시·이격도차트 설정만 기본값으로 되돌린다. 알림(B-a)과 접근 키는 그대로 둔다
+  const reset = () => {
+    const display = defaultDisplaySettings(getLocales()[0]);
+    const { setLanguage, setUpDownStyle } = useDisplaySettings.getState();
+    setLanguage(display.language);
+    setUpDownStyle(display.upDownStyle);
+    save({
+      ...DISPARITY_SETTINGS_DEFAULTS,
+      rareLevels: [...DISPARITY_SETTINGS_DEFAULTS.rareLevels],
+      locale: display.language,
+    });
+  };
+  const confirmReset = () =>
+    Alert.alert(t('settings.resetTitle'), t('settings.resetMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.reset'), style: 'destructive', onPress: reset },
+    ]);
+
   return (
     // iOS는 키패드만큼 화면을 줄여 [완료] 줄을 키패드 위에 둔다
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScreenHeader title={t('settings.title')} />
+      <ScreenHeader
+        title={t('settings.title')}
+        right={
+          <HeaderIconButton icon="restore" label={t('settings.reset')} onPress={confirmReset} />
+        }
+      />
       {/* rare-level 키패드는 화면을 끌거나 [완료]로 닫는다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
       <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         {update.isError && (

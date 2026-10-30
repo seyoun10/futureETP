@@ -20,12 +20,14 @@ export function CommodityTitleBar() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <HeaderIconButton
-        icon="arrow-left"
-        label={t('common.back')}
-        compact={isLandscape}
-        onPress={() => router.dismissTo('/')}
-      />
+      <View style={styles.side}>
+        <HeaderIconButton
+          icon="arrow-left"
+          label={t('common.back')}
+          compact={isLandscape}
+          onPress={() => router.dismissTo('/')}
+        />
+      </View>
       <Text
         style={[styles.title, isLandscape && styles.titleCompact]}
         numberOfLines={1}
@@ -33,23 +35,28 @@ export function CommodityTitleBar() {
       >
         {title}
       </Text>
-      {canRotate ? (
+      <View style={[styles.side, styles.sideRight]}>
+        {canRotate ? (
+          <HeaderIconButton
+            icon={isLandscape ? 'phone-rotate-portrait' : 'phone-rotate-landscape'}
+            label={t('commodity.rotate')}
+            compact={isLandscape}
+            onPress={() => void (isLandscape ? lockPortrait() : lockLandscape())}
+          />
+        ) : null}
         <HeaderIconButton
-          icon={isLandscape ? 'phone-rotate-portrait' : 'phone-rotate-landscape'}
-          label={t('commodity.rotate')}
+          icon="cog-outline"
+          label={t('settings.title')}
           compact={isLandscape}
-          onPress={() => void (isLandscape ? lockPortrait() : lockLandscape())}
+          onPress={() => router.push('/settings')}
         />
-      ) : null}
-      <HeaderIconButton
-        icon="cog-outline"
-        label={t('settings.title')}
-        compact={isLandscape}
-        onPress={() => router.push('/settings')}
-      />
+      </View>
     </View>
   );
 }
+
+// HeaderIconButton 최소 폭(44) × 2
+const SIDE_WIDTH = 88;
 
 const styles = StyleSheet.create({
   container: {
@@ -59,6 +66,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.barSeparator,
+  },
+  // 오른쪽 버튼 2개만큼 양쪽 폭을 같게 잡아 제목이 화면 가운데에 오게 한다
+  side: {
+    width: SIDE_WIDTH,
+    flexDirection: 'row',
+  },
+  sideRight: {
+    justifyContent: 'flex-end',
   },
   title: {
     flex: 1,

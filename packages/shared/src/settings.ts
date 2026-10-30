@@ -68,3 +68,11 @@ export const settingsPatchSchema = z.strictObject({
   quietTime: quietTimeSchema.optional(),
 });
 export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
+
+// 이격도차트 설정 기본값. 서버 app_settings 컬럼 기본값이고, 앱 B [초기화]가 이 값으로 PATCH한다.
+export const DISPARITY_SETTINGS_DEFAULTS = {
+  basis: 'FRONT',
+  maPeriod: 100,
+  window: 'Y10',
+  rareLevels: [1, 2, 4, 8, 16],
+} as const satisfies Pick<Settings, 'basis' | 'maPeriod' | 'window' | 'rareLevels'>;

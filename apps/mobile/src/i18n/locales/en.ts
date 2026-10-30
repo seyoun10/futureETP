@@ -162,6 +162,10 @@ export const en: Translation = {
   },
   settings: {
     title: 'Settings',
+    reset: 'Reset',
+    resetTitle: 'Reset settings',
+    resetMessage:
+      'Restore the display and disparity chart settings to their defaults? Alert settings and the access key stay as they are.',
     alerts: 'Alerts',
     accessKey: 'Access key',
     dataSources: 'Data sources',

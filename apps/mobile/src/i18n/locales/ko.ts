@@ -170,6 +170,10 @@ export const ko = {
   },
   settings: {
     title: '설정',
+    reset: '초기화',
+    resetTitle: '설정 초기화',
+    resetMessage:
+      '표시·이격도차트 설정을 기본값으로 되돌릴까요? 알림 설정과 접근 키는 그대로입니다.',
     alerts: '알림',
     accessKey: '접근 키',
     dataSources: '데이터 출처',

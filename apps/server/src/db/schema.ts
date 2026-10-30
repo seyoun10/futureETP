@@ -21,6 +21,7 @@ import {
 import {
   BASES,
   COMMODITY_CODES,
+  DISPARITY_SETTINGS_DEFAULTS,
   DIRECTIONS,
   ETP_MARKETS,
   ETP_TYPES,
@@ -338,13 +339,13 @@ export const appSettings = pgTable(
     locale: text({ enum: LOCALES }).notNull().default('ko'),
     // IANA. 앱 실행 때 기기가 PATCH /v1/settings로 올린다(D-048).
     timezone: text().notNull().default('Asia/Seoul'),
-    basis: basis().notNull().default('FRONT'),
-    maPeriod: maPeriod().notNull().default(100),
-    window: distWindow().notNull().default('Y10'),
+    basis: basis().notNull().default(DISPARITY_SETTINGS_DEFAULTS.basis),
+    maPeriod: maPeriod().notNull().default(DISPARITY_SETTINGS_DEFAULTS.maPeriod),
+    window: distWindow().notNull().default(DISPARITY_SETTINGS_DEFAULTS.window),
     rareLevels: numeric({ precision: 3, scale: 1, mode: 'number' })
       .array()
       .notNull()
-      .default(sql`'{1,2,4,8,16}'`),
+      .default(sql.raw(`'{${DISPARITY_SETTINGS_DEFAULTS.rareLevels.join(',')}}'`)),
     // null = 알림 꺼짐
     alertCommodity: commodityCode().references(() => commodity.code),
     // 현지 자정 기준 분. 둘 다 null(끄기)이거나 둘 다 있고 서로 다르다.

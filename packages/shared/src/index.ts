@@ -66,6 +66,7 @@ export {
   type RareLevelAlert,
 } from './push.ts';
 export {
+  DISPARITY_SETTINGS_DEFAULTS,
   QUIET_MAX_MIN,
   QUIET_STEP_MIN,
   RARE_LEVEL_COUNT,

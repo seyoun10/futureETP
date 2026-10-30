@@ -1,12 +1,13 @@
 import type { Settings } from '@futureetp/shared';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
-import { DeviceEventEmitter, Keyboard } from 'react-native';
+import { getLocales } from 'expo-localization';
+import { Alert, DeviceEventEmitter, Keyboard } from 'react-native';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { queryClient } from '@/api/queryClient';
 import { queryKeys } from '@/api/queryKeys';
 import { getSettings, patchSettings } from '@/api/settings';
-import { useDisplaySettings } from '@/stores/displaySettings';
+import { defaultDisplaySettings, useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 const mockGet = jest.mocked(getSettings);
@@ -205,5 +206,36 @@ describe('B rare-level 입력', () => {
 
     expect(mockPatch).not.toHaveBeenCalled();
     expect(field(1)).toHaveDisplayValue('5');
+  });
+
+  it('[초기화]는 확인을 받은 뒤 표시·이격도차트 설정만 기본값으로 되돌린다', async () => {
+    const alert = jest.spyOn(Alert, 'alert');
+    mockGet.mockResolvedValue({ ...SETTINGS, basis: 'KR', maPeriod: 200, window: 'ALL' });
+    useDisplaySettings.setState({ upDownStyle: 'US' });
+    await renderSettings();
+    await screen.findByRole('radio', { name: '한국형', checked: true });
+    await fireEvent.press(screen.getByRole('button', { name: '초기화' }));
+
+    expect(alert).toHaveBeenCalledWith('설정 초기화', expect.any(String), expect.any(Array));
+    expect(mockPatch).not.toHaveBeenCalled();
+    const buttons = alert.mock.lastCall?.[2] ?? [];
+    const resetButton = buttons.find((button) => button.text === '초기화');
+    await act(() => {
+      resetButton?.onPress?.();
+    });
+
+    const display = defaultDisplaySettings(getLocales()[0]);
+    await waitFor(() =>
+      expect(mockPatch).toHaveBeenCalledWith({
+        basis: 'FRONT',
+        maPeriod: 100,
+        window: 'Y10',
+        rareLevels: [1, 2, 4, 8, 16],
+        locale: display.language,
+      }),
+    );
+    expect(useDisplaySettings.getState()).toMatchObject(display);
+    expect(queryClient.getQueryData(queryKeys.settings)).toMatchObject({ alertCommodity: 'CL' });
+    alert.mockRestore();
   });
 });
