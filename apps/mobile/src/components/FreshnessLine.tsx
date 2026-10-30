@@ -35,13 +35,18 @@ const LINE_HEIGHT = fontSize.caption + 2;
 const LINE_BLOCK = LINE_HEIGHT + 2;
 
 // 화면 최하단 기준 시각 줄. 높이를 아끼려고 홈 인디케이터 여백 위쪽에 겹쳐 둔다(여백 34pt면 줄 아래 18pt,
-// 인디케이터는 맨 아래 약 13pt 안). freshness가 없어도(탭 전환 중·첫 조회 중) 줄 높이를 비워 둬
-// 위의 tab-bar가 흔들리지 않게 한다
+// 인디케이터는 맨 아래 약 13pt 안). freshness가 없어도(탭 전환 중·첫 조회 중·ETP 탭) 같은 Text로 빈 줄을 그려
+// 위의 tab-bar가 흔들리거나 탭마다 위치가 달라지지 않게 한다. 높이를 숫자로 고정하면 기기 글자 크기에 따라
+// 실제 줄 높이와 어긋난다
 export function FreshnessFooter({ freshness }: { freshness: Freshness | null }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom - LINE_BLOCK, 0) }]}>
-      {freshness ? <FreshnessLine freshness={freshness} /> : <View style={styles.empty} />}
+      {freshness ? (
+        <FreshnessLine freshness={freshness} />
+      ) : (
+        <Text style={styles.text}>{'\u00a0'}</Text>
+      )}
     </View>
   );
 }
@@ -65,9 +70,6 @@ export function TabFreshnessFooter() {
 const styles = StyleSheet.create({
   footer: {
     backgroundColor: colors.background,
-  },
-  empty: {
-    height: LINE_BLOCK,
   },
   text: {
     paddingHorizontal: spacing.lg,
