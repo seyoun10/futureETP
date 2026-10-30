@@ -1,5 +1,6 @@
 import { envelopeSchema } from '@futureetp/shared';
 import { z } from 'zod';
+import { perfNow, perfRequest } from '@/lib/perfLog';
 import { AppError } from './AppError';
 import { getAccessToken } from './accessToken';
 import { apiUrl } from './config';
@@ -48,6 +49,8 @@ export async function apiRequest<T extends z.ZodType>(
   if (signal?.aborted) controller.abort();
   signal?.addEventListener('abort', onCallerAbort);
 
+  const t0 = perfNow();
+  let tHeaders = t0;
   let res: Response;
   let text: string;
   try {
@@ -57,6 +60,7 @@ export async function apiRequest<T extends z.ZodType>(
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: controller.signal,
     });
+    tHeaders = perfNow();
     text = await res.text();
   } catch (error) {
     if (timedOut)
@@ -68,7 +72,10 @@ export async function apiRequest<T extends z.ZodType>(
     signal?.removeEventListener('abort', onCallerAbort);
   }
 
-  const envelope = rawEnvelopeSchema.safeParse(parseJson(text));
+  const tBody = perfNow();
+  const json = parseJson(text);
+  const tParse = perfNow();
+  const envelope = rawEnvelopeSchema.safeParse(json);
   if (!envelope.success) {
     // 프록시 오류(502 HTML 등)처럼 봉투가 아닌 응답은 HTTP 상태로 구분한다(D-042).
     throw new AppError(res.status >= 500 ? 'INTERNAL' : 'SCHEMA_MISMATCH', {
@@ -82,7 +89,15 @@ export async function apiRequest<T extends z.ZodType>(
     throw new AppError(code, { message, status: res.status });
   }
 
+  const tEnvelope = perfNow();
   const data = schema.safeParse(envelope.data.data);
+  perfRequest(path, text.length, {
+    fetch: tHeaders - t0,
+    body: tBody - tHeaders,
+    parse: tParse - tBody,
+    envelope: tEnvelope - tParse,
+    schema: perfNow() - tEnvelope,
+  });
   if (!data.success) {
     throw new AppError('SCHEMA_MISMATCH', {
       message: `Response data does not match schema: ${path}`,

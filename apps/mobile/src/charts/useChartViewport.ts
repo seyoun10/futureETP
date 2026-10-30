@@ -11,6 +11,7 @@ import {
 } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
 import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
+import { PERF_ENABLED, perfMark } from '@/lib/perfLog';
 
 import type { OverlayInsets } from './ChartOverlay';
 import { useCrosshairPosition } from './CrosshairLayer';
@@ -91,6 +92,7 @@ export function useChartViewport({
   }, [applyGeom, insetTop, insetBottom]);
   // 첫 맞춤 전에는 행렬이 기본값(전체 봉)이라 화면 진입 때 전체 기간이 몇 프레임 보인다. 맞출 때까지 감춘다
   const fitted = useSharedValue(false);
+  const reportFit = PERF_ENABLED ? perfMark : null;
   const fittedStyle = useAnimatedStyle(() => ({ opacity: fitted.get() ? 1 : 0 }));
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
@@ -106,9 +108,10 @@ export function useChartViewport({
         const c = getTransformComponents(transform.matrix.get());
         applyTransform(transform, fitTransform(g, c.scaleX, c.translateX));
       }
+      if (!fitted.get() && reportFit) scheduleOnRN(reportFit, 'chart fitted', true);
       fitted.set(true);
     });
-  }, [fitted, geom, geomVersion, homeBars, periodBars, transform]);
+  }, [fitted, geom, geomVersion, homeBars, periodBars, reportFit, transform]);
 
   // 진행 중인 제스처(드래그·핀치가 겹치면 핀치)와 기간 범위에서 벗어났다고 알린 제스처
   const active = useSharedValue<ChartGesture | null>(null);

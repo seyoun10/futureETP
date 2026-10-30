@@ -1,5 +1,5 @@
 import type { Basis, CommodityCode, DisparityChart } from '@futureetp/shared';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
@@ -17,6 +17,7 @@ import {
   formatContractMonth,
   formatPrice,
 } from '@/lib/formatNumber';
+import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -44,6 +45,8 @@ export function DisparityChartScreen() {
 }
 
 function DisparityChartContent({ code }: { code: CommodityCode }) {
+  // 진입 측정은 첫 렌더에 시작한다(effect는 자식 조회 뒤라 늦다)
+  useState(() => perfStart(`C-a ${code}`));
   const { settings, chart } = useDisparityChart(code);
   useAutoRefresh(chart);
 
@@ -69,7 +72,11 @@ type ViewProps = {
 function DisparityChartView({ code, data, requestedBasis }: ViewProps) {
   const { t } = useTranslation();
   useTabFreshness(data.freshness);
-  const model = useMemo(() => disparityChartModel(data), [data]);
+  const model = useMemo(
+    () => perfTime(`model ${data.bars.length} bars`, () => disparityChartModel(data)),
+    [data],
+  );
+  useEffect(() => perfMark('view committed'), []);
   const period = useDisplaySettings((s) => s.disparityPeriod);
   const setPeriod = useDisplaySettings((s) => s.setDisparityPeriod);
   // 제스처로 범위를 바꾸면 기간 맞춤을 멈춘다. 선택 표시는 핀치(확대·축소)일 때만 지운다.
