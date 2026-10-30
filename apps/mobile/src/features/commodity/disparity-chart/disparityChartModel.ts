@@ -1,5 +1,6 @@
 // C-a 응답 → CandleChart 입력(선 색·굵기, y축 특수 라벨 색, 롤 표시). 순수 함수다.
 import type { DisparityChart } from '@futureetp/shared';
+import { MAX_CHART_BARS } from '@/charts/chartPeriods';
 import type { ChartLine } from '@/charts/LineLayer';
 import type { RollMarks } from '@/charts/RollLayer';
 import type { PriceLabel } from '@/charts/YAxisLayer';
@@ -32,7 +33,7 @@ const bandColor = (rank: number) =>
   colors.chart.rareLevels[Math.min(rank, colors.chart.rareLevels.length - 1)];
 
 export function disparityChartModel(chart: DisparityChart): DisparityChartModel {
-  const bars = chartBars(chart.bars);
+  const bars = chartBars(chart.bars.slice(-MAX_CHART_BARS));
   const bands = bandLines(bars, chart.rareLevels);
   const colorByKey = new Map(bands.map((b) => [b.key, bandColor(b.rank)]));
   // 이평선을 마지막에 그려 밴드 위에 오게 한다

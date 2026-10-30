@@ -1,3 +1,4 @@
+import { MAX_CHART_BARS } from '@/charts/chartPeriods';
 import type { DisparityBar, DisparityChart } from '@futureetp/shared';
 import { colors } from '@/theme/tokens';
 import { disparityChartModel, formatTailPct, holdingsText } from './disparityChartModel';
@@ -112,5 +113,16 @@ describe('formatTailPct', () => {
   it('1% 이상은 정수, 미만은 소수 첫째 자리', () => {
     expect(formatTailPct(9.4)).toBe('9');
     expect(formatTailPct(0.42)).toBe('0.4');
+  });
+});
+
+describe('disparityChartModel 봉 수', () => {
+  it('최근 MAX_CHART_BARS 봉만 그린다', () => {
+    const bars = Array.from({ length: MAX_CHART_BARS + 3 }, (_, i) =>
+      bar(`2020-01-${String(i).padStart(4, '0')}`, 100 + i),
+    );
+    const model = disparityChartModel(chart({ bars }));
+    expect(model.bars).toHaveLength(MAX_CHART_BARS);
+    expect(model.bars[0].close).toBe(103);
   });
 });

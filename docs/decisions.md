@@ -1650,3 +1650,13 @@
   - 마커 줄 자리(`ROLL_MARKER_ROW_HEIGHT`)를 없애 아래 정보 줄을 x축 라벨 바로 위에 붙인다(C-a·C-c).
   - 가로 모드(C-a~C-c)는 title-bar와 차트 영역만 남긴다. tab-bar·기준 시각 줄·차트 아래 줄(기간 칩, C-b 기준일 버튼, 스켈레톤의 같은 자리)을 숨기고 홈 인디케이터 여백만 둔다. 탭 전환·기간 선택·기준일 이동은 [⟲]로 세로로 돌아가서 한다. 기준 시각 줄이 없어 가로에서는 지연·장 상태가 보이지 않는다.
 - 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, `CommodityTabsLayout`(가로 tab-bar 높이 32 삭제), `PeriodChips`·`ChartSkeleton`·`CurveScreen` 가로 숨김, screens.md C-a 롤 표시·C 가로 모드. D-087의 대표월물 마커와 D-076의 가로 tab-bar 유지를 대체한다.
+
+## D-104: 차트는 최근 5년만 그린다
+- 날짜: 2026-10-30
+- 상태: 확정 (사용자 선택, 권장안 3년 대신 5년)
+- 맥락: iPhone dev 번들 측정에서 C-a 첫 그리기(봉 4,126개, 봉 경로·선 11개)가 JS 스레드를 약 1.6초 막았다. 응답 수신·파싱·zod·모델 계산은 합쳐 0.3~0.6초다. CartesianChart props 고정으로 반복 재계산은 없앴고(9~13초 → 0.6~2.3초), 남은 것은 첫 그리기 비용이다. 기간 버튼은 최대 12M이다(D-102).
+- 결정: 앱에서 C-a 봉과 C-c 날짜·가격을 최근 `MAX_CHART_BARS`(5 × 252 = 1,260거래일)로 잘라 차트에 넘긴다(`charts/chartPeriods.ts`). 서버 응답은 그대로 전체다.
+  - 핀치로 끝까지 축소해도 최근 5년까지다. y 범위·꼬리표·저점대비·고점대비·롤 표시는 자른 봉 기준이다.
+  - 이격도 분포·rare 레벨·꼬리 백분위는 서버가 전체 기간으로 계산하므로 바뀌지 않는다.
+- 근거: 봉 수에 비례하는 비용이라 약 3분의 1로 준다. 서버에서 자르면 전송·파싱도 줄지만 응답 계약(D-086)을 바꿔야 하고, 남은 비용의 대부분은 그리기다.
+- 영향: `disparityChartModel`, `contractChartModel.recentContracts`, screens.md C-a 제스처·C-c x축.

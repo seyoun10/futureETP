@@ -16,7 +16,7 @@ import { useDisplaySettings } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
-import { contractChartModel, visibleEndLabels } from './contractChartModel';
+import { contractChartModel, recentContracts, visibleEndLabels } from './contractChartModel';
 import type { ContractChartModel } from './contractChartModel';
 import { useContracts } from './useContracts';
 
@@ -46,9 +46,10 @@ function ContractChartContent({ code }: { code: CommodityCode }) {
   );
 }
 
-function ContractChartView({ data }: { data: ContractsChart }) {
+function ContractChartView({ data: full }: { data: ContractsChart }) {
   const { t } = useTranslation();
-  useTabFreshness(data.freshness);
+  useTabFreshness(full.freshness);
+  const data = useMemo(() => recentContracts(full), [full]);
   const model = useMemo(() => contractChartModel(data), [data]);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
   const period = useDisplaySettings((s) => s.contractPeriod);
