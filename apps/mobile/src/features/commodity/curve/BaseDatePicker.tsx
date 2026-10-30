@@ -113,6 +113,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.text,
     fontSize: fontSize.title,
+    textAlign: 'center',
   },
   range: {
     color: colors.textSecondary,
