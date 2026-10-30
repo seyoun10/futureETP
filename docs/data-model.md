@@ -239,7 +239,7 @@ erDiagram
         string basis "기본 FRONT"
         int ma_period "기본 100"
         string window "기본 Y10"
-        array rare_levels "5개, 오름차순, 기본 5/10/15/20/25"
+        array rare_levels "5개, 오름차순, 기본 1/2/4/8/16"
         string alert_commodity "null=알림 꺼짐"
         int quiet_start_min "null=끄기, 0~1410, 30 단위"
         int quiet_end_min "start와 달라야 함"

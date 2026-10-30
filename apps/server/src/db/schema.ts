@@ -344,7 +344,7 @@ export const appSettings = pgTable(
     rareLevels: numeric({ precision: 3, scale: 1, mode: 'number' })
       .array()
       .notNull()
-      .default(sql`'{5,10,15,20,25}'`),
+      .default(sql`'{1,2,4,8,16}'`),
     // null = 알림 꺼짐
     alertCommodity: commodityCode().references(() => commodity.code),
     // 현지 자정 기준 분. 둘 다 null(끄기)이거나 둘 다 있고 서로 다르다.

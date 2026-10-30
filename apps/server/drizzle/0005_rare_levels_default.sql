@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ALTER COLUMN "rare_levels" SET DEFAULT '{1,2,4,8,16}';

@@ -36,6 +36,13 @@
       "when": 1793183375386,
       "tag": "0004_etp",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793361106127,
+      "tag": "0005_rare_levels_default",
+      "breakpoints": true
     }
   ]
 }
