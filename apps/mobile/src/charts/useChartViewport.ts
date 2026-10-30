@@ -15,6 +15,7 @@ import { PERF_ENABLED, perfMark } from '@/lib/perfLog';
 
 import type { OverlayInsets } from './ChartOverlay';
 import { useCrosshairPosition } from './CrosshairLayer';
+import { useGestureFps } from './useGestureFps';
 import type { ChartTransform, CrosshairPress } from './CrosshairLayer';
 import {
   fitTransform,
@@ -98,6 +99,8 @@ export function useChartViewport({
   const insets = useRef(dataInsets);
   // 좌표 교체와 (과거 봉이 앞에 붙거나 회전으로 폭이 바뀌었을 때) 보던 날짜 범위 유지를 UI 스레드의 한 작업에서 한다(D-104).
   // 나눠 하면 그 사이 새 좌표에 이전 행렬이 걸려 보이는 범위가 튀고, 첫 봉이 보인다고 잘못 알려 연달아 받는다
+  // 측정 로그(dev 변형). worklet에서 JS로 넘겨 부른다
+  const reportFit = PERF_ENABLED ? perfMark : null;
   const applyGeom = useCallback(
     (g: CandleGeom, ins: OverlayInsets, shift: number) => {
       const next = { ...g, top: g.top + ins.top, bottom: g.bottom - ins.bottom };
@@ -113,6 +116,7 @@ export function useChartViewport({
         const c = getTransformComponents(transform.matrix.get());
         const view = shiftedView(prev, next, shift, c.scaleX, c.translateX);
         applyTransform(transform, fitTransform(next, view.k, view.tx));
+        if (shift > 0 && reportFit) scheduleOnRN(reportFit, `view kept +${shift} bars`, true);
         if (transform.zoomActive.get()) {
           const start = pinchStart.get();
           pinchStart.set({ ...start, ...shiftedView(prev, next, shift, start.k, start.tx) });
@@ -120,7 +124,7 @@ export function useChartViewport({
       });
       setGeomVersion((v) => v + 1);
     },
-    [fitted, geom, pinchStart, transform],
+    [fitted, geom, pinchStart, reportFit, transform],
   );
   const onGeom = useCallback(
     (g: CandleGeom, span: DateSpan) => {
@@ -131,6 +135,7 @@ export function useChartViewport({
           ? g.highY.length - prev.g.highY.length
           : 0;
       rawGeom.current = { g, span };
+      if (shift > 0) perfMark(`geometry +${shift} bars`);
       applyGeom(g, insets.current, shift);
     },
     [applyGeom],
@@ -140,7 +145,6 @@ export function useChartViewport({
     insets.current = { top: insetTop, bottom: insetBottom };
     if (rawGeom.current) applyGeom(rawGeom.current.g, insets.current, 0);
   }, [applyGeom, insetTop, insetBottom]);
-  const reportFit = PERF_ENABLED ? perfMark : null;
   const fittedStyle = useAnimatedStyle(() => ({ opacity: fitted.get() ? 1 : 0 }));
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
@@ -164,6 +168,8 @@ export function useChartViewport({
   // 진행 중인 제스처(드래그·핀치가 겹치면 핀치)와 기간 범위에서 벗어났다고 알린 제스처
   const active = useSharedValue<ChartGesture | null>(null);
   const away = useSharedValue<ChartGesture | null>(null);
+  // 제스처 중 프레임 측정(dev 변형만 찍는다)
+  useGestureFps(active);
 
   // 제스처가 행렬을 바꿀 때마다 x 범위 제한 + y 자동 맞춤(UI 스레드, D-056)
   useAnimatedReaction(

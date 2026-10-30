@@ -1,5 +1,5 @@
 import type { CommodityCode, ContractsChart } from '@futureetp/shared';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
@@ -15,6 +15,7 @@ import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -40,6 +41,8 @@ export function ContractChartScreen() {
 }
 
 function ContractChartContent({ code }: { code: CommodityCode }) {
+  // 진입 측정은 첫 렌더에 시작한다(effect는 자식 조회 뒤라 늦다)
+  useState(() => perfStart(`C-c ${code}`));
   const query = useContracts(code);
   useAutoRefresh(query);
   return (
@@ -52,7 +55,11 @@ function ContractChartContent({ code }: { code: CommodityCode }) {
 function ContractChartView({ data, older }: { data: ContractsChart; older: OlderPagesQuery }) {
   const { t } = useTranslation();
   useTabFreshness(data.freshness);
-  const model = useMemo(() => contractChartModel(data), [data]);
+  const model = useMemo(
+    () => perfTime(`model ${data.dates.length} dates`, () => contractChartModel(data)),
+    [data],
+  );
+  useEffect(() => perfMark('view committed'), []);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
   const period = useDisplaySettings((s) => s.contractPeriod);
   const setPeriod = useDisplaySettings((s) => s.setContractPeriod);

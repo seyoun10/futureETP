@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent } from 'react';
+import { perfStart } from '@/lib/perfLog';
 
 export type OlderPagesQuery = {
   hasNextPage: boolean;
@@ -11,7 +12,10 @@ export type OlderPagesQuery = {
 export function useOlderPages(firstVisible: number | null, query: OlderPagesQuery) {
   const { hasNextPage } = query;
   const fetchOlder = useEffectEvent(() => {
-    if (!query.isFetchingNextPage) void query.fetchNextPage();
+    if (query.isFetchingNextPage) return;
+    // 요청 → 응답 → 모델 → 좌표 반영 → 보던 범위 보정까지 잰다(useChartViewport가 끝낸다)
+    perfStart('older pages');
+    void query.fetchNextPage();
   });
   useEffect(() => {
     if (firstVisible === 0 && hasNextPage) fetchOlder();

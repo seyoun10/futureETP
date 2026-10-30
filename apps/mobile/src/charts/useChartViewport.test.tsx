@@ -23,6 +23,7 @@ jest.mock('react-native-reanimated', () => {
     useDerivedValue: <T,>(fn: () => T) => makeMutable(fn()),
     useAnimatedReaction: () => undefined,
     useAnimatedStyle: () => ({}),
+    useFrameCallback: () => ({ setActive: () => undefined }),
   };
 });
 
