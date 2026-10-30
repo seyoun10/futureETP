@@ -1,6 +1,6 @@
-import type { CommodityCode, Settings } from '@futureetp/shared';
-import { queryOptions, skipToken, useQuery } from '@tanstack/react-query';
-import type { QueryClient } from '@tanstack/react-query';
+import type { CommodityCode, DisparityChart, Settings } from '@futureetp/shared';
+import { infiniteQueryOptions, skipToken, useInfiniteQuery } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient } from '@tanstack/react-query';
 import { chartCacheOptions } from '@/api/chartCache';
 import { getDisparityChart } from '@/api/commodities';
 import { queryKeys } from '@/api/queryKeys';
@@ -14,10 +14,29 @@ const disparityParams = (settings: Settings): DisparityParams => ({
   levels: settings.rareLevels,
 });
 
+// 서버는 5년씩 준다(D-104). 다음 페이지는 지금까지 받은 가장 이른 봉보다 이전 5년이다
+const nextBefore = (last: DisparityChart) => (last.hasMore ? last.bars[0]?.tradeDate : undefined);
+
+// 최근 페이지(pages[0])의 값에 이전 페이지 봉을 앞에 붙여 한 응답처럼 만든다
+export function mergeDisparityPages(data: InfiniteData<DisparityChart>): DisparityChart {
+  const [latest, ...older] = data.pages;
+  if (older.length === 0) return latest;
+  return {
+    ...latest,
+    bars: [...older]
+      .reverse()
+      .flatMap((p) => p.bars)
+      .concat(latest.bars),
+    hasMore: data.pages[data.pages.length - 1].hasMore,
+  };
+}
+
 const disparityChartQuery = (code: CommodityCode, params: DisparityParams) =>
-  queryOptions({
+  infiniteQueryOptions({
     queryKey: queryKeys.commodities.disparity(code, params),
-    queryFn: ({ signal }) => getDisparityChart(code, params, signal),
+    queryFn: ({ signal, pageParam }) => getDisparityChart(code, params, pageParam, signal),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextBefore,
     ...chartCacheOptions,
   });
 
@@ -25,11 +44,16 @@ const disparityChartQuery = (code: CommodityCode, params: DisparityParams) =>
 export function useDisparityChart(code: CommodityCode) {
   const settings = useSettings();
   const params = settings.data && disparityParams(settings.data);
-  const chart = useQuery({
+  const chart = useInfiniteQuery({
     queryKey: params
       ? queryKeys.commodities.disparity(code, params)
       : [...queryKeys.commodities.detail(code), 'disparity'],
-    queryFn: params ? ({ signal }) => getDisparityChart(code, params, signal) : skipToken,
+    queryFn: params
+      ? ({ signal, pageParam }) => getDisparityChart(code, params, pageParam, signal)
+      : skipToken,
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextBefore,
+    select: mergeDisparityPages,
     ...chartCacheOptions,
   });
   return { settings, chart };
@@ -40,7 +64,7 @@ export function useDisparityChart(code: CommodityCode) {
 export async function prefetchDisparityChart(queryClient: QueryClient, code: CommodityCode) {
   try {
     const settings = await queryClient.ensureQueryData(settingsQuery);
-    await queryClient.prefetchQuery(disparityChartQuery(code, disparityParams(settings)));
+    await queryClient.prefetchInfiniteQuery(disparityChartQuery(code, disparityParams(settings)));
   } catch {
     // 설정 조회 실패
   }

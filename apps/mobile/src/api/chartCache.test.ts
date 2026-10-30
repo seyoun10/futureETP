@@ -29,4 +29,10 @@ describe('staleUntilNextUpdate', () => {
     expect(staleUntilNextUpdate(query(null), NOW)).toBe(0);
     expect(staleUntilNextUpdate(query(undefined), NOW)).toBe(0);
   });
+
+  it('무한 조회는 최근 페이지의 nextUpdateAt을 쓴다', () => {
+    const page = query('2026-10-30T08:16:00.000Z').state.data!;
+    expect(staleUntilNextUpdate({ state: { data: { pages: [page] } } }, NOW)).toBe(16 * 60 * 1000);
+    expect(staleUntilNextUpdate({ state: { data: { pages: [] } } }, NOW)).toBe(0);
+  });
 });

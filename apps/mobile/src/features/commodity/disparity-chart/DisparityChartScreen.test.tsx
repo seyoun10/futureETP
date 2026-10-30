@@ -119,6 +119,7 @@ describe('C-a 이격도차트', () => {
     expect(mockGet).toHaveBeenCalledWith(
       'GC',
       { basis: 'KR', ma: 200, window: 'Y10', levels: [1, 5, 10, 15, 25] },
+      undefined,
       expect.anything(),
     );
   });

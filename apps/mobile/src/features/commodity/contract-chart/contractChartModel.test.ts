@@ -1,7 +1,6 @@
 import type { ContractsChart } from '@futureetp/shared';
 import { colors } from '@/theme/tokens';
-import { MAX_CHART_BARS } from '@/charts/chartPeriods';
-import { contractChartModel, recentContracts, visibleEndLabels } from './contractChartModel';
+import { contractChartModel, visibleEndLabels } from './contractChartModel';
 
 const chart = (contracts: ContractsChart['contracts']): ContractsChart => ({
   freshness: {
@@ -79,31 +78,5 @@ describe('contractChartModel', () => {
       ),
     );
     expect(many.lines[6].color).toBe(colors.chart.contractLines[5]);
-  });
-});
-
-describe('recentContracts', () => {
-  it('최근 MAX_CHART_BARS 거래일만 날짜와 가격을 같이 자른다', () => {
-    const n = MAX_CHART_BARS + 2;
-    const full: ContractsChart = {
-      ...chart([
-        {
-          symbol: 'NGZ26',
-          contractMonth: '2026-12',
-          prices: Array.from({ length: n }, (_, i) => i),
-        },
-      ]),
-      dates: Array.from({ length: n }, (_, i) => `d${i}`),
-    };
-    const recent = recentContracts(full);
-    expect(recent.dates).toHaveLength(MAX_CHART_BARS);
-    expect(recent.dates[0]).toBe('d2');
-    expect(recent.contracts[0].prices[0]).toBe(2);
-    expect(recent.contracts[0].prices).toHaveLength(MAX_CHART_BARS);
-  });
-
-  it('짧으면 그대로 돌려준다', () => {
-    const short = chart([{ symbol: 'NGZ26', contractMonth: '2026-12', prices: [1, 2, 3] }]);
-    expect(recentContracts(short)).toBe(short);
   });
 });

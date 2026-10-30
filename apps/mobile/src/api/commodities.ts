@@ -14,10 +14,12 @@ export const getCommodities = (signal?: AbortSignal) =>
 export const getDisparityChart = (
   code: CommodityCode,
   { basis, ma, window, levels }: DisparityParams,
+  // 이 날짜보다 이른 5년(없으면 최근 5년, D-104)
+  before: string | undefined,
   signal?: AbortSignal,
 ) =>
   apiRequest(`/commodities/${code}/disparity`, disparityChartSchema, {
-    query: { basis, ma, window, levels: levels.join(',') },
+    query: { basis, ma, window, levels: levels.join(','), before },
     signal,
   });
 
@@ -29,5 +31,9 @@ export const getCurve = (code: CommodityCode, baseDate: string | null, signal?: 
   });
 
 // query가 없다. 기간·제스처는 받은 데이터 안에서 고른다(D-092)
-export const getContracts = (code: CommodityCode, signal?: AbortSignal) =>
-  apiRequest(`/commodities/${code}/contracts`, contractsChartSchema, { signal });
+export const getContracts = (
+  code: CommodityCode,
+  before: string | undefined,
+  signal?: AbortSignal,
+) =>
+  apiRequest(`/commodities/${code}/contracts`, contractsChartSchema, { query: { before }, signal });

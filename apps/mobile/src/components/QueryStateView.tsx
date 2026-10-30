@@ -5,8 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { AppError } from '@/api/AppError';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 
+// 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
+type StateQuery<T> = Pick<UseQueryResult<T>, 'data' | 'error' | 'isError' | 'isFetching'> & {
+  refetch: () => Promise<unknown>;
+};
+
 type Props<T> = {
-  query: UseQueryResult<T>;
+  query: StateQuery<T>;
   // 화면 모양에 맞춘 스켈레톤. 없으면 공용 막대 스켈레톤
   skeleton?: ReactNode;
   children: (data: T) => ReactNode;

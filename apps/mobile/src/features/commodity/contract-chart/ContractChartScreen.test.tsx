@@ -62,7 +62,7 @@ describe('C-c 월물차트', () => {
   it('월물마다 선 하나와 끝값 라벨(월물명)을 넘긴다', async () => {
     await renderScreen();
 
-    expect(mockGet).toHaveBeenCalledWith('NG', expect.anything());
+    expect(mockGet).toHaveBeenCalledWith('NG', undefined, expect.anything());
     const props = lastChartProps();
     expect(props.dates).toEqual(DATA.dates);
     expect(props.lines.map((l) => l.values)).toEqual([

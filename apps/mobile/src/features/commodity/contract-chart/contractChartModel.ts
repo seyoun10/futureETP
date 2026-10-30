@@ -1,6 +1,5 @@
 // C-c 응답 → LinesChart 입력(선 색, 끝값 라벨, y 자동 맞춤 범위). 순수 함수다.
 import type { ContractsChart } from '@futureetp/shared';
-import { MAX_CHART_BARS } from '@/charts/chartPeriods';
 import type { ChartLine } from '@/charts/LineLayer';
 import type { PriceLabel } from '@/charts/YAxisLayer';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
@@ -25,16 +24,6 @@ function lastValue(values: readonly (number | null)[], i0: number, i1: number): 
     if (v !== null) return v;
   }
   return null;
-}
-
-// 최근 MAX_CHART_BARS 거래일만 남긴다(날짜와 월물별 가격을 같은 범위로 자른다)
-export function recentContracts(chart: ContractsChart): ContractsChart {
-  if (chart.dates.length <= MAX_CHART_BARS) return chart;
-  return {
-    ...chart,
-    dates: chart.dates.slice(-MAX_CHART_BARS),
-    contracts: chart.contracts.map((c) => ({ ...c, prices: c.prices.slice(-MAX_CHART_BARS) })),
-  };
 }
 
 export function contractChartModel(chart: ContractsChart): ContractChartModel {

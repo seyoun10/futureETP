@@ -9,10 +9,11 @@ export const AUTO_REFRESH_MARGIN_MS = 60 * 1000;
 // 마지막 조회(성공·실패)부터 다음 자동 조회까지의 최소 간격. 예상 시각이 지났거나 조회가 계속 실패할 때 반복을 막는다.
 export const AUTO_REFRESH_MIN_INTERVAL_MS = 60 * 1000;
 
+// 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
 type FreshnessQuery = Pick<
   UseQueryResult<{ freshness: Freshness }>,
-  'data' | 'refetch' | 'dataUpdatedAt' | 'errorUpdatedAt'
->;
+  'data' | 'dataUpdatedAt' | 'errorUpdatedAt'
+> & { refetch: () => Promise<unknown> };
 
 // 화면이 보이는 동안 `nextUpdateAt` + 1분에 다시 조회한다(D-042, D-048, D-075). null이면 자동 새로고침하지 않는다.
 // 조회가 끝날 때마다(성공·실패) 다시 예약해, 새로고침이 실패해도 1분 뒤 다시 시도한다.
