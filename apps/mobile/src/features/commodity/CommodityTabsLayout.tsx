@@ -1,11 +1,11 @@
 import { useFocusEffect } from 'expo-router';
 import { BottomTabBar, Tabs } from 'expo-router/js-tabs';
 import { useCallback } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { TabFreshnessFooter } from '@/components/FreshnessLine';
 import { lockPortrait, useIsLandscape } from '@/lib/orientation';
-import { colors, fontSize } from '@/theme/tokens';
+import { colors, fontSize, spacing } from '@/theme/tokens';
 import { CommodityTitleBar } from './CommodityTitleBar';
 
 // C 원자재 화면의 하단 탭 4개(D-047). 스와이프로 탭을 바꾸지 않는다(차트 제스처와 충돌).
@@ -41,19 +41,20 @@ export function CommodityTabsLayout() {
       screenOptions={{
         header: () => <CommodityTitleBar />,
         sceneStyle: { backgroundColor: colors.background },
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.barSeparator,
-        },
+        tabBarStyle: styles.tabBar,
+        // 선택 표시는 기간 칩(PeriodChips)과 같다: 둥근 surfaceSelected 배경 + 흰 굵은 글자
+        tabBarItemStyle: styles.tabItem,
+        tabBarActiveBackgroundColor: colors.surfaceSelected,
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarIcon: () => null,
         tabBarIconStyle: { display: 'none' },
         // 아이콘 아래 라벨 배치는 탭 안쪽이 위쪽 정렬이라 아이콘 없이 라벨이 위로 붙는다.
-        // 옆 배치(가운데 정렬)로 두고 아이콘 옆 여백을 없애 라벨을 탭 한가운데에 둔다
+        // 옆 배치(가운데 정렬)로 두어 라벨을 탭 한가운데에 둔다
         tabBarLabelPosition: 'beside-icon',
-        tabBarLabelStyle: { fontSize: fontSize.body, marginStart: 0, marginEnd: 0 },
+        tabBarLabel: ({ focused, color, children }) => (
+          <Text style={[styles.label, { color }, focused && styles.labelFocused]}>{children}</Text>
+        ),
       }}
     >
       <Tabs.Screen name="index" options={{ title: t('commodity.tabs.disparity') }} />
@@ -67,3 +68,28 @@ export function CommodityTabsLayout() {
     </Tabs>
   );
 }
+
+// 기간 칩 높이·모서리와 같다
+const TAB_ITEM_HEIGHT = 44;
+
+const styles = StyleSheet.create({
+  tabBar: {
+    paddingHorizontal: spacing.xs,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.barSeparator,
+  },
+  tabItem: {
+    alignSelf: 'center',
+    height: TAB_ITEM_HEIGHT,
+    borderRadius: 6,
+    // 안쪽 버튼의 선택 배경을 둥근 모서리로 자른다
+    overflow: 'hidden',
+  },
+  label: {
+    fontSize: fontSize.body,
+  },
+  labelFocused: {
+    fontWeight: '600',
+  },
+});
