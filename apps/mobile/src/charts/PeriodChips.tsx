@@ -9,11 +9,15 @@ import type {
 import { useTranslation } from 'react-i18next';
 import { CHART_PERIODS } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
+import { Icon } from '@/components/Icon';
+import type { IconName } from '@/components/Icon';
 import { colors, fontSize } from '@/theme/tokens';
 
 type PeriodChipsProps = {
   // 제스처로 범위를 바꿨으면 null(선택 표시 없음)
   selected: ChartPeriod | null;
+  // 핀치로 범위를 바꿨을 때 보이는 범위와 가장 가까운 기간. 선택과 구분해 테두리로 표시한다
+  nearest?: ChartPeriod | null;
   onSelect: (period: ChartPeriod) => void;
 };
 
@@ -23,7 +27,7 @@ const EDGE = 1;
 
 // C-a·C-c 기간 칩 한 줄(screens.md C-a 기간과 제스처). 칩이 화면을 넘으면 양 끝에 < > 버튼을 두고,
 // 끝에 닿은 쪽 버튼은 비활성이다. 처음 그릴 때 선택된 칩이 보이게 스크롤한다.
-export function PeriodChips({ selected, onSelect }: PeriodChipsProps) {
+export function PeriodChips({ selected, nearest = null, onSelect }: PeriodChipsProps) {
   const { t } = useTranslation();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const [viewWidth, setViewWidth] = useState(0);
@@ -58,7 +62,7 @@ export function PeriodChips({ selected, onSelect }: PeriodChipsProps) {
     <View style={styles.row}>
       {scrollable && (
         <ArrowButton
-          glyph="<"
+          icon="chevron-left"
           label={t('chart.scrollPrev')}
           disabled={offset <= EDGE}
           onPress={() => scrollBy(-page)}
@@ -77,13 +81,18 @@ export function PeriodChips({ selected, onSelect }: PeriodChipsProps) {
       >
         {CHART_PERIODS.map((period) => {
           const isSelected = period === selected;
+          const isNearest = !isSelected && period === nearest;
           return (
             <Pressable
               key={period}
               accessibilityRole="radio"
               accessibilityState={{ checked: isSelected }}
               onPress={() => onSelect(period)}
-              style={[styles.chip, isSelected && styles.chipSelected]}
+              style={[
+                styles.chip,
+                isSelected && styles.chipSelected,
+                isNearest && styles.chipNearest,
+              ]}
             >
               <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                 {t(`chart.periods.${period}`)}
@@ -94,7 +103,7 @@ export function PeriodChips({ selected, onSelect }: PeriodChipsProps) {
       </ScrollView>
       {scrollable && (
         <ArrowButton
-          glyph=">"
+          icon="chevron-right"
           label={t('chart.scrollNext')}
           disabled={offset >= maxOffset - EDGE}
           onPress={() => scrollBy(page)}
@@ -105,13 +114,13 @@ export function PeriodChips({ selected, onSelect }: PeriodChipsProps) {
 }
 
 type ArrowButtonProps = {
-  glyph: string;
+  icon: IconName;
   label: string;
   disabled: boolean;
   onPress: () => void;
 };
 
-function ArrowButton({ glyph, label, disabled, onPress }: ArrowButtonProps) {
+function ArrowButton({ icon, label, disabled, onPress }: ArrowButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -121,7 +130,7 @@ function ArrowButton({ glyph, label, disabled, onPress }: ArrowButtonProps) {
       onPress={onPress}
       style={styles.arrow}
     >
-      <Text style={[styles.arrowText, disabled && styles.arrowDisabled]}>{glyph}</Text>
+      <Icon name={icon} color={disabled ? colors.border : colors.text} />
     </Pressable>
   );
 }
@@ -144,6 +153,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceSelected,
     borderRadius: 6,
   },
+  chipNearest: {
+    borderWidth: 1,
+    borderColor: colors.surfaceSelected,
+    borderRadius: 6,
+  },
   chipText: {
     color: colors.textSecondary,
     fontSize: fontSize.body,
@@ -157,12 +171,5 @@ const styles = StyleSheet.create({
     height: CHIP_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  arrowText: {
-    color: colors.text,
-    fontSize: fontSize.title,
-  },
-  arrowDisabled: {
-    color: colors.border,
   },
 });

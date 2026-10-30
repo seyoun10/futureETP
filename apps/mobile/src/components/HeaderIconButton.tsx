@@ -1,16 +1,16 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors, fontSize } from '@/theme/tokens';
+import { Pressable, StyleSheet } from 'react-native';
+import { Icon } from './Icon';
+import type { IconName } from './Icon';
 
 type Props = {
-  // 아이콘 글리프. 아이콘 세트는 디자인 단계에서 정한다.
-  glyph: string;
+  icon: IconName;
   label: string;
   onPress: () => void;
   // 가로 모드처럼 세로 공간이 좁을 때 높이를 줄인다
   compact?: boolean;
 };
 
-export function HeaderIconButton({ glyph, label, onPress, compact = false }: Props) {
+export function HeaderIconButton({ icon, label, onPress, compact = false }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -19,7 +19,7 @@ export function HeaderIconButton({ glyph, label, onPress, compact = false }: Pro
       onPress={onPress}
       style={[styles.button, compact && styles.compact]}
     >
-      <Text style={styles.glyph}>{glyph}</Text>
+      <Icon name={icon} />
     </Pressable>
   );
 }
@@ -33,9 +33,5 @@ const styles = StyleSheet.create({
   },
   compact: {
     minHeight: 32,
-  },
-  glyph: {
-    color: colors.text,
-    fontSize: fontSize.headline,
   },
 });

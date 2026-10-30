@@ -7,6 +7,7 @@ export const en: Translation = {
     back: 'Back',
     cancel: 'Cancel',
     confirm: 'OK',
+    done: 'Done',
   },
   commodities: {
     GC: 'Gold',
@@ -192,6 +193,17 @@ export const en: Translation = {
     rareLevelInvalid: 'Enter a value from {{min}} to {{max}} with at most 1 decimal place.',
     rareLevelDuplicate: 'Enter {{count}} distinct values.',
     saveFailed: 'Could not save. {{reason}}',
+    languageDesc: 'Language for screens and push notifications',
+    upDownStyleDesc: 'Korean: up red, down blue. US: up green, down red',
+    basisDesc:
+      'Contracts used for the chart and alerts. Front: the most traded contract. KR/US: roll rules of Korean/US ETPs',
+    maPeriodDesc: 'Moving average period that disparity is measured against',
+    windowDesc: 'Past period of disparity used to judge rarity',
+    rareLevelsDesc:
+      'Bands at the top and bottom % of past disparity; you get an alert when price reaches one',
+    alertsDesc: 'Commodity for rare-level alerts and quiet hours',
+    accessKeyDesc: 'Secret key for connecting to the server',
+    dataSourcesDesc: 'Where prices and data come from',
   },
   dataSources: {
     sections: {

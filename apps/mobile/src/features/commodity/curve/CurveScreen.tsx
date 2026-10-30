@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
-import { FreshnessLine } from '@/components/FreshnessLine';
+import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { Icon } from '@/components/Icon';
+import type { IconName } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
 import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
@@ -89,6 +91,7 @@ type ViewProps = {
 
 function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProps) {
   const { t, i18n } = useTranslation();
+  useTabFreshness(data.freshness);
   const [sheetOpen, setSheetOpen] = useState(false);
   const points = useMemo<CurvePoint[]>(
     () =>
@@ -125,14 +128,6 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
 
   return (
     <>
-      <FreshnessLine freshness={data.freshness} />
-      <Text style={styles.line} numberOfLines={1} testID="curve-legend">
-        <Text style={styles.legendBase}>{'╌╌ '}</Text>
-        {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
-        {'   '}
-        <Text style={styles.legendCurrent}>{'── '}</Text>
-        {t('curve.legendCurrent', { date: formatLegendDate(currentDate, currentDate) })}
-      </Text>
       <View style={styles.chart}>
         {points.length === 0 ? (
           <Text style={styles.message}>{t('curve.noData')}</Text>
@@ -142,22 +137,43 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             priceDecimals={data.priceDecimals}
             formatPct={formatCurvePct}
             renderDetail={renderDetail}
+            overlayTop={
+              <Text style={styles.line} numberOfLines={1} testID="curve-legend">
+                <Text style={styles.legendBase}>{'╌╌ '}</Text>
+                {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
+                {'   '}
+                <Text style={styles.legendCurrent}>{'── '}</Text>
+                {t('curve.legendCurrent', { date: formatLegendDate(currentDate, currentDate) })}
+              </Text>
+            }
+            overlayBottom={
+              <>
+                <Text style={styles.line} numberOfLines={1} testID="curve-state">
+                  {stateLine}
+                </Text>
+                <Text style={styles.line} numberOfLines={1} testID="curve-roll-yield">
+                  {rollLine}
+                </Text>
+              </>
+            }
+            floating={
+              movedTo === null ? undefined : (
+                <View style={styles.notice} pointerEvents="none">
+                  <Text style={styles.noticeText} testID="curve-moved">
+                    {t('curve.moved', {
+                      date: formatLegendDate(movedTo, currentDate),
+                      weekday: formatWeekday(movedTo, i18n.language),
+                    })}
+                  </Text>
+                </View>
+              )
+            }
           />
-        )}
-        {movedTo !== null && (
-          <View style={styles.notice} pointerEvents="none">
-            <Text style={styles.noticeText} testID="curve-moved">
-              {t('curve.moved', {
-                date: formatLegendDate(movedTo, currentDate),
-                weekday: formatWeekday(movedTo, i18n.language),
-              })}
-            </Text>
-          </View>
         )}
       </View>
       <View style={styles.controls}>
         <StepButton
-          label="-"
+          icon="chevron-left"
           accessibilityLabel={t('curve.prev')}
           onPress={data.prevBaseDate === null ? null : () => onChangeBaseDate(data.prevBaseDate)}
         />
@@ -172,7 +188,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
           </Text>
         </Pressable>
         <StepButton
-          label="+"
+          icon="chevron-right"
           accessibilityLabel={t('curve.next')}
           // D-1로 오면 기본값과 같은 조회 key를 쓴다
           onPress={
@@ -185,17 +201,11 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
           }
         />
         <StepButton
-          label="0"
+          icon="page-last"
           accessibilityLabel={t('curve.reset')}
           onPress={data.baseDate === data.maxBaseDate ? null : () => onChangeBaseDate(null)}
         />
       </View>
-      <Text style={styles.line} numberOfLines={1} testID="curve-state">
-        {stateLine}
-      </Text>
-      <Text style={styles.line} numberOfLines={1} testID="curve-roll-yield">
-        {rollLine}
-      </Text>
       {sheetOpen && (
         <BaseDateSheet range={range} onConfirm={confirmPick} onCancel={() => setSheetOpen(false)} />
       )}
@@ -204,13 +214,13 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
 }
 
 type StepButtonProps = {
-  label: string;
+  icon: IconName;
   accessibilityLabel: string;
   // null이면 범위 끝이라 비활성
   onPress: (() => void) | null;
 };
 
-function StepButton({ label, accessibilityLabel, onPress }: StepButtonProps) {
+function StepButton({ icon, accessibilityLabel, onPress }: StepButtonProps) {
   const disabled = onPress === null;
   return (
     <Pressable
@@ -221,7 +231,7 @@ function StepButton({ label, accessibilityLabel, onPress }: StepButtonProps) {
       onPress={onPress ?? undefined}
       style={[styles.step, disabled && styles.stepDisabled]}
     >
-      <Text style={[styles.stepText, disabled && styles.stepTextDisabled]}>{label}</Text>
+      <Icon name={icon} color={disabled ? colors.textSecondary : colors.text} />
     </Pressable>
   );
 }
@@ -303,13 +313,6 @@ const styles = StyleSheet.create({
   stepDisabled: {
     opacity: 0.4,
   },
-  stepText: {
-    color: colors.text,
-    fontSize: fontSize.title,
-  },
-  stepTextDisabled: {
-    color: colors.textSecondary,
-  },
   baseDate: {
     color: colors.text,
     fontSize: fontSize.body,
@@ -318,10 +321,6 @@ const styles = StyleSheet.create({
   },
   // 차트 위쪽에 띄운다. 아래쪽이면 x축 월물 라벨을 가린다
   notice: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: spacing.sm,
     alignItems: 'center',
   },
   noticeText: {

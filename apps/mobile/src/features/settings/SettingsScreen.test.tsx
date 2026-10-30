@@ -1,5 +1,6 @@
 import type { Settings } from '@futureetp/shared';
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { DeviceEventEmitter } from 'react-native';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { queryClient } from '@/api/queryClient';
@@ -115,9 +116,11 @@ describe('B 설정', () => {
 
 describe('B rare-level 입력', () => {
   const field = (index: number) => screen.getByLabelText(`rare-level ${index}`);
+  // 키패드 닫힘 이벤트를 테스트에서 직접 보낸다(Keyboard는 기기 이벤트 채널로 받는다)
+  const hideKeyboard = () => act(() => DeviceEventEmitter.emit('keyboardDidHide', {}));
   const edit = async (index: number, text: string) => {
     await fireEvent.changeText(field(index), text);
-    await fireEvent(field(index), 'endEditing');
+    await hideKeyboard();
   };
 
   it('서버 값을 칸에 보여 주고 범위를 안내한다', async () => {
@@ -159,6 +162,24 @@ describe('B rare-level 입력', () => {
     expect(screen.queryByText(message)).not.toBeOnTheScreen();
     await waitFor(() =>
       expect(mockPatch).toHaveBeenCalledWith({ rareLevels: [1, 10, 15, 20, 25] }),
+    );
+  });
+
+  it('키패드가 열린 채 여러 칸을 고치는 동안은 저장·정렬하지 않는다', async () => {
+    await renderSettings();
+    await screen.findByDisplayValue('25');
+    await fireEvent.changeText(field(1), '30');
+    await fireEvent(field(1), 'endEditing');
+    await fireEvent.changeText(field(2), '35');
+    await fireEvent(field(2), 'endEditing');
+
+    expect(mockPatch).not.toHaveBeenCalled();
+    expect(field(1)).toHaveDisplayValue('30');
+    expect(field(2)).toHaveDisplayValue('35');
+
+    await hideKeyboard();
+    await waitFor(() =>
+      expect(mockPatch).toHaveBeenCalledWith({ rareLevels: [15, 20, 25, 30, 35] }),
     );
   });
 

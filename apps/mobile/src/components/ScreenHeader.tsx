@@ -21,7 +21,11 @@ export function ScreenHeader({ title, showBack = true, right }: Props) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {showBack ? (
-        <HeaderIconButton glyph="←" label={t('common.back')} onPress={() => router.back()} />
+        <HeaderIconButton
+          icon="arrow-left"
+          label={t('common.back')}
+          onPress={() => router.back()}
+        />
       ) : (
         <View style={styles.side} />
       )}

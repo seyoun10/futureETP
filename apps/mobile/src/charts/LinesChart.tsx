@@ -1,7 +1,6 @@
 import { memo, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Gesture } from 'react-native-gesture-handler';
 import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
@@ -12,8 +11,9 @@ import { CrosshairLayer } from './CrosshairLayer';
 import type { CandleGeom } from './fitTransform';
 import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
-import { X_LABEL_HEIGHT } from './chartLayout';
-import { LONG_PRESS_MS, useChartViewport, useReportGeom } from './useChartViewport';
+import { ROLL_MARKER_ROW_HEIGHT, X_LABEL_HEIGHT } from './chartLayout';
+import { ChartOverlay } from './ChartOverlay';
+import { useChartViewport, useReportGeom } from './useChartViewport';
 import type { ChartGesture } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { priceLabelText, YAxisLayer } from './YAxisLayer';
@@ -34,7 +34,11 @@ type LinesChartProps = {
   onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
+  // 차트 하단 가운데에 띄우는 버튼(차트 되돌리기). 위치는 C-a와 같다
+  floating?: ReactNode;
 };
+
+const noop = () => {};
 
 // C-c 겹친 선차트(screens.md C-c). 선형 y축, 확대·이동·십자선은 C-a와 같은 useChartViewport다.
 // 십자선 가로선은 그날 값이 있는 첫 선(만기가 가장 가까운 월물)을 따라간다.
@@ -49,10 +53,16 @@ export const LinesChart = memo(function LinesChart({
   onViewChange,
   onVisibleRangeChange,
   renderDetail,
+  floating,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
-  const { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap } =
-    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange });
+  const { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig } =
+    useChartViewport({
+      press,
+      periodBars,
+      onViewChange,
+      onVisibleRangeChange,
+    });
 
   const data = useMemo(
     () =>
@@ -81,14 +91,12 @@ export const LinesChart = memo(function LinesChart({
         xKey="i"
         yKeys={['close', 'hi', 'lo']}
         transformState={transform}
-        transformConfig={{
-          pan: { enabled: zoomed, dimensions: 'x' },
-          pinch: { dimensions: 'x' },
-        }}
+        // 핀치·드래그는 useChartViewport의 gestures가 맡는다
+        transformConfig={{ pan: { enabled: false }, pinch: { enabled: false } }}
         chartPressState={press}
-        chartPressConfig={{ pan: { activateAfterLongPress: LONG_PRESS_MS } }}
+        chartPressConfig={pressConfig}
         // CandleChart와 같은 이유로 legacy Gesture.Race를 넘긴다(D-056).
-        customGestures={Gesture.Race(hideCrosshairTap) as unknown as ComposedGesture}
+        customGestures={gestures as unknown as ComposedGesture}
         xAxis={{ font: null, lineColor: 'transparent' }}
         yAxis={[{ font: null, lineColor: 'transparent' }]}
         padding={{ bottom: X_LABEL_HEIGHT, right: yLabelWidth }}
@@ -137,6 +145,11 @@ export const LinesChart = memo(function LinesChart({
           <GeomReporter points={points} chartBounds={chartBounds} onGeom={onGeom} />
         )}
       </CartesianChart>
+      <ChartOverlay
+        bottomOffset={X_LABEL_HEIGHT + ROLL_MARKER_ROW_HEIGHT}
+        floating={floating}
+        onInsets={noop}
+      />
       {detail !== null && dates[detail.index] && (
         <View
           pointerEvents="none"

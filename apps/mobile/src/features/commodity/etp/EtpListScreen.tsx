@@ -8,6 +8,7 @@ import { QueryStateView } from '@/components/QueryStateView';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { formatLocalDateTime } from '@/lib/formatDateTime';
 import { compactAmount } from '@/lib/formatAmount';
+import { Icon } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
 import {
@@ -180,7 +181,7 @@ function EtpRow({ etp, code, sort }: { etp: EtpSummary; code: CommodityCode; sor
           {attrs.join(' · ')}
         </Text>
       </View>
-      <Text style={styles.chevron}>›</Text>
+      <Icon name="chevron-right" color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -226,9 +227,5 @@ const styles = StyleSheet.create({
   attrs: {
     color: colors.textSecondary,
     fontSize: fontSize.caption,
-  },
-  chevron: {
-    color: colors.textSecondary,
-    fontSize: fontSize.title,
   },
 });

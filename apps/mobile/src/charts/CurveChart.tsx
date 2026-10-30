@@ -17,6 +17,8 @@ import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
+import { ChartOverlay } from './ChartOverlay';
+import type { OverlayInsets } from './ChartOverlay';
 import { CHART_FONT_SIZE, numberFont } from './chartText';
 import { labelStride, niceTicks, slotAt, tickDecimals } from './curveLayout';
 
@@ -35,6 +37,10 @@ type CurveChartProps = {
   formatPct: (pct: number) => string;
   // 점을 누르면 여는 툴팁 내용. 위치는 차트가 누른 점 반대편으로 정한다
   renderDetail: (index: number) => ReactNode;
+  // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 안내(ChartOverlay). 선·점은 줄을 비켜 그린다
+  overlayTop?: ReactNode;
+  overlayBottom?: ReactNode;
+  floating?: ReactNode;
 };
 
 const TICK_COUNT = 5;
@@ -54,9 +60,13 @@ export const CurveChart = memo(function CurveChart({
   priceDecimals,
   formatPct,
   renderDetail,
+  overlayTop,
+  overlayBottom,
+  floating,
 }: CurveChartProps) {
   const palette = useUpDownPalette();
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const [selected, setSelected] = useState<Selected | null>(null);
 
   const layout = useMemo(() => {
@@ -68,18 +78,35 @@ export const CurveChart = memo(function CurveChart({
     const pad = (hi - lo || Math.abs(hi) * 0.02 || 1) * 0.08;
     const yMin = lo - pad;
     const yMax = hi + pad;
-    const ticks = niceTicks(yMin, yMax, TICK_COUNT);
-    const decimals = tickDecimals(ticks, priceDecimals);
-    const tickLabels = ticks.map((t) => formatPrice(t, decimals));
     const left = 0;
+    const plotBottom = size.height - BOTTOM;
+    // 선·점은 정보 줄 사이(dataTop~dataBottom)에 맞추고, 격자·눈금은 그림 영역 전체(TOP~plotBottom)에 그린다
+    const dataTop = TOP + overlay.top;
+    const dataBottom = plotBottom - overlay.bottom;
+    const perPx = (yMax - yMin) / Math.max(dataBottom - dataTop, 1);
+    const fullTicks = niceTicks(
+      yMin - (plotBottom - dataBottom) * perPx,
+      yMax + (dataTop - TOP) * perPx,
+      TICK_COUNT,
+    );
+    const fullDecimals = tickDecimals(fullTicks, priceDecimals);
+    const tickLabels = fullTicks.map((t) => formatPrice(t, fullDecimals));
     const right =
       size.width - Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) - 10;
-    const plotBottom = size.height - BOTTOM;
     const slot = (right - left) / points.length;
     const x = (i: number) => left + slot * (i + 0.5);
-    const y = (v: number) => TOP + ((yMax - v) / (yMax - yMin)) * (plotBottom - TOP);
-    return { ticks, tickLabels, left, right, plotBottom, slot, x, y };
-  }, [points, priceDecimals, size]);
+    const y = (v: number) => dataTop + (yMax - v) / perPx;
+    return {
+      ticks: fullTicks,
+      tickLabels,
+      left,
+      right,
+      plotBottom,
+      slot,
+      x,
+      y,
+    };
+  }, [points, priceDecimals, size, overlay]);
 
   const paths = useMemo(() => {
     if (!layout) return null;
@@ -225,11 +252,19 @@ export const CurveChart = memo(function CurveChart({
           </Canvas>
         )}
       </Pressable>
+      <ChartOverlay
+        top={overlayTop}
+        bottom={overlayBottom}
+        bottomOffset={BOTTOM}
+        floating={floating}
+        onInsets={setOverlay}
+      />
       {selected !== null && points[selected.index] && (
         <View
           pointerEvents="none"
           style={[
             styles.detail,
+            { top: styles.detail.top + overlay.top },
             selected.side === 'left'
               ? { left: layout?.left ?? 0 }
               : { right: size.width - (layout?.right ?? size.width) },

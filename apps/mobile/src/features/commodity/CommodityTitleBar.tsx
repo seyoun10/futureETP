@@ -7,8 +7,8 @@ import { lockLandscape, lockPortrait, useIsLandscape } from '@/lib/orientation';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from './useCommodityCode';
 
-// C title-bar: [←] 원자재명 / 심볼 [⟲] [⚙]. [←]는 탭 이력과 상관없이 A로 간다(screens.md C).
-// [⟲]는 C-a~C-c에서만 보이고, 가로 모드에서는 높이를 줄인다(D-076).
+// C title-bar: [←] 원자재명 / 심볼 [회전] [⚙]. [←]는 탭 이력과 상관없이 A로 간다(screens.md C).
+// [회전]은 C-a~C-c에서만 보이고, 바뀔 방향의 휴대폰 회전 아이콘이다(↻ 되돌리기와 구분). 가로 모드에서는 높이를 줄인다(D-076).
 export function CommodityTitleBar() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -21,7 +21,7 @@ export function CommodityTitleBar() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <HeaderIconButton
-        glyph="←"
+        icon="arrow-left"
         label={t('common.back')}
         compact={isLandscape}
         onPress={() => router.dismissTo('/')}
@@ -35,14 +35,14 @@ export function CommodityTitleBar() {
       </Text>
       {canRotate ? (
         <HeaderIconButton
-          glyph="⟲"
+          icon={isLandscape ? 'phone-rotate-portrait' : 'phone-rotate-landscape'}
           label={t('commodity.rotate')}
           compact={isLandscape}
           onPress={() => void (isLandscape ? lockPortrait() : lockLandscape())}
         />
       ) : null}
       <HeaderIconButton
-        glyph="⚙︎"
+        icon="cog-outline"
         label={t('settings.title')}
         compact={isLandscape}
         onPress={() => router.push('/settings')}

@@ -89,3 +89,21 @@ export function periodTransform(g: CandleGeom, barCount: number): Transform {
   const k = n / Math.max(barCount, 1);
   return fitTransform(g, k, g.right * (1 - k));
 }
+
+// 핀치 시작 때의 x 배율·이동과 두 손가락 가운데(화면 x)
+export type PinchStart = { k: number; tx: number; focalX: number };
+
+// 핀치 시작 때 손가락 가운데 있던 지점이 지금 손가락 가운데에 오도록 확대·축소한다.
+// 배율을 먼저 제한해야 최대·최소 배율에서 더 벌리거나 오므려도 화면이 밀리지 않는다
+export function pinchTransform(
+  g: CandleGeom,
+  start: PinchStart,
+  scale: number,
+  focalX: number,
+): Transform {
+  'worklet';
+  const n = g.highY.length;
+  const k = clamp(start.k * scale, 1, Math.max(1, n / MIN_VISIBLE_BARS));
+  const anchor = (start.focalX - start.tx) / start.k;
+  return fitTransform(g, k, focalX - anchor * k);
+}

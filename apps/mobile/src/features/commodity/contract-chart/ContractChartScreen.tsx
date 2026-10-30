@@ -3,12 +3,12 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
-import { PERIOD_BARS } from '@/charts/chartPeriods';
+import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { ChartResetButton } from '@/charts/ChartResetButton';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
-import { FreshnessLine } from '@/components/FreshnessLine';
+import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { useDisplaySettings } from '@/stores/displaySettings';
@@ -45,6 +45,7 @@ function ContractChartContent({ code }: { code: CommodityCode }) {
 
 function ContractChartView({ data }: { data: ContractsChart }) {
   const { t } = useTranslation();
+  useTabFreshness(data.freshness);
   const model = useMemo(() => contractChartModel(data), [data]);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
   const period = useDisplaySettings((s) => s.contractPeriod);
@@ -78,7 +79,6 @@ function ContractChartView({ data }: { data: ContractsChart }) {
   if (data.dates.length === 0 || model.lines.length === 0) {
     return (
       <>
-        <FreshnessLine freshness={data.freshness} />
         <Text style={styles.message}>{t('contracts.noData')}</Text>
       </>
     );
@@ -86,7 +86,6 @@ function ContractChartView({ data }: { data: ContractsChart }) {
 
   return (
     <>
-      <FreshnessLine freshness={data.freshness} />
       <View style={styles.chart}>
         <LinesChart
           dates={data.dates}
@@ -99,10 +98,18 @@ function ContractChartView({ data }: { data: ContractsChart }) {
           onViewChange={onViewChange}
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
+          floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
         />
-        {gesture && <ChartResetButton onPress={() => setGesture(null)} />}
       </View>
-      <PeriodChips selected={gesture === 'zoom' ? null : period} onSelect={onSelectPeriod} />
+      <PeriodChips
+        selected={gesture === 'zoom' ? null : period}
+        nearest={
+          gesture === 'zoom' && range
+            ? nearestPeriod(range[1] - range[0] + 1, data.dates.length)
+            : null
+        }
+        onSelect={onSelectPeriod}
+      />
     </>
   );
 }

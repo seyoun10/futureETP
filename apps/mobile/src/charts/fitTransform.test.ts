@@ -1,4 +1,10 @@
-import { fitTransform, MIN_VISIBLE_BARS, periodTransform, visibleRange } from './fitTransform';
+import {
+  fitTransform,
+  MIN_VISIBLE_BARS,
+  periodTransform,
+  pinchTransform,
+  visibleRange,
+} from './fitTransform';
 import type { CandleGeom } from './fitTransform';
 
 // 봉 100개, x 0~1000(간격 10), y 0~500
@@ -47,5 +53,35 @@ describe('fitTransform', () => {
     const t = periodTransform(makeGeom(), 25);
     expect(t.k).toBe(4);
     expect(t.tx).toBe(-3000);
+  });
+});
+
+describe('pinchTransform', () => {
+  // 화면 x를 변환 전 x로
+  const toBase = (x: number, k: number, tx: number) => (x - tx) / k;
+
+  it('손가락 가운데 있던 지점을 그 자리에 두고 확대한다', () => {
+    const g = makeGeom();
+    const start = { k: 2, tx: -500, focalX: 300 };
+    const t = pinchTransform(g, start, 1.5, 300);
+    expect(t.k).toBe(3);
+    expect(toBase(300, t.k, t.tx)).toBeCloseTo(toBase(300, start.k, start.tx));
+  });
+
+  it('두 손가락이 함께 움직이면 그 지점이 손가락을 따라간다', () => {
+    const g = makeGeom();
+    const start = { k: 2, tx: -500, focalX: 300 };
+    const t = pinchTransform(g, start, 1, 350);
+    expect(t.k).toBe(2);
+    expect(toBase(350, t.k, t.tx)).toBeCloseTo(toBase(300, start.k, start.tx));
+  });
+
+  it('최대 배율에서 더 벌려도 화면이 밀리지 않는다', () => {
+    const g = makeGeom();
+    const max = 100 / MIN_VISIBLE_BARS;
+    const start = { k: max, tx: -2000, focalX: 400 };
+    const t = pinchTransform(g, start, 3, 400);
+    expect(t.k).toBe(max);
+    expect(t.tx).toBeCloseTo(start.tx);
   });
 });

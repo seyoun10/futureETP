@@ -15,6 +15,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@futureetp/shared": "*",
     "@react-native-community/datetimepicker": "9.2.1",
     "@shopify/react-native-skia": "2.14.0",

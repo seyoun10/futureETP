@@ -1,7 +1,6 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Gesture } from 'react-native-gesture-handler';
 import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, Candlestick, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
@@ -9,6 +8,8 @@ import type { ChartBounds, PointsArray } from 'victory-native';
 import { formatPrice } from '@/lib/formatNumber';
 import { spacing } from '@/theme/tokens';
 import { useUpDownPalette } from '@/theme/upDownColor';
+import { ChartOverlay } from './ChartOverlay';
+import type { OverlayInsets } from './ChartOverlay';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
 import { ExtremeTagsLayer } from './ExtremeTagsLayer';
@@ -17,8 +18,8 @@ import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
-import { X_LABEL_HEIGHT } from './chartLayout';
-import { LONG_PRESS_MS, useChartViewport, useReportGeom } from './useChartViewport';
+import { ROLL_MARKER_ROW_HEIGHT, X_LABEL_HEIGHT } from './chartLayout';
+import { useChartViewport, useReportGeom } from './useChartViewport';
 import type { ChartGesture } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { YAxisLayer } from './YAxisLayer';
@@ -49,7 +50,14 @@ type CandleChartProps = {
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 십자선 상세 박스 내용. 박스 위치는 차트가 손가락 반대편으로 정한다
   renderDetail: (index: number) => ReactNode;
+  // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 버튼(ChartOverlay)
+  overlayTop?: ReactNode;
+  overlayBottom?: ReactNode;
+  floating?: ReactNode;
 };
+
+// 아래 정보 줄은 x축 라벨·롤 마커 줄 위에 둔다
+const OVERLAY_BOTTOM_OFFSET = X_LABEL_HEIGHT + ROLL_MARKER_ROW_HEIGHT;
 
 // C-a 일봉 차트(D-056, D-087). log y축, 확대·이동·십자선은 useChartViewport(C-c와 공용),
 // 우측 y축 특수 라벨, 롤 음영·마커, 최고가·최저가 꼬리표.
@@ -64,14 +72,26 @@ export const CandleChart = memo(function CandleChart({
   onViewChange,
   onVisibleRangeChange,
   renderDetail,
+  overlayTop,
+  overlayBottom,
+  floating,
 }: CandleChartProps) {
   const palette = useUpDownPalette();
   const { state: press } = useChartPressState({
     x: 0,
     y: { open: 0, high: 0, low: 0, close: 0, hi: 0, lo: 0 },
   });
-  const { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap } =
-    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange });
+  const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
+  // 아래 줄은 롤 마커 줄 위에 있어 그 줄 높이까지 비운다
+  const dataInsets = useMemo(
+    () => ({
+      top: overlay.top,
+      bottom: overlay.bottom > 0 ? overlay.bottom + ROLL_MARKER_ROW_HEIGHT : 0,
+    }),
+    [overlay],
+  );
+  const { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig } =
+    useChartViewport({ press, periodBars, onViewChange, onVisibleRangeChange, dataInsets });
 
   const data = useMemo(
     () =>
@@ -96,14 +116,12 @@ export const CandleChart = memo(function CandleChart({
         yKeys={['open', 'high', 'low', 'close', 'hi', 'lo']}
         axisOptions={{ axisScales: { yAxisScale: 'log' } }}
         transformState={transform}
-        transformConfig={{
-          pan: { enabled: zoomed, dimensions: 'x' },
-          pinch: { dimensions: 'x' },
-        }}
+        // 핀치·드래그는 useChartViewport의 gestures가 맡는다
+        transformConfig={{ pan: { enabled: false }, pinch: { enabled: false } }}
         chartPressState={press}
-        chartPressConfig={{ pan: { activateAfterLongPress: LONG_PRESS_MS } }}
+        chartPressConfig={pressConfig}
         // victory-native 42 타입은 RNGH 3의 새 ComposedGesture를 가리키지만, 런타임은 legacy Gesture.Race로 합친다(D-056).
-        customGestures={Gesture.Race(hideCrosshairTap) as unknown as ComposedGesture}
+        customGestures={gestures as unknown as ComposedGesture}
         // 라이브러리 축은 끄고 레이어로 그린다. 여백은 라벨 자리
         xAxis={{ font: null, lineColor: 'transparent' }}
         yAxis={[{ font: null, lineColor: 'transparent' }]}
@@ -167,11 +185,19 @@ export const CandleChart = memo(function CandleChart({
           />
         )}
       </CartesianChart>
+      <ChartOverlay
+        top={overlayTop}
+        bottom={overlayBottom}
+        bottomOffset={OVERLAY_BOTTOM_OFFSET}
+        floating={floating}
+        onInsets={setOverlay}
+      />
       {detail !== null && bars[detail.index] && (
         <View
           pointerEvents="none"
           style={[
             styles.detail,
+            { top: styles.detail.top + overlay.top },
             detail.side === 'left' ? { left: spacing.sm } : { left: width / 2 },
           ]}
         >

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
-import { FreshnessLine } from '@/components/FreshnessLine';
+import { FreshnessFooter } from '@/components/FreshnessLine';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { QueryStateView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -41,7 +41,7 @@ export function CommodityListScreen() {
         showBack={false}
         right={
           <HeaderIconButton
-            glyph="⚙︎"
+            icon="cog-outline"
             label={t('settings.title')}
             onPress={() => router.push('/settings')}
           />
@@ -50,7 +50,6 @@ export function CommodityListScreen() {
       <QueryStateView query={query}>
         {(data) => (
           <>
-            <FreshnessLine freshness={data.freshness} />
             <FlatList
               testID="commodity-list"
               data={data.commodities}
@@ -64,6 +63,7 @@ export function CommodityListScreen() {
                 />
               }
             />
+            <FreshnessFooter freshness={data.freshness} />
           </>
         )}
       </QueryStateView>

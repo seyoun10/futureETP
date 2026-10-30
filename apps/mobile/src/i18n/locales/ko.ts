@@ -11,6 +11,7 @@ export const ko = {
     back: '뒤로',
     cancel: '취소',
     confirm: '확인',
+    done: '완료',
   },
   commodities: {
     GC: '금',
@@ -201,6 +202,16 @@ export const ko = {
     rareLevelInvalid: '{{min}}~{{max}} 사이 값을 소수 첫째 자리까지 입력해 주세요.',
     rareLevelDuplicate: '서로 다른 값 {{count}}개를 입력해 주세요.',
     saveFailed: '저장하지 못했습니다. {{reason}}',
+    languageDesc: '화면과 푸시 알림 문구의 언어',
+    upDownStyleDesc: '한국식은 상승 빨강·하락 파랑, 미국식은 상승 초록·하락 빨강',
+    basisDesc:
+      '차트와 알림에 쓰는 월물. 대표월물은 거래량이 가장 많은 월물, 한국형·미국형은 국내·미국 ETP의 롤 규칙',
+    maPeriodDesc: '이격도를 재는 기준 이동평균 기간',
+    windowDesc: '드문 정도를 판단할 과거 이격도 기간',
+    rareLevelsDesc: '과거 이격도의 위·아래 끝 몇 %를 차트 밴드로 그리고, 닿으면 알림을 보냅니다',
+    alertsDesc: 'rare-level 도달 알림을 받을 원자재와 알림 거부 시간',
+    accessKeyDesc: '서버에 접속하는 비밀 키',
+    dataSourcesDesc: '시세와 데이터를 가져오는 곳',
   },
   dataSources: {
     sections: {

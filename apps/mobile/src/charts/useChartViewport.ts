@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LayoutChangeEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
@@ -12,10 +12,11 @@ import {
 import type { ChartBounds, PointsArray } from 'victory-native';
 import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
 
+import type { OverlayInsets } from './ChartOverlay';
 import { useCrosshairPosition } from './CrosshairLayer';
 import type { ChartTransform, CrosshairPress } from './CrosshairLayer';
-import { fitTransform, periodTransform, visibleRange } from './fitTransform';
-import type { CandleGeom, Transform } from './fitTransform';
+import { fitTransform, periodTransform, pinchTransform, visibleRange } from './fitTransform';
+import type { CandleGeom, PinchStart, Transform } from './fitTransform';
 
 const EPSILON = 1e-3;
 export const LONG_PRESS_MS = 300;
@@ -37,15 +38,22 @@ type ViewportOptions = {
   // 돌아오면 null로 부른다. 범위 끝에서 더 밀어 그대로면 부르지 않는다
   onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange?: (i0: number, i1: number) => void;
+  // 차트 안에 겹친 정보 줄 높이. y 자동 맞춤이 이만큼 위·아래를 비워 봉·선이 글자 밑으로 들어가지 않는다
+  dataInsets?: OverlayInsets;
 };
+
+const NO_INSETS: OverlayInsets = { top: 0, bottom: 0 };
 
 // C-a·C-c 공용 x축 확대·이동(D-056, D-087). x만 핀치·드래그, 보이는 봉 기준 y 자동 맞춤,
 // 기간 버튼 범위, 길게 누르기 십자선(봉에 붙을 때 햅틱, 한 번 더 누르면 사라짐), 상세 박스 위치.
+// 핀치·드래그는 라이브러리 것을 끄고 여기서 만든다(gestures). 라이브러리 핀치는 손가락 가운데를 변환 전
+// 좌표로 써서 확대된 상태에서 고정점이 어긋나고, 함께 도는 드래그가 행렬을 덮어써 시점이 튄다.
 export function useChartViewport({
   press,
   periodBars,
   onViewChange,
   onVisibleRangeChange,
+  dataInsets = NO_INSETS,
 }: ViewportOptions) {
   const { state: transform } = useChartTransformState();
   const geom = useSharedValue<CandleGeom | null>(null);
@@ -59,13 +67,28 @@ export function useChartViewport({
   const [geomVersion, setGeomVersion] = useState(0);
   // 마지막으로 맞춘 기간의 봉 수. 제스처 뒤 이 기간의 최근 위치로 돌아왔는지 볼 때 쓴다
   const homeBars = useSharedValue(0);
-  const onGeom = useCallback(
-    (g: CandleGeom) => {
-      geom.set(g);
+  // 받은 좌표의 위·아래를 정보 줄 높이만큼 줄여 둔다(fitTransform은 이 범위에 맞춘다). 높이가 바뀌면 원래 좌표로 다시 줄인다
+  const rawGeom = useRef<CandleGeom | null>(null);
+  const insets = useRef(dataInsets);
+  const applyGeom = useCallback(
+    (g: CandleGeom, ins: OverlayInsets) => {
+      geom.set({ ...g, top: g.top + ins.top, bottom: g.bottom - ins.bottom });
       setGeomVersion((v) => v + 1);
     },
     [geom],
   );
+  const onGeom = useCallback(
+    (g: CandleGeom) => {
+      rawGeom.current = g;
+      applyGeom(g, insets.current);
+    },
+    [applyGeom],
+  );
+  const { top: insetTop, bottom: insetBottom } = dataInsets;
+  useEffect(() => {
+    insets.current = { top: insetTop, bottom: insetBottom };
+    if (rawGeom.current) applyGeom(rawGeom.current, insets.current);
+  }, [applyGeom, insetTop, insetBottom]);
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
   useEffect(() => {
@@ -126,7 +149,7 @@ export function useChartViewport({
     },
   );
 
-  // '전체'(k=1)에서는 이동 제스처를 막는다. 이동이 x를 바꾸고 보정이 되돌리는 쓰기 충돌로 끊긴다(D-056)
+  // '전체'(k=1)에서는 드래그를 막는다(아래 gestures)
   useAnimatedReaction(
     () => getTransformComponents(transform.matrix.get()).scaleX > 1 + EPSILON,
     (next, prev) => {
@@ -163,22 +186,58 @@ export function useChartViewport({
   );
 
   // 십자선은 손을 떼도 남고, 차트를 한 번 더 누르면 사라진다(D-056).
+  // 십자선이 있는 동안은 드래그를 끄고 길게 누르기 없이 끌면 바로 십자선이 따라온다(pressConfig)
   const crosshairVisible = useSharedValue(false);
+  const [crosshairShown, setCrosshairShown] = useState(false);
   useAnimatedReaction(
     () => press.isActive.get(),
     (active) => {
-      if (active) crosshairVisible.set(true);
+      if (active && !crosshairVisible.get()) {
+        crosshairVisible.set(true);
+        scheduleOnRN(setCrosshairShown, true);
+      }
     },
   );
   const crosshair = useCrosshairPosition(press, transform, crosshairVisible);
-  const hideCrosshairTap = useMemo(
-    () =>
-      Gesture.Tap().onEnd(() => {
-        crosshairVisible.set(false);
-        scheduleOnRN(setDetail, null);
-      }),
-    [crosshairVisible],
+
+  const pressConfig = useMemo(
+    () => ({ pan: crosshairShown ? {} : { activateAfterLongPress: LONG_PRESS_MS } }),
+    [crosshairShown],
   );
+
+  // 핀치: 시작 때 손가락 가운데 있던 지점이 손가락 가운데를 따라가게 확대·축소한다(두 손가락 이동 포함)
+  const pinchStart = useSharedValue<PinchStart>({ k: 1, tx: 0, focalX: 0 });
+  const gestures = useMemo(() => {
+    const hideCrosshair = Gesture.Tap().onEnd(() => {
+      crosshairVisible.set(false);
+      scheduleOnRN(setCrosshairShown, false);
+      scheduleOnRN(setDetail, null);
+    });
+    const pinch = Gesture.Pinch()
+      .onStart((e) => {
+        const c = getTransformComponents(transform.matrix.get());
+        pinchStart.set({ k: c.scaleX, tx: c.translateX, focalX: e.focalX });
+        transform.zoomActive.set(true);
+      })
+      .onChange((e) => {
+        const g = geom.get();
+        if (!g) return;
+        applyTransform(transform, pinchTransform(g, pinchStart.get(), e.scale, e.focalX));
+      })
+      .onFinalize(() => transform.zoomActive.set(false));
+    // 드래그: '전체'에서는 막는다(이동이 x를 바꾸고 보정이 되돌리는 쓰기 충돌, D-056). 핀치 중에는 핀치가 이동까지 맡는다
+    const pan = Gesture.Pan()
+      .enabled(zoomed && !crosshairShown)
+      .onStart(() => transform.panActive.set(true))
+      .onChange((e) => {
+        const g = geom.get();
+        if (!g || transform.zoomActive.get()) return;
+        const c = getTransformComponents(transform.matrix.get());
+        applyTransform(transform, fitTransform(g, c.scaleX, c.translateX + e.changeX));
+      })
+      .onFinalize(() => transform.panActive.set(false));
+    return Gesture.Race(hideCrosshair, Gesture.Simultaneous(pinch, pan));
+  }, [crosshairVisible, crosshairShown, geom, pinchStart, transform, zoomed]);
 
   // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신. 박스는 손가락 반대편에 둔다(screens.md C-a 십자선)
   const onSnap = useCallback((index: number, side: ChartDetail['side']) => {
@@ -198,7 +257,7 @@ export function useChartViewport({
     widthValue.set(e.nativeEvent.layout.width);
   };
 
-  return { transform, zoomed, detail, width, onLayout, onGeom, crosshair, hideCrosshairTap };
+  return { transform, detail, width, onLayout, onGeom, crosshair, gestures, pressConfig };
 }
 
 // 변환 전 픽셀 좌표(봉과 선의 위·아래 끝)를 worklet이 읽을 수 있게 넘긴다.

@@ -64,9 +64,20 @@ jest.mock('expo-localization', () => {
 
 // Skia·Victory Native는 Jest에서 돌지 않는다. 차트는 아무것도 그리지 않는 jest.fn으로 두고,
 // 화면 테스트는 jest.mocked(CandleChart).mock.lastCall로 받은 props(renderDetail 등)를 확인한다.
-jest.mock('@/charts/CandleChart', () => ({ CandleChart: jest.fn(() => null) }));
-jest.mock('@/charts/CurveChart', () => ({ CurveChart: jest.fn(() => null) }));
-jest.mock('@/charts/LinesChart', () => ({ LinesChart: jest.fn(() => null) }));
+// 차트 안에 겹치는 정보 줄·버튼(overlayTop·overlayBottom·floating)은 화면 쪽 내용이라 그대로 그린다.
+type OverlaySlots = {
+  overlayTop?: import('react').ReactNode;
+  overlayBottom?: import('react').ReactNode;
+  floating?: import('react').ReactNode;
+};
+const mockChartWithOverlays = () =>
+  jest.fn(({ overlayTop, overlayBottom, floating }: OverlaySlots) => {
+    const { createElement, Fragment } = jest.requireActual<typeof import('react')>('react');
+    return createElement(Fragment, null, overlayTop, overlayBottom, floating);
+  });
+jest.mock('@/charts/CandleChart', () => ({ CandleChart: mockChartWithOverlays() }));
+jest.mock('@/charts/CurveChart', () => ({ CurveChart: mockChartWithOverlays() }));
+jest.mock('@/charts/LinesChart', () => ({ LinesChart: mockChartWithOverlays() }));
 
 // expo-notifications도 네이티브 모듈이다. 권한은 허용, 토큰은 없음(등록 안 함)으로 둔다.
 // 등록을 보는 테스트는 jest.mocked(getDevicePushTokenAsync)로 토큰을 돌려준다.
@@ -83,3 +94,11 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   setNotificationHandler: jest.fn(),
 }));
+
+// 아이콘 글꼴은 expo-font가 asset으로 불러오는데 Jest에는 asset 등록이 없다. 아이콘 이름을 가진 빈 Text로 둔다
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
+  const { createElement } = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const Icon = ({ name }: { name: string }) => createElement(Text, null, name);
+  return { __esModule: true, default: Icon };
+});

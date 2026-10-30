@@ -128,7 +128,7 @@ type ApiResponse<T> =
 - enum: shared 상수 문자열(`GC`, `FRONT`, `Y10`, `UP` 등, data-model과 같은 값).
 
 ### 데이터 기준 정보(freshness)
-A와 C 화면의 조회 응답 `data`에는 상단 기준 시각 줄과 자동 새로고침에 쓰는 `freshness`를 넣는다.
+A와 C 화면의 조회 응답 `data`에는 하단 기준 시각 줄과 자동 새로고침에 쓰는 `freshness`를 넣는다.
 스키마는 shared `freshnessSchema`, 앱 표시는 `src/components/FreshnessLine.tsx`(포맷은 `src/lib/formatDateTime.ts`)다(D-075). 시세 숫자·월물 표기(`2,405.1`·`+0.51%`·`DEC26`)는 언어와 상관없이 `src/lib/formatNumber.ts`가 만든다.
 
 ```ts

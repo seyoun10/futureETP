@@ -8,6 +8,8 @@ export const colors = {
   separator: '#4a4a4a',
   // title-bar 아래·tab-bar 위 구분선
   barSeparator: '#ffffff',
+  // 차트 위에 겹친 정보 줄 배경(뒤의 rare-level 선·격자가 비쳐 보이게)
+  overlay: 'rgba(0, 0, 0, 0.65)',
   text: '#e0e0e0',
   textSecondary: '#9e9e9e',
   // 등락 0, 데이터 없음 등 방향이 없는 값

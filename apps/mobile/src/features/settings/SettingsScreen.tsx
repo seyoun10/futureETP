@@ -10,6 +10,7 @@ import { ErrorView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
+import { Icon } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
@@ -26,7 +27,8 @@ export function SettingsScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title={t('settings.title')} />
-      <ScrollView>
+      {/* rare-level 키패드는 화면을 끌면 닫힌다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
+      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         {update.isError && (
           <Text accessibilityRole="alert" style={styles.error}>
             {t('settings.saveFailed', { reason: errorText(t, update.error) })}
@@ -44,8 +46,13 @@ export function SettingsScreen() {
           label={t('settings.accessKey')}
           value={hasKey ? t('accessKey.saved') : undefined}
           href="/settings/access-key"
+          description={t('settings.accessKeyDesc')}
         />
-        <LinkRow label={t('settings.dataSources')} href="/settings/data-sources" />
+        <LinkRow
+          label={t('settings.dataSources')}
+          href="/settings/data-sources"
+          description={t('settings.dataSourcesDesc')}
+        />
       </ScrollView>
     </View>
   );
@@ -71,6 +78,7 @@ function DisplaySection({
         label={t('settings.language')}
         options={LANGUAGES.map((value) => ({ value, label: languageLabels[value] }))}
         value={language}
+        description={t('settings.languageDesc')}
         onChange={(value) => {
           setLanguage(value);
           onLanguageChange(value);
@@ -83,6 +91,7 @@ function DisplaySection({
           label: t(`settings.upDownStyle${value}`),
         }))}
         value={upDownStyle}
+        description={t('settings.upDownStyleDesc')}
         onChange={setUpDownStyle}
       />
     </>
@@ -105,12 +114,14 @@ function DisparitySection({
         label={t('settings.basis')}
         options={BASES.map((value) => ({ value, label: t(`settings.basis${value}`) }))}
         value={settings?.basis}
+        description={t('settings.basisDesc')}
         onChange={(basis) => onChange({ basis })}
       />
       <SegmentedControl
         label={t('settings.maPeriod')}
         options={MA_PERIODS.map((value) => ({ value, label: String(value) }))}
         value={settings?.maPeriod}
+        description={t('settings.maPeriodDesc')}
         onChange={(maPeriod) => onChange({ maPeriod })}
       />
       <SegmentedControl
@@ -120,11 +131,13 @@ function DisparitySection({
           label: value === 'ALL' ? t('settings.windowALL') : value.slice(1),
         }))}
         value={settings?.window}
+        description={t('settings.windowDesc')}
         onChange={(window) => onChange({ window })}
       />
       <RareLevelsInput
         levels={settings?.rareLevels}
         onSave={(rareLevels) => onChange({ rareLevels })}
+        description={t('settings.rareLevelsDesc')}
       />
       <LinkRow
         label={t('settings.alerts')}
@@ -135,17 +148,26 @@ function DisparitySection({
             : t('settings.alertOff'))
         }
         href="/settings/alerts"
+        description={t('settings.alertsDesc')}
       />
     </>
   );
 }
 
-function LinkRow({ label, value, href }: { label: string; value?: string; href: Href }) {
+type LinkRowProps = { label: string; value?: string; href: Href; description?: string };
+
+// 이름 + 값 + › 행. 설명은 이름·값 아래 한 줄이다
+function LinkRow({ label, value, href, description }: LinkRowProps) {
   return (
     <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      {value && <Text style={styles.value}>{value}</Text>}
-      <Text style={styles.chevron}>›</Text>
+      <View style={styles.rowMain}>
+        <View style={styles.rowLine}>
+          <Text style={styles.label}>{label}</Text>
+          {value && <Text style={styles.value}>{value}</Text>}
+        </View>
+        {description && <Text style={styles.description}>{description}</Text>}
+      </View>
+      <Icon name="chevron-right" color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -176,18 +198,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
   },
+  rowMain: {
+    flex: 1,
+  },
+  rowLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   label: {
     flex: 1,
     color: colors.text,
     fontSize: fontSize.body,
   },
+  description: {
+    marginTop: spacing.xs,
+    color: colors.textSecondary,
+    fontSize: fontSize.caption,
+  },
   value: {
     marginRight: spacing.sm,
     color: colors.textSecondary,
     fontSize: fontSize.body,
-  },
-  chevron: {
-    color: colors.textSecondary,
-    fontSize: fontSize.title,
   },
 });
