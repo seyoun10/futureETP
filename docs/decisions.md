@@ -1246,6 +1246,7 @@
   - 시스템 스캐너는 기기·Play 서비스 지원 여부에 따라 달라지고 모달 생명주기를 따로 다뤄야 한다. 화면 안 미리보기는 두 플랫폼에서 같은 흐름이고 Jest로 이벤트를 그대로 검증한다.
   - 녹화를 하지 않으므로 마이크 권한은 요청 이유가 없다.
 - 영향: Android 권한 `CAMERA`, iOS `NSCameraUsageDescription`. 네이티브 모듈이라 재빌드가 필요하다.
+- 보충(2026-10-30): iOS 권한 문구를 app config `locales`(ko·en, `InfoPlist.strings`)로 기기 언어에 맞춘다. 앱 안 언어 설정과는 따로이고, strings 파일에서는 `$(PRODUCT_NAME)`이 바뀌지 않아 앱 이름을 넣지 않는다. 플러그인의 `cameraPermission`은 strings가 없는 언어의 기본 문구로 남긴다. Android 권한 대화상자는 OS 문구라 따로 둘 것이 없다.
 
 ## D-079: 저장된 키 거절(`UNAUTHORIZED`) — 캐시 `onError`가 store에 표시, 루트 레이아웃이 B-b로 이동
 - 날짜: 2026-10-27

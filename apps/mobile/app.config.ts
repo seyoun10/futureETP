@@ -70,6 +70,18 @@ export default ({ config }: ConfigContext): ExpoConfig =>
       icon: './assets/images/icon.png',
       scheme: isDev ? 'futureetp-dev' : 'futureetp',
       userInterfaceStyle: 'dark',
+      // iOS 권한 문구를 기기 언어로 보인다(InfoPlist.strings). 앱 안 언어 설정과는 따로다.
+      // strings 파일에서는 $(PRODUCT_NAME)이 바뀌지 않아 앱 이름을 넣지 않는다
+      locales: {
+        ko: {
+          ios: { NSCameraUsageDescription: '서버 접근 키 QR 코드를 읽을 때 카메라를 씁니다.' },
+        },
+        en: {
+          ios: {
+            NSCameraUsageDescription: 'The camera is used to scan the server access key QR code.',
+          },
+        },
+      },
       backgroundColor: '#000000',
       ios: {
         bundleIdentifier: appId,
