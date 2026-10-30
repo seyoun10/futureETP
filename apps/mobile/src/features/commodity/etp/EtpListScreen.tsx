@@ -4,9 +4,9 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { formatLocalDateTime } from '@/lib/formatDateTime';
 import { compactAmount } from '@/lib/formatAmount';
 import { Icon } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -47,6 +47,9 @@ function EtpList({ code }: { code: CommodityCode }) {
     () => sortEtps(filterEtps(etps ?? [], filters), sort),
     [etps, filters, sort],
   );
+  // 수집 시각은 다른 탭의 기준 시각 줄 자리(tab-bar 아래)에 보인다
+  const asOf = query.data?.asOf;
+  useTabFreshness(useMemo(() => (asOf ? { asOf } : undefined), [asOf]));
 
   return (
     <QueryStateView query={query}>
@@ -59,20 +62,13 @@ function EtpList({ code }: { code: CommodityCode }) {
             data={rows}
             keyExtractor={(item) => item.id}
             ListHeaderComponent={
-              <>
-                {data.asOf && (
-                  <Text style={styles.asOf}>
-                    {t('freshness.asOf', { time: formatLocalDateTime(data.asOf) })}
-                  </Text>
-                )}
-                <Filters
-                  etps={data.etps}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  sort={sort}
-                  onSortChange={setSort}
-                />
-              </>
+              <Filters
+                etps={data.etps}
+                filters={filters}
+                onFiltersChange={setFilters}
+                sort={sort}
+                onSortChange={setSort}
+              />
             }
             ListEmptyComponent={<Text style={styles.message}>{t('etp.noMatch')}</Text>}
             renderItem={({ item }) => <EtpRow etp={item} code={code} sort={sort} />}
@@ -190,12 +186,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  asOf: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    color: colors.textSecondary,
-    fontSize: fontSize.caption,
   },
   filters: {
     borderBottomWidth: 1,

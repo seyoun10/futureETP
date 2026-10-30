@@ -77,7 +77,9 @@ describe('C-d ETP 목록', () => {
     await renderScreen();
 
     expect(mockGet).toHaveBeenCalledWith('NG', expect.anything());
+    // 수집 시각은 목록 안이 아니라 tab-bar 아래 기준 시각 줄에 있다
     expect(screen.getByText(/기준$/)).toBeOnTheScreen();
+    expect(within(screen.getByTestId('etp-list')).queryByText(/기준$/)).not.toBeOnTheScreen();
     expect(titles()).toEqual([
       'KODEX 천연가스선물(H)',
       '삼성 레버리지 천연가스 선물 ETN',
