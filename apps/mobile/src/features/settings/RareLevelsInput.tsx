@@ -6,16 +6,7 @@ import {
   settingsPatchSchema,
 } from '@futureetp/shared';
 import { useEffect, useEffectEvent, useState } from 'react';
-import {
-  InputAccessoryView,
-  Keyboard,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 
@@ -29,10 +20,6 @@ type Props = {
 
 type Problem = 'invalid' | 'duplicate';
 
-// iOS 숫자 키패드에는 닫는 키가 없어 키패드 위에 [완료] 줄을 붙인다. Android는 키패드의 완료 키로 닫는다.
-// New Architecture에서는 한 줄을 같은 ID로 여러 칸에 붙이면 첫 칸에만 붙어 칸마다 따로 둔다
-const accessoryId = (index: number) => `rareLevelsKeyboard${index}`;
-
 // 기기에 따라 소수점이 쉼표로 들어온다
 const parseLevel = (text: string) => {
   const normalized = text.trim().replace(',', '.');
@@ -45,7 +32,7 @@ const findProblem = (values: number[]): Problem | undefined => {
   return undefined;
 };
 
-// rare-level 5칸(screens.md B). 키패드가 닫힐 때 5개 모두 맞으면 정렬해 저장하고, 아니면 오류를 보여 주고 저장하지 않는다.
+// rare-level 5칸(screens.md B). iOS 키패드를 닫는 [완료] 줄은 화면의 KeyboardDoneBar다. 키패드가 닫힐 때 5개 모두 맞으면 정렬해 저장하고, 아니면 오류를 보여 주고 저장하지 않는다.
 // 칸을 벗어날 때마다 저장하면 순서대로 입력하는 중에 정렬된 값으로 칸이 바뀐다. 칸 사이를 옮기는 동안은 키패드가 열려 있다
 export function RareLevelsInput({ levels, onSave, description }: Props) {
   const { t } = useTranslation();
@@ -91,7 +78,6 @@ export function RareLevelsInput({ levels, onSave, description }: Props) {
             accessibilityLabel={t('settings.rareLevelField', { index: index + 1 })}
             keyboardType="decimal-pad"
             returnKeyType="done"
-            inputAccessoryViewID={accessoryId(index)}
             maxLength={4}
             editable={levels !== undefined}
             selectTextOnFocus
@@ -107,16 +93,6 @@ export function RareLevelsInput({ levels, onSave, description }: Props) {
             : t('settings.rareLevelHint', range)}
       </Text>
       {description && <Text style={styles.description}>{description}</Text>}
-      {Platform.OS === 'ios' &&
-        texts.map((_, index) => (
-          <InputAccessoryView key={index} nativeID={accessoryId(index)}>
-            <View style={styles.accessory}>
-              <Pressable accessibilityRole="button" onPress={() => Keyboard.dismiss()} hitSlop={8}>
-                <Text style={styles.accessoryButton}>{t('common.done')}</Text>
-              </Pressable>
-            </View>
-          </InputAccessoryView>
-        ))}
     </View>
   );
 }
@@ -159,19 +135,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textSecondary,
     fontSize: fontSize.caption,
-  },
-  accessory: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  accessoryButton: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    fontWeight: '600',
   },
 });

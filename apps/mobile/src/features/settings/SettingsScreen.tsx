@@ -2,7 +2,15 @@ import { BASES, MA_PERIODS, WINDOWS } from '@futureetp/shared';
 import type { Settings, SettingsPatch } from '@futureetp/shared';
 import type { Href } from 'expo-router';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useHasAccessKey } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
@@ -11,6 +19,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { LANGUAGES, UP_DOWN_STYLES, useDisplaySettings } from '@/stores/displaySettings';
 import { Icon } from '@/components/Icon';
+import { KeyboardDoneBar } from '@/components/KeyboardDoneBar';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
@@ -25,9 +34,13 @@ export function SettingsScreen() {
   const save = (patch: SettingsPatch) => update.mutate(patch);
 
   return (
-    <View style={styles.container}>
+    // iOS는 키패드만큼 화면을 줄여 [완료] 줄을 키패드 위에 둔다
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <ScreenHeader title={t('settings.title')} />
-      {/* rare-level 키패드는 화면을 끌면 닫힌다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
+      {/* rare-level 키패드는 화면을 끌거나 [완료]로 닫는다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
       <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
         {update.isError && (
           <Text accessibilityRole="alert" style={styles.error}>
@@ -54,7 +67,8 @@ export function SettingsScreen() {
           description={t('settings.dataSourcesDesc')}
         />
       </ScrollView>
-    </View>
+      <KeyboardDoneBar />
+    </KeyboardAvoidingView>
   );
 }
 

@@ -1,6 +1,6 @@
 import type { Settings } from '@futureetp/shared';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Keyboard } from 'react-native';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { queryClient } from '@/api/queryClient';
@@ -181,6 +181,21 @@ describe('B rare-level 입력', () => {
     await waitFor(() =>
       expect(mockPatch).toHaveBeenCalledWith({ rareLevels: [15, 20, 25, 30, 35] }),
     );
+  });
+
+  it('iOS는 키패드가 열린 동안 [완료] 줄을 보이고, 누르면 키패드를 닫는다', async () => {
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    await renderSettings();
+    await screen.findByDisplayValue('25');
+    expect(screen.queryByRole('button', { name: '완료' })).not.toBeOnTheScreen();
+
+    await act(() => DeviceEventEmitter.emit('keyboardWillShow', {}));
+    await fireEvent.press(screen.getByRole('button', { name: '완료' }));
+    expect(dismiss).toHaveBeenCalled();
+
+    await act(() => DeviceEventEmitter.emit('keyboardWillHide', {}));
+    expect(screen.queryByRole('button', { name: '완료' })).not.toBeOnTheScreen();
+    dismiss.mockRestore();
   });
 
   it('값이 그대로면 저장하지 않는다', async () => {
