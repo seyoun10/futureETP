@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useIsLandscape } from '@/lib/orientation';
 import { colors, spacing } from '@/theme/tokens';
 import { PERIOD_CHIPS_HEIGHT } from './PeriodChips';
 
@@ -15,6 +16,8 @@ const STEP_SIZE = 44;
 // 차트가 들어설 자리와 모양을 맞춘다. 캐시가 있으면 보이지 않는다
 export function ChartSkeleton({ footer }: Props) {
   const { t } = useTranslation();
+  // 가로 모드는 아래 줄을 숨긴다(D-103)
+  const isLandscape = useIsLandscape();
 
   return (
     <View
@@ -27,7 +30,7 @@ export function ChartSkeleton({ footer }: Props) {
           <View key={i} style={styles.grid} />
         ))}
       </View>
-      {footer === 'periods' ? (
+      {isLandscape ? null : footer === 'periods' ? (
         <View style={[styles.footer, { height: PERIOD_CHIPS_HEIGHT }]}>
           {Array.from({ length: 6 }, (_, i) => (
             <View key={i} style={styles.chip} />

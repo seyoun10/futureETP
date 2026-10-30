@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useIsLandscape } from '@/lib/orientation';
 import { CHART_PERIODS } from '@/stores/displaySettings';
 import type { ChartPeriod } from '@/stores/displaySettings';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -16,9 +17,12 @@ const CHIP_HEIGHT = 44;
 // 칩 줄 높이(ChartSkeleton이 자리를 맞춘다)
 export const PERIOD_CHIPS_HEIGHT = CHIP_HEIGHT;
 
-// C-a·C-c 기간 칩 한 줄(screens.md C-a 기간과 제스처). 칩이 줄 너비를 똑같이 나눠 스크롤 없이 다 보인다
+// C-a·C-c 기간 칩 한 줄(screens.md C-a 기간과 제스처). 칩이 줄 너비를 똑같이 나눠 스크롤 없이 다 보인다.
+// 가로 모드에서는 차트만 보이게 숨긴다(D-103)
 export function PeriodChips({ selected, nearest = null, onSelect }: PeriodChipsProps) {
   const { t } = useTranslation();
+  const isLandscape = useIsLandscape();
+  if (isLandscape) return null;
 
   return (
     <View

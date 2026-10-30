@@ -9,6 +9,7 @@ import type { CurvePoint } from '@/charts/CurveChart';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { useIsLandscape } from '@/lib/orientation';
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
@@ -93,6 +94,8 @@ type ViewProps = {
 function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProps) {
   const { t, i18n } = useTranslation();
   useTabFreshness(data.freshness);
+  // 가로 모드는 기준일 버튼 줄을 숨긴다(D-103)
+  const isLandscape = useIsLandscape();
   const [sheetOpen, setSheetOpen] = useState(false);
   const points = useMemo<CurvePoint[]>(
     () =>
@@ -172,41 +175,43 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
           />
         )}
       </View>
-      <View style={styles.controls}>
-        <StepButton
-          icon="chevron-left"
-          accessibilityLabel={t('curve.prev')}
-          onPress={data.prevBaseDate === null ? null : () => onChangeBaseDate(data.prevBaseDate)}
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={t('curve.pickTitle')}
-          onPress={openPicker}
-          style={styles.step}
-        >
-          <Text style={styles.baseDate} testID="curve-base-date">
-            {t('curve.baseDate', { date: formatFullDate(data.baseDate), n: data.baseOffset })}
-          </Text>
-        </Pressable>
-        <StepButton
-          icon="chevron-right"
-          accessibilityLabel={t('curve.next')}
-          // D-1로 오면 기본값과 같은 조회 key를 쓴다
-          onPress={
-            data.nextBaseDate === null
-              ? null
-              : () =>
-                  onChangeBaseDate(
-                    data.nextBaseDate === data.maxBaseDate ? null : data.nextBaseDate,
-                  )
-          }
-        />
-        <StepButton
-          icon="page-last"
-          accessibilityLabel={t('curve.reset')}
-          onPress={data.baseDate === data.maxBaseDate ? null : () => onChangeBaseDate(null)}
-        />
-      </View>
+      {!isLandscape && (
+        <View style={styles.controls}>
+          <StepButton
+            icon="chevron-left"
+            accessibilityLabel={t('curve.prev')}
+            onPress={data.prevBaseDate === null ? null : () => onChangeBaseDate(data.prevBaseDate)}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityHint={t('curve.pickTitle')}
+            onPress={openPicker}
+            style={styles.step}
+          >
+            <Text style={styles.baseDate} testID="curve-base-date">
+              {t('curve.baseDate', { date: formatFullDate(data.baseDate), n: data.baseOffset })}
+            </Text>
+          </Pressable>
+          <StepButton
+            icon="chevron-right"
+            accessibilityLabel={t('curve.next')}
+            // D-1로 오면 기본값과 같은 조회 key를 쓴다
+            onPress={
+              data.nextBaseDate === null
+                ? null
+                : () =>
+                    onChangeBaseDate(
+                      data.nextBaseDate === data.maxBaseDate ? null : data.nextBaseDate,
+                    )
+            }
+          />
+          <StepButton
+            icon="page-last"
+            accessibilityLabel={t('curve.reset')}
+            onPress={data.baseDate === data.maxBaseDate ? null : () => onChangeBaseDate(null)}
+          />
+        </View>
+      )}
       {sheetOpen && (
         <BaseDateSheet range={range} onConfirm={confirmPick} onCancel={() => setSheetOpen(false)} />
       )}

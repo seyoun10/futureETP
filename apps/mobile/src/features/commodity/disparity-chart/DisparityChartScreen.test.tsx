@@ -7,11 +7,16 @@ import { getCommodities, getDisparityChart } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { getSettings } from '@/api/settings';
 import { CandleChart } from '@/charts/CandleChart';
+import { useIsLandscape } from '@/lib/orientation';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getDisparityChart: jest.fn() }));
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
+jest.mock('@/lib/orientation', () => ({
+  ...jest.requireActual<object>('@/lib/orientation'),
+  useIsLandscape: jest.fn(() => false),
+}));
 const mockGet = jest.mocked(getDisparityChart);
 const mockChart = jest.mocked(CandleChart);
 
@@ -93,6 +98,19 @@ beforeEach(() => {
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
+  it('가로 모드에서는 기간 칩·tab-bar·기준 시각 줄을 숨기고 차트만 남긴다', async () => {
+    jest.mocked(useIsLandscape).mockReturnValue(true);
+    try {
+      await renderScreen();
+      await screen.findByTestId('disparity-stats');
+      expect(screen.queryByRole('radio', { name: '6M' })).toBeNull();
+      expect(screen.queryByText('월물커브')).toBeNull();
+      expect(screen.queryByText(/기준 · 거래일/)).toBeNull();
+    } finally {
+      jest.mocked(useIsLandscape).mockReturnValue(false);
+    }
+  });
+
   it('설정 값(기준값·이평선·윈도·rare 레벨)으로 조회한다', async () => {
     await renderScreen();
     await screen.findByTestId('disparity-stats');

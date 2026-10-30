@@ -1206,7 +1206,7 @@
 - 맥락: TODO 5-5 라우트 골격의 [⟲] 항목. screens.md는 C-a~C-c에서만 수동 가로 전환, ETP 탭에서 세로 복귀, 가로에서 title-bar·tab-bar 높이 줄임을 정했다. app config `orientation: 'portrait'`이면 iOS Info.plist가 세로만 허용해 가로 잠금이 거부된다.
 - 결정:
   - `expo-screen-orientation` ~58.0.3(`npx expo install`). app config는 `orientation: 'default'`, 플러그인 `initialOrientation: 'PORTRAIT_UP'`(iOS 시작 방향), `ios.requireFullScreen: true`(iPad 잠금 조건). 루트 `_layout`이 시작할 때 `PORTRAIT_UP`으로 잠근다(Android 시작 방향).
-  - `src/lib/orientation.ts`: `lockPortrait`·`lockLandscape`(실패는 무시), `useIsLandscape`(창 너비 > 높이). [⟲]는 지금 창 모양의 반대 방향으로 잠근다. 가로 레이아웃(title-bar 버튼 높이 32·제목 `body` 크기, tab-bar 높이 32 + 하단 inset)도 잠금 상태가 아니라 창 모양으로 정한다.
+  - `src/lib/orientation.ts`: `lockPortrait`·`lockLandscape`(실패는 무시), `useIsLandscape`(창 너비 > 높이). [⟲]는 지금 창 모양의 반대 방향으로 잠근다. 가로 레이아웃(title-bar 버튼 높이 32·제목 `body` 크기, tab-bar 높이 32 + 하단 inset)도 잠금 상태가 아니라 창 모양으로 정한다. (가로 tab-bar는 D-103으로 숨김)
   - [⟲]는 C title-bar에서 현재 탭이 `etps`가 아닐 때만 보인다. ETP 탭 `focus`와 탭 그룹이 포커스를 잃을 때(A·B·C-d-a로 이동) 세로로 잠근다.
 - 근거:
   - Expo 문서는 iOS 27부터 크기 조절 가능한 앱(iPhone Mirroring·iPad)에서 잠금을 선호값으로만 취급한다고 안내한다. 창 모양으로 레이아웃을 정하면 잠금이 거부돼도 화면이 깨지지 않는다.
@@ -1645,4 +1645,5 @@
 - 결정
   - 대표월물 기준의 전환 마커를 그리지 않는다. 전환일의 새 월물명은 십자선 상세(`DEC26 → FEB27`)에만 남는다. 한국형·미국형 롤 음영은 그대로다.
   - 마커 줄 자리(`ROLL_MARKER_ROW_HEIGHT`)를 없애 아래 정보 줄을 x축 라벨 바로 위에 붙인다(C-a·C-c).
-- 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, screens.md C-a 롤 표시. D-087의 대표월물 마커를 대체한다.
+  - 가로 모드(C-a~C-c)는 title-bar와 차트 영역만 남긴다. tab-bar·기준 시각 줄·차트 아래 줄(기간 칩, C-b 기준일 버튼, 스켈레톤의 같은 자리)을 숨기고 홈 인디케이터 여백만 둔다. 탭 전환·기간 선택·기준일 이동은 [⟲]로 세로로 돌아가서 한다. 기준 시각 줄이 없어 가로에서는 지연·장 상태가 보이지 않는다.
+- 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, `CommodityTabsLayout`(가로 tab-bar 높이 32 삭제), `PeriodChips`·`ChartSkeleton`·`CurveScreen` 가로 숨김, screens.md C-a 롤 표시·C 가로 모드. D-087의 대표월물 마커와 D-076의 가로 tab-bar 유지를 대체한다.
