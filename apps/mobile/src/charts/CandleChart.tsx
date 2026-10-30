@@ -19,7 +19,7 @@ import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
-import { ROLL_MARKER_ROW_HEIGHT, X_LABEL_HEIGHT } from './chartLayout';
+import { X_LABEL_HEIGHT } from './chartLayout';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import type { ChartGesture } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
@@ -57,11 +57,8 @@ type CandleChartProps = {
   floating?: ReactNode;
 };
 
-// 아래 정보 줄은 x축 라벨·롤 마커 줄 위에 둔다
-const OVERLAY_BOTTOM_OFFSET = X_LABEL_HEIGHT + ROLL_MARKER_ROW_HEIGHT;
-
 // C-a 일봉 차트(D-056, D-087). log y축, 확대·이동·십자선은 useChartViewport(C-c와 공용),
-// 우측 y축 특수 라벨, 롤 음영·마커, 최고가·최저가 꼬리표.
+// 우측 y축 특수 라벨, 롤 음영, 최고가·최저가 꼬리표.
 export const CandleChart = memo(function CandleChart({
   bars,
   envelope,
@@ -83,14 +80,7 @@ export const CandleChart = memo(function CandleChart({
     y: { open: 0, high: 0, low: 0, close: 0, hi: 0, lo: 0 },
   });
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
-  // 아래 줄은 롤 마커 줄 위에 있어 그 줄 높이까지 비운다
-  const dataInsets = useMemo(
-    () => ({
-      top: overlay.top,
-      bottom: overlay.bottom > 0 ? overlay.bottom + ROLL_MARKER_ROW_HEIGHT : 0,
-    }),
-    [overlay],
-  );
+  const dataInsets = overlay;
   const {
     transform,
     detail,
@@ -198,7 +188,7 @@ export const CandleChart = memo(function CandleChart({
       <ChartOverlay
         top={overlayTop}
         bottom={overlayBottom}
-        bottomOffset={OVERLAY_BOTTOM_OFFSET}
+        bottomOffset={X_LABEL_HEIGHT}
         floating={floating}
         onInsets={setOverlay}
       />

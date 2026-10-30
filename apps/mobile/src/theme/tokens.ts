@@ -24,9 +24,8 @@ export const colors = {
     movingAverage: '#ffd54f',
     // rare-level 선은 레벨 값이 아니라 순위로 고른다. 0 = 가장 덜 드문 레벨(옅음) → 4 = 가장 드문 레벨(진함)
     rareLevels: ['#4a3d66', '#62508a', '#7c62b0', '#9a72d8', '#b884ff'],
-    // 한국형·미국형 롤 기간 음영, 대표월물 전환 마커
+    // 한국형·미국형 롤 기간 음영
     rollShade: 'rgba(255, 255, 255, 0.07)',
-    rollMarker: '#9e9e9e',
     // 보이는 구간 최고가·최저가 꼬리표
     extremeTag: '#e0e0e0',
     // C-b 커브: 기준일은 점선, 현재는 실선(screens.md C-b)

@@ -9,7 +9,7 @@ export type OverlayInsets = { top: number; bottom: number };
 type Props = {
   // 차트 위쪽에 겹치는 정보 줄
   top?: ReactNode;
-  // 차트 아래쪽에 겹치는 정보 줄. bottomOffset만큼 차트 바닥에서 띄운다(x축 라벨·롤 마커 줄 위)
+  // 차트 아래쪽에 겹치는 정보 줄. bottomOffset만큼 차트 바닥에서 띄운다(x축 라벨 위)
   bottom?: ReactNode;
   bottomOffset: number;
   // 아래 정보 줄 바로 위에 띄우는 버튼(차트 되돌리기). 높이를 재지 않아 나타나도 데이터가 움직이지 않는다

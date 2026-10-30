@@ -1637,3 +1637,12 @@
   - 핀치 뒤 가장 가까운 기간 테두리는 12M보다 넓으면 12M이다.
   - 표시 설정 persist를 version 2로 올리고, 없어진 기간(3M·9M·2Y~10Y·전체)이 저장돼 있으면 6M으로 바꾼다.
 - 영향: `stores/displaySettings.ts`, `charts/chartPeriods.ts`, `charts/PeriodChips.tsx`, i18n `chart.periods`(`scrollPrev`·`scrollNext` 삭제), screens.md C-a·C-c, product.md. D-073의 기간 목록·persist version과 D-102 이전 기간 버튼 모양(위 2026-10-22 역검증 항목)을 대체한다.
+
+## D-103: 차트 하단 정리 — 대표월물 롤 마커 제거, 가로 모드는 title-bar와 차트만
+- 날짜: 2026-10-30
+- 상태: 확정 (사용자 요청)
+- 맥락: C-a 대표월물 기준은 전환일마다 x축 위에 ▲와 월 번호를 그리는 마커 줄(16pt)이 있었고, 아래 정보 줄은 이 줄을 비켜 그 위에 떠 있었다(C-c도 같은 여백).
+- 결정
+  - 대표월물 기준의 전환 마커를 그리지 않는다. 전환일의 새 월물명은 십자선 상세(`DEC26 → FEB27`)에만 남는다. 한국형·미국형 롤 음영은 그대로다.
+  - 마커 줄 자리(`ROLL_MARKER_ROW_HEIGHT`)를 없애 아래 정보 줄을 x축 라벨 바로 위에 붙인다(C-a·C-c).
+- 영향: `charts/RollLayer.tsx`(음영만), `charts/chartLayout.ts`, `CandleChart`·`LinesChart` 아래 줄 위치, `disparityChartModel`, 토큰 `rollMarker` 삭제, screens.md C-a 롤 표시. D-087의 대표월물 마커를 대체한다.

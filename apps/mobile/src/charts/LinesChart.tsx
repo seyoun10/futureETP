@@ -12,7 +12,7 @@ import { CrosshairLayer } from './CrosshairLayer';
 import type { CandleGeom } from './fitTransform';
 import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
-import { ROLL_MARKER_ROW_HEIGHT, X_LABEL_HEIGHT } from './chartLayout';
+import { X_LABEL_HEIGHT } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import type { ChartGesture } from './useChartViewport';
@@ -155,11 +155,7 @@ export const LinesChart = memo(function LinesChart({
           <GeomReporter points={points} chartBounds={chartBounds} onGeom={onGeom} />
         )}
       </CartesianChart>
-      <ChartOverlay
-        bottomOffset={X_LABEL_HEIGHT + ROLL_MARKER_ROW_HEIGHT}
-        floating={floating}
-        onInsets={noop}
-      />
+      <ChartOverlay bottomOffset={X_LABEL_HEIGHT} floating={floating} onInsets={noop} />
       {detail !== null && dates[detail.index] && (
         <View
           pointerEvents="none"

@@ -24,7 +24,7 @@ export type DisparityChartModel = {
   lines: ChartLine[];
   priceLabels: PriceLabel[];
   roll: RollMarks;
-  // 대표월물 전환 마커 봉 순번 → 새 월물명(십자선 상세용)
+  // 대표월물 전환일 봉 순번 → 새 월물명(십자선 상세용)
   frontSwitchAt: ReadonlyMap<number, string>;
 };
 
@@ -60,19 +60,10 @@ export function disparityChartModel(chart: DisparityChart): DisparityChartModel 
           ? colors.chart.movingAverage
           : (colorByKey.get(label.key) ?? colors.chart.tick),
   }));
-  // 실제로 그린 기준값의 롤 정보만: 대표월물은 전환 마커, 한국형·미국형은 음영(screens.md C-a 롤 표시)
-  // 마커 라벨은 겹치지 않게 새 월물의 월 번호만 쓰고, 전체 월물명은 십자선 상세에서 보여 준다
+  // 실제로 그린 기준값의 롤 정보만: 한국형·미국형은 음영(screens.md C-a 롤 표시).
+  // 대표월물은 차트에 표시하지 않고, 전환일의 새 월물명을 십자선 상세에서 보여 준다
+  const roll: RollMarks = { shading: chart.basis === 'FRONT' ? [] : rollSegments(bars) };
   const switches = chart.basis === 'FRONT' ? frontSwitches(bars) : [];
-  const roll: RollMarks =
-    chart.basis === 'FRONT'
-      ? {
-          shading: [],
-          markers: switches.map((s) => ({
-            index: s.index,
-            label: String(Number(s.contractMonth.slice(5, 7))),
-          })),
-        }
-      : { shading: rollSegments(bars), markers: [] };
   const frontSwitchAt = new Map(
     switches.map((s) => [s.index, formatContractMonth(s.contractMonth)] as const),
   );
