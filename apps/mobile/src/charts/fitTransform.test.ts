@@ -106,4 +106,18 @@ describe('shiftedView', () => {
     expect(view.k).toBeCloseTo(4);
     expect(visibleRange(next, view.k, view.tx)).toEqual([before[0] + 100, before[1] + 100]);
   });
+
+  it('폭이 바뀌어도(회전) 보던 봉 범위를 유지한다', () => {
+    const prev = makeGeom();
+    // 보던 범위: 가운데쯤(k=4)
+    const k = 4;
+    const tx = -1500;
+    const before = visibleRange(prev, k, tx);
+    // 가로로 돌려 폭이 2.2배가 되면 봉 간격도 2.2배다
+    const next = { ...makeGeom(), right: 2200, x0: 11, dx: 22 };
+    const view = shiftedView(prev, next, 0, k, tx);
+    expect(visibleRange(next, view.k, view.tx)).toEqual(before);
+    // 픽셀 이동값을 그대로 쓰면 과거 쪽으로 밀린다(이전 동작)
+    expect(visibleRange(next, k, tx)[0]).toBeLessThan(before[0]);
+  });
 });

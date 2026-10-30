@@ -1662,6 +1662,8 @@
   - 받는 동안 차트 왼쪽 가운데에 로딩 표시를 띄운다(`OlderDataIndicator`).
   - 앞에 봉이 붙으면 보던 날짜 범위를 같은 화면 위치에 다시 맞춘다(`fitTransform.shiftedView`). 봉 레이어가 좌표와 함께 날짜 구간(첫·마지막 날짜)을 알리고, 첫 날짜가 앞당겨지고 마지막 날짜가 같으면 늘어난 봉 수만큼 앞에 붙은 것으로 본다. 좌표 교체·행렬 보정·핀치 시작값 보정을 UI 스레드의 한 작업에서 한다.
   - 첫 기간 맞춤 전(기본 행렬 = 전체 봉)에는 보이는 범위를 알리지 않는다. 알리면 진입하자마자 가장 과거 봉이 보인다고 판단해 과거 데이터를 받았다.
+  - 회전으로 차트 폭이 바뀌어도 같은 방법(`shiftedView`, 앞에 붙은 봉 0개)으로 화면 양 끝 날짜를 유지한다. 행렬의 이동값은 픽셀이라 그대로 두면 가로로 넓어질 때 과거 쪽으로 밀렸다. 기간 버튼으로 고른 상태면 이어서 최근 N봉으로 다시 맞춘다. 봉 x 좌표(폭·첫 봉 위치·간격·봉 수)가 그대로면 행렬을 건드리지 않는다(행렬을 바꾸면 차트가 다시 그려지며 좌표를 또 알려 끝없이 반복된다).
+  - victory `useChartTransformState`는 렌더링마다 새 state 객체를 돌려준다. 첫 값으로 고정해 이 값에 의존하는 콜백·effect가 렌더링마다 다시 돌지 않게 한다(좌표 보고 → 렌더링 무한 반복).
 - 근거: 처음 그리는 봉이 약 5분의 1이고 응답도 800KB → 약 150KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
 - 위험: 좌표 교체와 보정을 따로 하면(JS effect + UI) 그 사이 새 좌표에 이전 행렬이 걸려 범위가 튀고 연달아 받았다. 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
 - 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md.

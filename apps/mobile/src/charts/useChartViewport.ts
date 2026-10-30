@@ -28,6 +28,18 @@ import type { CandleGeom, PinchStart, Transform } from './fitTransform';
 const EPSILON = 1e-3;
 export const LONG_PRESS_MS = 300;
 
+// 봉 x 좌표(폭·첫 봉 위치·간격·봉 수)가 같은지
+const sameX = (a: CandleGeom, b: CandleGeom) => {
+  'worklet';
+  return (
+    a.left === b.left &&
+    a.right === b.right &&
+    a.x0 === b.x0 &&
+    a.dx === b.dx &&
+    a.highY.length === b.highY.length
+  );
+};
+
 const applyTransform = (state: ChartTransform, t: Transform) => {
   'worklet';
   state.matrix.set(setTranslate(setScale(state.matrix.get(), t.k, t.ky), t.tx, t.ty));
@@ -84,7 +96,7 @@ export function useChartViewport({
   // 받은 좌표의 위·아래를 정보 줄 높이만큼 줄여 둔다(fitTransform은 이 범위에 맞춘다). 높이가 바뀌면 원래 좌표로 다시 줄인다
   const rawGeom = useRef<{ g: CandleGeom; span: DateSpan } | null>(null);
   const insets = useRef(dataInsets);
-  // 좌표 교체와 (과거 봉이 앞에 붙었을 때) 보던 날짜 범위 유지를 UI 스레드의 한 작업에서 한다(D-104).
+  // 좌표 교체와 (과거 봉이 앞에 붙거나 회전으로 폭이 바뀌었을 때) 보던 날짜 범위 유지를 UI 스레드의 한 작업에서 한다(D-104).
   // 나눠 하면 그 사이 새 좌표에 이전 행렬이 걸려 보이는 범위가 튀고, 첫 봉이 보인다고 잘못 알려 연달아 받는다
   const applyGeom = useCallback(
     (g: CandleGeom, ins: OverlayInsets, shift: number) => {
@@ -93,7 +105,11 @@ export function useChartViewport({
         'worklet';
         const prev = geom.get();
         geom.set(next);
-        if (shift <= 0 || !prev || !fitted.get()) return;
+        // 회전으로 폭이 바뀌어도(shift 0) 보던 봉 범위를 유지한다. 행렬의 이동은 픽셀 값이라 그대로 두면
+        // 폭이 넓어질 때 과거 쪽으로 밀린다. 기간 버튼 상태면 뒤의 기간 맞춤이 최근 봉으로 다시 맞춘다.
+        // x 좌표가 그대로면(정보 줄 높이만 바뀜·같은 좌표 재보고) 행렬을 건드리지 않는다. 행렬을 바꾸면
+        // 차트가 다시 그려지며 좌표를 또 보고해 끝없이 반복된다
+        if (!prev || !fitted.get() || sameX(prev, next)) return;
         const c = getTransformComponents(transform.matrix.get());
         const view = shiftedView(prev, next, shift, c.scaleX, c.translateX);
         applyTransform(transform, fitTransform(next, view.k, view.tx));
