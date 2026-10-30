@@ -1667,3 +1667,10 @@
 - 근거: 처음 그리는 봉이 약 5분의 1이고 응답도 800KB → 약 150KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
 - 위험: 좌표 교체와 보정을 따로 하면(JS effect + UI) 그 사이 새 좌표에 이전 행렬이 걸려 범위가 튀고 연달아 받았다. 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
 - 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md.
+
+## D-105: 쓸어서 뒤로 가기를 끈다
+- 날짜: 2026-10-30
+- 상태: 확정 (사용자 요청)
+- 맥락: iOS native stack은 화면 왼쪽 가장자리에서 오른쪽으로 쓸면 이전 화면으로 간다. 쓸다가 왼쪽으로 되돌리면 화면 오른쪽에 흰 배경이 비쳤고, 차트를 과거 쪽으로 끄는 드래그와 시작 위치가 겹친다.
+- 결정: 루트 Stack `screenOptions.gestureEnabled: false`. 모든 스택 화면에서 쓸어서 뒤로 가기가 없고, 뒤로 가기는 title-bar [←](Android는 시스템 뒤로 버튼도)로만 한다.
+- 영향: `app/_layout.tsx`, screens.md 공통 규칙.

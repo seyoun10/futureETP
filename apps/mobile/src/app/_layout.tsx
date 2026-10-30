@@ -46,6 +46,9 @@ export default function RootLayout() {
                 headerShown: false,
                 // iOS 26+ 기본 push 전환은 화면 가장자리에 밝은 테두리가 비친다. 그림자·모서리 효과 없는 전환을 쓴다.
                 animation: 'simple_push',
+                // 화면 가장자리에서 오른쪽으로 쓸어 뒤로 가기를 끈다. 차트 드래그와 겹치고, 쓸다가 되돌리면
+                // 오른쪽에 흰 배경이 비친다. 뒤로 가기는 [←]로만 한다(D-105)
+                gestureEnabled: false,
                 contentStyle: { backgroundColor: colors.background },
               }}
             />
