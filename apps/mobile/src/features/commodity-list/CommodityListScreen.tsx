@@ -1,4 +1,5 @@
 import type { CommoditySummary, ContractQuote } from '@futureetp/shared';
+import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
@@ -17,6 +18,7 @@ import {
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
 import { useCommodities } from './useCommodities';
 
 // A 원자재 목록(screens.md A, D-085). 원자재와 월물 줄은 서버가 준 순서대로 그린다.
@@ -79,12 +81,16 @@ function CommodityRow({
   palette: UpDownPalette;
 }) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const { code } = commodity;
 
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => router.push({ pathname: '/commodity/[code]', params: { code } })}
+      onPress={() => {
+        void prefetchDisparityChart(queryClient, code);
+        router.push({ pathname: '/commodity/[code]', params: { code } });
+      }}
       style={styles.row}
     >
       <View style={styles.nameColumn}>
