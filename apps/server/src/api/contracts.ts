@@ -10,6 +10,7 @@ import type { QuoteBar } from '../calc/quotes.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import type { DisparityStore } from './disparity.ts';
+import { beforeSchema, pageRange } from './chartPage.ts';
 import { ApiException } from './errors.ts';
 import { ok } from './response.ts';
 
@@ -28,11 +29,13 @@ export type ContractsStore = Pick<
 const LOOKBACK_DAYS = 30;
 const LOOKAHEAD_DAYS = 10;
 
-// GET /v1/commodities/:code/contracts(C-c, D-092). A와 같은 월물 목록의 원가격 선 전체를 한 번에 준다.
+// GET /v1/commodities/:code/contracts(C-c, D-092). A와 같은 월물 목록의 원가격 선을 최근 5년씩 준다(D-104).
+// before를 주면 그 날짜보다 이른 5년이다
 export async function loadContracts(
   store: ContractsStore,
   code: CommodityCode,
   now: Date,
+  before?: string,
 ): Promise<ContractsChart> {
   const today = now.toISOString().slice(0, 10);
   const [days, lastSettled, priceDecimals] = await Promise.all([
@@ -58,6 +61,7 @@ export async function loadContracts(
   ]);
   const result = buildContractLines({ contracts, tradeDate, bars, snapshots });
   if (result.dates.length === 0) throw new ApiException('NOT_FOUND', `No daily bars for ${code}`);
+  const page = pageRange(result.dates, before);
 
   return {
     freshness: {
@@ -68,9 +72,10 @@ export async function loadContracts(
       nextUpdateAt: status.nextUpdateAt?.toISOString() ?? null,
     },
     priceDecimals,
-    dates: result.dates,
+    dates: result.dates.slice(page.start, page.end),
+    hasMore: page.hasMore,
     provisional: result.provisional,
-    contracts: result.lines,
+    contracts: result.lines.map((l) => ({ ...l, prices: l.prices.slice(page.start, page.end) })),
   };
 }
 
@@ -80,7 +85,9 @@ export function contractsRoutes(store: ContractsStore, now: () => Date) {
     const code = z.enum(COMMODITY_CODES).safeParse(c.req.param('code'));
     if (!code.success)
       throw new ApiException('NOT_FOUND', `Unknown commodity ${c.req.param('code')}`);
-    return ok(c, await loadContracts(store, code.data, now()));
+    const before = beforeSchema.safeParse(c.req.query('before'));
+    if (!before.success) throw new ApiException('VALIDATION_FAILED', z.prettifyError(before.error));
+    return ok(c, await loadContracts(store, code.data, now(), before.data));
   });
   return routes;
 }

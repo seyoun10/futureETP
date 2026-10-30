@@ -13,6 +13,7 @@ import { marketStatus } from '../calc/marketState.ts';
 import type { RollRuleParams } from '../calc/rollWeight.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
+import { beforeSchema, pageRange } from './chartPage.ts';
 import { ApiException } from './errors.ts';
 import { ok } from './response.ts';
 
@@ -45,6 +46,8 @@ export type DisparityQuery = {
   window: Window;
   // 오름차순 5개
   levels: number[];
+  // 이 날짜보다 이른 봉만(이전 5년 더 받기). 없으면 최근 5년
+  before?: string;
 };
 
 // 앱은 설정 값을 query로 보낸다(query key에 그대로 들어가 설정을 바꾸면 다시 조회된다, D-086)
@@ -56,6 +59,7 @@ const querySchema = z.object({
     .string()
     .transform((s) => s.split(',').map(Number))
     .pipe(rareLevelsSchema),
+  before: beforeSchema,
 });
 
 // 직전 거래일(휴장 연휴)과 다음 개장(nextUpdateAt)을 찾을 만큼 읽는다(commodities.ts와 같다)
@@ -106,6 +110,12 @@ export async function loadDisparityChart(
     priceDecimals,
   );
 
+  // 전체를 계산한 뒤 자른다(이평선·보유 월물은 앞 봉에 기대고, 조회 비용은 작다)
+  const page = pageRange(
+    chart.bars.map((b) => b.tradeDate),
+    query.before,
+  );
+
   return {
     freshness: {
       // 잠정 봉이면 스냅숏 시각, 아니면 마지막 재계산 시각, 적재 전이면 조회 시각
@@ -128,6 +138,8 @@ export async function loadDisparityChart(
             sampleCount: distribution.sampleCount,
           },
     ...chart,
+    bars: chart.bars.slice(page.start, page.end),
+    hasMore: page.hasMore,
   };
 }
 

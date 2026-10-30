@@ -122,6 +122,7 @@ describe('GET /v1/commodities/:code/contracts', () => {
     expect(body).toMatchObject({
       priceDecimals: 2,
       dates: ['2026-10-20', '2026-10-21'],
+      hasMore: false,
       provisional: false,
     });
     expect(body.contracts.map((c) => c.symbol)).toEqual([
@@ -132,6 +133,13 @@ describe('GET /v1/commodities/:code/contracts', () => {
       'CLK27',
     ]);
     expect(body.contracts[0].prices).toEqual([70, 71]);
+  });
+
+  it('before를 주면 그 날짜보다 이른 날짜와 가격만 준다', async () => {
+    const body = await parse(await setup('/v1/commodities/CL/contracts?before=2026-10-21'));
+    expect(body).toMatchObject({ dates: ['2026-10-20'], hasMore: false });
+    expect(body.contracts[0].prices).toEqual([70]);
+    expect((await setup('/v1/commodities/CL/contracts?before=x')).status).toBe(400);
   });
 
   it('장중 스냅숏은 오늘 잠정 값(지연)으로 붙인다', async () => {

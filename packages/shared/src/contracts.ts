@@ -16,8 +16,11 @@ export const contractsChartSchema = z
   .object({
     freshness: freshnessSchema,
     priceDecimals: z.number().int().nonnegative(),
-    // 거래일 오름차순. 가장 이른 월물의 첫 일봉부터 D까지
+    // 거래일 오름차순. 가장 이른 월물의 첫 일봉부터 D까지 중 최근 5년씩 준다.
+    // before를 주면 그 날짜보다 이른 5년이다(D-104)
     dates: z.array(z.iso.date()),
+    // dates보다 이른 날이 더 있는지
+    hasMore: z.boolean(),
     // 마지막 날짜에 장중 스냅숏 값(오늘 잠정 값)이 하나라도 있는지
     provisional: z.boolean(),
     // A와 같은 월물 목록(만기순 5개, 대표월물 안전장치 6번째)

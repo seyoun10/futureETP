@@ -43,6 +43,7 @@ const chart = (overrides: Partial<DisparityChart>): DisparityChart => ({
   ],
   currentTail: null,
   provisional: false,
+  hasMore: false,
   bars: [bar('2026-10-21', 100), bar('2026-10-22', 102)],
   ...overrides,
 });

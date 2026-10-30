@@ -117,9 +117,19 @@ describe('GET /v1/commodities/:code/disparity', () => {
       nextUpdateAt: '2026-10-22T15:01:00.000Z',
     });
     expect(data.bars.map((b) => b.close)).toEqual([100, 150]);
+    expect(data.hasMore).toBe(false);
     expect(data.rareLevels.filter((l) => l.direction === 'UP').map((l) => l.level)).toEqual([
       5, 10, 15, 20, 25,
     ]);
+  });
+
+  it('before를 주면 그 날짜보다 이른 봉만 준다(이전 5년 더 받기)', async () => {
+    const data = await parse(
+      await setup(`/v1/commodities/CL/disparity?${QUERY}&before=2026-10-21`),
+    );
+    expect(data.bars.map((b) => b.tradeDate)).toEqual(['2026-10-20']);
+    expect(data.hasMore).toBe(false);
+    expect((await setup(`/v1/commodities/CL/disparity?${QUERY}&before=x`)).status).toBe(400);
   });
 
   it('규칙이 없는 원자재는 대표월물로 대신 그리고 fallback을 알린다', async () => {

@@ -14,6 +14,7 @@ const chart = (contracts: ContractsChart['contracts']): ContractsChart => ({
   priceDecimals: 3,
   dates: ['2026-10-20', '2026-10-21', '2026-10-22'],
   provisional: true,
+  hasMore: false,
   contracts,
 });
 

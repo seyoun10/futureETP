@@ -25,6 +25,7 @@ const DATA: ContractsChart = {
   priceDecimals: 3,
   dates: ['2026-10-20', '2026-10-21', '2026-10-22'],
   provisional: true,
+  hasMore: false,
   contracts: [
     { symbol: 'NGZ26', contractMonth: '2026-12', prices: [3.1, 3.2, 3.3] },
     { symbol: 'NGF27', contractMonth: '2027-01', prices: [null, 3.5, 3.45] },

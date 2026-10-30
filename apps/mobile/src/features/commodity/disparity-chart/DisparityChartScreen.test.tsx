@@ -65,6 +65,7 @@ const DATA: DisparityChart = {
   rareLevels: [],
   currentTail: { side: 'DOWN', pct: 9.2 },
   provisional: true,
+  hasMore: false,
   bars: [
     bar('2026-10-20', 90),
     bar('2026-10-21', 80, {
