@@ -71,7 +71,7 @@ export function rollSegments(bars: readonly ChartBar[]): [number, number][] {
   return segments;
 }
 
-// 대표월물 전환일과 새 월물(대표월물 ▲ 마커, D-086). 봉 t의 보유 월물은 t−1 종가 뒤 비중이라,
+// 대표월물 전환일과 새 월물(전환일 세로 점선, 새 월물명은 십자선 상세, D-103). 봉 t의 보유 월물은 t−1 종가 뒤 비중이라,
 // 보유 월물이 바뀐 봉의 바로 앞 봉(옛 월물의 마지막 날)이 전환일이다
 export function frontSwitches(bars: readonly ChartBar[]) {
   const switches: { index: number; contractMonth: string }[] = [];
