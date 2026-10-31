@@ -19,14 +19,15 @@ futureETP/
 │  │     ├─ features/              화면 단위: 화면·전용 컴포넌트·query hook
 │  │     │                         commodity-list, settings, alert-settings, access-key,
 │  │     │                         commodity(disparity-chart, curve, contract-chart, etp)
-│  │     ├─ components/            여러 화면 공용 UI(header, `FreshnessLine`, `QueryStateView`, D-075)
+│  │     ├─ components/            여러 화면 공용 UI(`ScreenHeader`·`HeaderIconButton`, `FreshnessLine`, `QueryStateView`, D-075),
+│  │     │                         `Icon`, `SegmentedControl`, `KeyboardDoneBar`
 │  │     ├─ charts/                Skia 커스텀 레이어·CandleChart(C-a)·LinesChart(C-c)·CurveChart(C-b), 공용 useChartViewport (D-032, D-087, D-093)
 │  │     ├─ api/                   fetch 래퍼, AppError, query key, `useAutoRefresh` (D-030, D-075)
-│  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073)
+│  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073), C 탭 하단 기준 시각 줄 전달(`footerFreshness`, 비영속)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
 │  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
-│  │     ├─ push/                  토큰 등록·Android 채널 (알림 탭 처리는 예정, D-037)
-│  │     └─ lib/                   포맷(Intl, 소수 자릿수) 등 순수 유틸
+│  │     ├─ push/                  토큰 등록·Android 채널, 알림 탭 이동(`NotificationTapHandler`), 앱 사용 중 알림 표시 (D-037)
+│  │     └─ lib/                   포맷(Intl, 소수 자릿수)·화면 방향 등 유틸, 성능 측정 로그(`perfLog`)
 │  └─ server/
 │     ├─ Dockerfile                빌드 문맥 = 저장소 루트(허용 목록 `.dockerignore`), `node:26-alpine3.23` + `pg_dump` 18
 │     └─ src/
@@ -42,7 +43,8 @@ futureETP/
 ├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`, VM 배포 단계(`deploy-remote.sh`)
 ├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
 │                                  배포(`deploy.sh`, D-048), 백업 내려받기(`backup-pull.sh`)·dev 복원(`dev-restore.sh`, D-045),
-│                                  저장소 밖 운영 설정 읽기(`ops-env.sh`)
+│                                  prod 초기 데이터(`prod-seed.sh`, D-100), dev DB 접속 확인(`dev-db.sh`, 복원·seed 공유),
+│                                  저장소 밖 운영 설정 읽기(`ops-env.sh`), 성능 측정 수집(`perf-collect.mjs`)
 ├─ docs/
 └─ package.json                    workspaces ["apps/*", "packages/*"], `npm run check`
 ```
@@ -70,7 +72,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | 상태 | `src/features/**/use<대상>.ts`(서버 상태, 예: `useCommodities`·`useSettings`·`useSaveAccessKey`), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |
 
-- 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색)만 둔다(D-030, D-047). C-a/C-c 기간 선택은 원자재 스택 레이아웃의 화면 상태다(D-107). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
+- 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색)만 persist로 둔다(D-030, D-047). 예외로 `stores/footerFreshness.ts`는 지금 보는 C 탭 화면이 받은 freshness를 탭 바 아래 기준 시각 줄로 넘기는 비영속 store다. 원본은 Query 캐시이고 화면을 떠나면 비운다. C-a/C-c 기간 선택은 원자재 스택 레이아웃의 화면 상태다(D-107). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.
 - 화면 안에서만 쓰는 일시 상태(선택한 기준일, 십자선 위치 등)는 컴포넌트 상태(`useState`·Reanimated shared value)로 둔다.
 - 가로 모드는 상태로 두지 않는다. `src/lib/orientation.ts`의 잠금 함수로 방향을 바꾸고, 레이아웃은 `useIsLandscape`(창 모양)로 정한다. 앱은 세로로 잠그고 C-a~C-c [⟲]만 가로로 잠근다(D-076).
 - 순수 계산(가격 포맷, 등락 색 선택, 차트 좌표 변환)은 `src/lib`·`src/theme`·`src/charts`의 함수로 두어 컴포넌트 밖에서 테스트한다.
@@ -147,7 +149,7 @@ type Freshness = {
   - 장 마감 뒤 그 거래일 정산 전·정산 대기: 일일 정산 ① 뒤 첫 장중 배치 완료 예상 시각(보통 19:00 CT 배치 뒤). 다시 조회했을 때 아직 대기면 서버가 다음 주기로 미룬 값을 준다.
   - 그 밖의 휴장(주말·휴장일): 다음 개장 뒤 첫 장중 배치 완료 예상 시각
 - 앱은 화면이 보이는 동안 `nextUpdateAt` + 여유 1분에 해당 query를 다시 조회한다(D-030 후속). `null`이면 자동 새로고침하지 않고 당겨서 새로고침과 앱 복귀 재조회만 한다.
-- C 차트 query(C-a·C-b·C-c)는 응답이 크고 첫 그리기가 느려 `staleTime`을 `nextUpdateAt`까지, `gcTime`을 1시간으로 둔다(`src/api/chartCache.ts`). 그 전에는 화면 재진입·앱 복귀에 다시 조회하지 않는다. A에서 원자재를 누르면 화면 전환 동안 C-a를 미리 조회한다(`prefetchDisparityChart`). C-a·C-c는 5년 단위 무한 조회이고(`before`·`hasMore`), 가장 과거 봉이 보이면 이전 5년을 더 받는다(D-104).
+- C 차트 query(C-a·C-b·C-c)는 응답이 크고 첫 그리기가 느려 `staleTime`을 `nextUpdateAt`까지, `gcTime`을 1시간으로 둔다(`src/api/chartCache.ts`). 그 전에는 화면 재진입·앱 복귀에 다시 조회하지 않는다. A에서 원자재를 누르면 화면 전환 동안 C-a를 미리 조회한다(`prefetchDisparityChart`). C-a·C-c는 3년(756거래일) 단위 무한 조회이고(`before`·`hasMore`), 가장 과거 봉이 보이면 이전 3년을 더 받는다(D-104).
 
 ### 앱 fetch 래퍼와 AppError
 - `src/api`의 래퍼가 인증 헤더, 타임아웃(15초), JSON 파싱, shared 스키마로 봉투·`data` 검증(`zod` parse)을 맡고, 실패는 모두 `AppError`로 던진다.
@@ -163,7 +165,7 @@ type Freshness = {
 ### 엔드포인트 초안
 개발 단계에서 응답 필드를 정하면서 고친다.
 
-- 차트 시계열(C-a 지수 일봉, C-c 월물 원가격)은 화면에 들어갈 때 전체를 한 번에 받는다. 핀치·드래그는 받은 데이터 안에서만 처리하고 추가 요청을 하지 않는다. C-a 봉 4,000개는 JSON 약 400KB, Caddy 압축(`encode zstd gzip`) 뒤 약 100KB다. 파싱·렌더링이 느리면 C-a 스파이크(D-032)에서 행 객체 대신 열 배열(`{ dates: [], open: [], … }`)로 바꾼다(D-046).
+- 차트 시계열(C-a 지수 일봉, C-c 월물 원가격)은 최근 3년(756거래일, `api/chartPage.ts`)부터 받는다. 핀치·드래그는 받은 데이터 안에서 처리하고, 가장 과거 봉이 보일 때만 `before`로 이전 3년을 더 받는다(`hasMore`가 false면 멈춤). 이평선·rare 레벨·분포 등은 전체 기간 기준으로 계산한 값이다(D-046, D-104). 응답은 Caddy가 압축한다(`encode zstd gzip`).
 - 커브는 캐시하지 않는다(D-046). 기준일 하나에 월물 약 30개 × 20거래일을 읽는다.
 
 | 메서드·경로 | 화면 | 내용 |
@@ -260,7 +262,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 ### 운영자 실패 알림(D-045)
 - 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림(`alerts`)과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 채널 id는 shared `ANDROID_CHANNELS`다.
-- 앱 `push/`(D-037, D-048): 접근 키가 있으면 루트 레이아웃의 `PushRegistration`이 마운트 때 한 번 Android 채널(`alerts` 높음·`ops` 기본, 이름은 표시 언어를 따라 바뀜)을 만들고, 알림 권한을 물을 수 있으면 요청한 뒤 `getDevicePushTokenAsync` 토큰으로 `PUT /v1/devices`를 부른다. 권한이 거부돼도 토큰은 등록한다. 토큰이 바뀌면(`addPushTokenListener`) 다시 등록한다. 실패는 다음 실행 때 다시 시도한다. Firebase 설정은 `apps/mobile/google-services.json`(dev·prod package 모두 포함, 커밋 안 함)을 `android.googleServicesFile`로 넣는다. 앱이 열려 있을 때도 알림 배너를 보인다(`expo-notifications` 기본값).
+- 앱 `push/`(D-037, D-048): 접근 키가 있으면 루트 레이아웃의 `PushRegistration`이 마운트 때 한 번 Android 채널(`alerts` 높음·`ops` 기본, 이름은 표시 언어를 따라 바뀜)을 만들고, 알림 권한을 물을 수 있으면 요청한 뒤 `getDevicePushTokenAsync` 토큰으로 `PUT /v1/devices`를 부른다. 권한이 거부돼도 토큰은 등록한다. 토큰이 바뀌면(`addPushTokenListener`) 다시 등록한다. 실패는 다음 실행 때 다시 시도한다. Firebase 설정은 `apps/mobile/google-services.json`(dev·prod package 모두 포함, 커밋 안 함)을 `android.googleServicesFile`로 넣는다. 앱이 열려 있을 때 온 알림도 배너·알림 목록·소리로 보인다(`foregroundNotifications.ts`의 `setNotificationHandler`, 배지 안 씀. 기본값은 아무것도 보이지 않음). 알림을 누르면 `NotificationTapHandler`가 rare 레벨 알림은 해당 원자재 C-a로, 운영·모르는 알림은 A로 보낸다(`notificationHref.ts`). 꺼진 앱은 마지막 응답을 읽고 지워 다시 마운트돼도 또 이동하지 않는다.
 - 서버 `push/`: `PushSender`(플랫폼별 구현, 결과는 `SENT`·`INVALID_TOKEN`·`FAILED`)와 `broadcast`(등록된 모든 기기로 보내고 `INVALID_TOKEN`이면 기기 삭제, 한 기기라도 `SENT`면 전달로 본다, D-023). 테스트는 `fakeSender.ts`를 주입한다. Android 구현은 `fcmSender.ts`(`firebase-admin` FCM HTTP v1, 서비스 계정 키 `FCM_SERVICE_ACCOUNT_PATH`, Android 채널 id를 `android.notification.channelId`로 지정, `messaging/registration-token-not-registered`만 `INVALID_TOKEN`)이다. 서버는 `configuredSender.ts`의 발송기 하나를 운영 알림(`main.ts`)·rare 레벨 판정·재발송·지연 발송(`jobs/handlers.ts`)이 함께 쓴다. 키가 없으면 모든 발송이 `FAILED`다.
 - 운영 알림(`jobs/opsAlert.ts`, D-045·D-048): 스케줄러가 재시도까지 실패한 작업의 마지막 `batch_run`으로 부른다. 같은 작업·거래일(거래일이 없으면 거래일 없음끼리)로 이미 알렸고 그 뒤 성공이 없으면 건너뛴다. `jobFailedPush`를 저장된 언어로 `ops` 채널에 `broadcast`하고, 전달되면 그 실행의 `ops_notified_at`을 채운다. CLI 1회 실행은 알리지 않는다.
 - rare 레벨 알림 판정(`jobs/rareAlert.ts`, D-069): `INTRADAY`가 원자재마다 잠정 지수를 저장한 뒤 부른다. 설정의 알림 원자재가 아니거나, 정정 확인이 멈춤 상태(D-071)거나, 그 기준값의 잠정 지수·분포가 없으면 건너뛴다. 설정 기준값의 `roll_rule`이 없는 원자재는 대표월물로 판정한다. 잠정 지수의 그 이평선 고가·저가 이격도로 `planDetections`를 돌려 보낼 행은 `RETRY`로 먼저 넣어 중복 방지 키를 차지한 뒤 `alerts` 채널로 `broadcast`하고, 결과로 `SENT`(+`sent_at`) 또는 `RETRY`로 바꾼다. 거부 시간이면 `HELD`, 밀린 레벨은 `SUPPRESSED`로 넣는다. 키가 이미 있으면 넣지도 보내지도 않는다(`ON CONFLICT DO NOTHING`). 판정 시각은 배치 슬롯, 거부 시간은 실제 실행 시각으로 본다. 판정 실패는 그 원자재의 실패로 모아 배치를 실패로 남긴다(스냅숏은 저장됨).
@@ -278,7 +280,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - Mac: `scripts/`의 백업 내려받기 스크립트가 최신 덤프를 저장소 밖 폴더로 받는다(주 1회 목표, 최근 8개 보관). 받을 때 Healthchecks.io의 내려받기 check(주기 7일 + 여유 2일)에 신호를 보내, 오래 받지 않으면 메일이 온다. dev 복원(D-043)은 이 폴더의 최신 덤프를 쓴다.
   - 구현: `npm run backup:pull`(`scripts/backup-pull.sh`). VM `infra/backups`의 덤프 이름 형식 파일 중 최신 하나를 ssh로 찾아, 아직 없으면 `rsync`로 `.partial`에 받고 `pg_restore --list`로 읽히는지 확인한 뒤 이름을 바꾼다(권한 600, 폴더 700). 받을 폴더는 `BACKUP_LOCAL_DIR`(기본 `~/futureetp-backups`)이고 최근 8개만 둔다. 이미 받은 최신 덤프면 받지 않고 성공으로 본다.
   - `HEALTHCHECKS_PING_KEY`가 있으면 끝날 때 `backup_pull` check에 성공, 실패하면 `/fail`을 보낸다(키가 든 URL은 출력하지 않음). check는 VM 작업 7개와 별도로 Healthchecks.io에 주기 7일·여유 2일로 만든다.
-  - Mac 스크립트(`deploy.sh`·`backup-pull.sh`·`dev-restore.sh`)는 저장소 밖 `~/.config/futureetp/ops.env`(KEY=VALUE, 권한 600, `OPS_ENV_FILE`로 위치 변경)를 읽는다. `DEPLOY_HOST`·`BACKUP_LOCAL_DIR`·`HEALTHCHECKS_PING_KEY`를 여기 두면 명령만 치면 된다. 명령줄 환경 변수가 파일보다 우선한다.
+  - Mac 스크립트(`deploy.sh`·`backup-pull.sh`·`dev-restore.sh`·`prod-seed.sh`)는 저장소 밖 `~/.config/futureetp/ops.env`(KEY=VALUE, 권한 600, `OPS_ENV_FILE`로 위치 변경)를 읽는다. `DEPLOY_HOST`·`BACKUP_LOCAL_DIR`·`HEALTHCHECKS_PING_KEY`를 여기 두면 명령만 치면 된다. 명령줄 환경 변수가 파일보다 우선한다.
 - 일봉 원천은 소스에서 다시 받을 수 있고, 설정은 작아서 며칠치 손실은 감수한다. 서명 키(keystore)·`infra/.env`·서비스 계정 키는 DB 백업과 별도로 저장소 밖에 둔다(D-039).
 
 ### 데이터 보관(D-046)
