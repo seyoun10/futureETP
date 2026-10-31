@@ -55,6 +55,8 @@ type CandleChartProps = {
   overlayTop?: ReactNode;
   overlayBottom?: ReactNode;
   floating?: ReactNode;
+  // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
+  locked?: boolean;
 };
 
 // CartesianChart에 넘기는 설정은 모듈 상수·memo로 고정한다. victory-native는 yKeys·padding·축 설정이
@@ -90,6 +92,7 @@ export const CandleChart = memo(function CandleChart({
   overlayTop,
   overlayBottom,
   floating,
+  locked,
 }: CandleChartProps) {
   const palette = useUpDownPalette();
   const { state: press } = useChartPressState({
@@ -115,6 +118,7 @@ export const CandleChart = memo(function CandleChart({
     onViewChange,
     onVisibleRangeChange,
     dataInsets,
+    locked,
   });
 
   const data = useMemo(
@@ -134,7 +138,11 @@ export const CandleChart = memo(function CandleChart({
   if (!current) return null;
 
   return (
-    <Animated.View style={[styles.container, fittedStyle]} onLayout={onLayout}>
+    <Animated.View
+      style={[styles.container, fittedStyle]}
+      onLayout={onLayout}
+      pointerEvents={locked ? 'none' : 'auto'}
+    >
       <CartesianChart
         data={data}
         xKey="i"

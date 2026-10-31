@@ -140,6 +140,7 @@ function DisparityChartView({
           }
           overlayBottom={<StatsLine data={data} bars={model.bars} range={range} />}
           floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
+          locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>

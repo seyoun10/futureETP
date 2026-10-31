@@ -37,6 +37,8 @@ type LinesChartProps = {
   renderDetail: (index: number) => ReactNode;
   // 차트 하단 가운데에 띄우는 버튼(차트 되돌리기). 위치는 C-a와 같다
   floating?: ReactNode;
+  // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
+  locked?: boolean;
 };
 
 const noop = () => {};
@@ -64,6 +66,7 @@ export const LinesChart = memo(function LinesChart({
   onVisibleRangeChange,
   renderDetail,
   floating,
+  locked,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
   const {
@@ -81,6 +84,7 @@ export const LinesChart = memo(function LinesChart({
     periodBars,
     onViewChange,
     onVisibleRangeChange,
+    locked,
   });
 
   const data = useMemo(
@@ -106,7 +110,11 @@ export const LinesChart = memo(function LinesChart({
   if (dates.length === 0) return null;
 
   return (
-    <Animated.View style={[styles.container, fittedStyle]} onLayout={onLayout}>
+    <Animated.View
+      style={[styles.container, fittedStyle]}
+      onLayout={onLayout}
+      pointerEvents={locked ? 'none' : 'auto'}
+    >
       <CartesianChart
         data={data}
         xKey="i"

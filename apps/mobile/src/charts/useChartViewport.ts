@@ -60,6 +60,8 @@ type ViewportOptions = {
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 차트 안에 겹친 정보 줄 높이. y 자동 맞춤이 이만큼 위·아래를 비워 봉·선이 글자 밑으로 들어가지 않는다
   dataInsets?: OverlayInsets;
+  // 과거 데이터를 받는 동안 true. 진행 중인 핀치·드래그를 취소한다. 새 터치는 차트가 pointerEvents로 막는다(D-108)
+  locked?: boolean;
 };
 
 const NO_INSETS: OverlayInsets = { top: 0, bottom: 0 };
@@ -74,6 +76,7 @@ export function useChartViewport({
   onViewChange,
   onVisibleRangeChange,
   dataInsets = NO_INSETS,
+  locked = false,
 }: ViewportOptions) {
   // victory의 useChartTransformState는 렌더링마다 새 state 객체(panActive·zoomActive도 새 값)를 돌려준다.
   // 첫 값으로 고정해야 이 값에 의존하는 콜백·effect가 렌더링마다 다시 돌지 않는다(onGeom → setGeomVersion 무한 반복)
@@ -269,12 +272,15 @@ export function useChartViewport({
 
   // 핀치: 시작 때 손가락 가운데 있던 지점이 손가락 가운데를 따라가게 확대·축소한다(두 손가락 이동 포함)
   const gestures = useMemo(() => {
-    const hideCrosshair = Gesture.Tap().onEnd(() => {
-      crosshairVisible.set(false);
-      scheduleOnRN(setCrosshairShown, false);
-      scheduleOnRN(setDetail, null);
-    });
+    const hideCrosshair = Gesture.Tap()
+      .enabled(!locked)
+      .onEnd(() => {
+        crosshairVisible.set(false);
+        scheduleOnRN(setCrosshairShown, false);
+        scheduleOnRN(setDetail, null);
+      });
     const pinch = Gesture.Pinch()
+      .enabled(!locked)
       .onStart((e) => {
         const c = getTransformComponents(transform.matrix.get());
         pinchStart.set({ k: c.scaleX, tx: c.translateX, focalX: e.focalX });
@@ -288,7 +294,7 @@ export function useChartViewport({
       .onFinalize(() => transform.zoomActive.set(false));
     // 드래그: '전체'에서는 막는다(이동이 x를 바꾸고 보정이 되돌리는 쓰기 충돌, D-056). 핀치 중에는 핀치가 이동까지 맡는다
     const pan = Gesture.Pan()
-      .enabled(zoomed && !crosshairShown)
+      .enabled(zoomed && !crosshairShown && !locked)
       .onStart(() => transform.panActive.set(true))
       .onChange((e) => {
         const g = geom.get();
@@ -298,7 +304,7 @@ export function useChartViewport({
       })
       .onFinalize(() => transform.panActive.set(false));
     return Gesture.Race(hideCrosshair, Gesture.Simultaneous(pinch, pan));
-  }, [crosshairVisible, crosshairShown, geom, pinchStart, transform, zoomed]);
+  }, [crosshairVisible, crosshairShown, geom, locked, pinchStart, transform, zoomed]);
 
   // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신. 박스는 손가락 반대편에 둔다(screens.md C-a 십자선)
   const onSnap = useCallback((index: number, side: ChartDetail['side']) => {

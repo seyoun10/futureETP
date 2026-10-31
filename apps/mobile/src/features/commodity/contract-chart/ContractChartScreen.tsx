@@ -112,6 +112,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
           floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
+          locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>

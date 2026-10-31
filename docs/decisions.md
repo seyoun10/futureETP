@@ -1693,3 +1693,13 @@
 - 맥락: 기간 선택은 Zustand persist로 기기에 기억해(D-047, D-073) 다른 원자재나 다음 실행에도 마지막 기간으로 열렸다.
 - 결정: C-a·C-c 기간은 원자재에 들어올 때마다 6M으로 시작한다. 고른 기간은 원자재 스택(C 탭 4개·ETP 상세)이 떠 있는 동안 유지하고, 목록으로 나가면 잊는다. C-a와 C-c는 따로 고른다. 상태는 `CommodityLayout`의 `ChartPeriodProvider`(React state)에 두고 화면은 `useChartPeriod('disparity'|'contract')`로 읽는다. 표시 설정 store에서 `disparityPeriod`·`contractPeriod`를 빼고 persist version 3으로 올려 이전에 저장된 기간은 버린다. 기간 목록 `CHART_PERIODS`는 `charts/chartPeriods.ts`로 옮긴다.
 - 영향: `features/commodity/ChartPeriodProvider.tsx`·`CommodityLayout.tsx`, `DisparityChartScreen`·`ContractChartScreen`, `stores/displaySettings.ts`, `charts/chartPeriods.ts`·`PeriodChips.tsx`, screens.md C-a·C-c, architecture.md, tech-stack.md. D-047·D-073의 기간 persist를 대체한다.
+
+## D-108: 과거 데이터를 받는 동안 햅틱을 주고 차트 터치를 막는다
+- 날짜: 2026-10-31
+- 상태: 확정 (사용자 요청, iPhone 14 Pro 실기기 확인 뒤)
+- 맥락: 이전 3년을 받는 동안(D-104, 실측 0.3~0.5초) 차트 왼쪽 가운데에 로딩 표시만 떴다. 손가락이 차트에 있어 표시를 놓치기 쉽고, 받는 동안 계속 끌면 봉이 붙는 순간과 겹친다.
+- 결정
+  - 로딩 표시(`OlderDataIndicator`)가 뜰 때 `Haptics.impactAsync(Light)`를 한 번 준다. 십자선 봉 맞춤의 `selectionAsync`와 촉감을 구분한다.
+  - 받는 동안(`isFetchingNextPage`) 차트에 `locked`를 넘긴다. `useChartViewport`는 핀치·드래그·십자선 끄기 탭을 `.enabled(false)`로 바꿔 진행 중인 제스처를 취소하고, 차트 컨테이너는 `pointerEvents="none"`으로 새 터치(victory 십자선·되돌리기 버튼 포함)를 받지 않는다. victory 십자선 제스처는 `enabled` 설정이 없어 컨테이너에서 막는다. 로딩 표시 위에 투명 덮개를 두는 방법은 Android RNGH가 배경 없는 View를 터치 대상으로 보지 않을 수 있어 쓰지 않는다.
+  - 기간 칩·탭·뒤로 가기는 막지 않는다. 요청이 실패하거나 시간 초과(`fetch` 래퍼, D-072)되면 `isFetchingNextPage`가 false가 되어 풀린다.
+- 영향: `charts/OlderDataIndicator.tsx`·`useChartViewport.ts`·`CandleChart.tsx`·`LinesChart.tsx`, `DisparityChartScreen`·`ContractChartScreen`, screens.md C-a 제스처.

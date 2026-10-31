@@ -1,4 +1,5 @@
 import type { DisparityBar, DisparityChart, Settings } from '@futureetp/shared';
+import * as Haptics from 'expo-haptics';
 import type { ComponentProps } from 'react';
 import { render } from '@testing-library/react-native';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
@@ -12,6 +13,11 @@ import { useDisplaySettings } from '@/stores/displaySettings';
 
 import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getDisparityChart: jest.fn() }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  selectionAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 jest.mock('@/lib/orientation', () => ({
   ...jest.requireActual<object>('@/lib/orientation'),
@@ -92,6 +98,7 @@ beforeEach(() => {
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
   mockChart.mockClear();
+  jest.mocked(Haptics.impactAsync).mockClear();
   jest.mocked(getSettings).mockReset().mockResolvedValue(SETTINGS);
   mockGet.mockReset().mockResolvedValue(DATA);
 });
@@ -99,7 +106,7 @@ beforeEach(() => {
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
-  it('가장 과거 봉이 보이면 그 날짜 이전 3년을 받아 앞에 붙이고, 받는 동안 로딩 표시를 띄운다', async () => {
+  it('가장 과거 봉이 보이면 그 날짜 이전 3년을 받아 앞에 붙이고, 받는 동안 로딩 표시·햅틱을 주고 차트를 잠근다', async () => {
     let resolveOlder: (data: DisparityChart) => void = () => {};
     mockGet
       .mockResolvedValueOnce({ ...DATA, hasMore: true })
@@ -120,11 +127,15 @@ describe('C-a 이격도차트', () => {
       expect.anything(),
     );
     expect(await screen.findByRole('progressbar', { name: '불러오는 중' })).toBeOnTheScreen();
+    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(lastChartProps().locked).toBe(true);
 
     await act(() => resolveOlder({ ...DATA, bars: [bar('2026-10-19', 88)] }));
     await waitFor(() => expect(lastChartProps().bars).toHaveLength(latestCount + 1));
     expect(lastChartProps().bars[0].tradeDate).toBe('2026-10-19');
     expect(screen.queryByRole('progressbar', { name: '불러오는 중' })).toBeNull();
+    expect(lastChartProps().locked).toBe(false);
+    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
   });
 
   it('가로 모드에서는 기간 칩·tab-bar·기준 시각 줄을 숨기고 차트만 남긴다', async () => {
