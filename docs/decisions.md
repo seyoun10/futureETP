@@ -464,6 +464,7 @@
   - 집 컴퓨터는 전원·네트워크가 끊기면 배치와 알림이 멈추고, 외부 접속용 터널이 필요하다.
   - Oracle 공식 문서(2026-10-23 확인): A1 무료 할당은 Always Free 계정 기준 2 OCPU·12GB(2026-06 축소). 7일 동안 CPU(95번째 백분위)·네트워크·메모리 사용률이 모두 20% 미만이면 유휴 인스턴스로 보고 회수할 수 있다. 이 서버는 부하가 낮아 해당될 수 있다. 회수 규칙이 PAYG 계정에도 적용되는지는 문서에 없다.
 - 후속: 백업(DB 덤프를 VM 밖에 보관), 운영자 실패 알림, 배포 방식은 3단계·빌드 항목에서 정한다. PAYG 전환 뒤에도 회수 경고 메일이 오는지 지켜본다.
+- 실행(2026-10-31): 도쿄(ap-tokyo-1, AD 1개) A1 2 OCPU·12GB·boot 50GB, Ubuntu 26.04. Always Free 상태로는 약 21시간 동안 "Out of host capacity"만 났고, PAYG 전환 직후 생성됐다. 생성 재시도는 저장소 밖 스크립트(`~/.config/futureetp/oci-create-vm.sh`)로 했고, `instance launch`를 1~2초 간격으로 보내면 429가 나서 시도 간격을 3분으로 뒀다. 비용 감시는 OCI Budget(root compartment, 월 $1)로 한다.
 
 ## D-035: 서버 언어와 DB — TypeScript(Node) + PostgreSQL
 - 날짜: 2026-10-23
