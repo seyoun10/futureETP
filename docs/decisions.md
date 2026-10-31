@@ -851,7 +851,7 @@
 ## D-056: C-a 차트 스파이크 결과 — Victory Native XL 유지, y 맞춤·x축·범위 제한은 직접 구현
 - 날짜: 2026-10-27
 - 상태: 확정 (핀치 손동작·햅틱 촉감은 수동 확인 대기, 실기기 성능은 기기 설치 때 재확인)
-- 맥락: TODO 5단계 첫 작업, D-032 검증 항목 5개. 스파이크 화면은 `apps/mobile/src/features/chart-spike/`(dev route `futureetp-dev://dev/chart-spike`, 시드 고정 합성 일봉 4,000개).
+- 맥락: TODO 5단계 첫 작업, D-032 검증 항목 5개. 스파이크 화면은 `apps/mobile/src/features/chart-spike/`(dev route `futureetp-dev://dev/chart-spike`, 시드 고정 합성 일봉 4,000개). (스파이크 코드는 C-a 본 구현 뒤 삭제, b73cd21)
 - 결과
   - log 축: 통과. `axisOptions.axisScales.yAxisScale: 'log'`. 꼬리는 `wickStrokeWidth={0}`(Skia 헤어라인)이라 변환 행렬로 확대해도 1px로 유지된다.
   - x축만 핀치·드래그: 통과. `transformConfig`의 `dimensions: 'x'`. 단 라이브러리에 범위 제한이 없어 직접 넣었다(축소는 '전체'까지, 확대는 최소 20봉, 이동은 데이터 시작~끝).
@@ -929,8 +929,8 @@
 - 결정
   - 구조: `apps/server/src/jobs/runner.ts`의 `runJob(job, handler, { store, maxAttempts, retryDelayMs, scheduledAt?, asOf? })`를 스케줄러(`scheduler.ts`)와 CLI(`cli.ts`)가 같이 쓴다. 작업은 `JobHandler(ctx)`이고 `ctx.now`(기준 시각)를 받고, 처리한 CME 거래일을 알면 `ctx.tradeDate`에 채운다. 구현된 작업만 `handlers.ts`의 `JOB_HANDLERS`에 등록한다. `batch_run` 접근은 `BatchRunStore` 인터페이스로 주입한다(테스트는 메모리 구현).
   - 기록: 시도마다 행 하나(`attempt` 1, 2). 시작 때 `RUNNING`으로 넣고 끝날 때 `SUCCESS`/`FAILED`·`finished_at`·`trade_date`·`error`(메시지)를 채운다. 마지막 시도의 `FAILED`가 최종 실패(운영 알림 대상, 5-8·5-10에서 연결)다.
-  - 재시도: 스케줄 실행은 최대 2회 시도. 간격은 `DAILY_SETTLE` 15분(소스 반영이 늦을 때, D-019), `INTRADAY`·`DEFERRED_PUSH` 1분(다음 주기가 곧 옴), `ETP`·`CALENDAR`·`BACKUP` 10분.
-  - 일정(croner, 작업별 IANA 시간대): `DAILY_SETTLE` 평일 18:30 CT, `INTRADAY` 15분, `DEFERRED_PUSH` :00/:30 CT, `ETP` 08:30 KST, `CALENDAR` 16:15 CT, `BACKUP` 16:30 CT(16:00~17:00 CT 일일 정지 시간). 휴장 판단은 각 작업이 한다.
+  - 재시도: 스케줄 실행은 최대 2회 시도. 간격은 `DAILY_SETTLE` 15분(소스 반영이 늦을 때, D-019), `INTRADAY`·`DEFERRED_PUSH` 1분(다음 주기가 곧 옴), `ETP`·`CALENDAR`·`BACKUP` 10분. (D-071로 `SETTLE_REVISION` 15분 추가, D-101로 `DAILY_SETTLE` 5분)
+  - 일정(croner, 작업별 IANA 시간대): `DAILY_SETTLE` 평일 18:30 CT, `INTRADAY` 15분, `DEFERRED_PUSH` :00/:30 CT, `ETP` 08:30 KST, `CALENDAR` 16:15 CT, `BACKUP` 16:30 CT(16:00~17:00 CT 일일 정지 시간). 휴장 판단은 각 작업이 한다. (`DAILY_SETTLE`은 D-101로 평일 16:05 CT)
   - 순서: 트리거 하나에 작업 목록을 두고 적힌 순서대로 차례로 실행한다. :00/:30은 `[DEFERRED_PUSH, INTRADAY]` 한 트리거라 지연 발송이 장중 판정보다 먼저다(D-026). `INTRADAY`의 :15/:45는 따로 둔다.
   - 겹침: 같은 작업이 실행 중(재시도 대기 포함)이면 이번 차례는 로그만 남기고 건너뛴다. `batch_run` 기록 자체가 실패하면(DB 중단) 로그만 남기고 다음 차례에 다시 돈다.
   - 중단된 실행: 스케줄러 시작 때 `RUNNING`으로 남은 행을 `FAILED`(`Interrupted by server restart`)로 닫는다. 프로세스가 하나라 이 시점의 `RUNNING`은 모두 이전 프로세스의 것이다(D-034).
@@ -962,14 +962,14 @@
 
 ## D-062: 거래일·장 상태 calc — 세션 행 + 마지막 정산 거래일을 받는 순수 함수, `nextUpdateAt`은 슬롯 탐색
 - 날짜: 2026-10-27
-- 상태: 확정 (`INTRADAY_EXPECTED_MS`는 실측 뒤 1분으로 줄임, 2026-10-30)
+- 상태: 확정 (`INTRADAY_EXPECTED_MS`는 실측 뒤 1분으로 줄임, 2026-10-30. 정산 시각·소요는 D-101로 16:05 CT·25분)
 - 맥락: TODO 5-2 첫 항목. freshness(`marketState`·`tradeDate`·`nextUpdateAt`)와 배치(장중 실행 여부, 일일 정산 대상 거래일)가 같은 판정을 써야 한다(D-022, D-048).
 - 결정
   - `apps/server/src/calc/marketState.ts`. 입력은 `now`, `trading_day` 행(오름차순, 호출자가 now 앞 2행 ~ 앞으로 약 10일을 넘김), 일일 정산 ①이 성공한 가장 최근 거래일 `lastSettledTradeDate`다. DB 조회는 호출자 몫(5-3). 세션 시각이 빈 과거 행은 판정에 쓰지 않는다.
   - `findSessionDay`: 세션(`open <= now < close`, 공휴일 중간 정지 포함)이 now를 포함하는 거래일. 장중 배치의 `ctx.tradeDate`다. `lastClosedTradeDate`: 세션이 끝난 가장 최근 거래일. 일일 정산 대상 판정에 쓴다.
   - `marketStatus`: 세션 D 안·정지 구간 밖이면, 직전 거래일 P가 미정산일 때 `SETTLEMENT_PENDING`(`tradeDate` = P), 아니면 `OPEN`(D). 정지 구간은 `CLOSED`(D)지만 P가 미정산이면 정지 중에도 `SETTLEMENT_PENDING`(P)이 먼저다(2026-10-27 5-2 리뷰), 세션 밖은 `CLOSED`(마지막으로 끝난 거래일). `tradeDate`는 표시 데이터가 속한 거래일이다. 평일 17:00 CT부터 정산 ① 성공까지는 매일 정산 대기이고, 금요일 정산이 끝났으면 일요일 재개 때는 대기가 없다.
-  - `nextUpdateAt`: 장중 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수)을 앞으로 훑어, 세션 안·정지 구간 밖이고 `s + 소요 > now`인 첫 슬롯의 `s + INTRADAY_EXPECTED_MS`. 그 세션의 직전 거래일이 미정산이면 슬롯은 `P 18:30 CT + 20분`(정산 ① 예상 완료, D-047) 뒤이고, 그 시각이 지났는데 아직 대기면 지금 다음 슬롯이다. 넘겨받은 행 안에서 못 찾으면 `null`(달력 누락).
-  - 상수: `SETTLE_AT` 18:30(scheduler와 같음), `SETTLE_STEP1_EXPECTED_MS` 20분, `INTRADAY_EXPECTED_MS` 1분(처음엔 실측 전 임시값 5분이었다. dev 실측 `INTRADAY` 1회 7.4초(2026-10-28)·5.2초(2026-10-30)라 여유를 두고 1분으로 줄였다. 앱이 슬롯 뒤 1분에 새로고침한다).
+  - `nextUpdateAt`: 장중 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수)을 앞으로 훑어, 세션 안·정지 구간 밖이고 `s + 소요 > now`인 첫 슬롯의 `s + INTRADAY_EXPECTED_MS`. 그 세션의 직전 거래일이 미정산이면 슬롯은 `P 18:30 CT + 20분`(정산 ① 예상 완료, D-047. D-101로 `P 16:05 CT + 25분`) 뒤이고, 그 시각이 지났는데 아직 대기면 지금 다음 슬롯이다. 넘겨받은 행 안에서 못 찾으면 `null`(달력 누락).
+  - 상수: `SETTLE_AT` 18:30(scheduler와 같음), `SETTLE_STEP1_EXPECTED_MS` 20분(D-101로 16:05·25분), `INTRADAY_EXPECTED_MS` 1분(처음엔 실측 전 임시값 5분이었다. dev 실측 `INTRADAY` 1회 7.4초(2026-10-28)·5.2초(2026-10-30)라 여유를 두고 1분으로 줄였다. 앱이 슬롯 뒤 1분에 새로고침한다).
 - 근거
   - 정산 여부만 인자로 받으면 `batch_run` 조회 방식(5-3)과 무관하게 테스트할 수 있다.
   - 슬롯 탐색은 휴식·주말·휴장일·정지·조기 마감·정산 지연을 한 규칙으로 다루고, 세션 사이는 다음 개장으로 건너뛰어 반복이 적다.
@@ -1031,7 +1031,7 @@
 - 맥락: TODO 5-2 수익률 연결 지수. product.md 공식의 `w(t-1)`이 `roll_weight`의 어느 행인지, 지수 시작값, 혼합 가격 0 이하 판정에 쓰는 값(분자 `Σ w(t-1)·P(t)`와 종가 혼합 `Σ w(t)·P(t)`), 무효일 뒤 분자 비중, 월물 시가·고가·저가가 없는 날, 전체 재계산 때 "직전 비율"이 정해지지 않았다. 또 `buildFrontSeries`(D-064)는 "그날 보유한 대표월물"을 내고 `expandRollWeights`(D-065)는 "그날 종가 뒤 비중"을 내어 같은 `roll_weight` 테이블에 다른 뜻이 섞일 수 있었다.
 - 결정
   - `apps/server/src/calc/indexChain.ts`. `buildIndexBars(days)`가 거래일마다 `index_bar` 행을, `indexScaleRatio(bars)`가 `index_scale.ratio`를, `chainIndex`가 장중 지수(5-7)를 낸다.
-  - `roll_weight` 행 t는 세 기준값 모두 **그날 종가 뒤 보유 비중** `w(t)`다(공식의 `w(t-1)` = 전 거래일 행). FRONT 행 t는 그날 정산으로 정한 다음 거래일 대표월물(`nextFrontSymbol(t)`, `buildFrontSeries`의 t+1 값)이다. 대표월물 전환 마커는 롤 구간처럼 비중이 바뀌는 종가의 날이다.
+  - `roll_weight` 행 t는 세 기준값 모두 **그날 종가 뒤 보유 비중** `w(t)`다(공식의 `w(t-1)` = 전 거래일 행). FRONT 행 t는 그날 정산으로 정한 다음 거래일 대표월물(`nextFrontSymbol(t)`, `buildFrontSeries`의 t+1 값)이다. 대표월물 전환일 표시(D-103 세로 점선)는 롤 구간처럼 비중이 바뀌는 종가의 날이다.
   - 혼합 가격 `blended_price(t) = Σ w(t)·settle(t)`. 무효일에도 저장한다.
   - 첫 유효일의 종가 지수 = 그날 혼합 가격, 시가·고가·저가는 같은 비중 `w(t)`로 혼합한다. 그 뒤 `close(t) = close(v) × Σ w(t-1)·settle(t) / blended_price(v)`(v = 직전 유효일). 무효일이 없으면 v = t-1이라 분자·분모 같은 비중 공식과 같다. 시가·고가·저가도 같은 식으로 근사한다.
   - 유효 조건: 지수(분자) > 0 이고 혼합 가격 > 0. 무효일은 OHLC null이고 다음 날의 기준 v가 되지 않는다. 무효일 다음 날 분자 비중은 v가 아니라 바로 전 거래일 `w(t-1)`이다(product.md "분모로 직전 유효일의 혼합 가격"을 그대로 따름, 이미 롤로 빠진 만기 월물 가격이 필요 없다).
@@ -1108,7 +1108,7 @@
 - 결정
   - 순수 함수 `apps/server/src/calc/recompute.ts` `recomputeBasis(input)`: `daily_bar` → 롤 비중(FRONT는 `buildFrontAfterClose`, KR·US는 `expandRollWeights`) → `buildIndexBars`·`indexScaleRatio` → 이평선 4종 `buildDisparitySeries` → 마지막 거래일 기준 분포 16개(`buildDistribution`, 표본 없는 조합은 행 없음).
   - 계산 범위는 `trading_day` 중 그 원자재 일봉 첫날~마지막 날이다. 일봉이 없는 거래일도 넣어 영업일 순번을 세고, 보유 월물 정산가가 없으면 오류다. 거래일이 아닌 날의 일봉도 오류다(달력 누락).
-  - `buildFrontAfterClose`(`frontMonth.ts`): 행 t = `buildFrontSeries`의 t+1 값, 마지막 날은 그날 거래량으로 `nextFrontSymbol`. `switched`(그날 보유 월물과 다름)를 대표월물 `index_bar.in_roll_period`로 둔다(전환 마커, D-066).
+  - `buildFrontAfterClose`(`frontMonth.ts`): 행 t = `buildFrontSeries`의 t+1 값, 마지막 날은 그날 거래량으로 `nextFrontSymbol`. `switched`(그날 보유 월물과 다름)를 대표월물 `index_bar.in_roll_period`로 둔다(전환일, D-066).
   - 조회·저장 `src/db/recompute.ts`, 흐름 `src/jobs/recompute.ts` `recomputeCommodity(db, code, now)`. 원자재 입력은 한 번 읽고, 기준값마다 한 트랜잭션에서 다섯 테이블(`roll_weight`·`index_bar`·`index_scale`·`disparity`·`disparity_distribution`)의 그 원자재·기준값 행을 지우고 다시 넣는다(5,000행씩). 한 기준값이 실패해도 나머지는 저장하고 실패를 모아 던진다. `roll_rule` 행이 없는 KR·US는 지우기만 한다(API가 FRONT로 대체, data-model.md).
   - 변경 감지 없이 매번 전체를 다시 쓴다. 규칙 변경(D-024)·정산 정정(D-047)도 같은 경로다. `roll_rule.params`는 기준값마다 `rollRuleParamsSchema`로 검사한다(사람이 고친 행). 한 행이 틀려도 그 기준값만 실패한다(2026-10-27 5-3 리뷰).
   - `roll_rule` 8행은 커스텀 마이그레이션 `0003_roll_rule_seed.sql`(`ROLL_RULE_SEEDS`에서 생성, `ON CONFLICT DO NOTHING`)로 넣는다. 이후 변경은 DB 행을 직접 고친다(D-024).
@@ -1123,7 +1123,7 @@
 - 상태: 확정 (실소스 연결은 5-4)
 - 맥락: TODO 5-3 `DAILY_SETTLE`. 러너는 작업을 끝까지 돌린 뒤 `batch_run`을 성공으로 남기는데, 정산 대기 해제는 ① 성공 시점이어야 한다(D-047). 하루 정산이 재시도까지 실패한 다음 날의 처리, 평일 휴장일 트리거, "알림 판정 중지"의 조건, 실소스(Massive) 전의 소스가 정해지지 않았다. ① 실패는 정산 대기라 장중 배치가 이미 돌지 않으므로(D-022) 중지 플래그는 ② 실패에서만 뜻이 있다.
 - 결정(사용자가 권장안 선택)
-  - 작업 두 개: `DAILY_SETTLE`(①)과 새 `SETTLE_REVISION`(②). 한 트리거 `[DAILY_SETTLE, SETTLE_REVISION]`(평일 18:30 CT)로 차례로 돌고 둘 다 재시도 간격 15분이다. `DAILY_SETTLE` 성공 행의 가장 큰 `trade_date`가 정산 대기 판정의 `lastSettledTradeDate`다(`db/settle.ts` `lastSettledTradeDate`).
+  - 작업 두 개: `DAILY_SETTLE`(①)과 새 `SETTLE_REVISION`(②). 한 트리거 `[DAILY_SETTLE, SETTLE_REVISION]`(평일 18:30 CT)로 차례로 돌고 둘 다 재시도 간격 15분이다(D-101로 평일 16:05 CT, ① 재시도 5분). `DAILY_SETTLE` 성공 행의 가장 큰 `trade_date`가 정산 대기 판정의 `lastSettledTradeDate`다(`db/settle.ts` `lastSettledTradeDate`).
   - ①: 대상은 세션이 끝난 가장 최근 거래일 T(`ctx.tradeDate`)다. 마지막 정산 거래일 다음부터 T까지 밀린 거래일을 모두 받는다(최대 5거래일, 넘으면 실패하고 사람이 기준 시각을 주어 나눠 돌린다). 정산 이력이 없으면 `daily_bar`의 마지막 날 다음부터 받고, 일봉도 없으면 T만 받는다(5-4 적재 직후). 이미 정산했으면(평일 휴장일) 소스를 부르지 않고 성공한다. 원자재마다: 소스 월물 정의로 `contract`에 없는 월물을 넣고(`is_target`은 `isTargetMonth`), 그날 거래되는 월물(최종 거래일 ≥ 그날, 첫 거래일 ≤ 그날, D-095로 최종 거래일이 가까운 26개로 줄임) 일봉을 upsert한 뒤 전체 재계산(D-070)한다. 그 원자재의 그날 일봉이 이미 있으면 받지 않는다(재시도·따라잡기 때 소스 호출 절약, 재계산은 함). 소스가 빈 일봉을 주면 반영 전으로 보고 실패한다. 일부 월물만 오는 응답은 받아들인다(거래량·미결제약정 없는 월물은 정산가가 게시되지 않음, `research/market-data.md`).
   - ②: 대상은 T의 직전 거래일 R이다. 이미 확인했으면 건너뛰고, R이 아직 정산 전이거나 저장된 월물 중 소스에서 빠진 것이 있으면 확인하지 못한 것으로 실패한다(성공으로 남기면 중지가 풀리고 R이 확인된 것으로 쳐짐, 5-3 리뷰). 저장된 R 일봉의 월물을 다시 받아 OHLC·정산가·거래량이 바뀐 행만 `revised_at`과 함께 저장하고 그 원자재만 재계산한다. R에 `revised_at`이 있는 원자재는 정정이 없어도 다시 계산한다(정정 저장 뒤 재계산 실패한 시도를 재시도가 복구). upsert는 `revised_at`을 `coalesce`로 남겨 다시 받아도 정정 기록이 지워지지 않는다.
   - 두 작업 모두 원자재 하나가 실패해도 나머지를 끝내고 실패를 모아 던진다.
@@ -1183,7 +1183,7 @@
   - 바로 들어온 경우(푸시 탭·딥 링크)에도 스택을 A → C, C 탭 → C-d-a로 만들도록 루트는 `unstable_settings.anchor = 'index'`, C 스택은 `anchor = '(tabs)'`다(SDK 58에서 `initialRouteName`은 deprecated).
   - C title-bar [←]는 `router.dismissTo('/')`로 탭 이력과 상관없이 A로 간다. 스택 화면 header는 공용 `ScreenHeader`([←] = `router.back()`).
   - 레이아웃 컴포넌트도 화면처럼 `src/features/`에 named export로 두고 route 파일은 재내보내기만 한다(D-029·D-050 규칙을 `_layout`에도 적용). 루트 `_layout`은 앱 전체 provider라 예외로 둔다.
-  - 이동 테스트는 `expo-router/testing-library`의 `renderRouter({ appDir: 'src/app', overrides })`로 실제 route 트리를 쓴다. Skia를 불러오는 스파이크 route만 override로 뺀다. Jest 기기 언어는 영어라 테스트에서 표시 설정 언어를 `ko`로 고정한다.
+  - 이동 테스트는 `expo-router/testing-library`의 `renderRouter({ appDir: 'src/app', overrides })`로 실제 route 트리를 쓴다. Skia를 불러오는 스파이크 route만 override로 뺀다(스파이크 삭제 뒤에는 테스트마다 필요 없는 화면을 override로 뺀다). Jest 기기 언어는 영어라 테스트에서 표시 설정 언어를 `ko`로 고정한다.
   - A의 원자재 이름 행, 각 화면 내용은 임시이고 5-6 이후 수직 슬라이스에서 채운다. 아이콘은 글리프 문자(`←`·`⚙︎`)로 두고 아이콘 세트는 디자인 단계에서 정한다.
 - 근거:
   - 탭 그룹을 스택 안에 두면 C-d-a에서 하단 탭이 사라지고 [←]가 직전 탭으로 돌아온다(screens.md C-d-a).
