@@ -14,7 +14,7 @@
   - `window`(분포 기간 N): `Y3` `Y5` `Y10` `ALL`
   - `direction`: `UP` `DOWN`
 - `rare_level`은 0.1~49.9의 decimal(3,1)이다.
-- 자동 수집 데이터에는 `source`(수집 소스)와 `collected_at`을 둔다. 소스 이름: `DATABENTO` `MASSIVE` `YAHOO` `NAVER` `KRX` `NASDAQ`(D-012, D-016).
+- 자동 수집 데이터에는 `source`(수집 소스)와 `collected_at`을 둔다. 소스 이름: `DATABENTO` `MASSIVE` `YAHOO` `NAVER` `KRX` `NASDAQ`(D-012, D-016), dev 전용 가짜 정산 소스 `FAKE`(D-071).
 
 ## 영역 구분
 | 영역 | 테이블 | 갱신 주체 |
@@ -291,13 +291,13 @@ erDiagram
   - 같은 조건·거래일·방향에서 더 드문 레벨의 `SENT`·`HELD`·`RETRY` 기록은 덜 드문 레벨을 덮는다. 덮인 레벨은 새로 닿아도, 재시도 차례여도 `SUPPRESSED`다(D-069).
   - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 원자재·방향별로 묶어 가장 드문 1건을 보내고, 나머지를 `SUPPRESSED`로 바꾼다(D-069).
   - 보관 기간은 1년이다(중복 방지에는 당일 기록만 필요, D-046).
-- **`batch_run`**: 운영 알림의 거래일당 1회 판단(`ops_notified_at`, D-048), 앱 상단 기준 시각 줄의 "마지막 성공 시각", 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지"(마지막 `SETTLE_REVISION` 실패, D-071), 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
+- **`batch_run`**: 운영 알림의 거래일당 1회 판단(`ops_notified_at`, D-048), 실패 시 1회 재시도, "일일 정산 실패 시 알림 판정 중지"(마지막 `SETTLE_REVISION` 실패, D-071), 정산 대기(직전 거래일 `DAILY_SETTLE` 성공 전, D-022)를 이 테이블로 판단한다.
 
 ## 서버에 두지 않는 데이터 (기기 저장)
 | 데이터 | 비고 |
 |---|---|
 | 표시 설정(언어, 등락 색) | 언어는 `app_settings.locale`로도 보냄 |
-| 기간 버튼 선택(C-a·C-c 따로) | Zustand persist(D-047) |
+| 기간 버튼 선택(C-a·C-c 따로) | 원자재 스택 화면 상태, 기기에도 저장하지 않음(6M에서 시작, D-107) |
 | 서버 접근 키 | `expo-secure-store`, B-b에서 QR·붙여넣기로 입력(D-044) |
 
 ## 리서치 후 확정할 항목
