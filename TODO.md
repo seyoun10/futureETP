@@ -256,9 +256,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Oracle VM 생성·PAYG 전환: 도쿄 A1 2 OCPU·12GB, Ubuntu 26.04, 공인 IP `193.123.160.142`, OCI Budget 월 $1 (2026-10-31, D-034)
   - [x] VM 준비: Docker 29.9·Compose v5.6, `ubuntu` docker 그룹, OS 방화벽(`rules.v4`) TCP 80·443·UDP 443, Security List TCP 80·443. 재부팅 뒤 유지·임시 컨테이너 80번으로 Mac에서 HTTP 200 확인 (2026-10-31)
   - [x] 도메인 `futureetp-api.duckdns.org`(DuckDNS, deSEC dedyn.io는 신규 등록 중단): VM cron이 30분마다 A 레코드 갱신, 임시 Caddy로 Let's Encrypt staging 인증서 발급·HTTPS 200·HTTP→HTTPS 308 확인 (2026-10-31, D-036)
-  - [ ] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@193.123.160.142`, `HEALTHCHECKS_PING_KEY`(backup_pull용)
-  - [ ] VM `~/futureetp/infra/.env`(권한 600): `DOMAIN=futureetp-api.duckdns.org`, `POSTGRES_PASSWORD`(VM에서 `openssl rand -hex 32`), `API_TOKEN`(`npm run access-key`로 새 prod 키), 외부 키 3개(dev `.env`와 같은 값), `HEALTHCHECKS_PING_KEY`. 값은 화면에 출력하지 않고 ssh로 넘긴다
-  - [ ] FCM 키: Mac `~/.config/futureetp/fcm-service-account.json` → VM `infra/secrets/fcm-service-account.json`(권한 600, 소유자 uid 1000은 배포 스크립트가 맞춤)
+  - [x] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@193.123.160.142` (2026-10-31). `HEALTHCHECKS_PING_KEY`(backup_pull용)는 Healthchecks.io 항목 때 추가
+  - [x] VM `~/futureetp/infra/.env`(권한 600): `DOMAIN=futureetp-api.duckdns.org`, `POSTGRES_PASSWORD`(`openssl rand -hex 32`), `API_TOKEN`(새 prod 키, Mac `~/.config/futureetp/prod-api-token`에 보관, QR은 `npm run access-key -- --show < 그 파일`), 외부 키 3개(dev `.env`와 같은 값). 값은 출력하지 않고 ssh stdin으로 넘김. `HEALTHCHECKS_PING_KEY`는 비워 둠 (2026-10-31)
+  - [x] FCM 키: Mac `~/.config/futureetp/fcm-service-account.json` → VM `infra/secrets/fcm-service-account.json`(권한 600, 해시 일치, 소유자 uid 1000은 배포 스크립트가 맞춤) (2026-10-31)
   - [ ] Healthchecks.io: 프로젝트·ping key, check 8개(작업 7개는 `scheduler.ts` 일정·시간대와 같게, `intraday`는 15분 간격 + Mac `backup_pull` 7일·여유 2일), 알림 메일 확인
   - [ ] (선택) Security List에 UDP 443(HTTP/3) 추가, OCI Budget 알림 규칙 확인
   - [ ] Mac `~/.config/futureetp/duckdns.token` 삭제 여부 결정: 토큰은 VM에만 있으면 됨
@@ -268,7 +268,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] prod 초기 데이터(D-100): `npm run prod:seed`가 dev DB를 빈 prod DB에 넣음(`device`·`alert_record`·`batch_run` 행 제외). Colima 시험 VM에서 배포 → 시드(37초, 뺀 3개 외 모든 테이블 행 수가 dev와 같음, 마이그레이션 5) → Caddy 경유 시세 조회·`CALENDAR` 성공, 재실행·비대화 입력·마이그레이션 수 불일치는 거부 확인. 실제 VM은 첫 배포 때 (2026-10-28)
   - [x] 배포 스크립트(`scripts/deploy.sh` + `infra/deploy-remote.sh`): 가짜 `docker`로 단계 순서·마이그레이션 실패 시 교체 안 함·배포 전 덤프 3개 보관, 가짜 `ssh`로 rsync가 VM 전용 파일은 남기고 저장소에서 지운 파일은 지우는 것 확인(실제 VM은 첫 배포 때) (2026-10-28)
   - [x] 백업 내려받기·dev 복원 스크립트(`scripts/backup-pull.sh`·`dev-restore.sh`, 설정은 `~/.config/futureetp/ops.env`): 가짜 `ssh`·`rsync`·`curl`로 최신 덤프만 받기·이미 받았으면 건너뛰기·손상 덤프 거부·8개 보관·성공/`/fail` 신호 확인. 복원은 scratch DB에 실제로 dev 덤프 복원(테이블 19·마이그레이션 5·행 수 일치), 기존 스키마 위 재복원, `device`·`HELD`·`RETRY`만 삭제, 손상 덤프는 롤백돼 기존 DB 유지, 원격 주소·비대화 `--yes` 없음 거부 확인(실제 VM 내려받기는 첫 배포 뒤) (2026-10-28)
-- [ ] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체 (D-052)
+- [x] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체: `https://futureetp-api.duckdns.org` (2026-10-31, D-052)
 - [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
   - [ ] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
 - [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)

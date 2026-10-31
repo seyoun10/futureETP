@@ -12,8 +12,8 @@ const isDev = variant === 'development';
 const BASE_ID = 'io.github.seyoon.futureetp';
 const appId = isDev ? `${BASE_ID}.dev` : BASE_ID;
 
-// prod 도메인은 첫 서버 배포 때 정한다(D-036). 그전까지는 연결되지 않는 주소로 둔다.
-const PROD_API_URL = 'https://futureetp.invalid';
+// prod 도메인(DuckDNS, D-036)
+const PROD_API_URL = 'https://futureetp-api.duckdns.org';
 
 // dev 값은 apps/mobile/.env.local(커밋 안 함)에서 읽는다. prod config에는 넣지 않는다(D-044).
 // 값이 없으면 키를 뺀다. Expo가 config를 직렬화할 때 null을 {}로 바꾼다.

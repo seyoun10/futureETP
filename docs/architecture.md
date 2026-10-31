@@ -236,7 +236,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 | Android package / iOS bundle ID | `io.github.seyoon.futureetp.dev` | `io.github.seyoon.futureetp` |
 | scheme | `futureetp-dev` | `futureetp` |
 | 아이콘 | 구분 표시가 있는 아이콘(아이콘 제작 때, 지금은 기본과 같음) | 기본 |
-| 서버 주소 | `DEV_API_URL`(`apps/mobile/.env.local`, 없으면 에뮬레이터 주소:3000) | prod 도메인(app config에 커밋, 확정 전 `futureetp.invalid`) |
+| 서버 주소 | `DEV_API_URL`(`apps/mobile/.env.local`, 없으면 에뮬레이터 주소:3000) | prod 도메인 `https://futureetp-api.duckdns.org`(app config에 커밋) |
 | HTTP | 평문 HTTP 허용(Android debug 매니페스트, iOS ATS 로컬 네트워크) | HTTPS만(release는 평문 차단) |
 | EAS Update | 받지 않음(Metro로 개발) | 채널 `production` |
 
