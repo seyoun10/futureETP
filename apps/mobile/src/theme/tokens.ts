@@ -14,6 +14,8 @@ export const colors = {
   textSecondary: '#9e9e9e',
   // 등락 0, 데이터 없음 등 방향이 없는 값
   neutral: '#9e9e9e',
+  // 오류 안내 문구(B-b 키 거절 등)
+  error: '#ef5350',
   chart: {
     grid: '#2a2a2a',
     tick: '#9e9e9e',

@@ -184,7 +184,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
   error: {
-    color: colors.text,
+    color: colors.error,
     fontSize: fontSize.body,
+    textAlign: 'center',
   },
 });
