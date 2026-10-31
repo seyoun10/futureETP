@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { TabFreshnessFooter } from '@/components/FreshnessLine';
 import { lockPortrait, useIsLandscape } from '@/lib/orientation';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { tapHaptic } from '@/lib/haptics';
 import { CommodityTitleBar } from './CommodityTitleBar';
 
 // C 원자재 화면의 하단 탭 4개(D-047). 스와이프로 탭을 바꾸지 않는다(차트 제스처와 충돌).
@@ -28,6 +29,12 @@ export function CommodityTabsLayout() {
   return (
     <Tabs
       backBehavior="none"
+      // 다른 탭으로 바뀔 때만 햅틱(D-109)
+      screenListeners={({ navigation }: { navigation: { isFocused: () => boolean } }) => ({
+        tabPress: () => {
+          if (!navigation.isFocused()) tapHaptic();
+        },
+      })}
       tabBar={(props) =>
         isLandscape ? (
           <View style={{ height: props.insets.bottom, backgroundColor: colors.background }} />

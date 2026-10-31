@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { tapHaptic } from '@/lib/haptics';
 
 type Option<T> = { value: T; label: string };
 
@@ -37,7 +38,9 @@ export function SegmentedControl<T extends string | number>({
                 accessibilityRole="radio"
                 accessibilityState={{ checked: selected }}
                 onPress={() => {
-                  if (!selected) onChange(option.value);
+                  if (selected) return;
+                  tapHaptic();
+                  onChange(option.value);
                 }}
                 style={[
                   styles.segment,

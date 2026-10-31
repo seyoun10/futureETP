@@ -10,6 +10,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { compactAmount } from '@/lib/formatAmount';
 import { Icon } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { tapHaptic } from '@/lib/haptics';
 import { useCommodityCode } from '../useCommodityCode';
 import {
   ETP_SORTS,
@@ -164,9 +165,10 @@ function EtpRow({ etp, code, sort }: { etp: EtpSummary; code: CommodityCode; sor
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() =>
-        router.push({ pathname: '/commodity/[code]/etp/[id]', params: { code, id: etp.id } })
-      }
+      onPress={() => {
+        tapHaptic();
+        router.push({ pathname: '/commodity/[code]/etp/[id]', params: { code, id: etp.id } });
+      }}
       style={styles.row}
     >
       <View style={styles.rowText}>

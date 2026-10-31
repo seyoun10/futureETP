@@ -19,6 +19,7 @@ import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
+import { tapHaptic } from '@/lib/haptics';
 import { useCommodities } from './useCommodities';
 
 // A 원자재 목록(screens.md A, D-085). 원자재와 월물 줄은 서버가 준 순서대로 그린다.
@@ -88,6 +89,7 @@ function CommodityRow({
     <Pressable
       accessibilityRole="button"
       onPress={() => {
+        tapHaptic();
         void prefetchDisparityChart(queryClient, code);
         router.push({ pathname: '/commodity/[code]', params: { code } });
       }}

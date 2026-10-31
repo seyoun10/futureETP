@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet } from 'react-native';
+import { tapHaptic } from '@/lib/haptics';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
@@ -16,7 +17,10 @@ export function HeaderIconButton({ icon, label, onPress, compact = false }: Prop
       accessibilityRole="button"
       accessibilityLabel={label}
       hitSlop={8}
-      onPress={onPress}
+      onPress={() => {
+        tapHaptic();
+        onPress();
+      }}
       style={[styles.button, compact && styles.compact]}
     >
       <Icon name={icon} />

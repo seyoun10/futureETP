@@ -1703,3 +1703,10 @@
   - 받는 동안(`isFetchingNextPage`) 차트에 `locked`를 넘긴다. `useChartViewport`는 핀치·드래그·십자선 끄기 탭을 `.enabled(false)`로 바꿔 진행 중인 제스처를 취소하고, 차트 컨테이너는 `pointerEvents="none"`으로 새 터치(victory 십자선·되돌리기 버튼 포함)를 받지 않는다. victory 십자선 제스처는 `enabled` 설정이 없어 컨테이너에서 막는다. 로딩 표시 위에 투명 덮개를 두는 방법은 Android RNGH가 배경 없는 View를 터치 대상으로 보지 않을 수 있어 쓰지 않는다.
   - 기간 칩·탭·뒤로 가기는 막지 않는다. 요청이 실패하거나 시간 초과(`fetch` 래퍼, D-072)되면 `isFetchingNextPage`가 false가 되어 풀린다.
 - 영향: `charts/OlderDataIndicator.tsx`·`useChartViewport.ts`·`CandleChart.tsx`·`LinesChart.tsx`, `DisparityChartScreen`·`ContractChartScreen`, screens.md C-a 제스처.
+
+## D-109: 주요 사용자 액션에 선택 햅틱을 준다
+- 날짜: 2026-10-31
+- 상태: 확정 (사용자 요청)
+- 맥락: 햅틱은 C-a·C-c 십자선 봉 맞춤(D-056)과 과거 데이터 로딩(D-108)에만 있었다.
+- 결정: `lib/haptics.ts`의 `tapHaptic()`(`Haptics.selectionAsync`)을 원자재 행(A)·ETP 행(C-d)·설정 이동 행(B), C 탭 변경(`Tabs` `screenListeners.tabPress`, 이미 보는 탭이면 주지 않음), 기간 칩·세그먼트(값이 바뀔 때만), `HeaderIconButton`(title-bar [←]·[⚙]·[⟲]·설정 되돌리기)에서 부른다. 공용 부품에 넣어 같은 부품을 쓰는 새 화면도 따라간다. 과거 데이터 로딩은 `impactAsync(Light)`로 구분한다. Android 시스템 뒤로 버튼은 OS 동작이라 넣지 않는다.
+- 영향: `lib/haptics.ts`, `components/HeaderIconButton.tsx`·`SegmentedControl.tsx`, `charts/PeriodChips.tsx`, `CommodityListScreen`·`EtpListScreen`·`SettingsScreen`(`LinkRow`)·`CommodityTabsLayout`, screens.md 공통 규칙.

@@ -29,6 +29,7 @@ import {
 import { Icon } from '@/components/Icon';
 import { KeyboardDoneBar } from '@/components/KeyboardDoneBar';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { tapHaptic } from '@/lib/haptics';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
 import { useSettings, useUpdateSettings } from './useSettings';
@@ -204,7 +205,14 @@ type LinkRowProps = { label: string; value?: string; href: Href; description?: s
 // 이름 + 값 + › 행. 설명은 이름·값 아래 한 줄이다
 function LinkRow({ label, value, href, description }: LinkRowProps) {
   return (
-    <Pressable accessibilityRole="button" onPress={() => router.push(href)} style={styles.row}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => {
+        tapHaptic();
+        router.push(href);
+      }}
+      style={styles.row}
+    >
       <View style={styles.rowMain}>
         <View style={styles.rowLine}>
           <Text style={styles.label}>{label}</Text>

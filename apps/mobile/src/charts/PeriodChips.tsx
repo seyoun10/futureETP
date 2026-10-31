@@ -4,6 +4,7 @@ import { useIsLandscape } from '@/lib/orientation';
 import { CHART_PERIODS } from './chartPeriods';
 import type { ChartPeriod } from './chartPeriods';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { tapHaptic } from '@/lib/haptics';
 
 type PeriodChipsProps = {
   // 제스처로 범위를 바꿨으면 null(선택 표시 없음)
@@ -38,7 +39,10 @@ export function PeriodChips({ selected, nearest = null, onSelect }: PeriodChipsP
             key={period}
             accessibilityRole="radio"
             accessibilityState={{ checked: isSelected }}
-            onPress={() => onSelect(period)}
+            onPress={() => {
+              if (!isSelected) tapHaptic();
+              onSelect(period);
+            }}
             style={[
               styles.chip,
               isSelected && styles.chipSelected,
