@@ -668,7 +668,7 @@
 - 상태: 확정
 - 맥락: TODO 3단계(product.md 차트 구간 로딩, data-model 보관 기간·커브 캐시). D-010은 커브를 저장하지 않고 조회할 때 만들기로 했다. D-041은 조회 API가 계산하지 않는다고 정해 두 결정이 충돌했다.
 - 결정(사용자가 기본값 승인, 커브 방식 선택):
-  - 차트 시계열은 전체를 한 번에 받고, 핀치·드래그로 추가 요청하지 않는다. 느리면 C-a 스파이크(D-032)에서 열 배열 응답으로 바꾼다.
+  - 차트 시계열은 전체를 한 번에 받고, 핀치·드래그로 추가 요청하지 않는다. 느리면 C-a 스파이크(D-032)에서 열 배열 응답으로 바꾼다. (D-104로 3년 단위 + 이어 받기로 대체)
   - 보관: `intraday_snapshot`·`index_snapshot` 90일, `alert_record`·`batch_run` 1년. `BACKUP` 작업이 덤프 뒤에 지운다.
   - 커브는 저장·캐시하지 않는다(D-010 유지). 커브 라우트만 원천값을 읽어 `calc` 커브 함수를 부른다(D-041 예외).
 - 근거:
@@ -1124,7 +1124,7 @@
 - 맥락: TODO 5-3 `DAILY_SETTLE`. 러너는 작업을 끝까지 돌린 뒤 `batch_run`을 성공으로 남기는데, 정산 대기 해제는 ① 성공 시점이어야 한다(D-047). 하루 정산이 재시도까지 실패한 다음 날의 처리, 평일 휴장일 트리거, "알림 판정 중지"의 조건, 실소스(Massive) 전의 소스가 정해지지 않았다. ① 실패는 정산 대기라 장중 배치가 이미 돌지 않으므로(D-022) 중지 플래그는 ② 실패에서만 뜻이 있다.
 - 결정(사용자가 권장안 선택)
   - 작업 두 개: `DAILY_SETTLE`(①)과 새 `SETTLE_REVISION`(②). 한 트리거 `[DAILY_SETTLE, SETTLE_REVISION]`(평일 18:30 CT)로 차례로 돌고 둘 다 재시도 간격 15분이다. `DAILY_SETTLE` 성공 행의 가장 큰 `trade_date`가 정산 대기 판정의 `lastSettledTradeDate`다(`db/settle.ts` `lastSettledTradeDate`).
-  - ①: 대상은 세션이 끝난 가장 최근 거래일 T(`ctx.tradeDate`)다. 마지막 정산 거래일 다음부터 T까지 밀린 거래일을 모두 받는다(최대 5거래일, 넘으면 실패하고 사람이 기준 시각을 주어 나눠 돌린다). 정산 이력이 없으면 `daily_bar`의 마지막 날 다음부터 받고, 일봉도 없으면 T만 받는다(5-4 적재 직후). 이미 정산했으면(평일 휴장일) 소스를 부르지 않고 성공한다. 원자재마다: 소스 월물 정의로 `contract`에 없는 월물을 넣고(`is_target`은 `isTargetMonth`), 그날 거래되는 월물(최종 거래일 ≥ 그날, 첫 거래일 ≤ 그날) 일봉을 upsert한 뒤 전체 재계산(D-070)한다. 그 원자재의 그날 일봉이 이미 있으면 받지 않는다(재시도·따라잡기 때 소스 호출 절약, 재계산은 함). 소스가 빈 일봉을 주면 반영 전으로 보고 실패한다. 일부 월물만 오는 응답은 받아들인다(거래량·미결제약정 없는 월물은 정산가가 게시되지 않음, `research/market-data.md`).
+  - ①: 대상은 세션이 끝난 가장 최근 거래일 T(`ctx.tradeDate`)다. 마지막 정산 거래일 다음부터 T까지 밀린 거래일을 모두 받는다(최대 5거래일, 넘으면 실패하고 사람이 기준 시각을 주어 나눠 돌린다). 정산 이력이 없으면 `daily_bar`의 마지막 날 다음부터 받고, 일봉도 없으면 T만 받는다(5-4 적재 직후). 이미 정산했으면(평일 휴장일) 소스를 부르지 않고 성공한다. 원자재마다: 소스 월물 정의로 `contract`에 없는 월물을 넣고(`is_target`은 `isTargetMonth`), 그날 거래되는 월물(최종 거래일 ≥ 그날, 첫 거래일 ≤ 그날, D-095로 최종 거래일이 가까운 26개로 줄임) 일봉을 upsert한 뒤 전체 재계산(D-070)한다. 그 원자재의 그날 일봉이 이미 있으면 받지 않는다(재시도·따라잡기 때 소스 호출 절약, 재계산은 함). 소스가 빈 일봉을 주면 반영 전으로 보고 실패한다. 일부 월물만 오는 응답은 받아들인다(거래량·미결제약정 없는 월물은 정산가가 게시되지 않음, `research/market-data.md`).
   - ②: 대상은 T의 직전 거래일 R이다. 이미 확인했으면 건너뛰고, R이 아직 정산 전이거나 저장된 월물 중 소스에서 빠진 것이 있으면 확인하지 못한 것으로 실패한다(성공으로 남기면 중지가 풀리고 R이 확인된 것으로 쳐짐, 5-3 리뷰). 저장된 R 일봉의 월물을 다시 받아 OHLC·정산가·거래량이 바뀐 행만 `revised_at`과 함께 저장하고 그 원자재만 재계산한다. R에 `revised_at`이 있는 원자재는 정정이 없어도 다시 계산한다(정정 저장 뒤 재계산 실패한 시도를 재시도가 복구). upsert는 `revised_at`을 `coalesce`로 남겨 다시 받아도 정정 기록이 지워지지 않는다.
   - 두 작업 모두 원자재 하나가 실패해도 나머지를 끝내고 실패를 모아 던진다.
   - 알림 판정 중지: `SETTLE_REVISION`의 마지막으로 끝난 실행이 `FAILED`면 중지(`isAlertJudgmentSuspended`, 5-8 `INTRADAY`가 쓴다). 다음 ② 성공으로 풀린다. 스냅숏 수집은 계속한다.
@@ -1158,7 +1158,7 @@
 - 상태: 확정
 - 맥락: TODO 5-5 두 번째 항목. D-030·D-031·D-033·D-047이 도구와 범위를 정했지만 저장 값의 형태, 기기 기본값 판정, 등락·차트 색 값, i18n 초기화와 언어 연동 방법은 정하지 않았다.
 - 결정:
-  - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. (기간 목록·version은 D-102로 대체) 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
+  - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. (기간 목록·version은 D-102, 기간 persist는 D-107로 대체) 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
   - 저장소는 `expo-sqlite/kv-store`의 `Storage`를 `getItemSync`·`setItemSync`·`removeItemSync`로 감싸 넘긴다. persist 복원이 동기라 첫 렌더부터 저장된 언어·색이다.
   - 기기 기본값: 첫 기기 언어가 `ko`면 한국어, 그 밖은 영어. 첫 기기 지역이 `KR`이면 한국식, 그 밖은 미국식.
   - 테마 토큰(`src/theme/tokens.ts`)은 `colors`(배경·표면·글자·차트: 격자·눈금·십자선·현재가 회색·이평선 노랑·rare-level 5색)·`spacing`·`fontSize`다. rare-level 색은 연보라 → 진보라 5단계를 순위(0 = 가장 덜 드묾)로 고른다. 정확한 값은 차트 본 구현 때 실기기에서 조정한다.
@@ -1357,7 +1357,7 @@
   - `alert` = 설정의 `alertCommodity`와 같은 원자재. 조회는 `db/commoditiesStore.ts`(`CommoditiesStore`), 조립은 `api/commodities.ts` `loadCommodities`이고, 라우트 테스트는 메모리 저장소로 한다.
 - 근거:
   - 장 상태로 값을 나누지 않고 우선순위 하나로 고르면, 마감 뒤 정산 전(그날 마지막 스냅숏)과 정산 뒤(정산가)를 같은 코드가 처리한다(D-048).
-  - 대표월물을 "T 이하 최근 행"으로 두면 장중에는 지금 보유 월물을, 주말에는 다음 개장 때 보유할 월물을 보여 준다. C-a 롤 마커와도 같은 행을 쓴다.
+  - 대표월물을 "T 이하 최근 행"으로 두면 장중에는 지금 보유 월물을, 주말에는 다음 개장 때 보유할 월물을 보여 준다. C-a 대표월물 전환일 점선(D-103)과도 같은 행을 쓴다.
 - 영향: `createApp`에 `commodities` 저장소가 필수 인자로 늘었다(테스트는 `api/commodities.fixtures.ts`). 앱 화면은 다음 단계.
 
 ## D-086: `GET /v1/commodities/:code/disparity` — 설정은 query로, 잠정 봉·rare 레벨은 조회 때 calc
@@ -1369,7 +1369,7 @@
   - 응답(shared `disparityChartSchema`): `freshness`, `priceDecimals`, 실제 `basis`와 `fallback`, `maPeriod`·`window`, `distribution`(`actualStartDate`·`sampleCount` 또는 null), `rareLevels`(위 방향 오름차순 → 아래 방향 오름차순, `{ direction, level, disparity, price }`), `currentTail`(마지막 봉 이격도의 가까운 꼬리 백분위), `provisional`, `bars`(행 객체 `{ tradeDate, open, high, low, close, ma, disparity, inRoll, holdings }`).
   - 가격(OHLC·이평선·rare-level `price`)은 `index_scale.ratio`를 곱한 값이다. 산출 불가일도 봉 행을 두고 OHLC를 null로 준다.
   - 대체: `basis`가 KR·US인데 그 원자재의 `roll_rule`이 없으면 FRONT로 응답하고 `fallback: true`다.
-  - `holdings`: 봉 t를 만든 보유 월물 = 직전 거래일 `roll_weight`(종가 뒤 비중) 행, 만기순 `{ contractMonth, weight }`. 첫 봉은 빈 배열. 대표월물 전환 마커는 앱이 연속한 두 봉의 `holdings`가 바뀌는 곳(옛 월물의 마지막 날)에서 찾는다.
+  - `holdings`: 봉 t를 만든 보유 월물 = 직전 거래일 `roll_weight`(종가 뒤 비중) 행, 만기순 `{ contractMonth, weight }`. 첫 봉은 빈 배열. 대표월물 전환일(세로 점선, D-103)은 앱이 연속한 두 봉의 `holdings`가 바뀌는 곳(옛 월물의 마지막 날)에서 찾는다.
   - 오늘 잠정 봉: 기준 거래일 T(`marketStatus`, D-085)의 최근 `index_snapshot`이 저장된 마지막 봉보다 늦은 거래일이고 `last`가 있으면 붙인다(`provisional: true`). 이평선·이격도는 저장된 유효 종가로 `liveMovingAverage`·`liveDisparity`(D-067)를 그 자리에서 부른다. `inRoll`은 한국형·미국형이면 규칙의 영업일 순번으로 그날이 롤 영업일인지 정한다(`isRollPeriodDay`, 저장된 봉의 `in_roll_period`와 같은 판정). 대표월물은 전환이 그날 거래량으로 정해져 장중에는 모르므로 `false`다(2026-10-30 수정: 처음에는 보유 월물이 둘 이상인지로 정해 롤 첫날 장중을 놓치고, 3 leg인 미국형 CL BCBCLI는 늘 롤 중으로 나왔다).
   - rare 레벨·꼬리 백분위는 저장된 `disparity_distribution.sorted_values`로 조회 때 `rareLevelDisparity`·`tailPercentile`을 부른다. 기간별 rare-level 선은 보내지 않고 앱이 `ma(t) × (1 + disparity / 100)`로 그린다.
   - `asOf`: 잠정 봉이면 스냅숏 `capturedAt`(`delayed: true`), 아니면 `index_scale.updated_at`(마지막 재계산), 적재 전이면 조회 시각. 적재 전에는 빈 `bars`와 null 분포로 200을 준다.
@@ -1386,13 +1386,13 @@
 - 맥락: TODO 5-6 C-a 둘째 단계. D-056 스파이크가 넘긴 것: 한글 글꼴(번들 `useFont` 또는 Paragraph), y축 특수 라벨, '전체'에서 이동 막기, 스파이크 이관.
 - 결정
   - 한글: 한글이 들어가는 캔버스 글자(x축 월 라벨, 최고가·최저가 꼬리표, 롤 마커)는 Skia Paragraph로 그린다. `Skia.ParagraphBuilder.Make()`는 시스템 글꼴 관리자에 대체 글꼴을 켜고 만들어(react-native-skia 2.14 `JsiSkParagraphBuilder`의 `enableFontFallback`) 글꼴을 번들하지 않아도 된다. 숫자만 쓰는 y축·십자선 라벨은 `matchFont`로 둔다. 같은 글자·색의 Paragraph는 캐시한다(`chartText.ts`).
-  - 이평선·rare-level 밴드: 변환 그룹 안에서 그리면 x·y 배율만큼 선이 굵어진다. 변환 전 좌표로 경로를 한 번 만들고(`useMemo`), UI 스레드 `useDerivedValue`에서 `PathBuilder.MakeFromPath(path).transform(matrix)`로 화면 좌표로 바꾼다. 봉은 스파이크대로 변환 그룹 안(꼬리 헤어라인)이다.
+  - 이평선·rare-level 밴드: 변환 그룹 안에서 그리면 x·y 배율만큼 선이 굵어진다. 변환 전 좌표로 경로를 한 번 만들고(`useMemo`), UI 스레드 `useDerivedValue`에서 `PathBuilder.MakeFromPath(path).transform(matrix)`로 화면 좌표로 바꾼다(D-106으로 보이는 구간만 점마다 변환하는 방식으로 대체). 봉은 스파이크대로 변환 그룹 안(꼬리 헤어라인)이다.
   - y 자동 맞춤은 봉 고가·저가가 아니라 봉마다 그날 이평선·밴드까지 포함한 위·아래 끝(`chartEnvelope`)으로 한다(screens.md "보이는 봉과 선이 모두 들어가게"). 이 두 값은 `CartesianChart`의 yKeys(`hi`·`lo`)라 기본 y 범위도 선을 포함한다.
   - y축 특수 라벨: 우선순위(현재가 → 이평선 → 현재가에 가까운 rare-level) 순으로 겹치지 않는 것만 그리고, 특수 라벨과 겹치는 기본 눈금 텍스트는 숨긴다(격자선 유지). 현재가는 회색 수평 점선을 함께 그린다.
   - 롤 음영·마커·꼬리표·축은 victory-native 변환 컨텍스트(JS)로 다시 그린다(개수가 적다). '전체'(k=1)에서는 `transformConfig.pan.enabled`를 꺼서 이동 제스처를 막는다.
   - 십자선 상세 박스는 캔버스가 아니라 RN View로, 봉에 붙을 때(햅틱과 같은 시점) 상태를 바꿔 손가락 반대편 절반에 띄운다. 내용은 화면이 `renderDetail(index)`로 준다(i18n·RN Text 그대로).
   - `CandleChart`는 C-a·C-c 공용이다(→ D-093: C-c는 `LinesChart`로 나누고 확대·이동·십자선만 공용 hook). 입력은 OHLC 봉, 위·아래 끝, 선 목록, 특수 라벨, 롤 음영·마커, 기간 봉 수(`PERIOD_BARS`, 월 21·연 252거래일), 보이는 범위 콜백.
-  - 대표월물 전환 마커는 D-086대로 보유 월물이 바뀐 봉의 앞 봉(전환일)에 단다. 라벨은 새 월물의 월 번호(`2`)이고 앞 라벨과 겹치면 뺀다. 전체 월물명은 십자선 상세(`DEC26 → FEB27`)에서 보여 준다(2026-10-28 변경: 처음엔 `→FEB27`이었는데 12M에서 이웃 마커 라벨이 붙어 읽을 수 없었다).
+  - 대표월물 전환 마커는 D-086대로 보유 월물이 바뀐 봉의 앞 봉(전환일)에 단다. 라벨은 새 월물의 월 번호(`2`)이고 앞 라벨과 겹치면 뺀다. 전체 월물명은 십자선 상세(`DEC26 → FEB27`)에서 보여 준다(2026-10-28 변경: 처음엔 `→FEB27`이었는데 12M에서 이웃 마커 라벨이 붙어 읽을 수 없었다). (마커는 D-103으로 전환일 세로 점선으로 대체, 월물명은 십자선 상세에 그대로)
 - 근거: 글꼴 번들은 한글 글꼴 하나만 수 MB이고 굵기별로 늘어난다. Paragraph는 기기 시스템 글꼴을 그대로 써서 RN Text와 모양도 같다. 경로 변환은 봉 4,000개짜리 선 11개를 제스처 프레임마다 JS에서 다시 만들지 않으려는 것이다.
 - 영향: `formatPrice`가 worklet이 됐다(십자선 가격 라벨이 UI 스레드에서 부른다). 테마 토큰에 `rollShade`·`rollMarker`·`extremeTag`, i18n에 `chart.months`·`chart.highTag`·`chart.lowTag`가 늘었다.
 
@@ -1669,7 +1669,7 @@
   - victory `useChartTransformState`는 렌더링마다 새 state 객체를 돌려준다. 첫 값으로 고정해 이 값에 의존하는 콜백·effect가 렌더링마다 다시 돌지 않게 한다(좌표 보고 → 렌더링 무한 반복).
 - 근거: 처음 그리는 봉이 약 5분의 1이고 응답도 800KB → 약 150KB로 줄어 수신·파싱도 빨라진다. 오래된 구간은 필요할 때만 받는다.
 - 위험: 좌표 교체와 보정을 따로 하면(JS effect + UI) 그 사이 새 좌표에 이전 행렬이 걸려 범위가 튀고 연달아 받았다. 봉이 붙는 순간 새 좌표에 이전 행렬이 한 프레임 적용돼 범위가 잠깐 튈 수 있다(실기기 확인 필요). 많이 받으면 그리기 비용도 다시 커진다.
-- 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md.
+- 영향: shared `disparityChartSchema`·`contractsChartSchema`(`hasMore`), 서버 `disparity.ts`·`contracts.ts`·`chartPage.ts`, 앱 `useDisparityChart`·`useContracts`·`chartCache`(무한 조회 freshness), `QueryStateView`·`useAutoRefresh`(무한 조회 결과 허용), `useChartViewport`, screens.md C-a 제스처·C-c x축, architecture.md. D-046의 차트 시계열 한 번에 받기를 대체한다.
 
 ## D-105: 쓸어서 뒤로 가기를 끈다
 - 날짜: 2026-10-30
@@ -1684,7 +1684,7 @@
 - 맥락: 운영 번들 측정(iPhone 14 Pro, 120Hz)에서 진입 0.2~0.4초, 과거 3년 로딩 0.3~0.55초, 드래그 UI 60~114fps로 양호했다. 봉 1,500~4,000개를 핀치로 축소해 볼 때만 UI 20~45fps, 34ms 넘는 프레임 2~4개였다. 봉은 양봉·음봉 경로 하나씩을 행렬로 그려 프레임마다 다시 만들지 않지만, 선(C-a 이평선·rare-level 11개, C-c 월물 선)은 매 프레임 전체 경로를 복사·변환·획 그리기 했다.
 - 결정: `LineLayer`는 프레임마다 보이는 봉 구간(앞뒤 1봉 포함)만 화면 좌표로 경로를 만든다. 봉 간격이 1px보다 좁으면 2의 거듭제곱 간격으로 건너뛰고, 시작 순번을 간격의 배수로 맞춰 드래그 중 선 모양이 흔들리지 않게 한다(`charts/lineSampling.ts`). 프레임당 점 수는 선마다 화면 폭(px) 정도로 묶인다.
 - 위험: 건너뛴 구간의 짧은 봉우리(특히 C-c 월물 가격선)는 축소 화면에서 보이지 않는다. 확대하면 다시 보인다.
-- 영향: `charts/LineLayer.tsx`, `charts/lineSampling.ts`. 봉(Candlestick)은 그대로다. 개선 뒤에도 축소가 끊기면 봉 묶어 그리기를 검토한다.
+- 영향: `charts/LineLayer.tsx`, `charts/lineSampling.ts`. 봉(Candlestick)은 그대로다. D-087의 선 경로 변환(`MakeFromPath`)을 대체한다. 개선 뒤에도 축소가 끊기면 봉 묶어 그리기를 검토한다.
 
 ## D-107: C-a·C-c 기간은 원자재 화면에 있는 동안만 기억한다
 - 날짜: 2026-10-30

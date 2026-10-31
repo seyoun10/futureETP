@@ -23,7 +23,7 @@ type LineLayerProps = {
 };
 
 // 이평선·rare-level 밴드. 변환 그룹 안에서 그리면 배율만큼 선이 굵어지므로, 행렬은 UI 스레드에서
-// 점마다 곱해 화면 좌표로 경로를 만든다(D-087). 선 굵기는 확대해도 그대로다.
+// 점마다 곱해 화면 좌표로 경로를 만든다(D-087, D-106). 선 굵기는 확대해도 그대로다.
 export function LineLayer({ lines, xScale, yScale, chartBounds, transform }: LineLayerProps) {
   const clip = useMemo(
     () =>
