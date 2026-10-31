@@ -23,7 +23,7 @@
   - 혼합 차트 제거. 기준값 지수는 C-a 일봉 봉차트로 보여 준다.
   - 이격도는 별도 % 차트 대신 가격 차트 위 rare-level 밴드(이평선 × (1 + 레벨 이격도))로 보여 준다.
   - 커브는 실제 월물 x축, 기준일(D-1 기본, −/0/+ 이동) 대비 비교. 롤 수익률 요약은 유지한다.
-  - 기간 버튼 10종 + 핀치·드래그, C-a~C-c 가로 전환, 다크 전용, 등락 색 설정(기본값은 기기 지역 기준, 2026-10-22 역검증에서 변경)
+  - 기간 버튼 10종(D-102로 6개로 줄임) + 핀치·드래그, C-a~C-c 가로 전환, 다크 전용, 등락 색 설정(기본값은 기기 지역 기준, 2026-10-22 역검증에서 변경)
 - 근거:
   - 원자재 4종의 월물 시세를 한눈에 보는 목록이 진입점으로 더 유용하다.
   - 혼합 차트의 지수 흐름은 C-a 봉차트와 겹친다.
@@ -518,7 +518,7 @@
 - 맥락: TODO 2단계. 저장소에 앱(Expo)·서버(Node)·공유 패키지가 있다(D-035). 지수·이평선·분포·롤 비중 같은 핵심 계산은 서버·공유 패키지에 있고, 앱은 화면 코드가 대부분이다. 전역 지침은 작은 단위 작업 → 테스트 → 커밋이다. CLAUDE.md는 default export를 금지하고 `app/` route 파일만 예외로 둔다(D-029).
 - 선택지: lint/format은 ESLint + Prettier / Biome. 테스트는 앱 jest-expo + 서버·공유 Vitest / 전부 Jest. 커밋 hook은 lint·format만 / 전부 / 없음
 - 결정:
-  - lint: ESLint flat config. 앱은 `eslint-config-expo`(`npx expo lint`) 기반이고, 앱·서버 공통으로 `typescript-eslint` 타입 기반 규칙(`no-floating-promises` 등)과 `import/no-default-export`(`app/**` 예외)를 건다.
+  - lint: ESLint flat config. 앱은 `eslint-config-expo`(`npx expo lint`) 기반이고, 앱·서버 공통으로 `typescript-eslint` 타입 기반 규칙(`no-floating-promises` 등)과 `import/no-default-export`(`app/**` 예외)를 건다. (D-054로 ESLint 기본 규칙 `no-restricted-exports`)
   - format: Prettier. ESLint와 서식 규칙이 겹치지 않게 한다.
   - 테스트: 앱은 `jest-expo` + React Native Testing Library, 서버·공유 패키지는 Vitest. 핵심 계산은 공유·서버 쪽 단위 테스트로 검증한다.
   - Git hook: husky + lint-staged로 pre-commit에서 바뀐 파일만 `eslint --fix`·`prettier --write`. 타입 검사·lint 전체·테스트는 루트 `npm run check` 한 줄로 묶어 커밋 전에 실행한다.
@@ -543,7 +543,7 @@
   - iOS는 Apple 가입 전에는 시뮬레이터로만 동작을 확인한다. 실기기 설치와 APNs는 가입 뒤에 하고, 그때 설치 방식(Xcode 로컬 Release·ad hoc·TestFlight)을 정한다.
   - JS 변경은 EAS Update(무료 1,000 MAU)로 배포한다. 로컬 빌드를 쓰므로 `updates.url`·`runtimeVersion`·채널 요청 헤더(`expo-channel-name`)를 앱 설정에 직접 넣는다. `runtimeVersion`은 CNG에 맞춰 fingerprint 정책을 기본으로 하고, 네이티브가 바뀌면 다시 빌드·설치한다.
   - CI는 원격 저장소(GitHub, private)를 만들 때 GitHub Actions로 `npm run check`(D-038)만 돌린다. 앱 빌드는 CI에서 하지 않는다.
-  - 서버 배포는 저장소의 배포 스크립트로 한다. 스크립트가 rsync로 소스를 VM에 옮기고, VM에서 `docker compose up -d --build`를 실행한다. VM이 ARM이라 VM에서 직접 빌드하면 크로스 빌드가 필요 없고, 로컬에 Docker를 설치하지 않아도 된다.
+  - 서버 배포는 저장소의 배포 스크립트로 한다. 스크립트가 rsync로 소스를 VM에 옮기고, VM에서 `docker compose up -d --build`를 실행한다. (D-048로 이미지 빌드 → 덤프 → 일회성 컨테이너 migrate → 서버 교체, `infra/deploy-remote.sh`) VM이 ARM이라 VM에서 직접 빌드하면 크로스 빌드가 필요 없고, 로컬에 Docker를 설치하지 않아도 된다.
 - 근거:
   - Android 에뮬레이터 확인(TODO 4단계)에 어차피 Android Studio가 필요하다. 로컬 빌드는 횟수 제한과 대기가 없다.
   - 무료 Apple ID 설치는 7일마다 다시 설치해야 하고 푸시 권한도 없다. 가입 전에 실기기에서 얻는 이점이 그 관리 비용보다 작다.
