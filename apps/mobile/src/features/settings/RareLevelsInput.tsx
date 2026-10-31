@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   problem: {
-    color: colors.text,
+    color: colors.error,
   },
   description: {
     marginTop: spacing.xs,

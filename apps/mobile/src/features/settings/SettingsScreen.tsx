@@ -233,8 +233,9 @@ const styles = StyleSheet.create({
   error: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    color: colors.text,
+    color: colors.error,
     fontSize: fontSize.caption,
+    textAlign: 'center',
     backgroundColor: colors.surface,
   },
   divider: {
