@@ -494,6 +494,7 @@
   - Tailscale은 서버를 인터넷에 노출하지 않아 더 안전하지만, 폰에서 VPN이 켜져 있어야 앱이 동작한다. 매번 켜야 하는 불편이 크다.
   - 데이터는 공개 시세 기반 계산값이라 유출 피해가 작다. 비밀 값이 새면 교체하면 된다.
 - 후속(TODO 3단계): 비밀 값을 앱에 넣는 방식(빌드 환경 변수 / 첫 실행 때 입력해 SecureStore 저장)과 교체 절차.
+- 실행(2026-10-31): 도메인은 무료 DDNS `futureetp-api.duckdns.org`. deSEC(dedyn.io)를 먼저 골랐으나 신규 등록이 막혀 있었다. VM 공인 IP가 에페메럴이라 인스턴스를 멈췄다 켜면 바뀔 수 있어, VM cron이 30분마다 DuckDNS에 출발지 IP로 갱신한다(토큰은 VM `~/.config/duckdns/token`, 권한 600). duckdns.org는 Public Suffix List에 있어 Let's Encrypt 발급 한도를 다른 사용자와 나누지 않는다.
 
 ## D-037: 푸시 — FCM·APNs 직접 연동, Android 먼저
 - 날짜: 2026-10-23

@@ -255,7 +255,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Healthchecks.io check(D-045: 작업 7개 + Mac 내려받기 `backup_pull` 7일·여유 2일)
   - [x] Oracle VM 생성·PAYG 전환: 도쿄 A1 2 OCPU·12GB, Ubuntu 26.04, 공인 IP `193.123.160.142`, OCI Budget 월 $1 (2026-10-31, D-034)
   - [x] VM 준비: Docker 29.9·Compose v5.6, `ubuntu` docker 그룹, OS 방화벽(`rules.v4`) TCP 80·443·UDP 443, Security List TCP 80·443. 재부팅 뒤 유지·임시 컨테이너 80번으로 Mac에서 HTTP 200 확인 (2026-10-31)
-  - [ ] 도메인(D-036), Mac `ops.env`의 `DEPLOY_HOST`, VM `infra/.env`·FCM 키, Healthchecks.io check
+  - [x] 도메인 `futureetp-api.duckdns.org`(DuckDNS, deSEC dedyn.io는 신규 등록 중단): VM cron이 30분마다 A 레코드 갱신, 임시 Caddy로 Let's Encrypt staging 인증서 발급·HTTPS 200·HTTP→HTTPS 308 확인 (2026-10-31, D-036)
+  - [ ] Mac `ops.env`의 `DEPLOY_HOST`, VM `infra/.env`(`DOMAIN` 등)·FCM 키, Healthchecks.io check
 - [ ] `infra/`(Dockerfile·compose·Caddyfile, Caddy `encode`로 응답 압축: C-a 응답이 압축 전 약 1MB) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
   - [x] `apps/server/Dockerfile`·`.dockerignore`·`infra/docker-compose.yml`·`Caddyfile`·`.env.example`, 로그 크기 제한. 이미지와 같은 파일 구성으로 `npm ci --omit=dev` 후 서버 기동·health 확인(Mac에 Docker가 없어 이미지 빌드·compose 기동은 미확인) (2026-10-28)
   - [x] 로컬 Docker(Colima)로 `deploy-remote.sh` 실제 실행: 이미지 빌드(452MB, `.env`·테스트·앱 소스 없음) → 배포 전 덤프 → 일회성 컨테이너 마이그레이션(테이블 19·마이그레이션 5) → 교체·health, Caddy 경유 HTTPS health·HTTP→HTTPS 308·키 없음 401, 컨테이너에서 `BACKUP`(pg_dump 18.6, `/backups` 쓰기)·`calendar:import`·`CALENDAR` 성공, 잘못된 FCM 키면 서버가 뜨지 않아 `--wait`가 배포 실패로 끝남. 이미지에 빠져 있던 `scripts/calendar` 추가. 시험은 스케줄러 끄고 포트 8080·8443, sudo·uid 변경은 가짜(실제 VM은 첫 배포 때) (2026-10-28)
