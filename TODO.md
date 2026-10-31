@@ -256,12 +256,12 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Oracle VM 생성·PAYG 전환: 도쿄 A1 2 OCPU·12GB, Ubuntu 26.04, 공인 IP `193.123.160.142`, OCI Budget 월 $1 (2026-10-31, D-034)
   - [x] VM 준비: Docker 29.9·Compose v5.6, `ubuntu` docker 그룹, OS 방화벽(`rules.v4`) TCP 80·443·UDP 443, Security List TCP 80·443. 재부팅 뒤 유지·임시 컨테이너 80번으로 Mac에서 HTTP 200 확인 (2026-10-31)
   - [x] 도메인 `futureetp-api.duckdns.org`(DuckDNS, deSEC dedyn.io는 신규 등록 중단): VM cron이 30분마다 A 레코드 갱신, 임시 Caddy로 Let's Encrypt staging 인증서 발급·HTTPS 200·HTTP→HTTPS 308 확인 (2026-10-31, D-036)
-  - [x] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@193.123.160.142` (2026-10-31). `HEALTHCHECKS_PING_KEY`(backup_pull용)는 Healthchecks.io 항목 때 추가
-  - [x] VM `~/futureetp/infra/.env`(권한 600): `DOMAIN=futureetp-api.duckdns.org`, `POSTGRES_PASSWORD`(`openssl rand -hex 32`), `API_TOKEN`(새 prod 키, Mac `~/.config/futureetp/prod-api-token`에 보관, QR은 `npm run access-key -- --show < 그 파일`), 외부 키 3개(dev `.env`와 같은 값). 값은 출력하지 않고 ssh stdin으로 넘김. `HEALTHCHECKS_PING_KEY`는 비워 둠 (2026-10-31)
+  - [x] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@193.123.160.142` (2026-10-31), `HEALTHCHECKS_PING_KEY`(backup_pull용)는 Healthchecks.io 항목 때 추가
+  - [x] VM `~/futureetp/infra/.env`(권한 600): `DOMAIN=futureetp-api.duckdns.org`, `POSTGRES_PASSWORD`(`openssl rand -hex 32`), `API_TOKEN`(새 prod 키, Mac `~/.config/futureetp/prod-api-token`에 보관, QR은 `npm run access-key -- --show < 그 파일`), 외부 키 3개(dev `.env`와 같은 값). 값은 출력하지 않고 ssh stdin으로 넘김. `HEALTHCHECKS_PING_KEY`는 Healthchecks.io 항목 때 추가 (2026-10-31)
   - [x] FCM 키: Mac `~/.config/futureetp/fcm-service-account.json` → VM `infra/secrets/fcm-service-account.json`(권한 600, 해시 일치, 소유자 uid 1000은 배포 스크립트가 맞춤) (2026-10-31)
   - [x] Healthchecks.io: 프로젝트·ping key, Management API로 check 8개 생성(작업 7개는 `scheduler.ts` 일정·시간대와 같게, 여유는 재시도 포함 실행 시간 기준 `daily_settle` 60분·`settle_revision` 90분·`deferred_push`·`intraday` 10분·나머지 30분, Mac `backup_pull` 7일·여유 2일). ping key는 VM `infra/.env`·Mac `ops.env`에, 생성 스크립트는 Mac `~/.config/futureetp/healthchecks-setup.sh`(API 키 `healthchecks.api-key`) (2026-10-31)
   - [ ] (선택) Security List에 UDP 443(HTTP/3) 추가, OCI Budget 알림 규칙 확인
-  - [ ] Mac `~/.config/futureetp/duckdns.token` 삭제 여부 결정: 토큰은 VM에만 있으면 됨
+  - [x] Mac `~/.config/futureetp/duckdns.token` 삭제: VM `~/.config/duckdns/token`과 같은 값 확인 뒤 지움, 다시 필요하면 DuckDNS 웹에서 확인 (2026-10-31)
 - [ ] `infra/`(Dockerfile·compose·Caddyfile, Caddy `encode`로 응답 압축: C-a 응답이 압축 전 약 1MB) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
   - [x] `apps/server/Dockerfile`·`.dockerignore`·`infra/docker-compose.yml`·`Caddyfile`·`.env.example`, 로그 크기 제한. 이미지와 같은 파일 구성으로 `npm ci --omit=dev` 후 서버 기동·health 확인(Mac에 Docker가 없어 이미지 빌드·compose 기동은 미확인) (2026-10-28)
   - [x] 로컬 Docker(Colima)로 `deploy-remote.sh` 실제 실행: 이미지 빌드(452MB, `.env`·테스트·앱 소스 없음) → 배포 전 덤프 → 일회성 컨테이너 마이그레이션(테이블 19·마이그레이션 5) → 교체·health, Caddy 경유 HTTPS health·HTTP→HTTPS 308·키 없음 401, 컨테이너에서 `BACKUP`(pg_dump 18.6, `/backups` 쓰기)·`calendar:import`·`CALENDAR` 성공, 잘못된 FCM 키면 서버가 뜨지 않아 `--wait`가 배포 실패로 끝남. 이미지에 빠져 있던 `scripts/calendar` 추가. 시험은 스케줄러 끄고 포트 8080·8443, sudo·uid 변경은 가짜(실제 VM은 첫 배포 때) (2026-10-28)
