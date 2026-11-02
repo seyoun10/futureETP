@@ -89,6 +89,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`) (2026-10-27, D-060)
 - [x] 시장 기준 데이터: `commodity`·`active_month_rule` 시드 마이그레이션, `trading_day` 생성 함수 + `calendar:import` CLI(2026·2027 입력), 표준 심볼 유틸(D-049) (2026-10-27, D-061)
   - [ ] CME 2027 공식 휴일 공지가 나오면 `scripts/calendar/2027.json` 대조
+    - 2026-11-02 확인: CME 공식 2027 달력은 아직 받지 못함(cmegroup.com이 스크립트 접근에 403). 제3자 달력(financecalendar.com)의 2027 휴일 날짜 11개는 `2027.json`과 모두 같음. 다만 에너지 시각은 없고 일부는 "Schedule not verified" 표시라 시각(13:30·12:00·12:45)은 미확인. CME 휴일 공지(보통 휴일 2주 전)로 첫 휴일 2027-01-01 전에 다시 대조
 
 ### 5-2. calc 순수 함수 (Vitest, product.md 계산 정의를 테스트로 먼저)
 - [x] 거래일·장 상태: CME 거래일 판정, 장중/휴장/정산 대기, `nextUpdateAt` (2026-10-27, D-062)
