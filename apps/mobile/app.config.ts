@@ -31,6 +31,9 @@ const extra = isDev
     }
   : { variant, apiUrl: PROD_API_URL };
 
+// EAS 프로젝트(@jungseyoon/futureetp). 동적 config라 eas init이 써 넣지 못해 직접 둔다.
+const EAS_PROJECT_ID = '438271c8-4303-405b-8629-49f1476cbb3d';
+
 // 기준일 spinner 다이얼로그(D-091)는 라이브러리 스타일이 DayNight라 기기가 라이트 모드면 밝게 뜬다.
 // 앱 리소스에 같은 이름의 스타일을 다크로 다시 정의해 덮어쓴다(앱 리소스가 라이브러리보다 우선).
 // 배경은 colors.surface와 같은 값이다. config 로더가 src의 TS를 import하지 못해 값을 옮겨 적는다.
@@ -117,6 +120,16 @@ export default ({ config }: ConfigContext): ExpoConfig =>
           name: isDev ? 'futureETP Dev' : 'futureETP',
           slug: 'futureetp',
           version: '1.0.0',
+          owner: 'jungseyoon',
+          // JS 변경은 EAS Update로 배포한다(D-039). 로컬 빌드라 채널을 요청 헤더로 직접 넣는다.
+          // dev 변형은 Metro에서 JS를 받으므로 업데이트를 끈다.
+          updates: {
+            enabled: !isDev,
+            url: `https://u.expo.dev/${EAS_PROJECT_ID}`,
+            requestHeaders: { 'expo-channel-name': 'production' },
+          },
+          // 네이티브가 바뀌면 fingerprint가 달라져 이전 빌드에는 새 업데이트가 내려가지 않는다
+          runtimeVersion: { policy: 'fingerprint' },
           // 가로 잠금은 C-a~C-c [⟲]에서만 한다. 'portrait'면 iOS가 가로 잠금을 거부한다(D-076).
           orientation: 'default',
           icon: './assets/images/icon.png',
@@ -184,7 +197,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
             typedRoutes: true,
             reactCompiler: true,
           },
-          extra,
+          extra: { ...extra, eas: { projectId: EAS_PROJECT_ID } },
         }),
       ),
     ),

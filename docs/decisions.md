@@ -783,6 +783,7 @@
   - 기본값을 production으로 두면 `eas update`처럼 변수가 없는 경로에서 dev 값이 prod 번들에 섞일 수 없다.
 - 검증(2026-10-27): `expo config --type public`으로 두 변형의 이름·ID·scheme·`extra` 확인, prod 평가 때는 `.env.local`이 있어도 `devApiToken`이 빠짐. `prebuild:dev`(Android) 결과 `applicationId` `.dev`, 앱 이름 `futureETP Dev`, 평문 HTTP는 `debug`·`debugOptimized` 매니페스트에만 허용(release는 기본 차단). `prebuild:prod`(iOS) 결과 bundle ID 기본값, ATS는 Expo 기본(`NSAllowsArbitraryLoads` false, `NSAllowsLocalNetworking` true). 앱 `tsc --noEmit` 통과.
 - 후속: expo-updates 설치·`eas init`(projectId)·`updates.url`·`runtimeVersion` 설정은 Expo 계정을 만들고 첫 release APK를 빌드할 때 한다(D-039).
+- 보충(2026-11-02): Expo 개인 계정 `jungseyoon`(`owner`)에 프로젝트를 만들었다. 동적 config라 `eas init`이 projectId를 쓰지 못해 `app.config.ts`의 `EAS_PROJECT_ID`로 둔다. dev 변형은 `updates.enabled: false`(JS는 Metro). eas-cli는 의존성에 넣지 않고 `npx eas-cli@latest`로 실행한다.
 - 영향: `architecture.md` 앱 변형 절.
 
 ## D-053: 서버 환경 변수와 마이그레이션 실행 — zod `config.ts`, 선택 키는 비워도 시작, 코드 `migrate()`, Postgres 18

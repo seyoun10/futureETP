@@ -10,7 +10,7 @@
     "android:dev": "npm run prebuild:dev -- --platform android && APP_VARIANT=development expo run:android",
     "android:release": "npm run prebuild:prod -- --platform android && APP_VARIANT=production expo run:android --variant release",
     "ios:dev": "npm run prebuild:dev -- --platform ios && APP_VARIANT=development expo run:ios",
-    "update:prod": "APP_VARIANT=production eas update --channel production --environment production",
+    "update:prod": "APP_VARIANT=production npx eas-cli@latest update --channel production --environment production",
     "typecheck": "tsc --noEmit",
     "test": "jest"
   },
@@ -34,6 +34,7 @@
     "expo-sqlite": "~58.0.14",
     "expo-status-bar": "~58.0.4",
     "expo-system-ui": "~58.0.6",
+    "expo-updates": "~58.0.20",
     "i18next": "^26.5.11",
     "react": "19.3.0",
     "react-i18next": "^17.1.9",
