@@ -285,6 +285,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 서명 키: `~/.config/futureetp/android-release.jks`(PKCS12, RSA 4096, 별칭 `futureetp`, 인증서 SHA-256 `79:42:11:C6…AE:B1:51`)와 비밀번호 파일 `android-release.properties`(권한 600). `app.config.ts`의 `withReleaseSigning`이 release를 이 키로 서명하고, 파일이 없으면 release 빌드를 멈춘다. `assembleRelease` 성공(R8 포함, 11분 29초, APK 180MB)·`apksigner`로 서명 지문 확인 (2026-11-02)
   - [ ] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
   - [ ] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
+    - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
 - [ ] 테스트 앱 배포(Firebase App Distribution): release APK를 기존 Firebase 프로젝트(FCM, D-037)의 prod Android 앱으로 올려 기기에서 App Tester로 설치. firebase CLI 로그인·테스터(본인) 등록, 업로드 스크립트(`npm run` 명령), 결정 기록(D-039 설치 방식 보충)
 - [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)
 - [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
