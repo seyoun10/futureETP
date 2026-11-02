@@ -10,6 +10,8 @@
     "android:dev": "npm run prebuild:dev -- --platform android && APP_VARIANT=development expo run:android",
     "android:release": "npm run prebuild:prod -- --platform android && APP_VARIANT=production expo run:android --variant release",
     "ios:dev": "npm run prebuild:dev -- --platform ios && APP_VARIANT=development expo run:ios",
+    "build:android:release": "npm run prebuild:prod -- --platform android && cd android && APP_VARIANT=production ./gradlew assembleRelease",
+    "distribute:android": "npx firebase-tools@latest appdistribution:distribute android/app/build/outputs/apk/release/app-release.apk --project futureetp-7584b --app 1:1003667959558:android:ffe4dc355aa8d04551b887 --groups owner --release-notes \"$(git log -1 --format='%h %s')\"",
     "update:prod": "APP_VARIANT=production npx eas-cli@latest update --channel production --environment production",
     "typecheck": "tsc --noEmit",
     "test": "jest"

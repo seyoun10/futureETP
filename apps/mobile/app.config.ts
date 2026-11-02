@@ -89,12 +89,18 @@ const withReleaseSigning: ConfigPlugin = (config) =>
 
 // 실기기·에뮬레이터(Apple Silicon)가 모두 arm64라 네이티브 라이브러리는 arm64-v8a만 넣는다.
 // 기본 4종이면 release APK가 180MB다. 개발 빌드는 expo run:android가 기기 ABI를 따로 넘긴다.
-const withArm64Only: ConfigPlugin = (config) =>
+const withGradleBuildProperties: ConfigPlugin = (config) =>
   withGradleProperties(config, (mod) => {
     mod.modResults = AndroidConfig.BuildProperties.updateAndroidBuildProperty(
       mod.modResults,
       'reactNativeArchitectures',
       'arm64-v8a',
+    );
+    // 템플릿 기본(Metaspace 512m)이면 release 빌드의 expo-updates KSP가 OutOfMemoryError: Metaspace로 멈춘다
+    mod.modResults = AndroidConfig.BuildProperties.updateAndroidBuildProperty(
+      mod.modResults,
+      'org.gradle.jvmargs',
+      '-Xmx4096m -XX:MaxMetaspaceSize=1024m',
     );
     return mod;
   });
@@ -113,7 +119,7 @@ const withPersonalTeam: ConfigPlugin = (config) =>
 
 export default ({ config }: ConfigContext): ExpoConfig =>
   withPersonalTeam(
-    withArm64Only(
+    withGradleBuildProperties(
       withReleaseSigning(
         withDarkDatePickerDialog({
           ...config,
