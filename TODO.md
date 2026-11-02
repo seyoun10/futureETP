@@ -291,6 +291,6 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
 - [x] 테스트 앱 배포(Firebase App Distribution): 기존 Firebase 프로젝트(FCM, D-037)의 prod Android 앱에 release APK 업로드, 테스터 그룹 `owner`(본인)에 배포. `npm run build:android:release -w apps/mobile` → `npm run distribute:android -w apps/mobile`(릴리스 노트는 마지막 커밋). 첫 배포 1.0.0 (1) (2026-11-02, D-039 보충)
   - [ ] 기기에서 초대 수락 → App Tester로 설치 → 접근 키 QR 등록·표시 설정 저장/복원·OTA 첫 확인(위 release APK 항목)
-- [ ] 원격 저장소 생성 및 연결 (GitHub, private) 후 push: 앱을 기기에 설치해 쓸 수 있는 시점에 진행 (2026-10-22 결정). 이때 GitHub Actions로 `npm run check` CI 추가 (D-039)
+- [x] 원격 저장소 생성 및 연결 (GitHub, private): `seyoun10/futureETP`에 `main` push, GitHub Actions `check` workflow(`npm ci` → `npm run check`, Node는 `.nvmrc`) 첫 실행 성공 2m40s (2026-11-02, D-039 보충)
 - [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
   - 2026-11-02: iOS 테스트 배포(Firebase App Distribution·TestFlight)는 ad-hoc 서명·UDID 등록이 유료 계정 전용이라 가입 전에는 불가. prod 변형 Personal Team 직접 설치도 보류하고 Android 기기 확인을 먼저 한다
