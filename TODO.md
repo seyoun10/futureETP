@@ -269,6 +269,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] FCM 키: Mac `~/.config/futureetp/fcm-service-account.json` → VM `infra/secrets/fcm-service-account.json`(권한 600, 해시 일치, 소유자 uid 1000은 배포 스크립트가 맞춤) (2026-10-31)
   - [x] Healthchecks.io: 프로젝트·ping key, Management API로 check 8개 생성(작업 7개는 `scheduler.ts` 일정·시간대와 같게, 여유는 재시도 포함 실행 시간 기준 `daily_settle` 60분·`settle_revision` 90분·`deferred_push`·`intraday` 10분·나머지 30분, Mac `backup_pull` 7일·여유 2일). ping key는 VM `infra/.env`·Mac `ops.env`에, 생성 스크립트는 Mac `~/.config/futureetp/healthchecks-setup.sh`(API 키 `healthchecks.api-key`) (2026-10-31)
   - [ ] (선택) Security List에 UDP 443(HTTP/3) 추가, OCI Budget 알림 규칙 확인
+    - UDP 443(2026-11-02): Default Security List에 추가, Mac Homebrew curl `--http3-only`로 `/v1/health` 200(`http_version=3`). Budget 알림 확인 남음
   - [x] Mac `~/.config/futureetp/duckdns.token` 삭제: VM `~/.config/duckdns/token`과 같은 값 확인 뒤 지움, 다시 필요하면 DuckDNS 웹에서 확인 (2026-10-31)
 - [ ] `infra/`(Dockerfile·compose·Caddyfile, Caddy `encode`로 응답 압축: C-a 응답이 압축 전 약 1MB) + 배포 스크립트(rsync → 빌드 → 덤프 → 마이그레이션 → 교체, D-048), 백업 내려받기·dev 복원 스크립트
   - [x] `apps/server/Dockerfile`·`.dockerignore`·`infra/docker-compose.yml`·`Caddyfile`·`.env.example`, 로그 크기 제한. 이미지와 같은 파일 구성으로 `npm ci --omit=dev` 후 서버 기동·health 확인(Mac에 Docker가 없어 이미지 빌드·compose 기동은 미확인) (2026-10-28)
