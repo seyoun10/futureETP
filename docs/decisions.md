@@ -552,6 +552,7 @@
   - CI는 원격 저장소가 없어서 지금 둘 곳이 없다. 1인 개발이라 검증 단계의 `npm run check`가 먼저다. 레지스트리 방식은 재현성이 좋지만 CI가 먼저 있어야 한다.
 - 주의: EAS Update 번들은 Expo 서버에 올라간다. 서버 접근 비밀 값을 빌드 환경 변수로 JS 번들에 넣으면 업데이트 번들에도 들어가므로, 비밀 값 전달 방식(TODO 3단계, D-036 후속)을 정할 때 함께 고려한다.
 - 보충(2026-10-30): 가입 전에도 화면·제스처 실기기 확인용으로 무료 Personal Team 설치를 허용한다(평소 사용·푸시 확인은 여전히 가입 뒤). 무료 팀은 Push 권한을 서명하지 못해 `IOS_PERSONAL_TEAM=1`일 때 config plugin이 `aps-environment`를 뺀다(설치 7일 만료). `expo run:ios`를 `CI=1`로 돌리면 `-allowProvisioningUpdates`가 빠져 프로필을 만들지 못하므로 `xcodebuild -allowProvisioningUpdates` → `devicectl device install app`으로 설치하고, Metro는 `DEV_API_URL=http://<Mac LAN IP>:3000`으로 띄운다. `repo.reactnative.dev`(Maven Central도 큰 파일은 여기로 리다이렉트)가 막히면 `~/Library/Caches/ReactNative`의 tarball을 `HERMES_ENGINE_TARBALL_PATH`·`RCT_TESTONLY_RNCORE_TARBALL_PATH`로 넘긴다.
+- 보충(2026-11-02): release 서명 키는 `~/.config/futureetp/android-release.jks`, 비밀번호는 같은 폴더 `android-release.properties`(권한 600)에 두고, `app.config.ts`의 `withReleaseSigning`이 CNG로 생성되는 `build.gradle`에 넣는다(파일이 없으면 release 빌드 실패, debug 키 서명 APK가 설치되는 것을 막음). Android 네이티브 라이브러리는 `withArm64Only`로 `arm64-v8a`만 넣는다(`reactNativeArchitectures`). 실기기와 Apple Silicon 에뮬레이터가 모두 arm64이고, 기본 4종(armeabi-v7a·arm64-v8a·x86·x86_64)이면 release APK가 180MB, arm64만이면 58MB다. x86_64 에뮬레이터·32비트 기기가 필요해지면 이 plugin을 고친다.
 
 ## D-040: 디렉터리 구조 — apps/ + packages/ 모노레포, 공유 패키지는 API 계약만
 - 날짜: 2026-10-27
