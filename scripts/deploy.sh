@@ -23,7 +23,7 @@ commit="$(git rev-parse --short HEAD)"
 
 snapshot="$(mktemp -d)"
 trap 'rm -rf "$snapshot"' EXIT
-git archive HEAD package.json package-lock.json .dockerignore apps/server packages/shared infra |
+git archive HEAD package.json package-lock.json .dockerignore apps/server packages/shared infra scripts/calendar |
   tar -x -C "$snapshot"
 
 echo "deploy: ① $commit → $DEPLOY_HOST:$DEPLOY_DIR"
