@@ -126,6 +126,7 @@ export const ko = {
   // C-c 월물차트(screens.md C-c)
   contracts: {
     provisional: '(잠정)',
+    endSpread: '양끝 차이',
     noData: '표시할 월물이 없습니다.',
   },
   // C-d ETP 목록·C-d-a 상세(screens.md C-d, C-d-a)

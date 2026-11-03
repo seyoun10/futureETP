@@ -119,6 +119,7 @@ export const en: Translation = {
   // C-c contract chart (screens.md C-c)
   contracts: {
     provisional: '(provisional)',
+    endSpread: 'Near–far',
     noData: 'No contracts to show.',
   },
   // C-d ETP list, C-d-a details (screens.md C-d, C-d-a)

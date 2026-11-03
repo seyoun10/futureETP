@@ -16,7 +16,7 @@ import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
-import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useChartPeriod } from '../ChartPeriodProvider';
@@ -130,7 +130,8 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   );
 }
 
-// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색)
+// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색),
+// 맨 아래 양끝 차이(가장 먼 월물 / 가장 가까운 월물 - 1). 값이 있는 월물이 둘 이상일 때만
 function CrosshairDetail({
   data,
   model,
@@ -144,6 +145,12 @@ function CrosshairDetail({
   const date = data.dates[index];
   if (!date) return null;
   const provisional = data.provisional && index === data.dates.length - 1;
+  const prices = data.contracts
+    .map((c) => c.prices[index])
+    .filter((p): p is number => p !== null && p !== undefined);
+  const near = prices[0];
+  const far = prices[prices.length - 1];
+  const spread = prices.length >= 2 && near > 0 ? (far / near - 1) * 100 : null;
 
   return (
     <DetailBox>
@@ -160,6 +167,9 @@ function CrosshairDetail({
           />
         );
       })}
+      {spread !== null && (
+        <DetailRow label={t('contracts.endSpread')} value={formatChangePct(spread)} />
+      )}
     </DetailBox>
   );
 }

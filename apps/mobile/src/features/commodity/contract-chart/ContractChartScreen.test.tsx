@@ -128,7 +128,7 @@ describe('C-c 월물차트', () => {
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
   });
 
-  it('십자선 상세는 날짜와 그날 값이 있는 월물 가격이고, 오늘 잠정 값은 표시한다', async () => {
+  it('십자선 상세는 날짜와 그날 값이 있는 월물 가격·양끝 차이이고, 오늘 잠정 값은 표시한다', async () => {
     await renderScreen();
 
     await render(<>{lastChartProps().renderDetail(0)}</>);
@@ -136,12 +136,17 @@ describe('C-c 월물차트', () => {
     expect(screen.getByText('DEC26')).toBeOnTheScreen();
     expect(screen.getByText('3.100')).toBeOnTheScreen();
     expect(screen.queryByText('JAN27')).toBeNull();
+    // 값이 있는 월물이 하나면 양끝 차이를 쓰지 않는다
+    expect(screen.queryByText('양끝 차이')).toBeNull();
 
     await render(<>{lastChartProps().renderDetail(2)}</>);
     expect(screen.getByText('2026-10-22')).toBeOnTheScreen();
     expect(screen.getByText('(잠정)')).toBeOnTheScreen();
     expect(screen.getByText('JAN27')).toBeOnTheScreen();
     expect(screen.getByText('3.450')).toBeOnTheScreen();
+    // 양끝 차이: 3.45 / 3.3 - 1
+    expect(screen.getByText('양끝 차이')).toBeOnTheScreen();
+    expect(screen.getByText('+4.55%')).toBeOnTheScreen();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {
