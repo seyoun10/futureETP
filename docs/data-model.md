@@ -62,7 +62,7 @@ erDiagram
         string commodity_code PK,FK
         date valid_from PK
         date valid_to "null=현재"
-        string months "금 2,4,6,8,10,12 / 은 3,5,7,9,12"
+        array months "금 2,4,6,8,10,12 / 은 3,5,7,9,12"
     }
     trading_day {
         date trade_date PK "CME 거래일"
@@ -240,7 +240,7 @@ erDiagram
         int ma_period "기본 100"
         string window "기본 Y10"
         array rare_levels "5개, 오름차순, 기본 1/2/4/8/16"
-        string alert_commodity "null=알림 꺼짐"
+        string alert_commodity FK "null=알림 꺼짐"
         int quiet_start_min "null=끄기, 0~1410, 30 단위"
         int quiet_end_min "start와 달라야 함"
         timestamp updated_at
@@ -254,7 +254,7 @@ erDiagram
     }
     alert_record {
         uuid id PK
-        string commodity_code "중복 방지 키 1"
+        string commodity_code FK "중복 방지 키 1"
         string basis "키 2"
         int ma_period "키 3"
         string window "키 4"
