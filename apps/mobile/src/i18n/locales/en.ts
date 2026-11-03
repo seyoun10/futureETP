@@ -53,8 +53,8 @@ export const en: Translation = {
       '11': 'Nov',
       '12': 'Dec',
     },
-    highTag: 'High {{price}} ({{pct}}, {{date}})↓',
-    lowTag: '↑Low {{price}} ({{pct}}, {{date}})',
+    highTag: 'High {{price}} ({{pct}}, {{date}})',
+    lowTag: 'Low {{price}} ({{pct}}, {{date}})',
     periods: {
       '2M': '2M',
       '4M': '4M',

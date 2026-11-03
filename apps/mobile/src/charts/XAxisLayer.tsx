@@ -4,7 +4,7 @@ import { useDerivedValue } from 'react-native-reanimated';
 import type { ChartBounds } from 'victory-native';
 
 import { colors } from '@/theme/tokens';
-import { chartParagraph, numberFont } from './chartText';
+import { chartParagraph, numberFont, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
 import { crosshairDateWidth } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
 import { monthTicks } from './monthTicks';
@@ -80,7 +80,7 @@ function TickLabel({ x, y, width, label, crosshair }: TickLabelProps) {
         paragraph={chartParagraph(label, colors.chart.tick)}
         x={x}
         y={y}
-        width={width + 4}
+        width={PARAGRAPH_LAYOUT_WIDTH}
       />
     </Group>
   );

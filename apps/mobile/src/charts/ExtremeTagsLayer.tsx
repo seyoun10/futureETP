@@ -5,8 +5,8 @@ import type { ChartBounds, Scale } from 'victory-native';
 import { formatTradeDate } from '@/lib/formatDateTime';
 import { formatChangePct, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
-import { chartParagraph } from './chartText';
-import { extremeTagTop } from './extremeTagLayout';
+import { chartParagraph, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
+import { extremeTagLeft, extremeTagTop } from './extremeTagLayout';
 import { indexRange } from './fitTransform';
 import { useClampedTransform } from './useClampedTransform';
 
@@ -56,18 +56,30 @@ export function ExtremeTagsLayer({
       pct: formatChangePct((price / currentPrice - 1) * 100),
       date: formatTradeDate(bar.tradeDate),
     });
-    const paragraph = chartParagraph(text, colors.chart.extremeTag);
-    const width = paragraph.getLongestLine();
-    const height = paragraph.getHeight();
+    const arrow = kind === 'high' ? '↓' : '↑';
+    const arrowWidth = chartParagraph(arrow, colors.chart.extremeTag).getLongestLine();
+    // 화살표 위치와 상관없이 글자 수가 같아 너비도 같다
+    const width = chartParagraph(arrow + text, colors.chart.extremeTag).getLongestLine();
     const x = k * (x0 + index * dx) + tx;
     const y = ky * yScale(price) + ty;
-    // 고가는 봉 위, 저가는 봉 아래. 차트 끝을 넘지 않게 민다. 화살표가 봉 쪽 끝에 오도록 고가는 오른쪽 끝, 저가는 왼쪽 끝을 봉에 맞춘다
-    const left = Math.min(
-      Math.max(kind === 'high' ? x - width : x, chartBounds.left),
-      chartBounds.right - width,
+    // 고가는 봉 위, 저가는 봉 아래. 화살표가 봉을 가리키도록 화살표 쪽 끝을 봉에 맞추고, 차트 끝을 넘으면 화살표를 반대쪽으로 옮긴다
+    const { left, arrowFirst } = extremeTagLeft(
+      kind,
+      x,
+      width,
+      arrowWidth,
+      chartBounds.left,
+      chartBounds.right,
     );
+    const paragraph = chartParagraph(
+      arrowFirst ? arrow + text : text + arrow,
+      colors.chart.extremeTag,
+    );
+    const height = paragraph.getHeight();
     const top = extremeTagTop(kind, y, height, GAP, currentY, chartBounds.top, chartBounds.bottom);
-    return <Paragraph key={kind} paragraph={paragraph} x={left} y={top} width={width + 4} />;
+    return (
+      <Paragraph key={kind} paragraph={paragraph} x={left} y={top} width={PARAGRAPH_LAYOUT_WIDTH} />
+    );
   };
 
   return [tag(hi, 'high'), tag(lo, 'low')];

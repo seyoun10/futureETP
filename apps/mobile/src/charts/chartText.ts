@@ -16,6 +16,10 @@ numberFont.setSubpixel(true);
 numberFont.setLinearMetrics(true);
 numberFont.setHinting(FontHinting.None);
 
+// <Paragraph width>도 이 값으로 준다. 그리는 쪽이 글자 너비로 다시 layout하면 캐시된 문단이 줄바꿈된 채 남고,
+// 그다음 getLongestLine()이 줄바꿈된 너비를 돌려줘 계속 여러 줄로 그려진다(이격도 차트 고가 꼬리표)
+export const PARAGRAPH_LAYOUT_WIDTH = 10_000;
+
 // 제스처 중 같은 글자를 매 프레임 다시 만들지 않게 글자·색별로 둔다
 const MAX_CACHED = 300;
 const cache = new Map<string, SkParagraph>();
@@ -30,7 +34,7 @@ export function chartParagraph(text: string, color: string): SkParagraph {
     .addText(text)
     .build();
   // 한 줄로 두고 실제 너비는 getLongestLine()으로 읽는다
-  paragraph.layout(10_000);
+  paragraph.layout(PARAGRAPH_LAYOUT_WIDTH);
   if (cache.size >= MAX_CACHED) cache.delete(cache.keys().next().value as string);
   cache.set(key, paragraph);
   return paragraph;

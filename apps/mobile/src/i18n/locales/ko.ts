@@ -58,8 +58,8 @@ export const ko = {
       '11': '11월',
       '12': '12월',
     },
-    highTag: '고가 {{price}}({{pct}}, {{date}})↓',
-    lowTag: '↑저가 {{price}}({{pct}}, {{date}})',
+    highTag: '고가 {{price}}({{pct}}, {{date}})',
+    lowTag: '저가 {{price}}({{pct}}, {{date}})',
     periods: {
       '2M': '2M',
       '4M': '4M',

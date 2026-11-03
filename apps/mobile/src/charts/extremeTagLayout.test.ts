@@ -1,4 +1,4 @@
-import { extremeTagTop } from './extremeTagLayout';
+import { extremeTagLeft, extremeTagTop } from './extremeTagLayout';
 
 // 차트 0~500, 글자 높이 14, 간격 3
 const place = (kind: 'high' | 'low', y: number, lineY: number | null) =>
@@ -24,5 +24,27 @@ describe('extremeTagTop', () => {
     // 고가 꼬리표가 위 끝에 붙어 있고 점선이 그 글자를 지나간다
     expect(place('high', 10, 8)).toBe(11);
     expect(place('low', 495, 490)).toBe(473);
+  });
+});
+
+// 차트 0~500, 꼬리표 너비 100, 화살표 너비 10
+const placeX = (kind: 'high' | 'low', x: number) => extremeTagLeft(kind, x, 100, 10, 0, 500);
+
+describe('extremeTagLeft', () => {
+  it('고가는 화살표를 끝에, 저가는 앞에 두고 화살표 가운데를 봉에 맞춘다', () => {
+    expect(placeX('high', 250)).toEqual({ left: 155, arrowFirst: false });
+    expect(placeX('low', 250)).toEqual({ left: 245, arrowFirst: true });
+  });
+
+  it('왼쪽 끝을 넘는 고가는 화살표를 앞으로 옮긴다', () => {
+    expect(placeX('high', 40)).toEqual({ left: 35, arrowFirst: true });
+  });
+
+  it('오른쪽 끝을 넘는 저가는 화살표를 뒤로 옮긴다', () => {
+    expect(placeX('low', 460)).toEqual({ left: 365, arrowFirst: false });
+  });
+
+  it('양쪽 다 넘으면 기본 쪽으로 두고 차트 안으로 민다', () => {
+    expect(extremeTagLeft('high', 50, 100, 10, 0, 120)).toEqual({ left: 0, arrowFirst: false });
   });
 });
