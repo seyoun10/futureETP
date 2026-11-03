@@ -247,7 +247,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 같은 기기에 두 변형을 함께 설치한다. 평소 쓰는 release 앱은 개발 빌드를 설치해도 지워지지 않는다.
 - 앱 `package.json` 스크립트가 변형을 고정한다(D-052): `start`(dev Metro), `android:dev`·`ios:dev`, `android:release`, `update:prod`. 빌드 스크립트는 매번 해당 변형으로 `expo prebuild --clean` 한 뒤 빌드한다(CNG, D-027). 변형 없이 `expo` 명령을 직접 쓰면 production으로 평가된다.
 - 앱에서 `extra`를 읽는 곳은 `src/api/config.ts` 하나다.
-- EAS Update는 `npm run update:prod`(`eas update --channel production --environment production`)로 발행한다. `--environment`를 주면 eas-cli가 로컬 `.env`를 읽지 않으므로(`EXPO_NO_DOTENV=1`) dev 값이 섞이지 않는다. prod config는 환경 변수를 쓰지 않아 EAS 환경에 둘 변수도 없다(D-052).
+- EAS Update는 `npm run update:prod`(`eas update --channel production --environment production --auto`)로 발행한다. `--auto`라 마지막 커밋 메시지가 업데이트 메시지가 되어 비대화형(`!`)으로도 실행된다. `--environment`를 주면 eas-cli가 로컬 `.env`를 읽지 않으므로(`EXPO_NO_DOTENV=1`) dev 값이 섞이지 않는다. prod config는 환경 변수를 쓰지 않아 EAS 환경에 둘 변수도 없다(D-052).
 - 푸시: Firebase 프로젝트 하나에 두 package의 Android 앱을 함께 등록한다. 내려받은 `google-services.json` 하나에 두 앱 정보가 모두 들어가므로 서버 서비스 계정 키도 하나로 dev·prod 양쪽에 보낸다.
 
 ## 운영 (접근 키·실패 알림·백업·보관)
