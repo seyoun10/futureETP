@@ -272,7 +272,7 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 푸시 문구는 shared `push.ts`에 있다. 서버가 설정의 언어·시간대로 만든다: rare 레벨 `rareLevelPush`(와이어프레임 X 형식, 판정 시각은 사용자 시간대 HH:mm, 지연 발송이면 `03:00 감지 · 지연 발송`), 운영 알림 `jobFailedPush`(한 줄). 작업 이름 `JOB_NAMES`는 이 문구 때문에 shared `domain.ts`에 두고 서버 `constants.ts`가 다시 내보낸다. ETP 새 후보 `etpCandidatesPush`(D-025), 다수 판정 변경 `majorityChangedPush`(D-024).
 - Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. URL은 프로젝트 ping key와 작업 이름 slug로 만든다(`https://hc-ping.com/<HEALTHCHECKS_PING_KEY>/<작업 이름>`, D-053). 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.
 - dev는 ping URL을 비워 신호를 보내지 않는다. ping 실패는 배치 결과에 영향을 주지 않는다(로그만 남김).
-  - 구현(`jobs/healthcheck.ts`): 스케줄러(`createTriggerRunner`)가 작업마다 재시도까지 묶어 한 번 보낸다. 시작 때 `/start`, 최종 결과로 성공 또는 `/fail`(`batch_run` 기록 실패도 `/fail`). 두 신호는 `?rid=<UUID>`로 짝지어 실행 시간을 잰다. slug는 소문자만 되므로 작업 이름을 소문자로 쓴다(`DAILY_SETTLE` → `daily_settle`). 이전 실행이 남아 건너뛴 차례와 CLI 1회 실행은 보내지 않는다. 10초 제한이고, 실패 로그에 키가 든 URL은 남기지 않는다. check는 7개(작업마다)이고 `INTRADAY`는 15분 간격이다.
+  - 구현(`jobs/healthcheck.ts`): 스케줄러(`createTriggerRunner`)가 작업마다 재시도까지 묶어 한 번 보낸다. 시작 때 `/start`, 최종 결과로 성공 또는 `/fail`(`batch_run` 기록 실패도 `/fail`). 두 신호는 `?rid=<UUID>`로 짝지어 실행 시간을 잰다. slug는 소문자만 되므로 작업 이름을 소문자로 쓴다(`DAILY_SETTLE` → `daily_settle`). 이전 실행이 남아 건너뛴 차례와 CLI 1회 실행은 보내지 않는다. 10초 제한이고, 실패 로그에 키가 든 URL은 남기지 않는다. check는 8개(작업마다, D-110으로 `settle_backfill` 추가)이고 `INTRADAY`는 15분 간격이다.
 
 ### 백업(D-045)
 - `BACKUP` 작업(croner, 매일 1회)이 서버 컨테이너에서 `pg_dump -Fc`로 덤프를 만든다. VM의 백업 볼륨에 최근 7개만 둔다. 서버 이미지에 Postgres와 같은 major 버전의 클라이언트를 넣는다.
