@@ -15,6 +15,7 @@
     "prepare": "husky",
     "access-key": "node scripts/access-key.mjs",
     "perf:collect": "node scripts/perf-collect.mjs",
+    "mirror": "bash scripts/mirror.sh",
     "deploy": "bash scripts/deploy.sh",
     "backup:pull": "bash scripts/backup-pull.sh",
     "dev:restore": "bash scripts/dev-restore.sh",
