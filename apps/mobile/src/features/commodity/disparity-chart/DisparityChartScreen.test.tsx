@@ -254,14 +254,20 @@ describe('C-a 이격도차트', () => {
     const detail = lastChartProps().renderDetail(1);
     await render(<>{detail}</>);
 
+    const row = (text: string) => screen.getByText(text).parent?.parent;
     expect(screen.getByText('2026-10-21')).toBeOnTheScreen();
-    expect(screen.getByText('시 79.5  고 81.0')).toBeOnTheScreen();
-    expect(screen.getByText('저 79.0  종 80.0')).toBeOnTheScreen();
+    for (const [label, value] of [
+      ['시', '79.5'],
+      ['고', '81.0'],
+      ['저', '79.0'],
+      ['종', '80.0'],
+    ]) {
+      expect(row(value)).toBe(row(label));
+    }
     expect(screen.getByText('-10.0 (-11.11%)')).toBeOnTheScreen();
     expect(screen.getByText('-20.0%')).toBeOnTheScreen();
     expect(screen.getByText('DEC26 60% · FEB27 40%')).toBeOnTheScreen();
     // 월물 구성은 날짜 줄 오른쪽이다
-    const row = (text: string) => screen.getByText(text).parent?.parent;
     expect(row('DEC26 60% · FEB27 40%')).toBe(row('2026-10-21'));
     expect(row('-20.0%')).toBe(row('이격도'));
   });
@@ -271,7 +277,7 @@ describe('C-a 이격도차트', () => {
       ...DATA,
       rareLevels: [
         { direction: 'UP', level: 1, disparity: 20, price: 120 },
-        { direction: 'DOWN', level: 1, disparity: -20, price: 80 },
+        { direction: 'DOWN', level: 1, disparity: -25, price: 75 },
       ],
     });
     await renderScreen();
@@ -290,7 +296,7 @@ describe('C-a 이격도차트', () => {
     expect(rows).toEqual(order);
     expect(screen.getByText('120.0')).toHaveStyle({ color: colors.chart.rareLevels[0] });
     expect(screen.getByText('100.0')).toHaveStyle({ color: colors.chart.movingAverage });
-    expect(screen.getByText('80.0')).toHaveStyle({ color: colors.chart.rareLevels[0] });
+    expect(screen.getByText('75.0')).toHaveStyle({ color: colors.chart.rareLevels[0] });
   });
 
   it('대표월물은 전환일에 세로 점선을 그리고, 그 봉의 십자선 상세는 새 월물명을 이어 쓴다', async () => {

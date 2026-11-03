@@ -305,12 +305,20 @@ function CrosshairDetail({
   return (
     <View style={styles.detail}>
       <DetailRow label={bar.tradeDate} value={holdings} />
-      <Text style={styles.detailText}>
-        {`${t('disparity.open')} ${formatPrice(bar.open, decimals)}  ${t('disparity.high')} ${formatPrice(bar.high, decimals)}`}
-      </Text>
-      <Text style={styles.detailText}>
-        {`${t('disparity.low')} ${formatPrice(bar.low, decimals)}  ${t('disparity.close')} ${formatPrice(bar.close, decimals)}`}
-      </Text>
+      {(
+        [
+          ['open', 'high'],
+          ['close', 'low'],
+        ] as const
+      ).map((keys) => (
+        <View key={keys[0]} style={styles.detailPair}>
+          {keys.map((key) => (
+            <View key={key} style={styles.detailHalf}>
+              <DetailRow label={t(`disparity.${key}`)} value={formatPrice(bar[key], decimals)} />
+            </View>
+          ))}
+        </View>
+      ))}
       {prev && (
         <DetailRow
           label={t('disparity.prevChange')}
@@ -406,6 +414,14 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: spacing.xs,
     backgroundColor: colors.surface,
+  },
+  // 시·고, 종·저를 반씩 나눠 각 값을 오른쪽 정렬한다
+  detailPair: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  detailHalf: {
+    flex: 1,
   },
   detailRow: {
     flexDirection: 'row',
