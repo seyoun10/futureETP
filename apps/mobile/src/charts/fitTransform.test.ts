@@ -1,4 +1,5 @@
 import {
+  centerIndexRange,
   fitTransform,
   MIN_VISIBLE_BARS,
   periodTransform,
@@ -119,5 +120,21 @@ describe('shiftedView', () => {
     expect(visibleRange(next, view.k, view.tx)).toEqual(before);
     // 픽셀 이동값을 그대로 쓰면 과거 쪽으로 밀린다(이전 동작)
     expect(visibleRange(next, k, tx)[0]).toBeLessThan(before[0]);
+  });
+});
+
+describe('centerIndexRange', () => {
+  // 봉 가운데 x = 5 + 10i
+  it('가운데가 화면 밖인 봉은 빼고 visibleRange는 걸친 봉까지 넣는다', () => {
+    const g = makeGeom();
+    // 화면 왼쪽 끝이 봉 0 가운데(5)와 봉 1 가운데(15) 사이
+    const tx = -12;
+    expect(centerIndexRange(g.left, g.right, g.x0, g.dx, 100, 1, tx)).toEqual([1, 99]);
+    expect(visibleRange(g, 1, tx)[0]).toBe(0);
+  });
+
+  it('가운데가 화면 끝에 딱 걸린 봉은 넣는다', () => {
+    const g = makeGeom();
+    expect(centerIndexRange(10, 995, g.x0, g.dx, 100, 1, 0)).toEqual([1, 99]);
   });
 });

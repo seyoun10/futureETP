@@ -44,6 +44,21 @@ export function indexRange(
   return [i0, i1];
 }
 
+// 가운데(꼬리)가 화면 [left, right] 안에 있는 봉의 인덱스 범위. 하나도 없으면 i0 > i1
+export function centerIndexRange(
+  left: number,
+  right: number,
+  x0: number,
+  dx: number,
+  n: number,
+  k: number,
+  tx: number,
+): [number, number] {
+  const xb0 = (left - tx) / k;
+  const xb1 = (right - tx) / k;
+  return [Math.max(Math.ceil((xb0 - x0) / dx), 0), Math.min(Math.floor((xb1 - x0) / dx), n - 1)];
+}
+
 export function visibleRange(g: CandleGeom, k: number, tx: number): [number, number] {
   'worklet';
   return indexRange(g.left, g.right, g.x0, g.dx, g.highY.length, k, tx);

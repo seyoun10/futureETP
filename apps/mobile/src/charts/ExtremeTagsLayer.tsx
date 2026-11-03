@@ -7,7 +7,7 @@ import { formatChangePct, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
 import { chartParagraph, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
 import { extremeTagLeft, extremeTagTop } from './extremeTagLayout';
-import { indexRange } from './fitTransform';
+import { centerIndexRange } from './fitTransform';
 import { useClampedTransform } from './useClampedTransform';
 
 type ExtremeBar = { tradeDate: string; high: number; low: number };
@@ -38,7 +38,17 @@ export function ExtremeTagsLayer({
   const { k, tx, ky, ty } = useClampedTransform(bars.length, chartBounds);
   if (dx <= 0 || bars.length === 0) return null;
 
-  const [i0, i1] = indexRange(chartBounds.left, chartBounds.right, x0, dx, bars.length, k, tx);
+  // 꼬리가 화면 밖인 봉은 고가·저가가 안 보이므로 제외한다(y 맞춤용 visibleRange는 몸통이 걸친 봉까지 포함)
+  const [i0, i1] = centerIndexRange(
+    chartBounds.left,
+    chartBounds.right,
+    x0,
+    dx,
+    bars.length,
+    k,
+    tx,
+  );
+  if (i0 > i1) return null;
   let hi = i0;
   let lo = i0;
   for (let i = i0; i <= i1; i++) {
