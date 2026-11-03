@@ -184,13 +184,16 @@ describe('C-b 월물커브', () => {
 
     await render(<>{lastChartProps().renderDetail(1)}</>);
     expect(screen.getByText('DEC26')).toBeOnTheScreen();
-    expect(screen.getByText('기준일 3.200')).toBeOnTheScreen();
-    expect(screen.getByText('현재 3.168')).toBeOnTheScreen();
-    expect(screen.getByText('변화율 -1.0%')).toBeOnTheScreen();
+    expect(screen.getByText('기준일')).toBeOnTheScreen();
+    expect(screen.getByText('3.200')).toBeOnTheScreen();
+    expect(screen.getByText('현재')).toBeOnTheScreen();
+    expect(screen.getByText('3.168')).toBeOnTheScreen();
+    expect(screen.getByText('변화율')).toBeOnTheScreen();
+    expect(screen.getByText('-1.0%')).toBeOnTheScreen();
 
     await render(<>{lastChartProps().renderDetail(2)}</>);
-    expect(screen.getByText('현재 3.450')).toBeOnTheScreen();
-    expect(screen.queryByText(/^기준일 /)).toBeNull();
+    expect(screen.getByText('3.450')).toBeOnTheScreen();
+    expect(screen.queryByText('기준일')).toBeNull();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {

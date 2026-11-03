@@ -8,6 +8,7 @@ import { CandleChart } from '@/charts/CandleChart';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 import { ChartResetButton } from '@/charts/ChartResetButton';
+import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
@@ -303,7 +304,7 @@ function CrosshairDetail({
     .sort((a, b) => b.price - a.price);
 
   return (
-    <View style={styles.detail}>
+    <DetailBox>
       <DetailRow label={bar.tradeDate} value={holdings} />
       {(
         [
@@ -341,25 +342,7 @@ function CrosshairDetail({
           color={line.color}
         />
       ))}
-    </View>
-  );
-}
-
-// 상세 박스 한 줄: 이름은 왼쪽, 값은 오른쪽 정렬
-function DetailRow({
-  label,
-  value,
-  color = colors.text,
-}: {
-  label: string;
-  value: string | null;
-  color?: string;
-}) {
-  return (
-    <View style={styles.detailRow}>
-      <Text style={[styles.detailText, { color }]}>{label}</Text>
-      {value !== null && <Text style={[styles.detailText, { color }]}>{value}</Text>}
-    </View>
+    </DetailBox>
   );
 }
 
@@ -409,12 +392,6 @@ const styles = StyleSheet.create({
   chart: {
     flex: 1,
   },
-  detail: {
-    gap: 2,
-    padding: spacing.sm,
-    borderRadius: spacing.xs,
-    backgroundColor: colors.surface,
-  },
   // 시·고, 종·저를 반씩 나눠 각 값을 오른쪽 정렬한다
   detailPair: {
     flexDirection: 'row',
@@ -422,15 +399,5 @@ const styles = StyleSheet.create({
   },
   detailHalf: {
     flex: 1,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  detailText: {
-    color: colors.text,
-    fontSize: fontSize.caption,
-    fontVariant: ['tabular-nums'],
   },
 });

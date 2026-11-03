@@ -133,12 +133,15 @@ describe('C-c 월물차트', () => {
 
     await render(<>{lastChartProps().renderDetail(0)}</>);
     expect(screen.getByText('2026-10-20')).toBeOnTheScreen();
-    expect(screen.getByText('DEC26 3.100')).toBeOnTheScreen();
-    expect(screen.queryByText(/^JAN27/)).toBeNull();
+    expect(screen.getByText('DEC26')).toBeOnTheScreen();
+    expect(screen.getByText('3.100')).toBeOnTheScreen();
+    expect(screen.queryByText('JAN27')).toBeNull();
 
     await render(<>{lastChartProps().renderDetail(2)}</>);
-    expect(screen.getByText('2026-10-22 (잠정)')).toBeOnTheScreen();
-    expect(screen.getByText('JAN27 3.450')).toBeOnTheScreen();
+    expect(screen.getByText('2026-10-22')).toBeOnTheScreen();
+    expect(screen.getByText('(잠정)')).toBeOnTheScreen();
+    expect(screen.getByText('JAN27')).toBeOnTheScreen();
+    expect(screen.getByText('3.450')).toBeOnTheScreen();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {

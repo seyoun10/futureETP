@@ -17,7 +17,7 @@ const TICK_COUNT = 6;
 export type PriceLabel = { key: string; price: number; color: string; suffix?: string };
 
 type YAxisLayerProps = {
-  // 변환 전 y 스케일(C-a log, C-c 선형)
+  // 변환 전 y 스케일(C-a·C-c log, C-c에 0 이하 값이 있으면 선형)
   yScale: Scale;
   chartBounds: ChartBounds;
   priceDecimals: number;

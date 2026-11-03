@@ -6,6 +6,7 @@ import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
+import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatContractMonthShort, formatPrice } from '@/lib/formatNumber';
@@ -250,24 +251,18 @@ function CurveDetail({ data, index }: { data: Curve; index: number }) {
   const price = (v: number) => formatPrice(v, data.priceDecimals);
 
   return (
-    <View style={styles.detail}>
-      <Text style={styles.detailText}>{formatContractMonth(point.contractMonth)}</Text>
+    <DetailBox>
+      <DetailRow label={formatContractMonth(point.contractMonth)} value={null} />
       {point.basePrice !== null && (
-        <Text style={styles.detailText}>
-          {t('curve.tooltipBase', { price: price(point.basePrice) })}
-        </Text>
+        <DetailRow label={t('curve.tooltipBase')} value={price(point.basePrice)} />
       )}
       {point.currentPrice !== null && (
-        <Text style={styles.detailText}>
-          {t('curve.tooltipCurrent', { price: price(point.currentPrice) })}
-        </Text>
+        <DetailRow label={t('curve.tooltipCurrent')} value={price(point.currentPrice)} />
       )}
       {point.changePct !== null && (
-        <Text style={styles.detailText}>
-          {t('curve.tooltipChange', { pct: formatCurvePct(point.changePct) })}
-        </Text>
+        <DetailRow label={t('curve.tooltipChange')} value={formatCurvePct(point.changePct)} />
       )}
-    </View>
+    </DetailBox>
   );
 }
 
@@ -337,16 +332,5 @@ const styles = StyleSheet.create({
     borderRadius: spacing.xs,
     backgroundColor: colors.surface,
     overflow: 'hidden',
-  },
-  detail: {
-    gap: 2,
-    padding: spacing.sm,
-    borderRadius: spacing.xs,
-    backgroundColor: colors.surface,
-  },
-  detailText: {
-    color: colors.text,
-    fontSize: fontSize.caption,
-    fontVariant: ['tabular-nums'],
   },
 });

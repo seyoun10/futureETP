@@ -47,13 +47,16 @@ const NO_GUIDES: [] = [];
 // CartesianChart에 넘기는 설정은 모듈 상수·memo로 고정한다. victory-native는 yKeys·padding·축 설정이
 // 바뀌면(새 배열·객체여도) 모든 봉의 좌표를 다시 계산해, 보이는 범위가 바뀔 때마다 JS 스레드가 수 초 멈췄다
 const Y_KEYS: ('close' | 'hi' | 'lo')[] = ['close', 'hi', 'lo'];
+// y축은 C-a처럼 log. 0 이하 값이 있으면(2020-04 CL 음수 정산) log를 못 써 선형으로 둔다
+const LOG_AXIS = { axisScales: { yAxisScale: 'log' } } as const;
+const LINEAR_AXIS = { axisScales: { yAxisScale: 'linear' } } as const;
 // 핀치·드래그는 useChartViewport의 gestures가 맡는다
 const TRANSFORM_CONFIG = { pan: { enabled: false }, pinch: { enabled: false } };
 // 라이브러리 축은 끄고 레이어로 그린다
 const X_AXIS = { font: null, lineColor: 'transparent' };
 const Y_AXES = [{ font: null, lineColor: 'transparent' }];
 
-// C-c 겹친 선차트(screens.md C-c). 선형 y축, 확대·이동·십자선은 C-a와 같은 useChartViewport다.
+// C-c 겹친 선차트(screens.md C-c). log y축(C-a와 같다), 확대·이동·십자선은 C-a와 같은 useChartViewport다.
 // 십자선 가로선은 그날 값이 있는 첫 선(만기가 가장 가까운 월물)을 따라간다.
 export const LinesChart = memo(function LinesChart({
   dates,
@@ -98,6 +101,10 @@ export const LinesChart = memo(function LinesChart({
     );
     return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + 10;
   }, [widestLabels, priceDecimals]);
+  const axisOptions = useMemo(
+    () => (envelope.lo.every((v) => v > 0) ? LOG_AXIS : LINEAR_AXIS),
+    [envelope.lo],
+  );
   // 여백은 x축·y축 라벨 자리
   const padding = useMemo(() => ({ bottom: X_LABEL_HEIGHT, right: yLabelWidth }), [yLabelWidth]);
 
@@ -109,6 +116,7 @@ export const LinesChart = memo(function LinesChart({
         data={data}
         xKey="i"
         yKeys={Y_KEYS}
+        axisOptions={axisOptions}
         transformState={transform}
         transformConfig={TRANSFORM_CONFIG}
         chartPressState={press}

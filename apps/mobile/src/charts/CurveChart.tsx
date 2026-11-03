@@ -74,19 +74,25 @@ export const CurveChart = memo(function CurveChart({
     if (prices.length === 0 || size.width === 0) return null;
     const lo = Math.min(...prices);
     const hi = Math.max(...prices);
-    // 위아래 여백. 모두 같은 값이면 값의 1%를 둔다
-    const pad = (hi - lo || Math.abs(hi) * 0.02 || 1) * 0.08;
-    const yMin = lo - pad;
-    const yMax = hi + pad;
+    // y축은 C-a처럼 log(값의 비율이 같은 높이). 0 이하 값이 있으면(2020-04 CL 음수 정산) 선형
+    const log = lo > 0;
+    const toAxis = log ? Math.log : (v: number) => v;
+    const fromAxis = log ? Math.exp : (v: number) => v;
+    // 위아래 여백(축 공간). 모두 같은 값이면 값의 2% 폭을 기준으로 둔다
+    const span = toAxis(hi) - toAxis(lo);
+    const pad = (span || (log ? 0.02 : Math.abs(hi) * 0.02) || 1) * 0.08;
+    const yMin = toAxis(lo) - pad;
+    const yMax = toAxis(hi) + pad;
     const left = 0;
     const plotBottom = size.height - BOTTOM;
     // 선·점은 정보 줄 사이(dataTop~dataBottom)에 맞추고, 격자·눈금은 그림 영역 전체(TOP~plotBottom)에 그린다
     const dataTop = TOP + overlay.top;
     const dataBottom = plotBottom - overlay.bottom;
     const perPx = (yMax - yMin) / Math.max(dataBottom - dataTop, 1);
+    // 눈금 값은 1·2·5 간격(커브는 한 자릿수 배 안쪽이라 log 눈금 대신 C-a처럼 고른 값)
     const fullTicks = niceTicks(
-      yMin - (plotBottom - dataBottom) * perPx,
-      yMax + (dataTop - TOP) * perPx,
+      fromAxis(yMin - (plotBottom - dataBottom) * perPx),
+      fromAxis(yMax + (dataTop - TOP) * perPx),
       TICK_COUNT,
     );
     const fullDecimals = tickDecimals(fullTicks, priceDecimals);
@@ -95,7 +101,7 @@ export const CurveChart = memo(function CurveChart({
       size.width - Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) - 10;
     const slot = (right - left) / points.length;
     const x = (i: number) => left + slot * (i + 0.5);
-    const y = (v: number) => dataTop + (yMax - v) / perPx;
+    const y = (v: number) => dataTop + (yMax - toAxis(v)) / perPx;
     // 점 가운데에 맞춘 글자. 첫·끝 칸에서 칸 반폭보다 넓으면 그림 영역 안으로 민다
     const textX = (i: number, width: number) =>
       Math.min(Math.max(x(i) - width / 2, left), right - width);
@@ -150,7 +156,7 @@ export const CurveChart = memo(function CurveChart({
 
   const monthStride = labelStride(
     layout?.slot ?? 0,
-    numberFont.measureText('DEC26').width + LABEL_GAP,
+    numberFont.measureText('0000').width + LABEL_GAP,
   );
   const pctStride = labelStride(
     layout?.slot ?? 0,

@@ -8,6 +8,7 @@ import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { ChartResetButton } from '@/charts/ChartResetButton';
+import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
@@ -145,20 +146,21 @@ function CrosshairDetail({
   const provisional = data.provisional && index === data.dates.length - 1;
 
   return (
-    <View style={styles.detail}>
-      <Text style={styles.detailText}>
-        {provisional ? `${date} ${t('contracts.provisional')}` : date}
-      </Text>
+    <DetailBox>
+      <DetailRow label={date} value={provisional ? t('contracts.provisional') : null} />
       {data.contracts.map((c, i) => {
         const price = c.prices[index];
         if (price === null || price === undefined) return null;
         return (
-          <Text key={c.symbol} style={[styles.detailText, { color: model.lines[i].color }]}>
-            {`${formatContractMonth(c.contractMonth)} ${formatPrice(price, data.priceDecimals)}`}
-          </Text>
+          <DetailRow
+            key={c.symbol}
+            label={formatContractMonth(c.contractMonth)}
+            value={formatPrice(price, data.priceDecimals)}
+            color={model.lines[i].color}
+          />
         );
       })}
-    </View>
+    </DetailBox>
   );
 }
 
@@ -175,16 +177,5 @@ const styles = StyleSheet.create({
   },
   chart: {
     flex: 1,
-  },
-  detail: {
-    gap: 2,
-    padding: spacing.sm,
-    borderRadius: spacing.xs,
-    backgroundColor: colors.surface,
-  },
-  detailText: {
-    color: colors.text,
-    fontSize: fontSize.caption,
-    fontVariant: ['tabular-nums'],
   },
 });
