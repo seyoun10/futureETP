@@ -4,23 +4,34 @@ import {
   DashPathEffect,
   Line,
   Path,
+  Rect,
   Skia,
   Text as SkText,
   vec,
 } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import {
+  GestureDetector,
+  useCompetingGestures,
+  usePanGesture,
+  useTapGesture,
+} from 'react-native-gesture-handler';
 
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
+import { GUIDE_DASH } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { CHART_FONT_SIZE, numberFont } from './chartText';
-import { labelStride, niceTicks, placePctLabels, slotAt, tickDecimals } from './curveLayout';
+import { CROSSHAIR_LABEL_PAD, crosshairLabelHeight } from './CrosshairLayer';
+import { labelStride, nearestSlot, niceTicks, placePctLabels, tickDecimals } from './curveLayout';
+import { cornerRect, leastCoveredCorner } from './detailCorner';
+import { LONG_PRESS_MS } from './useChartViewport';
 
 // 만기순 월물 하나. 그 커브에 없으면 null
 export type CurvePoint = {
@@ -35,7 +46,7 @@ type CurveChartProps = {
   priceDecimals: number;
   // 점 위 변화율 글자
   formatPct: (pct: number) => string;
-  // 점을 누르면 여는 툴팁 내용. 위치는 차트가 누른 점 반대편으로 정한다
+  // 십자선이 붙은 월물의 상세 박스 내용. 위치는 차트가 점·선을 가장 적게 가리는 귀퉁이로 정한다
   renderDetail: (index: number) => ReactNode;
   // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 안내(ChartOverlay). 선·점은 줄을 비켜 그린다
   overlayTop?: ReactNode;
@@ -51,10 +62,11 @@ const Y_LABEL_GAP = 4;
 const DOT = 3;
 const LABEL_GAP = 4;
 
-type Selected = { index: number; side: 'left' | 'right' };
+type Size = { width: number; height: number };
 
 // C-b 월물커브 선차트(screens.md C-b). 기준일은 점선 + 빈 점, 현재는 실선 + 찬 점, 점 위 변화율은 등락 색.
-// 확대·이동이 없어 victory 없이 Skia 캔버스에 직접 그린다. 칸을 누르면 툴팁, 한 번 더 누르면 닫는다.
+// 확대·이동이 없어 victory 없이 Skia 캔버스에 직접 그린다. 십자선은 C-a와 같다(D-056): 길게 누르면 나타나
+// 끄는 대로 월물에 붙고(햅틱), 손을 떼도 남아 있는 동안은 길게 누르지 않고 끌어도 따라오며, 한 번 더 누르면 사라진다.
 export const CurveChart = memo(function CurveChart({
   points,
   priceDecimals,
@@ -67,7 +79,10 @@ export const CurveChart = memo(function CurveChart({
   const palette = useUpDownPalette();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
-  const [selected, setSelected] = useState<Selected | null>(null);
+  // 십자선이 붙은 월물. null이면 십자선이 없다
+  const [selected, setSelected] = useState<number | null>(null);
+  const selectedRef = useRef<number | null>(null);
+  const [boxSize, setBoxSize] = useState<Size | null>(null);
 
   const layout = useMemo(() => {
     const prices = points.flatMap((p) => [p.base, p.current]).filter((v) => v !== null);
@@ -143,16 +158,37 @@ export const CurveChart = memo(function CurveChart({
     setSize({ width, height });
   };
 
-  const onPress = (e: GestureResponderEvent) => {
+  // 손가락 x에 가장 가까운 월물에 십자선을 붙인다. 다른 월물로 옮겨 붙을 때마다 햅틱
+  const snapTo = (x: number) => {
     if (!layout) return;
-    const index = slotAt(e.nativeEvent.locationX, layout.left, layout.slot, points.length);
-    if (index === null || index === selected?.index) {
-      setSelected(null);
-      return;
-    }
-    setSelected({ index, side: layout.x(index) < size.width / 2 ? 'right' : 'left' });
+    const index = nearestSlot(x, layout.left, layout.slot, points.length);
+    if (index === null || index === selectedRef.current) return;
+    selectedRef.current = index;
+    setSelected(index);
     void Haptics.selectionAsync();
   };
+  const hideCrosshair = () => {
+    selectedRef.current = null;
+    setSelected(null);
+  };
+  // 콜백은 점 몇 개뿐인 React 상태만 바꿔 JS 스레드에서 돌린다
+  const pan = usePanGesture({
+    runOnJS: true,
+    enabled: layout !== null,
+    // 십자선이 있으면 길게 누르지 않고 끌어도 바로 따라온다(C-a pressConfig와 같다)
+    activateAfterLongPress: selected === null ? LONG_PRESS_MS : undefined,
+    onActivate: (e) => snapTo(e.x),
+    onUpdate: (e) => snapTo(e.x),
+  });
+  const tap = useTapGesture({ runOnJS: true, onActivate: hideCrosshair });
+  const gesture = useCompetingGestures(tap, pan);
+
+  const onBoxLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setBoxSize((prev) =>
+      prev?.width === width && prev.height === height ? prev : { width, height },
+    );
+  }, []);
 
   const monthStride = labelStride(
     layout?.slot ?? 0,
@@ -187,98 +223,211 @@ export const CurveChart = memo(function CurveChart({
     return items.map((item, i) => ({ ...item, y: ys[i] }));
   }, [layout, points, formatPct, palette, overlay]);
 
+  // 상세 박스: 정보 줄 사이 그림 영역의 네 귀퉁이 중 점·선·변화율을 가장 적게 가리는 곳(C-a와 같다)
+  const detailPos = useMemo(() => {
+    if (!layout || selected === null || !boxSize) return null;
+    const area = {
+      left: layout.left + spacing.sm,
+      right: layout.right - spacing.sm,
+      top: TOP + overlay.top + spacing.sm,
+      bottom: layout.plotBottom - overlay.bottom - spacing.sm,
+    };
+    const corner = leastCoveredCorner({
+      area,
+      box: boxSize,
+      crosshairX: layout.x(selected),
+      *marksIn(x0, x1) {
+        for (const key of ['base', 'current'] as const) {
+          for (let i = 0; i < points.length; i++) {
+            const v = points[i][key];
+            if (v === null) continue;
+            const px = layout.x(i);
+            const py = layout.y(v);
+            if (px >= x0 - DOT && px <= x1 + DOT) yield [py - DOT, py + DOT] as const;
+            // 다음 점까지의 선분 중 [x0, x1] 안 부분의 세로 구간
+            const next = points[i + 1]?.[key];
+            if (next === null || next === undefined) continue;
+            const nx = layout.x(i + 1);
+            const a = Math.max(px, x0);
+            const b = Math.min(nx, x1);
+            if (a > b) continue;
+            const ny = layout.y(next);
+            const at = (x: number) => py + ((ny - py) * (x - px)) / (nx - px);
+            yield [Math.min(at(a), at(b)), Math.max(at(a), at(b))] as const;
+          }
+        }
+        for (const l of pctLabels) {
+          if (l.x + l.width >= x0 && l.x <= x1) yield [l.y - CHART_FONT_SIZE, l.y] as const;
+        }
+      },
+    });
+    const { left, top } = cornerRect(area, boxSize, corner);
+    return { left, top };
+  }, [layout, selected, boxSize, overlay, points, pctLabels]);
+
+  // 십자선 가로선·가격 라벨은 현재가(없으면 기준일 값)를 따라간다
+  const crosshair = useMemo(() => {
+    if (!layout || selected === null) return null;
+    const p = points[selected];
+    const value = p?.current ?? p?.base ?? null;
+    if (!p || value === null) return null;
+    const x = layout.x(selected);
+    const y = layout.y(value);
+    const monthWidth = numberFont.measureText(p.label).width + CROSSHAIR_LABEL_PAD * 2;
+    return {
+      x,
+      y,
+      price: formatPrice(value, priceDecimals),
+      month: p.label,
+      monthX: Math.min(Math.max(x - monthWidth / 2, layout.left), layout.right - monthWidth),
+      monthWidth,
+    };
+  }, [layout, selected, points, priceDecimals]);
+  const labelHeight = crosshairLabelHeight(numberFont);
+
   return (
     <View style={styles.container} onLayout={onLayout}>
-      <Pressable style={styles.container} onPress={onPress} testID="curve-chart">
-        {layout && paths && (
-          <Canvas style={styles.container}>
-            {layout.ticks.map((t, i) => {
-              const ty = layout.y(t);
-              if (ty < TOP || ty > layout.plotBottom) return null;
-              return [
-                <Line
-                  key={`g${t}`}
-                  p1={vec(layout.left, ty)}
-                  p2={vec(layout.right, ty)}
-                  color={colors.chart.grid}
-                  strokeWidth={0}
-                />,
-                <SkText
-                  key={`l${t}`}
-                  x={layout.right + Y_LABEL_GAP}
-                  y={ty + CHART_FONT_SIZE / 2 - 1}
-                  text={layout.tickLabels[i]}
-                  font={numberFont}
-                  color={colors.chart.tick}
-                />,
-              ];
-            })}
-            {selected !== null && (
-              <Line
-                p1={vec(layout.x(selected.index), TOP)}
-                p2={vec(layout.x(selected.index), layout.plotBottom)}
-                color={colors.chart.crosshair}
-                strokeWidth={0}
-              />
-            )}
-            <Path path={paths.base} color={colors.chart.curveBase} style="stroke" strokeWidth={1.5}>
-              <DashPathEffect intervals={[4, 3]} />
-            </Path>
-            <Path
-              path={paths.current}
-              color={colors.chart.curveCurrent}
-              style="stroke"
-              strokeWidth={1.5}
-              strokeJoin="round"
-            />
-            {points.map((p, i) => {
-              const px = layout.x(i);
-              return [
-                p.base !== null && (
-                  <Circle
-                    key={`b${p.label}`}
-                    cx={px}
-                    cy={layout.y(p.base)}
-                    r={DOT}
-                    color={colors.chart.curveBase}
-                    style="stroke"
-                    strokeWidth={1.5}
-                  />
-                ),
-                p.current !== null && (
-                  <Circle
-                    key={`c${p.label}`}
-                    cx={px}
-                    cy={layout.y(p.current)}
-                    r={DOT}
-                    color={colors.chart.curveCurrent}
-                  />
-                ),
-                i % monthStride === 0 && (
+      <GestureDetector gesture={gesture}>
+        <View style={styles.container} testID="curve-chart">
+          {layout && paths && (
+            <Canvas style={styles.container}>
+              {layout.ticks.map((t, i) => {
+                const ty = layout.y(t);
+                if (ty < TOP || ty > layout.plotBottom) return null;
+                return [
+                  <Line
+                    key={`g${t}`}
+                    p1={vec(layout.left, ty)}
+                    p2={vec(layout.right, ty)}
+                    color={colors.chart.grid}
+                    strokeWidth={0}
+                  />,
                   <SkText
-                    key={`m${p.label}`}
-                    x={layout.textX(i, numberFont.measureText(p.label).width)}
-                    y={size.height - spacing.xs}
-                    text={p.label}
+                    key={`l${t}`}
+                    x={layout.right + Y_LABEL_GAP}
+                    y={ty + CHART_FONT_SIZE / 2 - 1}
+                    text={layout.tickLabels[i]}
                     font={numberFont}
                     color={colors.chart.tick}
-                  />
-                ),
-              ];
-            })}
-            {pctLabels.map((l) => (
-              <SkText
-                key={`p${l.key}`}
-                x={l.x}
-                y={l.y}
-                text={l.text}
-                font={numberFont}
-                color={l.color}
+                  />,
+                ];
+              })}
+              <Path
+                path={paths.base}
+                color={colors.chart.curveBase}
+                style="stroke"
+                strokeWidth={1.5}
+              >
+                <DashPathEffect intervals={[4, 3]} />
+              </Path>
+              <Path
+                path={paths.current}
+                color={colors.chart.curveCurrent}
+                style="stroke"
+                strokeWidth={1.5}
+                strokeJoin="round"
               />
-            ))}
-          </Canvas>
-        )}
-      </Pressable>
+              {points.map((p, i) => {
+                const px = layout.x(i);
+                return [
+                  p.base !== null && (
+                    <Circle
+                      key={`b${p.label}`}
+                      cx={px}
+                      cy={layout.y(p.base)}
+                      r={DOT}
+                      color={colors.chart.curveBase}
+                      style="stroke"
+                      strokeWidth={1.5}
+                    />
+                  ),
+                  p.current !== null && (
+                    <Circle
+                      key={`c${p.label}`}
+                      cx={px}
+                      cy={layout.y(p.current)}
+                      r={DOT}
+                      color={colors.chart.curveCurrent}
+                    />
+                  ),
+                  i % monthStride === 0 && (
+                    <SkText
+                      key={`m${p.label}`}
+                      x={layout.textX(i, numberFont.measureText(p.label).width)}
+                      y={size.height - spacing.xs}
+                      text={p.label}
+                      font={numberFont}
+                      color={colors.chart.tick}
+                    />
+                  ),
+                ];
+              })}
+              {pctLabels.map((l) => (
+                <SkText
+                  key={`p${l.key}`}
+                  x={l.x}
+                  y={l.y}
+                  text={l.text}
+                  font={numberFont}
+                  color={l.color}
+                />
+              ))}
+              {crosshair && [
+                <Line
+                  key="cv"
+                  p1={vec(crosshair.x, TOP)}
+                  p2={vec(crosshair.x, layout.plotBottom)}
+                  color={colors.chart.crosshairLine}
+                  strokeWidth={1}
+                >
+                  <DashPathEffect intervals={GUIDE_DASH} />
+                </Line>,
+                <Line
+                  key="ch"
+                  p1={vec(layout.left, crosshair.y)}
+                  p2={vec(layout.right, crosshair.y)}
+                  color={colors.chart.crosshairLine}
+                  strokeWidth={1}
+                >
+                  <DashPathEffect intervals={GUIDE_DASH} />
+                </Line>,
+                <Rect
+                  key="pb"
+                  x={layout.right + 1}
+                  y={crosshair.y - labelHeight / 2}
+                  width={size.width - layout.right - 1}
+                  height={labelHeight}
+                  color={colors.chart.crosshair}
+                />,
+                <SkText
+                  key="pt"
+                  x={layout.right + 1 + CROSSHAIR_LABEL_PAD}
+                  y={crosshair.y + CHART_FONT_SIZE / 2 - 1}
+                  text={crosshair.price}
+                  font={numberFont}
+                  color={colors.chart.crosshairText}
+                />,
+                <Rect
+                  key="mb"
+                  x={crosshair.monthX}
+                  y={layout.plotBottom + 2}
+                  width={crosshair.monthWidth}
+                  height={labelHeight}
+                  color={colors.chart.crosshair}
+                />,
+                <SkText
+                  key="mt"
+                  x={crosshair.monthX + CROSSHAIR_LABEL_PAD}
+                  y={layout.plotBottom + 2 + CROSSHAIR_LABEL_PAD + CHART_FONT_SIZE - 1}
+                  text={crosshair.month}
+                  font={numberFont}
+                  color={colors.chart.crosshairText}
+                />,
+              ]}
+            </Canvas>
+          )}
+        </View>
+      </GestureDetector>
       <ChartOverlay
         top={overlayTop}
         bottom={overlayBottom}
@@ -286,18 +435,14 @@ export const CurveChart = memo(function CurveChart({
         floating={floating}
         onInsets={setOverlay}
       />
-      {selected !== null && points[selected.index] && (
+      {selected !== null && points[selected] && (
         <View
           pointerEvents="none"
-          style={[
-            styles.detail,
-            { top: styles.detail.top + overlay.top },
-            selected.side === 'left'
-              ? { left: layout?.left ?? 0 }
-              : { right: size.width - (layout?.right ?? size.width) },
-          ]}
+          onLayout={onBoxLayout}
+          // 귀퉁이를 정하기 전(첫 측정)에는 감춘다
+          style={[styles.detail, detailPos ?? { opacity: 0 }]}
         >
-          {renderDetail(selected.index)}
+          {renderDetail(selected)}
         </View>
       )}
     </View>
@@ -310,6 +455,5 @@ const styles = StyleSheet.create({
   },
   detail: {
     position: 'absolute',
-    top: spacing.sm,
   },
 });

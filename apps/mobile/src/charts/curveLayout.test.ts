@@ -1,4 +1,4 @@
-import { labelStride, niceTicks, placePctLabels, slotAt, tickDecimals } from './curveLayout';
+import { labelStride, niceTicks, nearestSlot, placePctLabels, tickDecimals } from './curveLayout';
 
 describe('niceTicks', () => {
   it('1·2·5 간격으로 범위 안 눈금을 만든다', () => {
@@ -28,12 +28,13 @@ describe('labelStride', () => {
   });
 });
 
-describe('slotAt', () => {
-  it('누른 x의 칸을 고르고 칸 밖은 null이다', () => {
-    expect(slotAt(45, 40, 20, 3)).toBe(0);
-    expect(slotAt(99, 40, 20, 3)).toBe(2);
-    expect(slotAt(39, 40, 20, 3)).toBeNull();
-    expect(slotAt(100, 40, 20, 3)).toBeNull();
+describe('nearestSlot', () => {
+  it('x의 칸을 고르고 칸 밖은 양끝 칸이다', () => {
+    expect(nearestSlot(45, 40, 20, 3)).toBe(0);
+    expect(nearestSlot(99, 40, 20, 3)).toBe(2);
+    expect(nearestSlot(39, 40, 20, 3)).toBe(0);
+    expect(nearestSlot(100, 40, 20, 3)).toBe(2);
+    expect(nearestSlot(50, 40, 20, 0)).toBeNull();
   });
 });
 

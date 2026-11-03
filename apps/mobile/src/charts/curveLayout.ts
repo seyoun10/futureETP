@@ -29,11 +29,15 @@ export function tickDecimals(ticks: readonly number[], max: number): number {
 export const labelStride = (slotWidth: number, labelWidth: number): number =>
   slotWidth <= 0 ? 1 : Math.max(1, Math.ceil(labelWidth / slotWidth));
 
-// 누른 x가 속한 월물 칸. 칸 밖이면 null
-export function slotAt(x: number, left: number, slotWidth: number, count: number): number | null {
-  if (slotWidth <= 0) return null;
-  const index = Math.floor((x - left) / slotWidth);
-  return index >= 0 && index < count ? index : null;
+// x에 가장 가까운 칸 순번. 그림 영역 밖이면 양끝 칸(십자선을 끌 때)
+export function nearestSlot(
+  x: number,
+  left: number,
+  slotWidth: number,
+  count: number,
+): number | null {
+  if (slotWidth <= 0 || count === 0) return null;
+  return Math.min(Math.max(Math.floor((x - left) / slotWidth), 0), count - 1);
 }
 
 // 점 위 변화율 라벨 하나. x는 글자 왼쪽, top·bottom은 그 칸 점들의 가장 위·아래 y
