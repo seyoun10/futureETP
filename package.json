@@ -17,7 +17,7 @@
     "perf:collect": "node scripts/perf-collect.mjs",
     "mirror": "bash scripts/mirror.sh",
     "deploy": "bash scripts/deploy.sh",
-    "update:prod": "npm run update:prod -w apps/mobile -- --auto",
+    "update:prod": "npm run update:prod -w apps/mobile -- --message \"$(git log -1 --pretty=%s)\"",
     "backup:pull": "bash scripts/backup-pull.sh",
     "dev:restore": "bash scripts/dev-restore.sh",
     "prod:seed": "bash scripts/prod-seed.sh"

@@ -88,5 +88,5 @@ futureETP: 2026-10-29 기준 5단계 개발 중. 5-1~5-3(서버 기반·calc·�
 - 성능 측정(dev 변형 iOS 기기): `npm run perf:collect -- [파일]`(포트 8099) 켜고 앱을 운영 번들로 실행 `xcrun devicectl device process launch --device <기기> --terminate-existing <dev 번들 ID> -- -RCT_enableDev NO -RCT_enableMinification YES`. 차트 진입·과거 데이터 로딩·제스처 프레임이 `[perf]` 줄로 들어온다(`src/lib/perfLog.ts`)
 - 기기 화면 확인(iPhone 미러링 앱): `npm run mirror -- shot <파일>`(창을 point 크기 PNG로, 이미지 픽셀 = 조작 좌표) · `tap X Y [누름ms]` · `drag X1 Y1 X2 Y2 [단계] [누름ms]` · `type 글자` · `key delete|return|esc`. 핀치·당겨서 새로고침·키패드 위 UI는 미러링으로 못 본다
 - 접근 키: 새 키·QR `npm run access-key`, 기존 키 QR `npm run access-key -- --show < 키 파일`(D-080)
-- 앱 OTA(EAS Update, 마지막 커밋 메시지로 발행): `npm run update:prod`. `apps/mobile/package.json`의 `scripts`·의존성을 바꾸면 fingerprint(runtime version)가 바뀌어 설치된 빌드가 업데이트를 못 받으므로 새로 빌드해야 한다
+- 앱 OTA(EAS Update, 마지막 커밋 제목 줄로 발행): `npm run update:prod`. `apps/mobile/package.json`의 `scripts`·의존성을 바꾸면 fingerprint(runtime version)가 바뀌어 설치된 빌드가 업데이트를 못 받으므로 새로 빌드해야 한다
 - 운영(Mac, 설정은 `~/.config/futureetp/ops.env`): prod 배포 `npm run deploy`(D-048), VM 백업 내려받기 `npm run backup:pull`, dev DB에 덤프 복원 `npm run dev:restore -- [덤프 파일] [--yes]`(D-045), 첫 배포 뒤 빈 prod DB에 dev DB 넣기 `npm run prod:seed -- [--yes]`(D-100)
