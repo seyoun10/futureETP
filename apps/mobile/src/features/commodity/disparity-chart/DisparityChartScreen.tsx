@@ -24,7 +24,7 @@ import {
 } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
-import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
+import { changeColor, changePairColor, useUpDownPalette } from '@/theme/upDownColor';
 import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
 import {
@@ -325,7 +325,12 @@ function CrosshairDetail({
         <DetailRow
           label={t('disparity.prevChange')}
           value={`${formatChange(bar.close - prev.close, decimals)} (${formatChangePct((bar.close / prev.close - 1) * 100)})`}
-          color={changeColor(bar.close - prev.close, palette)}
+          color={changePairColor(
+            bar.close - prev.close,
+            (bar.close / prev.close - 1) * 100,
+            decimals,
+            palette,
+          )}
         />
       )}
       {bar.disparity !== null && (

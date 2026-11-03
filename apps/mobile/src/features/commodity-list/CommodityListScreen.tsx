@@ -15,7 +15,7 @@ import {
   formatContractMonth,
   formatPrice,
 } from '@/lib/formatNumber';
-import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
+import { changePairColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
@@ -129,7 +129,9 @@ function QuoteLine({
 }) {
   const { t } = useTranslation();
   const color =
-    quote.noTrade || quote.change === null ? colors.neutral : changeColor(quote.change, palette);
+    quote.noTrade || quote.change === null
+      ? colors.neutral
+      : changePairColor(quote.change, quote.changePct ?? 0, decimals, palette);
 
   return (
     <View style={styles.quoteLine}>

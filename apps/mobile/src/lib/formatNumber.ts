@@ -19,7 +19,9 @@ export function formatChange(value: number, decimals: number): string {
 }
 
 // 등락률(%) 소수 둘째 자리
-export const formatChangePct = (pct: number): string => `${formatChange(pct, 2)}%`;
+export const CHANGE_PCT_DECIMALS = 2;
+export const formatChangePct = (pct: number): string =>
+  `${formatChange(pct, CHANGE_PCT_DECIMALS)}%`;
 
 // 월물 `YYYY-MM` → `DEC26`(CME 월물 표기라 언어와 상관없다)
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];

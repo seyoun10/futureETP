@@ -18,6 +18,7 @@ import { useCommodityCode } from '../useCommodityCode';
 import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
 import {
   curveSummaryLines,
+  CURVE_PCT_DECIMALS,
   formatCurvePct,
   formatFullDate,
   formatLegendDate,
@@ -141,6 +142,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             points={points}
             priceDecimals={data.priceDecimals}
             formatPct={formatCurvePct}
+            pctDecimals={CURVE_PCT_DECIMALS}
             renderDetail={renderDetail}
             overlayTop={
               <Text style={styles.line} numberOfLines={1} testID="curve-legend">

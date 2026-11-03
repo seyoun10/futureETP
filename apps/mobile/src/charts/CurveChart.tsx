@@ -44,8 +44,9 @@ export type CurvePoint = {
 type CurveChartProps = {
   points: readonly CurvePoint[];
   priceDecimals: number;
-  // 점 위 변화율 글자
+  // 점 위 변화율 글자와 그 소수 자릿수(반올림해 0이면 방향 없는 색)
   formatPct: (pct: number) => string;
+  pctDecimals: number;
   // 십자선이 붙은 월물의 상세 박스 내용. 위치는 차트가 점·선을 가장 적게 가리는 귀퉁이로 정한다
   renderDetail: (index: number) => ReactNode;
   // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 안내(ChartOverlay). 선·점은 줄을 비켜 그린다
@@ -71,6 +72,7 @@ export const CurveChart = memo(function CurveChart({
   points,
   priceDecimals,
   formatPct,
+  pctDecimals,
   renderDetail,
   overlayTop,
   overlayBottom,
@@ -216,7 +218,7 @@ export const CurveChart = memo(function CurveChart({
         {
           key: p.label,
           text,
-          color: changeColor(p.changePct, palette),
+          color: changeColor(p.changePct, palette, pctDecimals),
           x: layout.textX(i, width),
           width,
           top: Math.min(...ys) - DOT,
@@ -231,7 +233,7 @@ export const CurveChart = memo(function CurveChart({
       maxY: layout.plotBottom - overlay.bottom,
     });
     return items.map((item, i) => ({ ...item, y: ys[i] }));
-  }, [layout, points, formatPct, palette, overlay]);
+  }, [layout, points, formatPct, pctDecimals, palette, overlay]);
 
   // 상세 박스: 정보 줄 사이 그림 영역의 네 귀퉁이 중 점·선·변화율을 가장 적게 가리는 곳(C-a와 같다)
   const detailPos = useMemo(() => {

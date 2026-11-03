@@ -29,7 +29,8 @@ export const formatWeekday = (date: string, language: string): string =>
   );
 
 // 차트 점·툴팁 변화율. 커브는 점이 많아 소수 첫째 자리까지
-export const formatCurvePct = (pct: number): string => `${formatChange(pct, 1)}%`;
+export const CURVE_PCT_DECIMALS = 1;
+export const formatCurvePct = (pct: number): string => `${formatChange(pct, CURVE_PCT_DECIMALS)}%`;
 
 type T = ReturnType<typeof useTranslation>['t'];
 
