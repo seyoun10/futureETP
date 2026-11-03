@@ -299,4 +299,5 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] Apple Developer 가입(최대한 늦게) 뒤: iOS 실기기 설치 방식 결정, APNs 발송 경로 추가 (D-037, D-039)
   - 2026-11-02: iOS 테스트 배포(Firebase App Distribution·TestFlight)는 ad-hoc 서명·UDID 등록이 유료 계정 전용이라 가입 전에는 불가. prod 변형 Personal Team 직접 설치도 보류하고 Android 기기 확인을 먼저 한다
   - [x] 2026-11-03: prod 변형 Release를 Personal Team으로 iPhone 14 Pro·16 Pro Max에 설치·실행(푸시 권한 빼고, 7일 만료). 다른 세션과 겹치지 않게 별도 git worktree에서 prebuild·빌드. 16 Pro Max는 `-allowProvisioningDeviceRegistration`으로 팀에 등록 (D-039 보충)
-    - [ ] 두 기기에서 접근 키 QR 등록·운영 데이터 표시·권한 문구 확인
+    - [x] 두 기기에서 접근 키 QR 등록 (2026-11-03)
+    - [ ] 두 기기에서 운영 데이터 표시·카메라 권한 문구 확인
