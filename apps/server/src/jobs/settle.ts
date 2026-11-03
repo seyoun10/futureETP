@@ -34,6 +34,13 @@ export type DailyBarRow = BarValues & {
 
 export type StoredBar = BarValues & { source: Source; revisedAt: Date | null };
 
+export type SettleContract = {
+  symbol: string;
+  firstTradeDate: string | null;
+  lastTradeDate: string;
+  isTarget: boolean;
+};
+
 export interface SettleStore {
   // 오름차순, from·to 포함
   tradingDays(from: string, to: string): Promise<TradingDaySession[]>;
@@ -42,12 +49,17 @@ export interface SettleStore {
   // daily_bar의 가장 최근 거래일(적재·이전 정산 데이터)
   lastDailyBarDate(): Promise<string | null>;
   activeMonthRules(commodityCode: CommodityCode): Promise<ActiveMonthRule[]>;
-  contracts(
-    commodityCode: CommodityCode,
-  ): Promise<{ symbol: string; firstTradeDate: string | null; lastTradeDate: string }[]>;
+  contracts(commodityCode: CommodityCode): Promise<SettleContract[]>;
   // 이미 있는 월물은 그대로 둔다
   insertContracts(rows: readonly NewContract[]): Promise<void>;
   dailyBars(commodityCode: CommodityCode, tradeDate: string): Promise<StoredBar[]>;
+  // from~to(포함)에 그 소스로 저장된 일봉의 (월물, 거래일)
+  sourceBarDates(
+    commodityCode: CommodityCode,
+    source: Source,
+    from: string,
+    to: string,
+  ): Promise<{ contractSymbol: string; tradeDate: string }[]>;
   // (월물, 거래일)이 있으면 값을 바꾼다
   upsertDailyBars(rows: readonly DailyBarRow[]): Promise<void>;
 }
@@ -75,19 +87,28 @@ export const MAX_SETTLE_CONTRACTS = 26;
 // 주말 보충이 다시 보는 정산 거래일 수. Massive는 월물마다 봉이 있는 최근 10세션을 준다(D-110)
 export const BACKFILL_DAYS = 10;
 
+// 평일 정산은 직전 10거래일 동안 지금 소스 봉이 없던 월물(드문 월물)을 건너뛴다. 그 사이 체결은 주말 보충이 채운다(D-110)
+export const SKIP_LOOKBACK_DAYS = 10;
+// 건너뛰지 않는 월물: 가까운 2개(지수 대표·다음 월물)와 가까운 대상 월물 5개(A·C-c, D-110)
+export const PROTECTED_NEAREST = 2;
+export const PROTECTED_TARGETS = 5;
+
 // 그날 거래되는 월물 중 일봉을 받는 월물(최종 거래일, 같으면 심볼 순)
-function settleSymbols(
-  contracts: readonly { symbol: string; firstTradeDate: string | null; lastTradeDate: string }[],
-  tradeDate: string,
-): string[] {
+function settleContracts(contracts: readonly SettleContract[], tradeDate: string) {
   return contracts
     .filter((c) => tradesOn(c, tradeDate))
     .sort(
       (a, b) => a.lastTradeDate.localeCompare(b.lastTradeDate) || a.symbol.localeCompare(b.symbol),
     )
-    .slice(0, MAX_SETTLE_CONTRACTS)
-    .map((c) => c.symbol);
+    .slice(0, MAX_SETTLE_CONTRACTS);
 }
+
+const settleSymbols = (contracts: readonly SettleContract[], tradeDate: string) =>
+  settleContracts(contracts, tradeDate).map((c) => c.symbol);
+
+const isProtected = (c: SettleContract, index: number, sorted: readonly SettleContract[]) =>
+  index < PROTECTED_NEAREST ||
+  (c.isTarget && sorted.slice(0, index).filter((x) => x.isTarget).length < PROTECTED_TARGETS);
 
 export function createSettleHandlers({ store, source, recompute, log = console.log }: SettleDeps): {
   DAILY_SETTLE: JobHandler;
@@ -96,7 +117,12 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
 } {
   // 월물 상장(소스의 새 월물 추가) → 그날 거래되는 월물의 일봉 저장.
   // 이미 받은 날은 건너뛴다(다른 원자재 실패로 재시도·따라잡기할 때 소스 호출을 아낌)
-  async function collectDay(code: CommodityCode, tradeDate: string, now: Date) {
+  async function collectDay(
+    code: CommodityCode,
+    tradeDate: string,
+    days: readonly TradingDaySession[],
+    now: Date,
+  ) {
     if ((await store.dailyBars(code, tradeDate)).length > 0) {
       log(`[settle ${code} ${tradeDate}] already collected`);
       return;
@@ -113,7 +139,21 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       })),
     );
 
-    const symbols = settleSymbols(await store.contracts(code), tradeDate);
+    const candidates = settleContracts(await store.contracts(code), tradeDate);
+    // 직전 10거래일을 모두 지금 소스로 정산했을 때만 건너뛴다(소스 전환·적재 직후 오판 방지)
+    const lookback = days
+      .map((d) => d.tradeDate)
+      .filter((d) => d < tradeDate)
+      .slice(-SKIP_LOOKBACK_DAYS);
+    const recent =
+      lookback.length === SKIP_LOOKBACK_DAYS
+        ? await store.sourceBarDates(code, source.name, lookback[0], lookback.at(-1) ?? tradeDate)
+        : [];
+    const canSkip = new Set(recent.map((b) => b.tradeDate)).size === SKIP_LOOKBACK_DAYS;
+    const traded = new Set(recent.map((b) => b.contractSymbol));
+    const symbols = candidates
+      .filter((c, i, sorted) => !canSkip || traded.has(c.symbol) || isProtected(c, i, sorted))
+      .map((c) => c.symbol);
     const bars = await source.fetchDailyBars(code, symbols, tradeDate);
     // 소스 반영 전(D-019)이면 실패로 끝내 재시도에 맡긴다
     if (bars.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name} yet`);
@@ -132,7 +172,9 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         revisedAt: null,
       })),
     );
-    log(`[settle ${code} ${tradeDate}] ${bars.length} bars`);
+    log(
+      `[settle ${code} ${tradeDate}] ${bars.length} bars, skipped ${candidates.length - symbols.length}`,
+    );
   }
 
   const DAILY_SETTLE: JobHandler = async (ctx) => {
@@ -147,7 +189,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       return;
     }
     await forEachCommodity('Settle', async (code) => {
-      for (const date of plan.dates) await collectDay(code, date, ctx.now);
+      for (const date of plan.dates) await collectDay(code, date, days, ctx.now);
       await recompute(code, ctx.now);
     });
   };

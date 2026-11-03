@@ -20,6 +20,7 @@ import {
   BACKFILL_DAYS,
   createSettleHandlers,
   MAX_SETTLE_CONTRACTS,
+  SKIP_LOOKBACK_DAYS,
   type DailyBarRow,
   type NewContract,
   type SettleStore,
@@ -64,6 +65,16 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
       Promise.resolve(
         [...bars.values()].filter(
           (b) => b.tradeDate === tradeDate && b.contractSymbol.startsWith(code),
+        ),
+      ),
+    sourceBarDates: (code, source, from, to) =>
+      Promise.resolve(
+        [...bars.values()].filter(
+          (b) =>
+            b.contractSymbol.startsWith(code) &&
+            b.source === source &&
+            b.tradeDate >= from &&
+            b.tradeDate <= to,
         ),
       ),
     upsertDailyBars(rows) {
@@ -130,6 +141,27 @@ function testSource(settle: (symbol: string, tradeDate: string) => number | null
 }
 
 const ctx = (now = NOW): JobContext => ({ now });
+
+// 원자재마다 2026-11월물부터 30개 월물(최종 거래일은 그달 1일). 먼 쪽부터 준다
+const MONTHS = Array.from({ length: 30 }, (_, i) => {
+  const total = 2026 * 12 + 10 + i;
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+});
+
+function manyContractsSource() {
+  const many = testSource();
+  many.listContracts.mockImplementation((code: CommodityCode) =>
+    Promise.resolve(
+      MONTHS.toReversed().map((contractMonth) => ({
+        symbol: toContractSymbol(code, contractMonth),
+        contractMonth,
+        firstTradeDate: null,
+        lastTradeDate: `${contractMonth}-01`,
+      })),
+    ),
+  );
+  return many;
+}
 
 function setup(lastSuccess: Partial<Record<JobName, string>>, source = testSource()) {
   const memory = memoryStore(lastSuccess);
@@ -215,29 +247,77 @@ describe('DAILY_SETTLE', () => {
   });
 
   it('최종 거래일이 가까운 월물 26개만 받는다', async () => {
-    const months = Array.from({ length: 30 }, (_, i) => {
-      const total = 2026 * 12 + 10 + i;
-      return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
-    });
-    const many = testSource();
-    many.listContracts.mockImplementation((code: CommodityCode) =>
-      Promise.resolve(
-        // 먼 쪽부터 넣어도 만기순으로 고른다
-        months.toReversed().map((contractMonth) => ({
-          symbol: toContractSymbol(code, contractMonth),
-          contractMonth,
-          firstTradeDate: null,
-          lastTradeDate: `${contractMonth}-01`,
-        })),
-      ),
-    );
-    const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-26' }, many);
+    // 먼 쪽부터 받아도 만기순으로 고른다
+    const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-26' }, manyContractsSource());
     await handlers.DAILY_SETTLE(ctx());
 
     const symbols = source.fetchDailyBars.mock.calls[0][1];
     expect(symbols).toHaveLength(MAX_SETTLE_CONTRACTS);
     expect(symbols[0]).toBe('GCX26');
-    expect(symbols.at(-1)).toBe(toContractSymbol('GC', months[MAX_SETTLE_CONTRACTS - 1]));
+    expect(symbols.at(-1)).toBe(toContractSymbol('GC', MONTHS[MAX_SETTLE_CONTRACTS - 1]));
+  });
+
+  describe('드문 월물 건너뛰기', () => {
+    const LOOKBACK = DAYS.map((d) => d.tradeDate)
+      .filter((d) => d < '2026-10-27')
+      .slice(-SKIP_LOOKBACK_DAYS);
+    const symbolsOf = (code: CommodityCode, ranks: readonly number[]) =>
+      ranks.map((i) => toContractSymbol(code, MONTHS[i]));
+
+    // 직전 거래일들에 ranks 순위 월물 봉이 source로 저장된 상태
+    async function withHistory(
+      history: Partial<Record<CommodityCode, readonly number[]>>,
+      dates: readonly string[] = LOOKBACK,
+      source: DailyBarRow['source'] = 'FAKE',
+    ) {
+      const env = setup({ DAILY_SETTLE: '2026-10-26' }, manyContractsSource());
+      for (const [code, ranks] of Object.entries(history) as [CommodityCode, number[]][]) {
+        await env.store.upsertDailyBars(
+          dates.flatMap((tradeDate) =>
+            symbolsOf(code, ranks).map((contractSymbol): DailyBarRow => ({
+              contractSymbol,
+              tradeDate,
+              open: null,
+              high: null,
+              low: null,
+              settle: 90,
+              volume: 10,
+              source,
+              collectedAt: NOW,
+              revisedAt: null,
+            })),
+          ),
+        );
+      }
+      await env.handlers.DAILY_SETTLE(ctx());
+      const requested = (code: CommodityCode) =>
+        env.source.fetchDailyBars.mock.calls.find(([c]) => c === code)?.[1];
+      return { ...env, requested };
+    }
+
+    const range = (n: number) => Array.from({ length: n }, (_, i) => i);
+
+    it('직전 10거래일 지금 소스 봉이 없던 월물은 건너뛴다', async () => {
+      const { requested, bars } = await withHistory({ CL: range(20) });
+      expect(requested('CL')).toEqual(symbolsOf('CL', range(20)));
+      expect(bars.has(`${symbolsOf('CL', [19])[0]}|2026-10-27`)).toBe(true);
+    });
+
+    it('가까운 2개와 가까운 대상 월물 5개는 봉이 없었어도 받는다', async () => {
+      // 금 대상 월물은 짝수 달: 12월·2027년 2·4·6·8월. 가까운 2개는 11·12월
+      const { requested } = await withHistory({ GC: [20] });
+      expect(requested('GC')).toEqual(symbolsOf('GC', [0, 1, 3, 5, 7, 9, 20]));
+    });
+
+    it('직전 10거래일을 모두 지금 소스로 정산하지 않았으면 건너뛰지 않는다', async () => {
+      const { requested } = await withHistory({ CL: range(5) }, LOOKBACK.slice(1));
+      expect(requested('CL')).toHaveLength(MAX_SETTLE_CONTRACTS);
+    });
+
+    it('다른 소스(적재) 봉은 이력으로 치지 않는다', async () => {
+      const { requested } = await withHistory({ CL: range(26) }, LOOKBACK, 'DATABENTO');
+      expect(requested('CL')).toHaveLength(MAX_SETTLE_CONTRACTS);
+    });
   });
 
   it('정산 이력이 없으면 저장된 일봉의 마지막 날 다음부터 따라잡는다(적재 직후)', async () => {

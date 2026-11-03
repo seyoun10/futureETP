@@ -62,6 +62,7 @@ export function createSettleStore(db: typeof Db): SettleStore {
           symbol: contract.symbol,
           firstTradeDate: contract.firstTradeDate,
           lastTradeDate: contract.lastTradeDate,
+          isTarget: contract.isTarget,
         })
         .from(contract)
         .where(eq(contract.commodityCode, code)),
@@ -95,6 +96,18 @@ export function createSettleStore(db: typeof Db): SettleStore {
                 .from(contract)
                 .where(eq(contract.commodityCode, code)),
             ),
+          ),
+        ),
+    sourceBarDates: (code, source, from, to) =>
+      db
+        .select({ contractSymbol: dailyBar.contractSymbol, tradeDate: dailyBar.tradeDate })
+        .from(dailyBar)
+        .innerJoin(contract, eq(contract.symbol, dailyBar.contractSymbol))
+        .where(
+          and(
+            eq(contract.commodityCode, code),
+            eq(dailyBar.source, source),
+            between(dailyBar.tradeDate, from, to),
           ),
         ),
     async upsertDailyBars(rows) {
