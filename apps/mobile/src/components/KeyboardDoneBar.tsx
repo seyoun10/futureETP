@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Keyboard, Platform, Pressable, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 
 // iOS 숫자 키패드에는 닫는 키가 없어 키패드가 열린 동안 [완료] 줄을 보인다. Android는 키패드의 완료 키로 닫는다.
 // InputAccessoryView는 RN 0.88에서 deprecated라 직접 그린다. 화면 루트를 KeyboardAvoidingView(padding)로 감싸고
 // 그 맨 아래에 두면 키패드 바로 위에 붙는다
+const FADE_IN_MS = 150;
+
 export function KeyboardDoneBar() {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(() => Keyboard.isVisible());
@@ -21,12 +23,22 @@ export function KeyboardDoneBar() {
   }, []);
 
   if (Platform.OS !== 'ios' || !visible) return null;
+  return <DoneBar label={t('common.done')} />;
+}
+
+// 키패드가 다 올라온 뒤 툭 나타나지 않게 보일 때마다 짧게 페이드 인한다. 숨길 때는 키패드와 함께 바로 사라진다
+function DoneBar({ label }: { label: string }) {
+  const [opacity] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: FADE_IN_MS, useNativeDriver: true }).start();
+  }, [opacity]);
+
   return (
-    <View style={styles.bar}>
+    <Animated.View style={[styles.bar, { opacity }]}>
       <Pressable accessibilityRole="button" onPress={() => Keyboard.dismiss()} hitSlop={8}>
-        <Text style={styles.button}>{t('common.done')}</Text>
+        <Text style={styles.button}>{label}</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 
