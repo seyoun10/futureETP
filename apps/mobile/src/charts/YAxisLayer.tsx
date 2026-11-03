@@ -23,8 +23,8 @@ type YAxisLayerProps = {
   priceDecimals: number;
   // 겹치면 모두 남긴 채 위·아래로 민다
   labels: readonly PriceLabel[];
-  // 회색 수평 점선을 그릴 현재가
-  currentPrice: number | null;
+  // 수평 점선(뒤에 둔 것이 위에 그려진다)
+  guides: readonly { price: number; color: string }[];
   crosshair: Crosshair;
 };
 
@@ -43,7 +43,7 @@ export function YAxisLayer({
   chartBounds,
   priceDecimals,
   labels,
-  currentPrice,
+  guides,
   crosshair,
 }: YAxisLayerProps) {
   const { ky, ty } = useCartesianTransformContext();
@@ -63,7 +63,6 @@ export function YAxisLayer({
     chartBounds.bottom,
   );
   const x = chartBounds.right + 4;
-  const currentY = currentPrice === null ? null : toScreen(currentPrice);
 
   return (
     <>
@@ -92,16 +91,21 @@ export function YAxisLayer({
           ),
         ];
       })}
-      {currentY !== null && currentY >= chartBounds.top && currentY <= chartBounds.bottom && (
-        <Line
-          p1={vec(chartBounds.left, currentY)}
-          p2={vec(chartBounds.right, currentY)}
-          color={colors.chart.currentPrice}
-          strokeWidth={1}
-        >
-          <DashPathEffect intervals={GUIDE_DASH} />
-        </Line>
-      )}
+      {guides.map((g) => {
+        const y = toScreen(g.price);
+        if (y < chartBounds.top || y > chartBounds.bottom) return null;
+        return (
+          <Line
+            key={`d${g.color}`}
+            p1={vec(chartBounds.left, y)}
+            p2={vec(chartBounds.right, y)}
+            color={g.color}
+            strokeWidth={1}
+          >
+            <DashPathEffect intervals={GUIDE_DASH} />
+          </Line>
+        );
+      })}
       {special.map((l) => (
         <AxisLabel
           key={`s${l.key}`}

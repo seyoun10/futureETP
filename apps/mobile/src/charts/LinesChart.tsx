@@ -42,6 +42,7 @@ type LinesChartProps = {
 };
 
 const noop = () => {};
+const NO_GUIDES: [] = [];
 
 // CartesianChart에 넘기는 설정은 모듈 상수·memo로 고정한다. victory-native는 yKeys·padding·축 설정이
 // 바뀌면(새 배열·객체여도) 모든 봉의 좌표를 다시 계산해, 보이는 범위가 바뀔 때마다 JS 스레드가 수 초 멈췄다
@@ -145,7 +146,7 @@ export const LinesChart = memo(function LinesChart({
                 chartBounds={chartBounds}
                 priceDecimals={priceDecimals}
                 labels={endLabels}
-                currentPrice={null}
+                guides={NO_GUIDES}
                 crosshair={crosshair}
               />
               <LineLayer

@@ -7,7 +7,7 @@ import { CartesianChart, Candlestick, useChartPressState } from 'victory-native'
 import type { ChartBounds, PointsArray } from 'victory-native';
 
 import { formatPrice } from '@/lib/formatNumber';
-import { spacing } from '@/theme/tokens';
+import { colors, spacing } from '@/theme/tokens';
 import { useUpDownPalette } from '@/theme/upDownColor';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
@@ -42,7 +42,7 @@ type CandleChartProps = {
   lines: readonly ChartLine[];
   // 보이는 마지막 봉 기준 값. 겹치면 위·아래로 민다
   priceLabels: readonly PriceLabel[];
-  // 회색 수평 점선 가격(보이는 마지막 봉 종가)
+  // 회색 수평 점선 가격(보이는 마지막 봉 종가). 마지막 봉 종가는 흰색 점선으로 함께 그린다
   guidePrice: number;
   priceDecimals: number;
   roll: RollMarks;
@@ -130,6 +130,17 @@ export const CandleChart = memo(function CandleChart({
     [bars, envelope],
   );
   const current = bars[bars.length - 1];
+  // 마지막 봉이 보이면 두 점선이 겹치므로 흰색을 위에 그린다
+  const guides = useMemo(
+    () =>
+      current
+        ? [
+            { price: guidePrice, color: colors.chart.currentPrice },
+            { price: current.close, color: colors.chart.lastPrice },
+          ]
+        : [],
+    [current, guidePrice],
+  );
   // 우측 y축 라벨 자리(가장 큰 가격 라벨 + 여백)
   const yLabelWidth = useMemo(() => {
     const max = Math.max(1, ...envelope.hi);
@@ -178,7 +189,7 @@ export const CandleChart = memo(function CandleChart({
                 chartBounds={chartBounds}
                 priceDecimals={priceDecimals}
                 labels={priceLabels}
-                currentPrice={guidePrice}
+                guides={guides}
                 crosshair={crosshair}
               />
               <LineLayer
