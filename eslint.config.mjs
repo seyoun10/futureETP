@@ -13,6 +13,8 @@ export default defineConfig([
     'apps/mobile/ios/',
     'apps/mobile/expo-env.d.ts',
     'apps/server/drizzle/',
+    // Claude Code가 만드는 git worktree(저장소 사본)
+    '.claude/worktrees/',
   ]),
 
   // Expo 규칙(React·Hooks·import)은 앱에만 건다.

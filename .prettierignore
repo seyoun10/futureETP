@@ -3,3 +3,5 @@ package-lock.json
 apps/server/drizzle/
 # 문서는 ASCII 와이어프레임·표를 손으로 맞춰 두므로 포맷하지 않는다(D-054).
 *.md
+# Claude Code가 만드는 git worktree(저장소 사본). .git/info/exclude에만 있어 Prettier가 모른다.
+.claude/worktrees/
