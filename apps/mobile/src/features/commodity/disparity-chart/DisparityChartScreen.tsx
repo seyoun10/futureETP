@@ -237,7 +237,8 @@ const ohlcText = (t: T, bar: ChartBar, decimals: number) =>
     .map((key) => `${t(`disparity.${key}`)}${formatPrice(bar[key], decimals)}`)
     .join(' ');
 
-const formatDisparity = (value: number) => `${formatChange(value, 1)}%`;
+const DISPARITY_DECIMALS = 1;
+const formatDisparity = (value: number) => `${formatChange(value, DISPARITY_DECIMALS)}%`;
 
 // 좌하단 한 줄: 이격도(꼬리 백분위) · 저점대비 · 고점대비. LC·HC는 보이는 봉 기준이다
 function StatsLine({
@@ -331,7 +332,7 @@ function CrosshairDetail({
         <DetailRow
           label={t('disparity.disparityLabel')}
           value={formatDisparity(bar.disparity)}
-          color={changeColor(bar.disparity, palette)}
+          color={changeColor(bar.disparity, palette, DISPARITY_DECIMALS)}
         />
       )}
       {lineValues.map((line) => (

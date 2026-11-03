@@ -15,9 +15,11 @@ export const upDownPalette = (style: UpDownStyle): UpDownPalette => ({
 });
 
 // 변화량 부호로 색을 고른다. 0·NaN은 방향 없는 색이다.
-export const changeColor = (change: number, palette: UpDownPalette) => {
-  if (change > 0) return palette.up;
-  if (change < 0) return palette.down;
+// decimals를 주면 그 자릿수로 반올림한 값(화면에 쓴 값)으로 고른다: `0.0%`로 보이는 -0.04는 방향 없는 색
+export const changeColor = (change: number, palette: UpDownPalette, decimals?: number) => {
+  const shown = decimals === undefined ? change : Number(change.toFixed(decimals));
+  if (shown > 0) return palette.up;
+  if (shown < 0) return palette.down;
   return palette.flat;
 };
 

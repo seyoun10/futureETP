@@ -25,4 +25,11 @@ describe('changeColor', () => {
     expect(changeColor(-0, palette)).toBe(palette.flat);
     expect(changeColor(Number.NaN, palette)).toBe(palette.flat);
   });
+
+  it('자릿수를 주면 반올림해 보이는 값으로 고른다', () => {
+    expect(changeColor(-0.04, palette, 1)).toBe(palette.flat);
+    expect(changeColor(0.04, palette, 1)).toBe(palette.flat);
+    expect(changeColor(-0.05, palette, 1)).toBe(palette.down);
+    expect(changeColor(0.06, palette, 1)).toBe(palette.up);
+  });
 });
