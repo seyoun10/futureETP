@@ -247,7 +247,7 @@ describe('C-a 이격도차트', () => {
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
   });
 
-  it('십자선 상세는 날짜·시고저종·전일 대비·이격도·월물 비중이다', async () => {
+  it('십자선 상세는 날짜·월물 비중, 시고저종, 전일 대비, 이격도다', async () => {
     await renderScreen();
     await screen.findByTestId('disparity-stats');
 
@@ -257,9 +257,13 @@ describe('C-a 이격도차트', () => {
     expect(screen.getByText('2026-10-21')).toBeOnTheScreen();
     expect(screen.getByText('시 79.5  고 81.0')).toBeOnTheScreen();
     expect(screen.getByText('저 79.0  종 80.0')).toBeOnTheScreen();
-    expect(screen.getByText('전일 대비 -10.0 (-11.11%)')).toBeOnTheScreen();
-    expect(screen.getByText('이격도 -20.0%')).toBeOnTheScreen();
+    expect(screen.getByText('-10.0 (-11.11%)')).toBeOnTheScreen();
+    expect(screen.getByText('-20.0%')).toBeOnTheScreen();
     expect(screen.getByText('DEC26 60% · FEB27 40%')).toBeOnTheScreen();
+    // 월물 구성은 날짜 줄 오른쪽이다
+    const row = (text: string) => screen.getByText(text).parent?.parent;
+    expect(row('DEC26 60% · FEB27 40%')).toBe(row('2026-10-21'));
+    expect(row('-20.0%')).toBe(row('이격도'));
   });
 
   it('십자선 상세는 전일 대비·이격도를 등락 색으로, 이평선·rare-level 값을 높은 순으로 선 색으로 쓴다', async () => {
@@ -275,8 +279,8 @@ describe('C-a 이격도차트', () => {
 
     await render(<>{lastChartProps().renderDetail(1)}</>);
     const palette = upDownPalette(useDisplaySettings.getState().upDownStyle);
-    expect(screen.getByText('전일 대비 -10.0 (-11.11%)')).toHaveStyle({ color: palette.down });
-    expect(screen.getByText('이격도 -20.0%')).toHaveStyle({ color: palette.down });
+    expect(screen.getByText('-10.0 (-11.11%)')).toHaveStyle({ color: palette.down });
+    expect(screen.getByText('-20.0%')).toHaveStyle({ color: palette.down });
 
     // 화면 위 순서(가격 높은 순)
     const order = ['상위 1%', '200일선', '하위 1%'].map(

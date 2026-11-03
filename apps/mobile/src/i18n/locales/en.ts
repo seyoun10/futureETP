@@ -78,7 +78,8 @@ export const en: Translation = {
     tailDOWN: 'bottom {{pct}}%',
     fromLow: 'LC {{pct}}',
     fromHigh: 'HC {{pct}}',
-    prevChange: 'Chg {{change}} ({{pct}})',
+    prevChange: 'Chg',
+    disparityLabel: 'Disparity',
     ma: 'MA{{n}}',
     noData: 'No bars to show.',
     hint: {

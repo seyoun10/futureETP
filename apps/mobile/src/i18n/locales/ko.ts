@@ -84,7 +84,8 @@ export const ko = {
     tailDOWN: '하위 {{pct}}%',
     fromLow: '저점대비 {{pct}}',
     fromHigh: '고점대비 {{pct}}',
-    prevChange: '전일 대비 {{change}} ({{pct}})',
+    prevChange: '전일 대비',
+    disparityLabel: '이격도',
     ma: '{{n}}일선',
     noData: '표시할 봉이 없습니다.',
     hint: {

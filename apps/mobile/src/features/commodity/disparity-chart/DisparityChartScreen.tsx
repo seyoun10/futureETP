@@ -270,7 +270,7 @@ function StatsLine({
   );
 }
 
-// 십자선 상세 박스: 날짜, 시고저종, 전일 대비, 이격도, 월물 구성, 이평선·rare-level 값(screens.md C-a 길게 누르기).
+// 십자선 상세 박스: 날짜·월물 구성, 시고저종, 전일 대비, 이격도, 이평선·rare-level 값(screens.md C-a 길게 누르기).
 // 전일 대비·이격도는 부호대로 등락 색, 선 값은 가격 높은 순으로 선 색이다
 function CrosshairDetail({
   model,
@@ -304,7 +304,7 @@ function CrosshairDetail({
 
   return (
     <View style={styles.detail}>
-      <Text style={styles.detailText}>{bar.tradeDate}</Text>
+      <DetailRow label={bar.tradeDate} value={holdings} />
       <Text style={styles.detailText}>
         {`${t('disparity.open')} ${formatPrice(bar.open, decimals)}  ${t('disparity.high')} ${formatPrice(bar.high, decimals)}`}
       </Text>
@@ -312,27 +312,45 @@ function CrosshairDetail({
         {`${t('disparity.low')} ${formatPrice(bar.low, decimals)}  ${t('disparity.close')} ${formatPrice(bar.close, decimals)}`}
       </Text>
       {prev && (
-        <Text style={[styles.detailText, { color: changeColor(bar.close - prev.close, palette) }]}>
-          {t('disparity.prevChange', {
-            change: formatChange(bar.close - prev.close, decimals),
-            pct: formatChangePct((bar.close / prev.close - 1) * 100),
-          })}
-        </Text>
+        <DetailRow
+          label={t('disparity.prevChange')}
+          value={`${formatChange(bar.close - prev.close, decimals)} (${formatChangePct((bar.close / prev.close - 1) * 100)})`}
+          color={changeColor(bar.close - prev.close, palette)}
+        />
       )}
       {bar.disparity !== null && (
-        <Text style={[styles.detailText, { color: changeColor(bar.disparity, palette) }]}>
-          {t('disparity.disparity', { value: formatDisparity(bar.disparity) })}
-        </Text>
+        <DetailRow
+          label={t('disparity.disparityLabel')}
+          value={formatDisparity(bar.disparity)}
+          color={changeColor(bar.disparity, palette)}
+        />
       )}
-      {holdings && <Text style={styles.detailText}>{holdings}</Text>}
       {lineValues.map((line) => (
-        <View key={line.key} style={styles.detailRow}>
-          <Text style={[styles.detailText, { color: line.color }]}>{lineLabel(line.label)}</Text>
-          <Text style={[styles.detailText, { color: line.color }]}>
-            {formatPrice(line.price, decimals)}
-          </Text>
-        </View>
+        <DetailRow
+          key={line.key}
+          label={lineLabel(line.label)}
+          value={formatPrice(line.price, decimals)}
+          color={line.color}
+        />
       ))}
+    </View>
+  );
+}
+
+// 상세 박스 한 줄: 이름은 왼쪽, 값은 오른쪽 정렬
+function DetailRow({
+  label,
+  value,
+  color = colors.text,
+}: {
+  label: string;
+  value: string | null;
+  color?: string;
+}) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={[styles.detailText, { color }]}>{label}</Text>
+      {value !== null && <Text style={[styles.detailText, { color }]}>{value}</Text>}
     </View>
   );
 }
