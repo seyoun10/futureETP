@@ -2,6 +2,7 @@
 // 선은 모두 그리고, 라벨은 우선순위 순으로 겹치지 않는 것만 남긴다.
 
 // 위에서 아래로 픽셀 y. 라벨 높이가 같다고 보고 가운데 y 사이 거리로 겹침을 판정한다.
+// 돌려주는 라벨의 y는 그릴 위치다(끝에 붙은 라벨은 안쪽으로 민 값).
 export function placeLabels<T extends { y: number }>(
   ordered: readonly T[],
   height: number,
@@ -11,11 +12,16 @@ export function placeLabels<T extends { y: number }>(
   const shown: T[] = [];
   for (const label of ordered) {
     if (label.y < top || label.y > bottom) continue;
-    if (overlapsAny(label.y, shown, height)) continue;
-    shown.push(label);
+    const y = clampLabelY(label.y, height, top, bottom);
+    if (overlapsAny(y, shown, height)) continue;
+    shown.push({ ...label, y });
   }
   return shown;
 }
+
+// 라벨은 가운데 y에 그려 차트 위·아래 끝에 붙으면 반이 잘린다. 반 높이만큼 안쪽으로 민다(선은 제자리)
+export const clampLabelY = (y: number, height: number, top: number, bottom: number) =>
+  Math.min(Math.max(y, top + height / 2), bottom - height / 2);
 
 export const overlapsAny = (y: number, labels: readonly { y: number }[], height: number) =>
   labels.some((l) => Math.abs(l.y - y) < height);
@@ -30,13 +36,13 @@ export function stackLabels<T extends { y: number }>(
 ): T[] {
   const sorted = labels
     .filter((l) => l.y >= top && l.y <= bottom)
-    .map((l) => ({ ...l }))
+    .map((l) => ({ ...l, y: clampLabelY(l.y, height, top, bottom) }))
     .sort((a, b) => a.y - b.y);
   for (let i = 1; i < sorted.length; i++) {
     sorted[i].y = Math.max(sorted[i].y, sorted[i - 1].y + height);
   }
   for (let i = sorted.length - 1; i >= 0; i--) {
-    const limit = i === sorted.length - 1 ? bottom : sorted[i + 1].y - height;
+    const limit = i === sorted.length - 1 ? bottom - height / 2 : sorted[i + 1].y - height;
     sorted[i].y = Math.min(sorted[i].y, limit);
   }
   return sorted;

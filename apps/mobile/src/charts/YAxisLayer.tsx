@@ -9,7 +9,7 @@ import { GUIDE_DASH } from './chartLayout';
 import { numberFont } from './chartText';
 import { crosshairLabelHeight } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
-import { overlapsAny, placeLabels, stackLabels } from './priceLabels';
+import { clampLabelY, overlapsAny, placeLabels, stackLabels } from './priceLabels';
 
 const TICK_COUNT = 6;
 
@@ -72,6 +72,8 @@ export function YAxisLayer({
       {ticks.map((t) => {
         const y = toScreen(t);
         if (y < chartBounds.top || y > chartBounds.bottom) return null;
+        // 끝에 붙은 눈금 글자는 잘리므로 격자선만 그린다
+        const clipped = y !== clampLabelY(y, height, chartBounds.top, chartBounds.bottom);
         return [
           <Line
             key={`g${t}`}
@@ -80,7 +82,7 @@ export function YAxisLayer({
             color={colors.chart.grid}
             strokeWidth={0}
           />,
-          overlapsAny(y, special, height) ? null : (
+          clipped || overlapsAny(y, special, height) ? null : (
             <AxisLabel
               key={`l${t}`}
               x={x}
