@@ -80,7 +80,7 @@ function loadDays(store: SettleStore, now: Date) {
   return store.tradingDays(addDays(today, -CALENDAR_LOOKBACK_DAYS), addDays(today, 1));
 }
 
-// 원자재마다 일봉을 받는 월물 수: 최종 거래일이 가까운 쪽부터. 커브 상한 24개(D-018) + 2.
+// 원자재마다 일봉을 받는 월물 수: 최종 거래일이 가까운 쪽부터. 커브 상한(D-018 당시 24개) + 2.
 // 먼 월물은 지수·커브에 쓰지 않고, 소스 호출 제한(Massive 분당 5회)에 묶인다(D-095)
 export const MAX_SETTLE_CONTRACTS = 26;
 

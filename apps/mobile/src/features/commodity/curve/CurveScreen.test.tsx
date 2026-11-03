@@ -104,9 +104,9 @@ describe('C-b 월물커브', () => {
       '롤 수익률 -89.0%/년 (기준일 -86.7%/년)',
     );
     expect(lastChartProps().points).toEqual([
-      { label: 'NOV26', base: 3.1, current: null, changePct: null },
-      { label: 'DEC26', base: 3.2, current: 3.168, changePct: -1 },
-      { label: 'JAN27', base: null, current: 3.45, changePct: null },
+      { label: '2611', base: 3.1, current: null, changePct: null },
+      { label: '2612', base: 3.2, current: 3.168, changePct: -1 },
+      { label: '2701', base: null, current: 3.45, changePct: null },
     ]);
   });
 

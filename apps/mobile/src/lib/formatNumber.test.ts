@@ -1,4 +1,10 @@
-import { formatChange, formatChangePct, formatContractMonth, formatPrice } from './formatNumber';
+import {
+  formatChange,
+  formatChangePct,
+  formatContractMonth,
+  formatContractMonthShort,
+  formatPrice,
+} from './formatNumber';
 
 describe('formatPrice', () => {
   it('천 단위 쉼표와 소수 자릿수를 맞춘다', () => {
@@ -39,5 +45,12 @@ describe('formatContractMonth', () => {
   it('YYYY-MM을 CME 표기 월물로 쓴다', () => {
     expect(formatContractMonth('2026-12')).toBe('DEC26');
     expect(formatContractMonth('2027-01')).toBe('JAN27');
+  });
+});
+
+describe('formatContractMonthShort', () => {
+  it('YYYY-MM을 연도 두 자리 + 월 두 자리 숫자로 쓴다', () => {
+    expect(formatContractMonthShort('2026-12')).toBe('2612');
+    expect(formatContractMonthShort('2027-02')).toBe('2702');
   });
 });

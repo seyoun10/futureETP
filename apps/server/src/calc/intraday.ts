@@ -44,7 +44,7 @@ export type IntradayIndex = {
   disparityByMa: DisparityByMa;
 };
 
-// 장중에 받을 커브 월물: 거래일 T에 만기 전인 대상 월물을 만기순으로 커브 상한(24개)까지.
+// 장중에 받을 커브 월물: 거래일 T에 만기 전인 대상 월물을 만기순으로 커브 상한(12개)까지.
 // 거래량 기준(D-018)은 커브 조회가 적용하므로 여기서는 거르지 않는다
 export function intradayCurveContracts<T extends ListedContract>(
   contracts: readonly T[],

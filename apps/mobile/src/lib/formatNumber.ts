@@ -25,3 +25,7 @@ export const formatChangePct = (pct: number): string => `${formatChange(pct, 2)}
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const formatContractMonth = (contractMonth: string): string =>
   `${MONTHS[Number(contractMonth.slice(5, 7)) - 1]}${contractMonth.slice(2, 4)}`;
+
+// 월물 `YYYY-MM` → `2612`(C-b x축은 월물이 많아 숫자로 줄인다)
+export const formatContractMonthShort = (contractMonth: string): string =>
+  `${contractMonth.slice(2, 4)}${contractMonth.slice(5, 7)}`;

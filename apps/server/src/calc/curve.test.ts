@@ -78,10 +78,10 @@ function clSeries(startMonth: string, volumes: readonly number[]): CurveCandidat
 const symbols = (points: readonly { symbol: string }[]) => points.map((p) => p.symbol);
 
 describe('상수', () => {
-  it('기준값은 100계약, 20거래일, 24개다(D-018)', () => {
+  it('기준값은 100계약, 20거래일, 12개다(D-018)', () => {
     expect(CURVE_MIN_AVG_VOLUME).toBe(100);
     expect(CURVE_VOLUME_DAYS).toBe(20);
-    expect(CURVE_MAX_CONTRACTS).toBe(24);
+    expect(CURVE_MAX_CONTRACTS).toBe(12);
   });
 });
 
@@ -226,7 +226,7 @@ describe('selectCurve', () => {
     expect(symbols(curve.contracts)).toEqual(['CLZ26', 'CLF27', 'CLG27']);
   });
 
-  it('최대 24개이고 M1 앞 월물도 개수에 센다', () => {
+  it('최대 12개이고 M1 앞 월물도 개수에 센다', () => {
     const candidates = clSeries(
       '2026-12',
       Array.from({ length: 30 }, (_, i) => (i < 2 ? 0 : 5000)),
@@ -234,7 +234,7 @@ describe('selectCurve', () => {
     const front = candidates[2].symbol;
     const curve = selectCurve(candidates, curveDate, front);
     expect(curve.contracts).toHaveLength(CURVE_MAX_CONTRACTS);
-    expect(symbols(curve.contracts)).toEqual(symbols(candidates.slice(0, 24)));
+    expect(symbols(curve.contracts)).toEqual(symbols(candidates.slice(0, 12)));
     expect(curve.m1?.symbol).toBe(front);
   });
 

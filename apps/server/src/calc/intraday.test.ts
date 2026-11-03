@@ -15,7 +15,7 @@ const contract = (symbol: string, lastTradeDate: string, isTarget = true) => ({
 });
 
 describe('intradayCurveContracts', () => {
-  it('거래일에 만기 전인 대상 월물을 만기순 24개까지 고른다(최종 거래일 당일 포함)', () => {
+  it('거래일에 만기 전인 대상 월물을 만기순 12개까지 고른다(최종 거래일 당일 포함)', () => {
     const later = Array.from({ length: 30 }, (_, i) =>
       contract(`CLX${30 + i}`, `${2030 + i}-10-20`),
     );
@@ -29,7 +29,7 @@ describe('intradayCurveContracts', () => {
       ],
       '2026-10-20',
     );
-    expect(picked).toHaveLength(24);
+    expect(picked).toHaveLength(12);
     expect(picked.slice(0, 3).map((c) => c.symbol)).toEqual(['CLX26', 'CLZ26', 'CLX30']);
   });
 });

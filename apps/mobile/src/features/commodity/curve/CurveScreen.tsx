@@ -8,7 +8,7 @@ import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
-import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { formatContractMonth, formatContractMonthShort, formatPrice } from '@/lib/formatNumber';
 import { useIsLandscape } from '@/lib/orientation';
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/components/Icon';
@@ -100,7 +100,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
   const points = useMemo<CurvePoint[]>(
     () =>
       data.points.map((p) => ({
-        label: formatContractMonth(p.contractMonth),
+        label: formatContractMonthShort(p.contractMonth),
         base: p.basePrice,
         current: p.currentPrice,
         changePct: p.changePct,

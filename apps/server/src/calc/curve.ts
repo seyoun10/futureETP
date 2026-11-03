@@ -9,7 +9,7 @@ export const CURVE_MIN_AVG_VOLUME = 100;
 // 평균 거래량 창(거래일)
 export const CURVE_VOLUME_DAYS = 20;
 // 커브 월물 최대 개수
-export const CURVE_MAX_CONTRACTS = 24;
+export const CURVE_MAX_CONTRACTS = 12;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,7 +54,7 @@ export type Curve<T extends CurveCandidate = CurveCandidate> = {
 // 커브 날짜 curveDate의 월물을 고른다.
 // - 그날 만기되지 않았고 값이 있는 대상 월물을 만기순으로 잇는다.
 // - M1보다 만기가 이른 월물과 M1·M2는 거래량과 관계없이 넣는다. 미달 판정은 M2부터 하고,
-//   처음 미달한 월물에서 멈춘다(M2가 미달이면 M2까지). 최대 24개.
+//   처음 미달한 월물에서 멈춘다(M2가 미달이면 M2까지). 최대 12개.
 // - frontSymbol이 후보에 없으면 처음부터 거래량으로 판정하고 m1·m2는 null이다.
 export function selectCurve<T extends CurveCandidate>(
   candidates: readonly T[],
