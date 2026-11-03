@@ -41,10 +41,11 @@ export const CURVE_STATES = ['CONTANGO', 'BACKWARDATION', 'FLAT'] as const;
 export type CurveState = (typeof CURVE_STATES)[number];
 
 // 배치 작업 이름. 스케줄러 등록 이름·CLI 인자·Healthchecks.io check slug와 같다(D-045).
-// 일일 정산은 ① DAILY_SETTLE(당일 저장·재계산, 성공 = 정산 대기 해제)과 ② SETTLE_REVISION(전일 정정 확인)이다(D-071).
+// 일일 정산은 ① DAILY_SETTLE(당일 저장·재계산, 성공 = 정산 대기 해제)과 ② SETTLE_REVISION(전일 정정 확인)이고, 주말에 ③ SETTLE_BACKFILL(빠진 봉 보충, D-110)이 돈다.
 export const JOB_NAMES = [
   'DAILY_SETTLE',
   'SETTLE_REVISION',
+  'SETTLE_BACKFILL',
   'INTRADAY',
   'DEFERRED_PUSH',
   'ETP',

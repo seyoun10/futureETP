@@ -33,6 +33,7 @@ const MESSAGES: Record<Locale, Messages> = {
     jobs: {
       DAILY_SETTLE: '일일 정산',
       SETTLE_REVISION: '정산 정정 확인',
+      SETTLE_BACKFILL: '정산 보충',
       INTRADAY: '장중 판정',
       DEFERRED_PUSH: '지연 발송',
       ETP: 'ETP 목록',
@@ -55,6 +56,7 @@ const MESSAGES: Record<Locale, Messages> = {
     jobs: {
       DAILY_SETTLE: 'Daily settlement',
       SETTLE_REVISION: 'Settlement revision check',
+      SETTLE_BACKFILL: 'Settlement backfill',
       INTRADAY: 'Intraday check',
       DEFERRED_PUSH: 'Deferred push',
       ETP: 'ETP list',

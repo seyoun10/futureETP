@@ -41,4 +41,12 @@ export interface SettlementSource {
     symbols: readonly string[],
     tradeDate: string,
   ): Promise<SourceBar[]>;
+  // 월물마다 from 이후(포함) 확정 일봉 전부. 주말 보충(D-110)이 월물당 한 번 부른다. 소스가 주는 범위 밖은 빠진다
+  fetchRecentBars(
+    commodityCode: CommodityCode,
+    symbols: readonly string[],
+    from: string,
+  ): Promise<DatedSourceBar[]>;
 }
+
+export type DatedSourceBar = SourceBar & { tradeDate: string };

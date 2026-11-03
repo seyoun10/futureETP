@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import type { CommodityCode } from '@futureetp/shared';
+import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
 import { describe, expect, it, vi } from 'vitest';
 import {
   CME_TIME_ZONE,
@@ -9,9 +9,15 @@ import {
 } from '../calc/tradingCalendar.ts';
 import { toContractSymbol } from '../calc/contractSymbol.ts';
 import type { JobName } from '../constants.ts';
-import type { ContractDefinition, SettlementSource, SourceBar } from '../sources/settlement.ts';
+import type {
+  ContractDefinition,
+  DatedSourceBar,
+  SettlementSource,
+  SourceBar,
+} from '../sources/settlement.ts';
 import type { JobContext } from './runner.ts';
 import {
+  BACKFILL_DAYS,
   createSettleHandlers,
   MAX_SETTLE_CONTRACTS,
   type DailyBarRow,
@@ -96,8 +102,31 @@ function testSource(settle: (symbol: string, tradeDate: string) => number | null
         }),
       ),
   );
-  const source: SettlementSource = { name: 'FAKE', listContracts, fetchDailyBars };
-  return { source, listContracts, fetchDailyBars };
+  // 테스트 기간(2026-11-06)까지의 거래일 봉
+  const fetchRecentBars = vi.fn((_code: CommodityCode, symbols: readonly string[], from: string) =>
+    Promise.resolve(
+      DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= '2026-11-06').flatMap((d) =>
+        symbols.flatMap((contractSymbol): DatedSourceBar[] => {
+          const value = settle(contractSymbol, d.tradeDate);
+          return value === null
+            ? []
+            : [
+                {
+                  contractSymbol,
+                  tradeDate: d.tradeDate,
+                  open: null,
+                  high: null,
+                  low: null,
+                  settle: value,
+                  volume: 10,
+                },
+              ];
+        }),
+      ),
+    ),
+  );
+  const source: SettlementSource = { name: 'FAKE', listContracts, fetchDailyBars, fetchRecentBars };
+  return { source, listContracts, fetchDailyBars, fetchRecentBars };
 }
 
 const ctx = (now = NOW): JobContext => ({ now });
@@ -325,5 +354,112 @@ describe('SETTLE_REVISION', () => {
     });
     await handlers.SETTLE_REVISION(ctx());
     expect(source.fetchDailyBars).not.toHaveBeenCalled();
+  });
+});
+
+describe('SETTLE_BACKFILL', () => {
+  const SATURDAY = ct('2026-10-31', '10:00');
+  const DATES = DAYS.map((d) => d.tradeDate)
+    .filter((d) => d <= '2026-10-30')
+    .slice(-BACKFILL_DAYS);
+
+  // 10-30까지 정산했고, 10월 봉이 skip만 빼고 저장된 상태
+  async function settled(
+    skip: readonly string[],
+    settle?: (symbol: string, tradeDate: string) => number | null,
+    lastSettled = '2026-10-30',
+  ) {
+    const env = setup({ DAILY_SETTLE: lastSettled }, testSource(settle));
+    for (const code of COMMODITY_CODES) {
+      const definitions = await env.source.listContracts(code);
+      await env.store.insertContracts(
+        definitions.map((d) => ({ ...d, commodityCode: code, isTarget: true })),
+      );
+      const october = DAYS.map((d) => d.tradeDate).filter((d) => d <= '2026-10-30');
+      const rows = october.flatMap((tradeDate) =>
+        definitions
+          .filter((d) => d.firstTradeDate === null || d.firstTradeDate <= tradeDate)
+          .map((d) => d.symbol)
+          .filter((contractSymbol) => !skip.includes(`${contractSymbol}|${tradeDate}`))
+          .map((contractSymbol): DailyBarRow => ({
+            contractSymbol,
+            tradeDate,
+            open: null,
+            high: null,
+            low: null,
+            settle: 90,
+            volume: 10,
+            source: 'FAKE',
+            collectedAt: NOW,
+            revisedAt: null,
+          })),
+      );
+      await env.store.upsertDailyBars(rows);
+    }
+    env.source.listContracts.mockClear();
+    return env;
+  }
+
+  it('빠진 봉만 월물마다 한 번 받아 저장하고 그 원자재만 재계산한다', async () => {
+    const { handlers, source, bars, recompute } = await settled([
+      'CLZ26|2026-10-20',
+      'CLZ26|2026-10-28',
+      'CLF27|2026-10-29',
+    ]);
+    const c = ctx(SATURDAY);
+    await handlers.SETTLE_BACKFILL(c);
+
+    expect(c.tradeDate).toBe('2026-10-30');
+    expect(source.fetchRecentBars.mock.calls).toEqual([['CL', ['CLZ26', 'CLF27'], DATES[0]]]);
+    for (const key of ['CLZ26|2026-10-20', 'CLZ26|2026-10-28', 'CLF27|2026-10-29']) {
+      expect(bars.get(key)).toMatchObject({
+        settle: 100,
+        source: 'FAKE',
+        collectedAt: SATURDAY,
+        revisedAt: null,
+      });
+    }
+    // 저장돼 있던 봉은 그대로다
+    expect(bars.get('CLZ26|2026-10-29')?.settle).toBe(90);
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
+  });
+
+  it('빠진 봉이 없으면 소스를 부르지 않는다', async () => {
+    const { handlers, source, recompute } = await settled([]);
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(source.fetchRecentBars).not.toHaveBeenCalled();
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('소스에도 없으면(거래 없던 날) 저장·재계산 없이 성공한다', async () => {
+    const { handlers, bars, recompute } = await settled(['SIZ26|2026-10-27'], () => null);
+    const size = bars.size;
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(bars.size).toBe(size);
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('보충 기간 밖이거나 아직 정산 전인 날의 봉은 받지 않는다', async () => {
+    const { handlers, source, bars } = await settled(['NGZ26|2026-10-30'], undefined, '2026-10-29');
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(source.fetchRecentBars).not.toHaveBeenCalled();
+    expect(bars.has('NGZ26|2026-10-30')).toBe(false);
+  });
+
+  it('정산 이력이 없으면 아무것도 하지 않는다', async () => {
+    const { handlers, source } = setup({});
+    const c = ctx(SATURDAY);
+    await handlers.SETTLE_BACKFILL(c);
+    expect(c.tradeDate).toBeUndefined();
+    expect(source.fetchRecentBars).not.toHaveBeenCalled();
+  });
+
+  it('한 원자재가 실패해도 나머지를 채우고 실패로 끝난다', async () => {
+    const { handlers, source, recompute } = await settled(['GCZ26|2026-10-28', 'CLZ26|2026-10-28']);
+    source.fetchRecentBars.mockRejectedValueOnce(new Error('HTTP 500'));
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(
+      /Backfill failed: GC: HTTP 500/,
+    );
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 });

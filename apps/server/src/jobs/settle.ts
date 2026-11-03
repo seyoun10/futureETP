@@ -1,5 +1,6 @@
 // 일일 정산(D-047, D-071). ① DAILY_SETTLE: 밀린 거래일까지 일봉 저장 → 원자재별 전체 재계산. 성공 = 정산 대기 해제.
 // ② SETTLE_REVISION: 직전 거래일 일봉을 다시 받아 바뀐 원자재만 재계산. 마지막 실행이 실패면 알림 판정을 멈춘다.
+// ③ SETTLE_BACKFILL(주말): 최근 정산일에 빠진 봉을 채운다(D-110).
 import type { CommodityCode } from '@futureetp/shared';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import { isTargetMonth, type ActiveMonthRule } from '../calc/monthList.ts';
@@ -71,9 +72,27 @@ function loadDays(store: SettleStore, now: Date) {
 // 먼 월물은 지수·커브에 쓰지 않고, 소스 호출 제한(Massive 분당 5회)에 묶인다(D-095)
 export const MAX_SETTLE_CONTRACTS = 26;
 
+// 주말 보충이 다시 보는 정산 거래일 수. Massive는 월물마다 봉이 있는 최근 10세션을 준다(D-110)
+export const BACKFILL_DAYS = 10;
+
+// 그날 거래되는 월물 중 일봉을 받는 월물(최종 거래일, 같으면 심볼 순)
+function settleSymbols(
+  contracts: readonly { symbol: string; firstTradeDate: string | null; lastTradeDate: string }[],
+  tradeDate: string,
+): string[] {
+  return contracts
+    .filter((c) => tradesOn(c, tradeDate))
+    .sort(
+      (a, b) => a.lastTradeDate.localeCompare(b.lastTradeDate) || a.symbol.localeCompare(b.symbol),
+    )
+    .slice(0, MAX_SETTLE_CONTRACTS)
+    .map((c) => c.symbol);
+}
+
 export function createSettleHandlers({ store, source, recompute, log = console.log }: SettleDeps): {
   DAILY_SETTLE: JobHandler;
   SETTLE_REVISION: JobHandler;
+  SETTLE_BACKFILL: JobHandler;
 } {
   // 월물 상장(소스의 새 월물 추가) → 그날 거래되는 월물의 일봉 저장.
   // 이미 받은 날은 건너뛴다(다른 원자재 실패로 재시도·따라잡기할 때 소스 호출을 아낌)
@@ -94,14 +113,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       })),
     );
 
-    const symbols = (await store.contracts(code))
-      .filter((c) => tradesOn(c, tradeDate))
-      .sort(
-        (a, b) =>
-          a.lastTradeDate.localeCompare(b.lastTradeDate) || a.symbol.localeCompare(b.symbol),
-      )
-      .slice(0, MAX_SETTLE_CONTRACTS)
-      .map((c) => c.symbol);
+    const symbols = settleSymbols(await store.contracts(code), tradeDate);
     const bars = await source.fetchDailyBars(code, symbols, tradeDate);
     // 소스 반영 전(D-019)이면 실패로 끝내 재시도에 맡긴다
     if (bars.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name} yet`);
@@ -201,5 +213,47 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     });
   };
 
-  return { DAILY_SETTLE, SETTLE_REVISION };
+  // 정산 때 빠진 봉을 채운다(D-110): 17:00 CT 뒤 다음 세션으로 넘어갔다가 며칠 뒤 다시 나온 드문 월물 봉,
+  // 일부 월물만 반영된 날 등. 저장된 봉은 건드리지 않고, 채운 원자재만 다시 계산한다
+  const SETTLE_BACKFILL: JobHandler = async (ctx) => {
+    const settled = await store.lastSuccessTradeDate('DAILY_SETTLE');
+    const dates = (await loadDays(store, ctx.now))
+      .map((d) => d.tradeDate)
+      .filter((d) => settled !== null && d <= settled)
+      .slice(-BACKFILL_DAYS);
+    if (dates.length === 0) {
+      log('[backfill] no settled trading day');
+      return;
+    }
+    ctx.tradeDate = dates.at(-1);
+
+    await forEachCommodity('Backfill', async (code) => {
+      const contracts = await store.contracts(code);
+      // 날짜마다 받는 월물 중 저장된 봉이 없는 (월물, 날짜)
+      const missing = new Set<string>();
+      for (const date of dates) {
+        const stored = new Set((await store.dailyBars(code, date)).map((b) => b.contractSymbol));
+        for (const symbol of settleSymbols(contracts, date)) {
+          if (!stored.has(symbol)) missing.add(`${symbol}|${date}`);
+        }
+      }
+      if (missing.size === 0) return;
+
+      const symbols = [...new Set([...missing].map((key) => key.split('|')[0]))];
+      const found = (await source.fetchRecentBars(code, symbols, dates[0])).filter((b) =>
+        missing.has(`${b.contractSymbol}|${b.tradeDate}`),
+      );
+      log(`[backfill ${code}] ${found.length} of ${missing.size} missing bars`);
+      if (found.length === 0) return;
+      await store.upsertDailyBars(
+        found.map((b) => ({ ...b, source: source.name, collectedAt: ctx.now, revisedAt: null })),
+      );
+      log(
+        `[backfill ${code}] ${found.map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,
+      );
+      await recompute(code, ctx.now);
+    });
+  };
+
+  return { DAILY_SETTLE, SETTLE_REVISION, SETTLE_BACKFILL };
 }

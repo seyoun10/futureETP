@@ -65,5 +65,9 @@ export function createFakeSettlementSource(): SettlementSource {
     fetchDailyBars(code, symbols, tradeDate) {
       return Promise.resolve(symbols.map((symbol) => fakeBar(code, symbol, tradeDate)));
     },
+    // 그날 모든 월물 봉을 주므로 정산 때 빠진 봉이 없다
+    fetchRecentBars() {
+      return Promise.resolve([]);
+    },
   };
 }

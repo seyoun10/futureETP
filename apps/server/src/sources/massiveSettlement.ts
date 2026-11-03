@@ -4,7 +4,12 @@ import type { CommodityCode } from '@futureetp/shared';
 import { z } from 'zod';
 import { MONTH_CODES, toContractSymbol } from '../calc/contractSymbol.ts';
 import { tradesOn } from './settlement.ts';
-import type { ContractDefinition, SettlementSource, SourceBar } from './settlement.ts';
+import type {
+  ContractDefinition,
+  DatedSourceBar,
+  SettlementSource,
+  SourceBar,
+} from './settlement.ts';
 
 const BASE_URL = 'https://api.massive.com';
 export const MIN_CALL_INTERVAL_MS = 13_000;
@@ -162,6 +167,15 @@ export function createMassiveSettlementSource({
     return contracts;
   }
 
+  async function loadBars(ticker: string): Promise<SessionBar[]> {
+    const params = new URLSearchParams({ resolution: '1session', limit: String(SESSION_LIMIT) });
+    const body = aggsSchema.parse(
+      await get(`${BASE_URL}/futures/v1/aggs/${encodeURIComponent(ticker)}?${params}`),
+    );
+    barCache.set(ticker, { fetchedAt: now(), bars: body.results });
+    return body.results;
+  }
+
   // 받아 둔 봉에 그날 이후 정산가가 있으면 그날 값은 확정이라 다시 받지 않는다
   async function sessionBars(ticker: string, tradeDate: string): Promise<SessionBar[]> {
     // 오래된 항목은 지운다(긴 프로세스에서 쌓이지 않게, 연도 1자리 티커가 10년 뒤 다시 쓰여도 섞이지 않게)
@@ -173,13 +187,29 @@ export function createMassiveSettlementSource({
     ) {
       return cached.bars;
     }
-    const params = new URLSearchParams({ resolution: '1session', limit: String(SESSION_LIMIT) });
-    const body = aggsSchema.parse(
-      await get(`${BASE_URL}/futures/v1/aggs/${encodeURIComponent(ticker)}?${params}`),
-    );
-    barCache.set(ticker, { fetchedAt: now(), bars: body.results });
-    return body.results;
+    return loadBars(ticker);
   }
+
+  async function tickerOf(code: CommodityCode, symbol: string, tradeDate: string) {
+    if (!tickers.has(symbol)) await loadContracts(code, tradeDate);
+    const ticker = tickers.get(symbol);
+    // 소스 월물 정의에 없는 월물(적재로만 들어온 월물 등)은 봉이 없는 것과 같이 빠진다
+    if (!ticker) log(`[massive ${code} ${tradeDate}] no ticker for ${symbol}`);
+    return ticker;
+  }
+
+  // 거래가 없던 날은 봉이 없고, 반영 전이면 정산가가 없다. 둘 다 빠진다(D-095)
+  const toSourceBar = (contractSymbol: string, bar: SessionBar): SourceBar | null =>
+    bar.settlement_price == null
+      ? null
+      : {
+          contractSymbol,
+          open: bar.open ?? null,
+          high: bar.high ?? null,
+          low: bar.low ?? null,
+          settle: bar.settlement_price,
+          volume: bar.volume ?? 0,
+        };
 
   return {
     name: 'MASSIVE',
@@ -187,28 +217,28 @@ export function createMassiveSettlementSource({
       return (await loadContracts(code, tradeDate)).filter((c) => tradesOn(c, tradeDate));
     },
     async fetchDailyBars(code, symbols, tradeDate) {
-      if (symbols.some((s) => !tickers.has(s))) await loadContracts(code, tradeDate);
       const bars: SourceBar[] = [];
       for (const symbol of symbols) {
-        const ticker = tickers.get(symbol);
-        // 소스 월물 정의에 없는 월물(적재로만 들어온 월물 등)은 봉이 없는 것과 같이 빠진다
-        if (!ticker) {
-          log(`[massive ${code} ${tradeDate}] no ticker for ${symbol}`);
-          continue;
-        }
-        // 거래가 없던 날은 봉이 없고, 반영 전이면 정산가가 없다. 둘 다 빠진다(D-095)
+        const ticker = await tickerOf(code, symbol, tradeDate);
+        if (!ticker) continue;
         const bar = (await sessionBars(ticker, tradeDate)).find(
           (b) => b.session_end_date === tradeDate,
         );
-        if (bar?.settlement_price == null) continue;
-        bars.push({
-          contractSymbol: symbol,
-          open: bar.open ?? null,
-          high: bar.high ?? null,
-          low: bar.low ?? null,
-          settle: bar.settlement_price,
-          volume: bar.volume ?? 0,
-        });
+        const sourceBar = bar && toSourceBar(symbol, bar);
+        if (sourceBar) bars.push(sourceBar);
+      }
+      return bars;
+    },
+    // 받아 둔 봉을 다시 쓰지 않고 월물마다 한 번 받는다(드문 월물은 받아 둔 봉에 그날 이후 정산가가 없어 날짜마다 다시 받게 된다)
+    async fetchRecentBars(code, symbols, from) {
+      const bars: DatedSourceBar[] = [];
+      for (const symbol of symbols) {
+        const ticker = await tickerOf(code, symbol, from);
+        if (!ticker) continue;
+        for (const bar of await loadBars(ticker)) {
+          const sourceBar = bar.session_end_date >= from && toSourceBar(symbol, bar);
+          if (sourceBar) bars.push({ ...sourceBar, tradeDate: bar.session_end_date });
+        }
       }
       return bars;
     },

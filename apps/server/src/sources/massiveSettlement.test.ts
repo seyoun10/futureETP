@@ -236,6 +236,44 @@ describe('Massive 정산 소스', () => {
     expect(aggCalls()).toBe(4);
   });
 
+  it('보충은 월물마다 한 번 받아 시작일 이후 정산가가 있는 봉을 날짜와 함께 준다', async () => {
+    const { source, calls } = fakeApi({
+      '/futures/v1/contracts': json(CL_CONTRACTS),
+      '/futures/v1/aggs/CLZ6': json({
+        results: [bar('2026-10-30', null), bar('2026-10-28', 99.9, 7), bar('2026-10-16', 98)],
+      }),
+      // 드문 월물: 받아 둔 봉에 시작일 이후 정산가가 없어도 다시 받지 않는다
+      '/futures/v1/aggs/CLF30': json({ results: [bar('2026-10-23', 70, 1)] }),
+    });
+    const bars = await source.fetchRecentBars('CL', ['CLZ26', 'CLF30', 'CLH27'], '2026-10-19');
+
+    expect(bars).toEqual([
+      {
+        contractSymbol: 'CLZ26',
+        tradeDate: '2026-10-28',
+        open: 1,
+        high: 2,
+        low: 0.5,
+        settle: 99.9,
+        volume: 7,
+      },
+      {
+        contractSymbol: 'CLF30',
+        tradeDate: '2026-10-23',
+        open: 1,
+        high: 2,
+        low: 0.5,
+        settle: 70,
+        volume: 1,
+      },
+    ]);
+    expect(calls.map((c) => c.path.split('?')[0])).toEqual([
+      '/futures/v1/contracts',
+      '/futures/v1/aggs/CLZ6',
+      '/futures/v1/aggs/CLF30',
+    ]);
+  });
+
   it('월물 정의에 없는 심볼은 봉이 없는 것처럼 빠진다', async () => {
     const { source } = fakeApi({
       '/futures/v1/contracts': json(CL_CONTRACTS),
