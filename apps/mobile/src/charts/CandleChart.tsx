@@ -40,8 +40,10 @@ type CandleChartProps = {
   // 봉마다 그 봉 위 선까지 포함한 위·아래 끝 가격. y 자동 맞춤과 기본 y 범위에 쓴다
   envelope: { hi: readonly number[]; lo: readonly number[] };
   lines: readonly ChartLine[];
-  // 우선순위 순서
+  // 보이는 마지막 봉 기준 값. 겹치면 위·아래로 민다
   priceLabels: readonly PriceLabel[];
+  // 회색 수평 점선 가격(보이는 마지막 봉 종가)
+  guidePrice: number;
   priceDecimals: number;
   roll: RollMarks;
   // 기간 버튼이 고른 봉 수. 제스처로 범위를 바꾸면 onViewChange 뒤 null로 받는다
@@ -83,6 +85,7 @@ export const CandleChart = memo(function CandleChart({
   envelope,
   lines,
   priceLabels,
+  guidePrice,
   priceDecimals,
   roll,
   periodBars,
@@ -175,7 +178,7 @@ export const CandleChart = memo(function CandleChart({
                 chartBounds={chartBounds}
                 priceDecimals={priceDecimals}
                 labels={priceLabels}
-                currentPrice={current.close}
+                currentPrice={guidePrice}
                 crosshair={crosshair}
               />
               <LineLayer
@@ -188,6 +191,7 @@ export const CandleChart = memo(function CandleChart({
               <ExtremeTagsLayer
                 bars={bars}
                 currentPrice={current.close}
+                guidePrice={guidePrice}
                 priceDecimals={priceDecimals}
                 yScale={yScale}
                 chartBounds={chartBounds}

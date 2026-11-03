@@ -15,6 +15,8 @@ type ExtremeBar = { tradeDate: string; high: number; low: number };
 type ExtremeTagsLayerProps = {
   bars: readonly ExtremeBar[];
   currentPrice: number;
+  // 꼬리표가 비켜 갈 회색 점선 가격(YAxisLayer)
+  guidePrice: number;
   priceDecimals: number;
   yScale: Scale;
   chartBounds: ChartBounds;
@@ -28,6 +30,7 @@ const GAP = 3;
 export function ExtremeTagsLayer({
   bars,
   currentPrice,
+  guidePrice,
   priceDecimals,
   yScale,
   chartBounds,
@@ -56,8 +59,8 @@ export function ExtremeTagsLayer({
     if (bars[i].low < bars[lo].low) lo = i;
   }
 
-  // 현재가 점선(YAxisLayer)과 같은 위치
-  const currentY = ky * yScale(currentPrice) + ty;
+  // 점선(YAxisLayer)과 같은 위치
+  const currentY = ky * yScale(guidePrice) + ty;
   const tag = (index: number, kind: 'high' | 'low') => {
     const bar = bars[index];
     const price = kind === 'high' ? bar.high : bar.low;

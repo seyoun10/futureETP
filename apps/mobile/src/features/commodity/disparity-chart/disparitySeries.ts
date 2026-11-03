@@ -101,31 +101,3 @@ export function visibleStats(bars: readonly ChartBar[], i0: number, i1: number) 
     fromHighPct: (current.close / bars[highIndex].high - 1) * 100,
   };
 }
-
-// y축 특수 라벨 우선순위: 현재가, 이평선, 그다음 현재가에 가까운 rare-level부터(screens.md C-a)
-export type SpecialLabel =
-  | { kind: 'current'; key: string; price: number }
-  | { kind: 'ma'; key: string; price: number }
-  | { kind: 'rare'; key: string; price: number; rank: number };
-
-export function specialLabels(
-  bars: readonly ChartBar[],
-  bands: readonly BandLine[],
-): SpecialLabel[] {
-  const current = bars[bars.length - 1];
-  if (!current) return [];
-  const last = bars.length - 1;
-  const rare = bands
-    .flatMap((band): SpecialLabel[] => {
-      const price = band.values[last];
-      return price === null || price === undefined
-        ? []
-        : [{ kind: 'rare', key: band.key, price, rank: band.rank }];
-    })
-    .sort((a, b) => Math.abs(a.price - current.close) - Math.abs(b.price - current.close));
-  return [
-    { kind: 'current', key: 'current', price: current.close },
-    ...(current.ma === null ? [] : [{ kind: 'ma' as const, key: 'ma', price: current.ma }]),
-    ...rare,
-  ];
-}

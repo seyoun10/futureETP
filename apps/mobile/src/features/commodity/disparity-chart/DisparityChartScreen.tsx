@@ -25,7 +25,12 @@ import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
-import { disparityChartModel, formatTailPct, holdingsText } from './disparityChartModel';
+import {
+  disparityChartModel,
+  formatTailPct,
+  holdingsText,
+  priceLabelsAt,
+} from './disparityChartModel';
 import type { DisparityChartModel } from './disparityChartModel';
 import { visibleStats } from './disparitySeries';
 import type { ChartBar } from './disparitySeries';
@@ -108,6 +113,9 @@ function DisparityChartView({
   );
   const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
   useOlderPages(range?.[0] ?? null, older);
+  // y축 라벨·점선은 보이는 마지막 봉 값. 새로 조회해 봉이 줄었을 수 있어 봉 안으로 자른다
+  const labelIndex = Math.min(range?.[1] ?? Infinity, model.bars.length - 1);
+  const priceLabels = useMemo(() => priceLabelsAt(model, labelIndex), [model, labelIndex]);
   const renderDetail = useCallback(
     (index: number) => <CrosshairDetail model={model} index={index} data={data} />,
     [model, data],
@@ -128,7 +136,8 @@ function DisparityChartView({
           bars={model.bars}
           envelope={model.envelope}
           lines={model.lines}
-          priceLabels={model.priceLabels}
+          priceLabels={priceLabels}
+          guidePrice={model.bars[labelIndex].close}
           priceDecimals={data.priceDecimals}
           roll={model.roll}
           periodBars={gesture ? null : PERIOD_BARS[period]}

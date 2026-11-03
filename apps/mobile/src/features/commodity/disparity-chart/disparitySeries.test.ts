@@ -5,7 +5,6 @@ import {
   chartEnvelope,
   frontSwitches,
   rollSegments,
-  specialLabels,
   visibleStats,
 } from './disparitySeries';
 
@@ -106,19 +105,5 @@ describe('visibleStats', () => {
 
   it('보이는 구간만 본다', () => {
     expect(visibleStats(bars, 2, 3)).toMatchObject({ highIndex: 3, lowIndex: 2 });
-  });
-});
-
-describe('specialLabels', () => {
-  it('현재가, 이평선, 현재가에 가까운 rare-level 순이다', () => {
-    const bars = chartBars([bar('2026-10-21', 95, { ma: 100 })]);
-    const bands = bandLines(bars, [rare('UP', 5, 20), rare('DOWN', 5, -10), rare('DOWN', 10, -4)]);
-    expect(specialLabels(bars, bands).map((l) => [l.key, l.price])).toEqual([
-      ['current', 95],
-      ['ma', 100],
-      ['DOWN-10', 96],
-      ['DOWN-5', 90],
-      ['UP-5', 120],
-    ]);
   });
 });

@@ -9,11 +9,11 @@ import { GUIDE_DASH } from './chartLayout';
 import { numberFont } from './chartText';
 import { crosshairLabelHeight } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
-import { clampLabelY, overlapsAny, placeLabels, stackLabels } from './priceLabels';
+import { clampLabelY, overlapsAny, stackLabels } from './priceLabels';
 
 const TICK_COUNT = 6;
 
-// y축 특수 라벨(현재가·이평선·rare-level 등). 우선순위 순서로 넘긴다. suffix는 가격 뒤에 붙는 이름(C-c 월물명)
+// y축 특수 라벨(현재가·이평선·rare-level 등). suffix는 가격 뒤에 붙는 이름(C-c 월물명)
 export type PriceLabel = { key: string; price: number; color: string; suffix?: string };
 
 type YAxisLayerProps = {
@@ -21,9 +21,8 @@ type YAxisLayerProps = {
   yScale: Scale;
   chartBounds: ChartBounds;
   priceDecimals: number;
+  // 겹치면 모두 남긴 채 위·아래로 민다
   labels: readonly PriceLabel[];
-  // priority: 겹치면 우선순위가 낮은 라벨을 숨긴다. stack: 모두 남기고 겹치지 않게 민다(C-c 끝값 = 범례)
-  labelLayout?: 'priority' | 'stack';
   // 회색 수평 점선을 그릴 현재가
   currentPrice: number | null;
   crosshair: Crosshair;
@@ -37,14 +36,13 @@ function decimalsFor(ticks: number[], max: number): number {
   return Math.min(max, Math.max(0, -Math.floor(Math.log10(step))));
 }
 
-// 우측 y축을 직접 그린다(D-056). 특수 라벨은 선 색으로 쓰고, 겹치면 우선순위가 낮은 특수 라벨과
-// 기본 눈금 텍스트를 숨긴다(격자선은 유지). 십자선 가격 라벨과 겹치는 글자도 숨긴다.
+// 우측 y축을 직접 그린다(D-056). 특수 라벨은 선 색으로 쓰고 서로 겹치지 않게 밀며, 특수 라벨과
+// 겹치는 기본 눈금 텍스트는 숨긴다(격자선은 유지). 십자선 가격 라벨과 겹치는 글자도 숨긴다.
 export function YAxisLayer({
   yScale,
   chartBounds,
   priceDecimals,
   labels,
-  labelLayout = 'priority',
   currentPrice,
   crosshair,
 }: YAxisLayerProps) {
@@ -58,7 +56,7 @@ export function YAxisLayer({
     .ticks(TICK_COUNT);
   const decimals = decimalsFor(ticks, priceDecimals);
   const height = crosshairLabelHeight(numberFont);
-  const special = (labelLayout === 'stack' ? stackLabels : placeLabels)(
+  const special = stackLabels(
     labels.map((l) => ({ ...l, y: toScreen(l.price) })),
     height,
     chartBounds.top,

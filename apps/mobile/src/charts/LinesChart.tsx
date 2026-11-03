@@ -145,7 +145,6 @@ export const LinesChart = memo(function LinesChart({
                 chartBounds={chartBounds}
                 priceDecimals={priceDecimals}
                 labels={endLabels}
-                labelLayout="stack"
                 currentPrice={null}
                 crosshair={crosshair}
               />

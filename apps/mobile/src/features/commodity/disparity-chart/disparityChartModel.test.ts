@@ -1,6 +1,11 @@
 import type { DisparityBar, DisparityChart } from '@futureetp/shared';
 import { colors } from '@/theme/tokens';
-import { disparityChartModel, formatTailPct, holdingsText } from './disparityChartModel';
+import {
+  disparityChartModel,
+  formatTailPct,
+  holdingsText,
+  priceLabelsAt,
+} from './disparityChartModel';
 import { chartBars } from './disparitySeries';
 
 const bar = (
@@ -62,13 +67,30 @@ describe('disparityChartModel', () => {
   });
 
   it('y축 특수 라벨은 현재가 회색, 이평선 노랑, 밴드는 선과 같은 색이다', () => {
-    const { priceLabels } = disparityChartModel(chart({}));
+    const model = disparityChartModel(chart({}));
+    const priceLabels = priceLabelsAt(model, model.bars.length - 1);
 
-    expect(priceLabels.slice(0, 2)).toEqual([
-      { key: 'current', price: 102, color: colors.chart.currentPrice },
-      { key: 'ma', price: 102, color: colors.chart.movingAverage },
-    ]);
+    expect(priceLabels[0]).toEqual({
+      key: 'current',
+      price: 102,
+      color: colors.chart.currentPrice,
+    });
+    expect(priceLabels.find((l) => l.key === 'ma')).toEqual({
+      key: 'ma',
+      price: 102,
+      color: colors.chart.movingAverage,
+    });
     expect(priceLabels.find((l) => l.key === 'UP-5')?.color).toBe(colors.chart.rareLevels[1]);
+  });
+
+  it('y축 특수 라벨은 주어진 봉(보이는 마지막 봉)의 값이고, 값이 없는 선은 뺀다', () => {
+    const model = disparityChartModel(
+      chart({ bars: [bar('2026-10-21', 100, { ma: null }), bar('2026-10-22', 102)] }),
+    );
+
+    expect(priceLabelsAt(model, 0).map((l) => [l.key, l.price])).toEqual([['current', 100]]);
+    expect(priceLabelsAt(model, 1).find((l) => l.key === 'UP-5')?.price).toBeCloseTo(112.2);
+    expect(priceLabelsAt(model, 5)).toEqual([]);
   });
 
   it('한국형·미국형은 롤 음영, 대표월물은 전환일 세로 점선을 그린다', () => {
