@@ -112,8 +112,18 @@ export const CurveChart = memo(function CurveChart({
     );
     const fullDecimals = tickDecimals(fullTicks, priceDecimals);
     const tickLabels = fullTicks.map((t) => formatPrice(t, fullDecimals));
-    const right =
-      size.width - Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) - 10;
+    // 축 폭은 눈금 글자와 십자선 가격 라벨(가격 자릿수 전부) 중 넓은 쪽. 눈금만 보면 `86.85`가 잘린다
+    const tickWidth = Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) + 10;
+    const crosshairWidth =
+      Math.max(
+        ...points
+          .map((p) => p.current ?? p.base ?? null)
+          .filter((v) => v !== null)
+          .map((v) => numberFont.measureText(formatPrice(v, priceDecimals)).width),
+      ) +
+      CROSSHAIR_LABEL_PAD * 2 +
+      1;
+    const right = size.width - Math.max(tickWidth, crosshairWidth);
     const slot = (right - left) / points.length;
     const x = (i: number) => left + slot * (i + 0.5);
     const y = (v: number) => dataTop + (yMax - toAxis(v)) / perPx;
