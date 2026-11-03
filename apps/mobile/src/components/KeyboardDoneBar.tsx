@@ -32,7 +32,7 @@ export function KeyboardDoneBar() {
 const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     backgroundColor: colors.surface,

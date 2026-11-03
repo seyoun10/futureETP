@@ -6,7 +6,7 @@ import {
   settingsPatchSchema,
 } from '@futureetp/shared';
 import { useEffect, useEffectEvent, useState } from 'react';
-import { Keyboard, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 
@@ -77,7 +77,8 @@ export function RareLevelsInput({ levels, onSave, description }: Props) {
             onChangeText={(value) => change(index, value)}
             accessibilityLabel={t('settings.rareLevelField', { index: index + 1 })}
             keyboardType="decimal-pad"
-            returnKeyType="done"
+            // iOS는 화면의 [완료] 줄로 닫는다. returnKeyType을 주면 RN이 영어 "Done" 툴바를 따로 붙인다
+            returnKeyType={Platform.OS === 'android' ? 'done' : undefined}
             maxLength={4}
             editable={levels !== undefined}
             selectTextOnFocus
