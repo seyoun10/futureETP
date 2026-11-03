@@ -10,6 +10,8 @@ import { getSettings } from '@/api/settings';
 import { CandleChart } from '@/charts/CandleChart';
 import { useIsLandscape } from '@/lib/orientation';
 import { useDisplaySettings } from '@/stores/displaySettings';
+import { colors } from '@/theme/tokens';
+import { upDownPalette } from '@/theme/upDownColor';
 
 import { EMPTY_COMMODITIES } from '../commodities.fixtures';
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn(), getDisparityChart: jest.fn() }));
@@ -258,6 +260,33 @@ describe('C-a 이격도차트', () => {
     expect(screen.getByText('전일 대비 -10.0 (-11.11%)')).toBeOnTheScreen();
     expect(screen.getByText('이격도 -20.0%')).toBeOnTheScreen();
     expect(screen.getByText('DEC26 60% · FEB27 40%')).toBeOnTheScreen();
+  });
+
+  it('십자선 상세는 전일 대비·이격도를 등락 색으로, 이평선·rare-level 값을 높은 순으로 선 색으로 쓴다', async () => {
+    mockGet.mockResolvedValue({
+      ...DATA,
+      rareLevels: [
+        { direction: 'UP', level: 1, disparity: 20, price: 120 },
+        { direction: 'DOWN', level: 1, disparity: -20, price: 80 },
+      ],
+    });
+    await renderScreen();
+    await screen.findByTestId('disparity-stats');
+
+    await render(<>{lastChartProps().renderDetail(1)}</>);
+    const palette = upDownPalette(useDisplaySettings.getState().upDownStyle);
+    expect(screen.getByText('전일 대비 -10.0 (-11.11%)')).toHaveStyle({ color: palette.down });
+    expect(screen.getByText('이격도 -20.0%')).toHaveStyle({ color: palette.down });
+
+    // 화면 위 순서(가격 높은 순)
+    const order = ['상위 1%', '200일선', '하위 1%'].map(
+      (label) => screen.getByText(label).parent?.parent,
+    );
+    const rows = screen.getAllByText(/^(상위|하위) 1%$|^200일선$/).map((n) => n.parent?.parent);
+    expect(rows).toEqual(order);
+    expect(screen.getByText('120.0')).toHaveStyle({ color: colors.chart.rareLevels[0] });
+    expect(screen.getByText('100.0')).toHaveStyle({ color: colors.chart.movingAverage });
+    expect(screen.getByText('80.0')).toHaveStyle({ color: colors.chart.rareLevels[0] });
   });
 
   it('대표월물은 전환일에 세로 점선을 그리고, 그 봉의 십자선 상세는 새 월물명을 이어 쓴다', async () => {

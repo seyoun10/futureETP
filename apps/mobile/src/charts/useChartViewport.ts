@@ -46,7 +46,9 @@ const applyTransform = (state: ChartTransform, t: Transform) => {
   state.matrix.set(setTranslate(setScale(state.matrix.get(), t.k, t.ky), t.tx, t.ty));
 };
 
-export type ChartDetail = { index: number; side: 'left' | 'right' };
+// x·view는 봉에 붙을 때 십자선의 화면 x와 변환 행렬 값(상세 박스 위치 계산용)
+export type ChartView = { scaleX: number; translateX: number; scaleY: number; translateY: number };
+export type ChartDetail = { index: number; side: 'left' | 'right'; x: number; view: ChartView };
 // 드래그(이동)는 보이는 봉 수가 그대로라 기간 선택 표시를 남기고, 핀치(확대·축소)는 지운다(screens.md C-a)
 export type ChartGesture = 'pan' | 'zoom';
 
@@ -307,15 +309,27 @@ export function useChartViewport({
   }, [crosshairVisible, crosshairShown, geom, locked, pinchStart, transform, zoomed]);
 
   // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신. 박스는 손가락 반대편에 둔다(screens.md C-a 십자선)
-  const onSnap = useCallback((index: number, side: ChartDetail['side']) => {
-    setDetail({ index, side });
-    void Haptics.selectionAsync();
-  }, []);
+  const onSnap = useCallback(
+    (index: number, side: ChartDetail['side'], x: number, view: ChartView) => {
+      setDetail({ index, side, x, view });
+      void Haptics.selectionAsync();
+    },
+    [],
+  );
   useAnimatedReaction(
     () => (press.isActive.get() ? press.matchedIndex.get() : -1),
     (idx, prev) => {
       if (idx < 0 || idx === prev) return;
-      scheduleOnRN(onSnap, idx, crosshair.x.get() < widthValue.get() / 2 ? 'right' : 'left');
+      const x = crosshair.x.get();
+      const { scaleX, translateX, scaleY, translateY } = getTransformComponents(
+        transform.matrix.get(),
+      );
+      scheduleOnRN(onSnap, idx, x < widthValue.get() / 2 ? 'right' : 'left', x, {
+        scaleX,
+        translateX,
+        scaleY,
+        translateY,
+      });
     },
   );
 

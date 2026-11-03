@@ -23,6 +23,7 @@ import {
 } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
 import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
 import {
@@ -31,7 +32,7 @@ import {
   holdingsText,
   priceLabelsAt,
 } from './disparityChartModel';
-import type { DisparityChartModel } from './disparityChartModel';
+import type { DisparityChartModel, LineLabel } from './disparityChartModel';
 import { visibleStats } from './disparitySeries';
 import type { ChartBar } from './disparitySeries';
 import { useDisparityChart } from './useDisparityChart';
@@ -269,7 +270,8 @@ function StatsLine({
   );
 }
 
-// 십자선 상세 박스: 날짜, 시고저종, 전일 대비, 이격도, 월물 구성(screens.md C-a 길게 누르기)
+// 십자선 상세 박스: 날짜, 시고저종, 전일 대비, 이격도, 월물 구성, 이평선·rare-level 값(screens.md C-a 길게 누르기).
+// 전일 대비·이격도는 부호대로 등락 색, 선 값은 가격 높은 순으로 선 색이다
 function CrosshairDetail({
   model,
   index,
@@ -280,6 +282,7 @@ function CrosshairDetail({
   data: DisparityChart;
 }) {
   const { t } = useTranslation();
+  const palette = useUpDownPalette();
   const bar = model.bars[index];
   if (!bar) return null;
   const prev = model.bars[index - 1];
@@ -288,6 +291,16 @@ function CrosshairDetail({
   const current = holdingsText(bar, data.basis);
   // 대표월물 전환일 봉이면 새 월물명을 이어 쓴다(차트에는 세로 점선만 있다, D-103)
   const holdings = switchTo && current ? `${current} → ${switchTo}` : current;
+  const lineLabel = (label: LineLabel) =>
+    label.kind === 'ma'
+      ? t('disparity.ma', { n: data.maPeriod })
+      : t(`disparity.tail${label.direction}`, { pct: label.level });
+  const lineValues = model.lines
+    .flatMap((line) => {
+      const price = line.values[index];
+      return price === null || price === undefined ? [] : [{ ...line, price }];
+    })
+    .sort((a, b) => b.price - a.price);
 
   return (
     <View style={styles.detail}>
@@ -299,7 +312,7 @@ function CrosshairDetail({
         {`${t('disparity.low')} ${formatPrice(bar.low, decimals)}  ${t('disparity.close')} ${formatPrice(bar.close, decimals)}`}
       </Text>
       {prev && (
-        <Text style={styles.detailText}>
+        <Text style={[styles.detailText, { color: changeColor(bar.close - prev.close, palette) }]}>
           {t('disparity.prevChange', {
             change: formatChange(bar.close - prev.close, decimals),
             pct: formatChangePct((bar.close / prev.close - 1) * 100),
@@ -307,11 +320,19 @@ function CrosshairDetail({
         </Text>
       )}
       {bar.disparity !== null && (
-        <Text style={styles.detailText}>
+        <Text style={[styles.detailText, { color: changeColor(bar.disparity, palette) }]}>
           {t('disparity.disparity', { value: formatDisparity(bar.disparity) })}
         </Text>
       )}
       {holdings && <Text style={styles.detailText}>{holdings}</Text>}
+      {lineValues.map((line) => (
+        <View key={line.key} style={styles.detailRow}>
+          <Text style={[styles.detailText, { color: line.color }]}>{lineLabel(line.label)}</Text>
+          <Text style={[styles.detailText, { color: line.color }]}>
+            {formatPrice(line.price, decimals)}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -367,6 +388,11 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: spacing.xs,
     backgroundColor: colors.surface,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
   },
   detailText: {
     color: colors.text,

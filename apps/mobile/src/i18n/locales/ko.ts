@@ -85,6 +85,7 @@ export const ko = {
     fromLow: '저점대비 {{pct}}',
     fromHigh: '고점대비 {{pct}}',
     prevChange: '전일 대비 {{change}} ({{pct}})',
+    ma: '{{n}}일선',
     noData: '표시할 봉이 없습니다.',
     hint: {
       FRONT:

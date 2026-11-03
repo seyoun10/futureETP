@@ -17,10 +17,15 @@ import type { ChartBar } from './disparitySeries';
 const MA_STROKE = 2.5;
 const BAND_STROKE = 1;
 
+// 십자선 상세에 쓰는 선 이름: 이평선, 또는 rare-level 방향·레벨
+export type LineLabel =
+  | { kind: 'ma' }
+  | { kind: 'band'; direction: DisparityChart['rareLevels'][number]['direction']; level: number };
+
 export type DisparityChartModel = {
   bars: ChartBar[];
   envelope: { hi: number[]; lo: number[] };
-  lines: ChartLine[];
+  lines: (ChartLine & { label: LineLabel })[];
   roll: RollMarks;
   // 대표월물 전환일 봉 순번 → 새 월물명(십자선 상세용)
   frontSwitchAt: ReadonlyMap<number, string>;
@@ -33,18 +38,20 @@ export function disparityChartModel(chart: DisparityChart): DisparityChartModel 
   const bars = chartBars(chart.bars);
   const bands = bandLines(bars, chart.rareLevels);
   // 이평선을 마지막에 그려 밴드 위에 오게 한다
-  const lines: ChartLine[] = [
+  const lines: DisparityChartModel['lines'] = [
     ...bands.map((b) => ({
       key: b.key,
       values: b.values,
       color: bandColor(b.rank),
       strokeWidth: BAND_STROKE,
+      label: { kind: 'band' as const, direction: b.direction, level: b.level },
     })),
     {
       key: 'ma',
       values: bars.map((b) => b.ma),
       color: colors.chart.movingAverage,
       strokeWidth: MA_STROKE,
+      label: { kind: 'ma' },
     },
   ];
   // 실제로 그린 기준값의 롤 정보만: 한국형·미국형은 음영, 대표월물은 전환일 세로 점선(screens.md C-a 롤 표시).

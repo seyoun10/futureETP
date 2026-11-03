@@ -79,6 +79,7 @@ export const en: Translation = {
     fromLow: 'LC {{pct}}',
     fromHigh: 'HC {{pct}}',
     prevChange: 'Chg {{change}} ({{pct}})',
+    ma: 'MA{{n}}',
     noData: 'No bars to show.',
     hint: {
       FRONT:
