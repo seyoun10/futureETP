@@ -1735,3 +1735,10 @@
 - dev 확인(2026-11-03, 실제 Massive): 10/19~10/30 빈 칸 155개 중 9개를 채웠다(10/27 GCH27·GCM27·CLN27, 10/28 SIF27·NGN27·NGQ27·NGU27·NGV27·NGG28. 18:30 실행 때 놓친 봉). 나머지는 Massive에도 봉이 없었다. 호출 약 58회·12분 39초.
 - 예상 효과: 평일 약 28~35회 감소(23분 → 16~17분), 최악 재시도 종료 16:57 → 약 16:43. 토요일 보충은 월물 30~40개 안팎(8분 안팎).
 - 영향: `jobs/settle.ts`(`SETTLE_BACKFILL`, 건너뛰기 상수), `sources/settlement.ts`(`fetchRecentBars`)·`massiveSettlement.ts`·`fakeSettlement.ts`, `db/settle.ts`(`sourceBarDates`, `contracts`에 `isTarget`), `jobs/scheduler.ts`, shared `JOB_NAMES`·`push.ts`, Healthchecks check `settle_backfill`. D-095의 "가까운 26개를 모두 받는다"와 D-101의 "사라진 봉은 되찾을 수 없다"를 고친다.
+
+## D-111: C 하단 탭 순서를 이격도차트 / 월물차트 / 월물커브 / ETP로 바꾼다
+- 날짜: 2026-11-03
+- 상태: 확정 (사용자 요청)
+- 결정: 월물차트(C-c)와 월물커브(C-b) 탭 위치를 맞바꾼다. 화면 ID·경로(`curve`·`contracts`)·i18n 키는 그대로 둔다.
+- 근거: 화면 ID는 문서·코드·테스트에 널리 쓰여 순서와 맞추려 바꾸면 비용만 크다.
+- 영향: `CommodityTabsLayout.tsx`의 `Tabs.Screen` 순서, `screens.md` tab-bar 그림.
