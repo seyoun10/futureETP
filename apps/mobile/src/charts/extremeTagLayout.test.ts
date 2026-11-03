@@ -44,7 +44,16 @@ describe('extremeTagLeft', () => {
     expect(placeX('low', 460)).toEqual({ left: 365, arrowFirst: false });
   });
 
-  it('양쪽 다 넘으면 기본 쪽으로 두고 차트 안으로 민다', () => {
-    expect(extremeTagLeft('high', 50, 100, 10, 0, 120)).toEqual({ left: 0, arrowFirst: false });
+  it('봉이 왼쪽 끝에 붙어 화살표 앞도 조금 넘치는 고가는 화살표를 앞에 두고 민다', () => {
+    expect(placeX('high', 3)).toEqual({ left: 0, arrowFirst: true });
+  });
+
+  it('봉이 오른쪽 끝에 붙어 화살표 뒤도 조금 넘치는 저가는 화살표를 뒤에 두고 민다', () => {
+    expect(placeX('low', 498)).toEqual({ left: 400, arrowFirst: false });
+  });
+
+  it('양쪽 다 넘으면 덜 넘치는 쪽으로 두고 차트 안으로 민다', () => {
+    expect(extremeTagLeft('high', 50, 100, 10, 0, 120)).toEqual({ left: 20, arrowFirst: true });
+    expect(extremeTagLeft('high', 80, 100, 10, 0, 120)).toEqual({ left: 0, arrowFirst: false });
   });
 });
