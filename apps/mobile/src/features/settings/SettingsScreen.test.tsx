@@ -184,13 +184,15 @@ describe('B rare-level 입력', () => {
     );
   });
 
-  it('iOS는 키패드가 열린 동안 [완료] 줄을 보이고, 누르면 키패드를 닫는다', async () => {
+  it('iOS는 키패드가 다 올라온 뒤 [완료] 줄을 보이고, 누르면 키패드를 닫는다', async () => {
     const dismiss = jest.spyOn(Keyboard, 'dismiss');
     await renderSettings();
     await screen.findByDisplayValue('25');
     expect(screen.queryByRole('button', { name: '완료' })).not.toBeOnTheScreen();
 
     await act(() => DeviceEventEmitter.emit('keyboardWillShow', {}));
+    expect(screen.queryByRole('button', { name: '완료' })).not.toBeOnTheScreen();
+    await act(() => DeviceEventEmitter.emit('keyboardDidShow', {}));
     await fireEvent.press(screen.getByRole('button', { name: '완료' }));
     expect(dismiss).toHaveBeenCalled();
 

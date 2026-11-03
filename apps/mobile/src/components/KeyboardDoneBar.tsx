@@ -13,7 +13,8 @@ export function KeyboardDoneBar() {
   useEffect(() => {
     if (Platform.OS !== 'ios') return;
     const subscriptions = [
-      Keyboard.addListener('keyboardWillShow', () => setVisible(true)),
+      // 키패드가 다 올라온 뒤 보인다(올라오는 동안 줄이 먼저 떠서 따라 올라가 보이지 않게). 숨길 때는 바로
+      Keyboard.addListener('keyboardDidShow', () => setVisible(true)),
       Keyboard.addListener('keyboardWillHide', () => setVisible(false)),
     ];
     return () => subscriptions.forEach((s) => s.remove());

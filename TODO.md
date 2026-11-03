@@ -161,7 +161,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - [x] 언어·등락 색·기준값·이평선·분포 기간·알림 행(낙관적 PATCH, 실패 시 되돌림·오류 줄) (2026-10-27, D-082)
     - [x] rare-level 입력(범위 안내·오류·저장 막기·정렬) (2026-10-27, D-083)
       - [x] 실기기 피드백 반영(2026-10-30): 키패드가 닫힐 때 한 번에 검증·저장(칸마다 저장해 입력 중 정렬로 값이 바뀌던 문제), 화면 끌기·[완료] 줄(iOS, 직접 그림)로 닫기, 설정 행마다 설명 줄
-      - [ ] 실기기에서 [완료] 줄이 키패드 바로 위에 붙는지 다시 확인(`InputAccessoryView` 대체 뒤)
+      - [x] 실기기에서 [완료] 줄이 키패드 바로 위에 붙는지 다시 확인(`InputAccessoryView` 대체 뒤) (2026-11-03, iPhone 14 Pro OTA 뒤: 가운데 [완료] 1개. 키패드가 올라오는 동안 줄이 먼저 떠 보여 `keyboardDidShow` 뒤에 보이게 바꿈 → 다음 OTA 뒤 확인)
         - 기기 확인(2026-11-03, iPhone 14 Pro): [완료] 줄은 키패드 위에 붙지만, 그 아래 RN 기본 툴바의 영어 "Done"(iOS 26 유리 버튼)이 함께 떠 버튼이 2개. `returnKeyType="done"`이 숫자 키패드에 RN 툴바를 붙이는 조건이라 iOS에서는 빼고(Android만 유지), [완료]는 가운데 정렬. 다음 iOS 빌드나 OTA 뒤 버튼 1개·가운데 확인
         - 미러링 확인(2026-11-03, prod): 입력 종료 때 정렬 저장(1·20·4·8·16 → 1·4·8·16·20)·범위 밖(60) 오류 줄·저장 막기 정상. 미러링은 Mac 키보드라 키패드가 안 떠 [완료] 줄은 기기 손으로 확인
     - [x] 앱 실행 때 시간대 PATCH(설정 조회마다 비교, 시간대당 1회) (2026-10-27, D-084)
@@ -301,6 +301,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 서명 키: `~/.config/futureetp/android-release.jks`(PKCS12, RSA 4096, 별칭 `futureetp`, 인증서 SHA-256 `79:42:11:C6…AE:B1:51`)와 비밀번호 파일 `android-release.properties`(권한 600). `app.config.ts`의 `withReleaseSigning`이 release를 이 키로 서명하고, 파일이 없으면 release 빌드를 멈춘다. `assembleRelease` 성공(R8 포함, 11분 29초). 네이티브 라이브러리는 `withArm64Only`로 `arm64-v8a`만 넣어 APK 180MB → 58MB·`apksigner`로 서명 지문 확인 (2026-11-02)
   - [x] Expo 계정 `jungseyoon`·`eas init`(프로젝트 `@jungseyoon/futureetp`, projectId는 `app.config.ts`)·expo-updates `~58.0.20`: `updates.url`·`runtimeVersion` fingerprint·`expo-channel-name: production` 헤더, dev 변형은 업데이트 끔. EAS `production` 채널·브랜치 생성, `eas.json`은 CLI 버전만. prebuild로 AndroidManifest 값 확인 (2026-11-02)
   - [ ] OTA 첫 확인: release APK 설치 뒤 JS만 바꿔 `npm run update:prod -w apps/mobile` → 앱 재시작 두 번 만에 반영되는지
+    - iOS 확인(2026-11-03): Personal Team prod 빌드(iPhone 14 Pro)에 `--platform ios` update(`8f7d280`, runtime `c2bef25c…`) → 재시작 두 번 만에 반영. Android는 기기 확인 보류(iOS 우선)
   - [ ] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
   - [ ] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
     - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
