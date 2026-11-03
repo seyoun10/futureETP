@@ -23,6 +23,8 @@ export const colors = {
     // 십자선 점선은 라벨 상자(흰색)보다 옅게 해 봉·선을 덜 가린다
     crosshairLine: 'rgba(255, 255, 255, 0.6)',
     crosshairText: '#000000',
+    // 마지막 봉 종가 라벨(흰색)과 보이는 마지막 봉 종가 라벨·점선(회색)(screens.md C-a)
+    lastPrice: '#ffffff',
     currentPrice: '#9e9e9e',
     // 노랑은 이평선 전용(screens.md C-a)
     movingAverage: '#ffd54f',

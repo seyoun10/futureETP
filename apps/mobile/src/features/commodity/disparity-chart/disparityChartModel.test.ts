@@ -66,15 +66,12 @@ describe('disparityChartModel', () => {
     expect(lines[4].strokeWidth).toBeGreaterThan(lines[0].strokeWidth);
   });
 
-  it('y축 특수 라벨은 현재가 회색, 이평선 노랑, 밴드는 선과 같은 색이다', () => {
+  it('y축 특수 라벨은 마지막 봉 종가 흰색, 이평선 노랑, 밴드는 선과 같은 색이다', () => {
     const model = disparityChartModel(chart({}));
     const priceLabels = priceLabelsAt(model, model.bars.length - 1);
 
-    expect(priceLabels[0]).toEqual({
-      key: 'current',
-      price: 102,
-      color: colors.chart.currentPrice,
-    });
+    expect(priceLabels[0]).toEqual({ key: 'last', price: 102, color: colors.chart.lastPrice });
+    expect(priceLabels.find((l) => l.key === 'current')).toBeUndefined();
     expect(priceLabels.find((l) => l.key === 'ma')).toEqual({
       key: 'ma',
       price: 102,
@@ -88,7 +85,10 @@ describe('disparityChartModel', () => {
       chart({ bars: [bar('2026-10-21', 100, { ma: null }), bar('2026-10-22', 102)] }),
     );
 
-    expect(priceLabelsAt(model, 0).map((l) => [l.key, l.price])).toEqual([['current', 100]]);
+    expect(priceLabelsAt(model, 0)).toEqual([
+      { key: 'last', price: 102, color: colors.chart.lastPrice },
+      { key: 'current', price: 100, color: colors.chart.currentPrice },
+    ]);
     expect(priceLabelsAt(model, 1).find((l) => l.key === 'UP-5')?.price).toBeCloseTo(112.2);
     expect(priceLabelsAt(model, 5)).toEqual([]);
   });

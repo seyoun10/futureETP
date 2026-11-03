@@ -61,13 +61,17 @@ export function disparityChartModel(chart: DisparityChart): DisparityChartModel 
   return { bars, envelope: chartEnvelope(bars, bands), lines, roll, frontSwitchAt };
 }
 
-// y축 특수 라벨: 봉 index(보이는 마지막 봉)의 현재가(회색)와 이평선·rare-level 값(선 색).
-// 겹치면 모두 남긴 채 위·아래로 민다(screens.md C-a y축 라벨)
+// y축 특수 라벨: 마지막 봉 종가(흰색), 봉 index(보이는 마지막 봉)의 종가(회색)와 이평선·rare-level 값(선 색).
+// 보이는 마지막 봉이 마지막 봉이면 종가는 흰색 하나만. 겹치면 모두 남긴 채 위·아래로 민다(screens.md C-a y축 라벨)
 export function priceLabelsAt(model: DisparityChartModel, index: number): PriceLabel[] {
   const bar = model.bars[index];
+  const last = model.bars[model.bars.length - 1];
   if (!bar) return [];
   return [
-    { key: 'current', price: bar.close, color: colors.chart.currentPrice },
+    { key: 'last', price: last.close, color: colors.chart.lastPrice },
+    ...(bar === last
+      ? []
+      : [{ key: 'current', price: bar.close, color: colors.chart.currentPrice }]),
     ...model.lines.flatMap((line): PriceLabel[] => {
       const price = line.values[index];
       return price === null || price === undefined
