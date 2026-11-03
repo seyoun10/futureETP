@@ -20,7 +20,7 @@ import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { CHART_FONT_SIZE, numberFont } from './chartText';
-import { labelStride, niceTicks, slotAt, tickDecimals } from './curveLayout';
+import { labelStride, niceTicks, placePctLabels, slotAt, tickDecimals } from './curveLayout';
 
 // 만기순 월물 하나. 그 커브에 없으면 null
 export type CurvePoint = {
@@ -158,10 +158,34 @@ export const CurveChart = memo(function CurveChart({
     layout?.slot ?? 0,
     numberFont.measureText('0000').width + LABEL_GAP,
   );
-  const pctStride = labelStride(
-    layout?.slot ?? 0,
-    numberFont.measureText('-00.0%').width + LABEL_GAP,
-  );
+  // 변화율은 모든 월물에 붙이고, 이웃과 겹치면 점 아래나 한 줄 위·아래로 옮긴다
+  const pctLabels = useMemo(() => {
+    if (!layout) return [];
+    const items = points.flatMap((p, i) => {
+      if (p.changePct === null) return [];
+      const ys = [p.base, p.current].filter((v) => v !== null).map((v) => layout.y(v));
+      const text = formatPct(p.changePct);
+      const width = numberFont.measureText(text).width;
+      return [
+        {
+          key: p.label,
+          text,
+          color: changeColor(p.changePct, palette),
+          x: layout.textX(i, width),
+          width,
+          top: Math.min(...ys) - DOT,
+          bottom: Math.max(...ys) + DOT,
+        },
+      ];
+    });
+    const ys = placePctLabels(items, {
+      height: CHART_FONT_SIZE,
+      gap: LABEL_GAP,
+      minY: TOP + overlay.top,
+      maxY: layout.plotBottom - overlay.bottom,
+    });
+    return items.map((item, i) => ({ ...item, y: ys[i] }));
+  }, [layout, points, formatPct, palette, overlay]);
 
   return (
     <View style={styles.container} onLayout={onLayout}>
@@ -209,13 +233,6 @@ export const CurveChart = memo(function CurveChart({
             />
             {points.map((p, i) => {
               const px = layout.x(i);
-              const top = Math.min(
-                ...[p.base, p.current].filter((v) => v !== null).map((v) => layout.y(v)),
-              );
-              const pct =
-                p.changePct === null || i % pctStride !== 0
-                  ? null
-                  : { text: formatPct(p.changePct), color: changeColor(p.changePct, palette) };
               return [
                 p.base !== null && (
                   <Circle
@@ -237,16 +254,6 @@ export const CurveChart = memo(function CurveChart({
                     color={colors.chart.curveCurrent}
                   />
                 ),
-                pct !== null && (
-                  <SkText
-                    key={`p${p.label}`}
-                    x={layout.textX(i, numberFont.measureText(pct.text).width)}
-                    y={top - DOT - LABEL_GAP}
-                    text={pct.text}
-                    font={numberFont}
-                    color={pct.color}
-                  />
-                ),
                 i % monthStride === 0 && (
                   <SkText
                     key={`m${p.label}`}
@@ -259,6 +266,16 @@ export const CurveChart = memo(function CurveChart({
                 ),
               ];
             })}
+            {pctLabels.map((l) => (
+              <SkText
+                key={`p${l.key}`}
+                x={l.x}
+                y={l.y}
+                text={l.text}
+                font={numberFont}
+                color={l.color}
+              />
+            ))}
           </Canvas>
         )}
       </Pressable>

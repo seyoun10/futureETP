@@ -1,4 +1,4 @@
-import { labelStride, niceTicks, slotAt, tickDecimals } from './curveLayout';
+import { labelStride, niceTicks, placePctLabels, slotAt, tickDecimals } from './curveLayout';
 
 describe('niceTicks', () => {
   it('1·2·5 간격으로 범위 안 눈금을 만든다', () => {
@@ -34,5 +34,47 @@ describe('slotAt', () => {
     expect(slotAt(99, 40, 20, 3)).toBe(2);
     expect(slotAt(39, 40, 20, 3)).toBeNull();
     expect(slotAt(100, 40, 20, 3)).toBeNull();
+  });
+});
+
+describe('placePctLabels', () => {
+  const options = { height: 10, gap: 4, minY: 0, maxY: 200 };
+
+  it('겹치지 않으면 모두 점 위에 둔다', () => {
+    expect(
+      placePctLabels(
+        [
+          { x: 0, width: 30, top: 100, bottom: 110 },
+          { x: 40, width: 30, top: 100, bottom: 110 },
+        ],
+        options,
+      ),
+    ).toEqual([96, 96]);
+  });
+
+  it('이웃과 겹치면 점 아래, 그다음 한 줄 위로 옮긴다', () => {
+    expect(
+      placePctLabels(
+        [
+          { x: 0, width: 30, top: 100, bottom: 110 },
+          { x: 20, width: 30, top: 100, bottom: 110 },
+          { x: 10, width: 30, top: 100, bottom: 110 },
+        ],
+        options,
+      ),
+    ).toEqual([96, 124, 82]);
+  });
+
+  it('범위 밖 자리는 건너뛰고 자리가 없으면 점 위다', () => {
+    const tight = { ...options, minY: 90, maxY: 120 };
+    expect(
+      placePctLabels(
+        [
+          { x: 0, width: 30, top: 100, bottom: 110 },
+          { x: 10, width: 30, top: 100, bottom: 110 },
+        ],
+        tight,
+      ),
+    ).toEqual([96, 96]);
   });
 });
