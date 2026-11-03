@@ -6,7 +6,6 @@ import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
 
-import { spacing } from '@/theme/tokens';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
 import type { CandleGeom } from './fitTransform';
@@ -15,6 +14,7 @@ import type { ChartLine } from './LineLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import { useChartViewport, useReportGeom } from './useChartViewport';
+import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { priceLabelText, YAxisLayer } from './YAxisLayer';
@@ -70,23 +70,16 @@ export const LinesChart = memo(function LinesChart({
   locked,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
-  const {
-    transform,
-    detail,
-    width,
-    onLayout,
-    onGeom,
-    crosshair,
-    gestures,
-    pressConfig,
-    fittedStyle,
-  } = useChartViewport({
-    press,
-    periodBars,
-    onViewChange,
-    onVisibleRangeChange,
-    locked,
-  });
+  const { transform, detail, onGeom, crosshair, gestures, pressConfig, fittedStyle } =
+    useChartViewport({
+      press,
+      periodBars,
+      onViewChange,
+      onVisibleRangeChange,
+      locked,
+    });
+
+  const { setScales, boxProps } = useDetailPlacement({ detail, lines });
 
   const data = useMemo(
     () =>
@@ -111,11 +104,7 @@ export const LinesChart = memo(function LinesChart({
   if (dates.length === 0) return null;
 
   return (
-    <Animated.View
-      style={[styles.container, fittedStyle]}
-      onLayout={onLayout}
-      pointerEvents={locked ? 'none' : 'auto'}
-    >
+    <Animated.View style={[styles.container, fittedStyle]} pointerEvents={locked ? 'none' : 'auto'}>
       <CartesianChart
         data={data}
         xKey="i"
@@ -134,6 +123,12 @@ export const LinesChart = memo(function LinesChart({
           const dx = (points.hi[1]?.x ?? 0) - x0;
           return (
             <>
+              <ScaleReporter
+                xScale={xScale}
+                yScale={yScale}
+                chartBounds={chartBounds}
+                onScales={setScales}
+              />
               <XAxisLayer
                 dates={dates}
                 chartBounds={chartBounds}
@@ -177,10 +172,8 @@ export const LinesChart = memo(function LinesChart({
       {detail !== null && dates[detail.index] && (
         <View
           pointerEvents="none"
-          style={[
-            styles.detail,
-            detail.side === 'left' ? { left: spacing.sm } : { left: width / 2 },
-          ]}
+          onLayout={boxProps.onLayout}
+          style={[styles.detail, boxProps.style]}
         >
           {renderDetail(detail.index)}
         </View>
@@ -208,6 +201,5 @@ const styles = StyleSheet.create({
   },
   detail: {
     position: 'absolute',
-    top: spacing.sm,
   },
 });

@@ -1,20 +1,18 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, Candlestick, useChartPressState } from 'victory-native';
-import type { ChartBounds, PointsArray, Scale } from 'victory-native';
+import type { ChartBounds, PointsArray } from 'victory-native';
 
 import { formatPrice } from '@/lib/formatNumber';
-import { colors, spacing } from '@/theme/tokens';
+import { colors } from '@/theme/tokens';
 import { useUpDownPalette } from '@/theme/upDownColor';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
-import { cornerRect, leastCoveredCorner } from './detailCorner';
-import type { DetailCorner } from './detailCorner';
 import { ExtremeTagsLayer } from './ExtremeTagsLayer';
 import type { CandleGeom } from './fitTransform';
 import { LineLayer } from './LineLayer';
@@ -23,6 +21,7 @@ import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { useChartViewport, useReportGeom } from './useChartViewport';
+import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
 import { YAxisLayer } from './YAxisLayer';
@@ -107,7 +106,7 @@ export const CandleChart = memo(function CandleChart({
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const dataInsets = overlay;
   const dates = useMemo(() => bars.map((b) => b.tradeDate), [bars]);
-  const { transform, detail, onLayout, onGeom, crosshair, gestures, pressConfig, fittedStyle } =
+  const { transform, detail, onGeom, crosshair, gestures, pressConfig, fittedStyle } =
     useChartViewport({
       press,
       periodBars,
@@ -122,33 +121,7 @@ export const CandleChart = memo(function CandleChart({
       bars.map((b, i) => ({ ...b, i, hi: envelope.hi[i] ?? b.high, lo: envelope.lo[i] ?? b.low })),
     [bars, envelope],
   );
-  // 상세 박스 귀퉁이: 박스 크기·봉 좌표가 정해진 뒤, 봉에 붙을 때의 변환 값으로 계산한다
-  const [scales, setScales] = useState<ChartScales | null>(null);
-  const [boxSize, setBoxSize] = useState<{ width: number; height: number } | null>(null);
-  const corner = useMemo(() => {
-    if (detail === null || !scales || !boxSize) return null;
-    const { xScale, yScale, chartBounds } = scales;
-    const v = detail.view;
-    const screenY = (price: number) => v.scaleY * yScale(price) + v.translateY;
-    const index = (x: number) => xScale.invert((x - v.translateX) / v.scaleX);
-    return leastCoveredCorner({
-      area: detailArea(chartBounds, overlay),
-      box: boxSize,
-      crosshairX: detail.x,
-      *marksIn(x0, x1) {
-        const i1 = Math.min(Math.floor(index(x1)), bars.length - 1);
-        for (let i = Math.max(Math.ceil(index(x0)), 0); i <= i1; i++) {
-          yield [screenY(bars[i].high), screenY(bars[i].low)] as const;
-          for (const line of lines) {
-            const p = line.values[i];
-            if (p === null || p === undefined || p <= 0) continue;
-            const y = screenY(p);
-            yield [y - line.strokeWidth / 2, y + line.strokeWidth / 2] as const;
-          }
-        }
-      },
-    });
-  }, [detail, scales, boxSize, bars, lines, overlay]);
+  const { setScales, boxProps } = useDetailPlacement({ detail, lines, bars, overlay });
 
   const current = bars[bars.length - 1];
   // 마지막 봉이 보이면 두 점선이 겹치므로 흰색을 위에 그린다
@@ -173,11 +146,7 @@ export const CandleChart = memo(function CandleChart({
   if (!current) return null;
 
   return (
-    <Animated.View
-      style={[styles.container, fittedStyle]}
-      onLayout={onLayout}
-      pointerEvents={locked ? 'none' : 'auto'}
-    >
+    <Animated.View style={[styles.container, fittedStyle]} pointerEvents={locked ? 'none' : 'auto'}>
       <CartesianChart
         data={data}
         xKey="i"
@@ -269,13 +238,8 @@ export const CandleChart = memo(function CandleChart({
       {detail !== null && bars[detail.index] && (
         <View
           pointerEvents="none"
-          onLayout={(e) => {
-            const { width: w, height: h } = e.nativeEvent.layout;
-            setBoxSize((prev) =>
-              prev?.width === w && prev.height === h ? prev : { width: w, height: h },
-            );
-          }}
-          style={[styles.detail, cornerStyle(corner, scales, boxSize, overlay)]}
+          onLayout={boxProps.onLayout}
+          style={[styles.detail, boxProps.style]}
         >
           {renderDetail(detail.index)}
         </View>
@@ -283,42 +247,6 @@ export const CandleChart = memo(function CandleChart({
     </Animated.View>
   );
 });
-
-type ChartScales = { xScale: Scale; yScale: Scale; chartBounds: ChartBounds };
-
-// 상세 박스 귀퉁이 계산용으로 변환 전 스케일을 넘긴다. 스케일은 데이터가 바뀔 때만 새로 만들어진다
-function ScaleReporter({
-  xScale,
-  yScale,
-  chartBounds,
-  onScales,
-}: ChartScales & { onScales: (s: ChartScales) => void }) {
-  useEffect(
-    () => onScales({ xScale, yScale, chartBounds }),
-    [xScale, yScale, chartBounds, onScales],
-  );
-  return null;
-}
-
-// 상세 박스를 놓는 영역: 차트 영역에서 위·아래 정보 줄을 빼고 spacing.sm 안쪽
-const detailArea = (b: ChartBounds, overlay: OverlayInsets) => ({
-  left: b.left + spacing.sm,
-  right: b.right - spacing.sm,
-  top: b.top + overlay.top + spacing.sm,
-  bottom: b.bottom - overlay.bottom - spacing.sm,
-});
-
-// 귀퉁이를 정하기 전(첫 측정)에는 감춘다
-function cornerStyle(
-  corner: DetailCorner | null,
-  scales: ChartScales | null,
-  boxSize: { width: number; height: number } | null,
-  overlay: OverlayInsets,
-) {
-  if (!corner || !scales || !boxSize) return { opacity: 0 };
-  const r = cornerRect(detailArea(scales.chartBounds, overlay), boxSize, corner);
-  return { left: r.left, top: r.top };
-}
 
 type CandleLayerProps = {
   points: Record<'open' | 'high' | 'low' | 'close' | 'hi' | 'lo', PointsArray>;

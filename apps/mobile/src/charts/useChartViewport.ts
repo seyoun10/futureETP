@@ -1,6 +1,5 @@
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import { useAnimatedReaction, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import {
@@ -46,9 +45,9 @@ const applyTransform = (state: ChartTransform, t: Transform) => {
   state.matrix.set(setTranslate(setScale(state.matrix.get(), t.k, t.ky), t.tx, t.ty));
 };
 
-// x·view는 봉에 붙을 때 십자선의 화면 x와 변환 행렬 값(상세 박스 위치 계산용)
+// x·view는 봉에 붙을 때 십자선의 화면 x와 변환 행렬 값(상세 박스 위치 계산용, useDetailPlacement)
 export type ChartView = { scaleX: number; translateX: number; scaleY: number; translateY: number };
-export type ChartDetail = { index: number; side: 'left' | 'right'; x: number; view: ChartView };
+export type ChartDetail = { index: number; x: number; view: ChartView };
 // 드래그(이동)는 보이는 봉 수가 그대로라 기간 선택 표시를 남기고, 핀치(확대·축소)는 지운다(screens.md C-a)
 export type ChartGesture = 'pan' | 'zoom';
 
@@ -69,7 +68,7 @@ type ViewportOptions = {
 const NO_INSETS: OverlayInsets = { top: 0, bottom: 0 };
 
 // C-a·C-c 공용 x축 확대·이동(D-056, D-087). x만 핀치·드래그, 보이는 봉 기준 y 자동 맞춤,
-// 기간 버튼 범위, 길게 누르기 십자선(봉에 붙을 때 햅틱, 한 번 더 누르면 사라짐), 상세 박스 위치.
+// 기간 버튼 범위, 길게 누르기 십자선(봉에 붙을 때 햅틱, 한 번 더 누르면 사라짐), 상세 박스에 보일 봉.
 // 핀치·드래그는 라이브러리 것을 끄고 여기서 만든다(gestures). 라이브러리 핀치는 손가락 가운데를 변환 전
 // 좌표로 써서 확대된 상태에서 고정점이 어긋나고, 함께 도는 드래그가 행렬을 덮어써 시점이 튄다.
 export function useChartViewport({
@@ -87,8 +86,6 @@ export function useChartViewport({
   const geom = useSharedValue<CandleGeom | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [detail, setDetail] = useState<ChartDetail | null>(null);
-  const [width, setWidth] = useState(0);
-  const widthValue = useSharedValue(0);
 
   // 기간 버튼: 마지막 periodBars개 봉이 보이게. 봉 좌표가 바뀌면(새로고침·회전) 같은 기간으로 다시 맞추고,
   // 기간이 없으면(제스처로 고른 범위) 지금 배율·이동을 새 좌표에 맞춰 y만 다시 맞춘다
@@ -308,14 +305,11 @@ export function useChartViewport({
     return Gesture.Race(hideCrosshair, Gesture.Simultaneous(pinch, pan));
   }, [crosshairVisible, crosshairShown, geom, locked, pinchStart, transform, zoomed]);
 
-  // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신. 박스는 손가락 반대편에 둔다(screens.md C-a 십자선)
-  const onSnap = useCallback(
-    (index: number, side: ChartDetail['side'], x: number, view: ChartView) => {
-      setDetail({ index, side, x, view });
-      void Haptics.selectionAsync();
-    },
-    [],
-  );
+  // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신
+  const onSnap = useCallback((index: number, x: number, view: ChartView) => {
+    setDetail({ index, x, view });
+    void Haptics.selectionAsync();
+  }, []);
   useAnimatedReaction(
     () => (press.isActive.get() ? press.matchedIndex.get() : -1),
     (idx, prev) => {
@@ -324,7 +318,7 @@ export function useChartViewport({
       const { scaleX, translateX, scaleY, translateY } = getTransformComponents(
         transform.matrix.get(),
       );
-      scheduleOnRN(onSnap, idx, x < widthValue.get() / 2 ? 'right' : 'left', x, {
+      scheduleOnRN(onSnap, idx, x, {
         scaleX,
         translateX,
         scaleY,
@@ -333,16 +327,9 @@ export function useChartViewport({
     },
   );
 
-  const onLayout = (e: LayoutChangeEvent) => {
-    setWidth(e.nativeEvent.layout.width);
-    widthValue.set(e.nativeEvent.layout.width);
-  };
-
   return {
     transform,
     detail,
-    width,
-    onLayout,
     onGeom,
     crosshair,
     gestures,
