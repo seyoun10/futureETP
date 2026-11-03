@@ -3,6 +3,10 @@
 원자재 선물 기반 ETP(ETF/ETN)에 투자할 때 필요한데 기존 시세 서비스에는 없는 정보를 보여 주는 개인용 모바일 앱입니다.
 iOS·Android, 사용자 본인 1명용(스토어 미배포)으로 1인 풀스택 개발했습니다.
 
+| 원자재 목록 | 이격도차트 | 월물커브 | ETP 목록 |
+|---|---|---|---|
+| <img src="docs/images/home.png" width="200" alt="원자재 목록"> | <img src="docs/images/disparity-chart.png" width="200" alt="이격도차트"> | <img src="docs/images/curve.png" width="200" alt="월물커브"> | <img src="docs/images/etp-list.png" width="200" alt="ETP 목록"> |
+
 ## 왜 만들었나
 
 원유·천연가스·금·은 ETP는 실물이 아니라 선물을 보유하고, 상품마다 정해진 규칙으로 월물을 롤오버합니다.

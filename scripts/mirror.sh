@@ -37,6 +37,9 @@ shift || true
 case "$cmd" in
   shot)
     out="${1:-mirror.png}"
+    # 영역 캡처라 다른 창이 위에 있으면 그 창이 찍힌다
+    activate
+    sleep 0.3
     screencapture -x -R"$WX,$WY,$WW,$WH" "$out"
     sips -z "$WH" "$WW" "$out" >/dev/null
     echo "$out"
