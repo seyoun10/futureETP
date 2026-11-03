@@ -272,10 +272,10 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `BACKUP` 작업(`jobs/backup.ts`): `pg_dump -Fc`를 `.partial`로 쓴 뒤 이름 변경 → 덤프 이름 형식 파일만 최근 7개 보관 → 스냅숏 90일·`alert_record`·`batch_run` 365일 지난 행 삭제(한 트랜잭션). 덤프 실패면 지우지 않음. `BACKUP_DIR` 없으면 실패. dev에서 덤프(약 19MB, `pg_restore --list` 확인)·7개 보관·실패 메시지(접속 문자열 미포함) 확인 (2026-10-28)
   - [x] Healthchecks.io ping(`jobs/healthcheck.ts`): 스케줄러가 작업마다 재시도까지 묶어 `/start` → 성공 또는 `/fail`, `rid`로 짝지음, slug는 작업 이름 소문자, 키 없으면(dev) 보내지 않음, ping 실패는 로그만 (2026-10-28)
 - [x] 첫 서버 배포 전: Oracle VM 생성·PAYG 전환(D-034), 도메인(무료 DDNS / 저가 도메인, D-036), Caddy·방화벽(VM 보안 목록과 OS 방화벽의 80·443), Healthchecks.io check(D-045: 작업 7개 + Mac 내려받기 `backup_pull` 7일·여유 2일)
-  - [x] Oracle VM 생성·PAYG 전환: 도쿄 A1 2 OCPU·12GB, Ubuntu 26.04, 공인 IP `193.123.160.142`, OCI Budget 월 $1 (2026-10-31, D-034)
+  - [x] Oracle VM 생성·PAYG 전환: 도쿄 A1 2 OCPU·12GB, Ubuntu 26.04, OCI Budget 월 $1 (2026-10-31, D-034)
   - [x] VM 준비: Docker 29.9·Compose v5.6, `ubuntu` docker 그룹, OS 방화벽(`rules.v4`) TCP 80·443·UDP 443, Security List TCP 80·443. 재부팅 뒤 유지·임시 컨테이너 80번으로 Mac에서 HTTP 200 확인 (2026-10-31)
   - [x] 도메인 `futureetp-api.duckdns.org`(DuckDNS, deSEC dedyn.io는 신규 등록 중단): VM cron이 30분마다 A 레코드 갱신, 임시 Caddy로 Let's Encrypt staging 인증서 발급·HTTPS 200·HTTP→HTTPS 308 확인 (2026-10-31, D-036)
-  - [x] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@193.123.160.142` (2026-10-31), `HEALTHCHECKS_PING_KEY`(backup_pull용)는 Healthchecks.io 항목 때 추가
+  - [x] Mac `~/.config/futureetp/ops.env`(권한 600): `DEPLOY_HOST=ubuntu@<VM 공인 IP>` (2026-10-31), `HEALTHCHECKS_PING_KEY`(backup_pull용)는 Healthchecks.io 항목 때 추가
   - [x] VM `~/futureetp/infra/.env`(권한 600): `DOMAIN=futureetp-api.duckdns.org`, `POSTGRES_PASSWORD`(`openssl rand -hex 32`), `API_TOKEN`(새 prod 키, Mac `~/.config/futureetp/prod-api-token`에 보관, QR은 `npm run access-key -- --show < 그 파일`), 외부 키 3개(dev `.env`와 같은 값). 값은 출력하지 않고 ssh stdin으로 넘김. `HEALTHCHECKS_PING_KEY`는 Healthchecks.io 항목 때 추가 (2026-10-31)
   - [x] FCM 키: Mac `~/.config/futureetp/fcm-service-account.json` → VM `infra/secrets/fcm-service-account.json`(권한 600, 해시 일치, 소유자 uid 1000은 배포 스크립트가 맞춤) (2026-10-31)
   - [x] Healthchecks.io: 프로젝트·ping key, Management API로 check 8개 생성(작업 7개는 `scheduler.ts` 일정·시간대와 같게, 여유는 재시도 포함 실행 시간 기준 `daily_settle` 60분·`settle_revision` 90분·`deferred_push`·`intraday` 10분·나머지 30분, Mac `backup_pull` 7일·여유 2일). ping key는 VM `infra/.env`·Mac `ops.env`에, 생성 스크립트는 Mac `~/.config/futureetp/healthchecks-setup.sh`(API 키 `healthchecks.api-key`) (2026-10-31)
