@@ -1,3 +1,5 @@
+// app config는 Node에서 실행된다. 앱 tsconfig의 types에는 node가 없어 여기서만 참조한다.
+/// <reference types="node" />
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import {
   AndroidConfig,
@@ -7,6 +9,7 @@ import {
   withGradleProperties,
 } from 'expo/config-plugins';
 import type { ConfigPlugin } from 'expo/config-plugins';
+import { execSync } from 'node:child_process';
 
 // expo-modules-core가 process.env 값을 any로 선언해서 string으로 좁혀 읽는다.
 const env: Partial<Record<string, string>> = process.env;
@@ -30,6 +33,19 @@ const extra = isDev
       devApiToken: env.DEV_API_TOKEN,
     }
   : { variant, apiUrl: PROD_API_URL };
+
+// Android versionCode는 커밋 수로 정한다. main에서만 빌드하므로 빌드마다 커지고, 따로 올려 커밋할 필요가 없다.
+// fingerprint 기본 프리셋이 versionCode를 빼서 커밋이 늘어도 OTA runtime version은 그대로다.
+// git이 없는 환경(eas update 업로드 등)에서는 1이다. 값은 네이티브 빌드에만 쓰인다.
+const versionCode = (() => {
+  try {
+    return (
+      Number(execSync('git rev-list --count HEAD', { encoding: 'utf8', stdio: 'pipe' }).trim()) || 1
+    );
+  } catch {
+    return 1;
+  }
+})();
 
 // EAS 프로젝트(@jungseyoon/futureetp). 동적 config라 eas init이 써 넣지 못해 직접 둔다.
 const EAS_PROJECT_ID = '438271c8-4303-405b-8629-49f1476cbb3d';
@@ -162,6 +178,7 @@ export default ({ config }: ConfigContext): ExpoConfig =>
           },
           android: {
             package: appId,
+            versionCode,
             adaptiveIcon: {
               backgroundColor: '#000000',
               foregroundImage: './assets/images/android-icon-foreground.png',
