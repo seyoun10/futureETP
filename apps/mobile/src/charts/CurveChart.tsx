@@ -232,7 +232,7 @@ export const CurveChart = memo(function CurveChart({
   );
   const firstJanuary = points.findIndex((p) => p.contractMonth.endsWith('-01'));
   const strideAnchor = firstJanuary < 0 ? 0 : firstJanuary % monthStride;
-  // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래가 먼저고, 이웃과 겹치면 반대쪽이나 한 줄 더 옮긴다
+  // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래이고, 이웃과 겹치면 같은 쪽 바깥으로 밀어낸다
   const pctLabels = useMemo(() => {
     if (!layout) return [];
     const items = points.flatMap((p, i) => {

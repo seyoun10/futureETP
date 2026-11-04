@@ -50,35 +50,30 @@ export type PctLabelInput = {
   below?: boolean;
 };
 
-// 변화율 라벨을 모두 그리되 겹치지 않게 놓을 글자 기준선 y. 앞 라벨부터 점 위 → 점 아래 → 한 줄씩 더 위·아래 순으로
-// (below면 아래 → 위 순으로) 이미 놓은 라벨과 겹치지 않고 [minY, maxY] 안에 드는 첫 자리를 고른다.
-// 자리가 없으면 첫 순서 자리(점 위, below면 점 아래)
+// 변화율 라벨을 모두 그리되 겹치지 않게 놓을 글자 기준선 y. 오르면 점 위, 내리면(below) 점 아래에만 둔다.
+// 앞 라벨부터 놓고, 이미 놓은 라벨과 겹치면 그 라벨 바깥(위쪽 라벨은 더 위, 아래쪽 라벨은 더 아래)으로 밀어낸다.
+// 밀려서 [minY, maxY]를 벗어나면 그 끝에 붙인다
 export function placePctLabels(
   labels: readonly PctLabelInput[],
-  options: { height: number; gap: number; minY: number; maxY: number; maxRows?: number },
+  options: { height: number; gap: number; minY: number; maxY: number },
 ): number[] {
-  const { height, gap, minY, maxY, maxRows = 3 } = options;
+  const { height, gap, minY, maxY } = options;
   const placed: { left: number; right: number; y: number }[] = [];
   return labels.map((l) => {
-    const above = l.top - gap;
-    const below = l.bottom + gap + height;
-    const candidates: number[] = [];
-    for (let row = 0; row < maxRows; row++) {
-      const up = above - row * (height + gap);
-      const down = below + row * (height + gap);
-      candidates.push(...(l.below ? [down, up] : [up, down]));
-    }
-    const fits = (y: number) =>
-      y - height >= minY &&
-      y <= maxY &&
-      placed.every(
+    let y = l.below ? l.bottom + gap + height : l.top - gap;
+    // 밀 때마다 y가 한쪽으로만 움직여 놓은 라벨 수만큼 안에 끝난다
+    for (;;) {
+      const hit = placed.find(
         (p) =>
-          l.x + l.width + gap <= p.left ||
-          p.right + gap <= l.x ||
-          y <= p.y - height ||
-          p.y <= y - height,
+          l.x < p.right + gap &&
+          p.left < l.x + l.width + gap &&
+          y > p.y - height &&
+          p.y > y - height,
       );
-    const y = candidates.find(fits) ?? candidates[0];
+      if (!hit) break;
+      y = l.below ? hit.y + height + gap : hit.y - height - gap;
+    }
+    y = Math.min(Math.max(y, minY + height), maxY);
     placed.push({ left: l.x, right: l.x + l.width, y });
     return y;
   });

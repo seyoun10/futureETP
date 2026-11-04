@@ -53,7 +53,7 @@ describe('placePctLabels', () => {
     ).toEqual([96, 96]);
   });
 
-  it('이웃과 겹치면 점 아래, 그다음 한 줄 위로 옮긴다', () => {
+  it('이웃과 겹치면 반대쪽으로 넘기지 않고 같은 쪽 바깥으로 밀어낸다', () => {
     expect(
       placePctLabels(
         [
@@ -63,10 +63,10 @@ describe('placePctLabels', () => {
         ],
         options,
       ),
-    ).toEqual([96, 124, 82]);
+    ).toEqual([96, 82, 68]);
   });
 
-  it('하락(below)은 점 아래가 먼저고, 겹치면 점 위 → 한 줄 더 아래 순이다', () => {
+  it('하락(below)은 점 아래에 두고, 겹치면 더 아래로 민다', () => {
     expect(
       placePctLabels(
         [
@@ -79,8 +79,20 @@ describe('placePctLabels', () => {
     ).toEqual([124, 96, 138]);
   });
 
-  it('범위 밖 자리는 건너뛰고 자리가 없으면 점 위다', () => {
-    const tight = { ...options, minY: 90, maxY: 120 };
+  it('위·아래 라벨은 가로로 겹쳐도 서로 밀지 않는다', () => {
+    expect(
+      placePctLabels(
+        [
+          { x: 0, width: 30, top: 100, bottom: 110 },
+          { x: 10, width: 30, top: 100, bottom: 110, below: true },
+        ],
+        options,
+      ),
+    ).toEqual([96, 124]);
+  });
+
+  it('밀려서 범위를 벗어나면 그 끝에 붙인다', () => {
+    const tight = { ...options, minY: 80, maxY: 120 };
     expect(
       placePctLabels(
         [
@@ -89,6 +101,6 @@ describe('placePctLabels', () => {
         ],
         tight,
       ),
-    ).toEqual([96, 96]);
+    ).toEqual([96, 90]);
   });
 });
