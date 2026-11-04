@@ -253,7 +253,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 앱: installation ID 생성·SecureStore(`api/deviceId.ts`, Math.random UUID v4), 인증 요청에 `X-Device-Id` (2026-11-04)
   - [x] 서버: `app_settings` → `device` 설정 컬럼 마이그레이션(`0006_device_settings`, 기존 기기 행 삭제), 토큰 없어도 `PUT /v1/devices`(shared `pushToken` nullable, 앱은 빈 토큰이면 null로 등록), `/v1/settings`·`/v1/commodities`·`/v1/devices`가 헤더 기기 사용(`api/deviceId.ts`, 처음 보인 기기는 기본값 행), 같은 토큰은 다른 기기 행에서 비움, 무효 토큰은 비우기. dev DB 적용·저장소 동작 확인 (2026-11-04)
   - [x] 알림: `alert_record.device_id`(중복 방지 키, 기기 삭제 시 함께 삭제, `0007_alert_record_device`에서 기존 기록 삭제), 알림 원자재가 같은 기기마다 판정·기록·그 기기로만 발송, 재시도·지연 발송은 기록의 기기 설정(거부 시간)·언어, 운영·ETP 후보·다수 판정 알림은 기기별 언어 문구. dev DB 적용·저장소 동작 확인 (2026-11-04)
-  - [ ] 서버 배포 + 앱 업데이트 함께, 기기에서 설정 분리·알림 확인
+  - [x] 서버 배포(`5f5eef7`, `0006`·`0007` 적용으로 prod 기기·설정·알림 기록 초기화) + 앱 OTA(iOS·Android). iPhone 14 Pro·16 Pro Max에 prod Release(Personal Team) 새로 설치 → prod `device`에 두 행, 기준·알림 원자재가 기기마다 따로 저장됨 확인 (2026-11-04)
+  - [ ] 기기별 알림 수신 확인(푸시 토큰 등록 기기 필요: Android 실기기 또는 Apple 가입 뒤 iOS)
 
 ### 5-9. ETP
 - [x] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
