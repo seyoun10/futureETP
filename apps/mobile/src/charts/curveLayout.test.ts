@@ -1,4 +1,11 @@
-import { labelStride, niceTicks, nearestSlot, placePctLabels, tickDecimals } from './curveLayout';
+import {
+  labelStride,
+  niceTicks,
+  nearestSlot,
+  placePctLabels,
+  segmentHitsBox,
+  tickDecimals,
+} from './curveLayout';
 
 describe('niceTicks', () => {
   it('1·2·5 간격으로 범위 안 눈금을 만든다', () => {
@@ -45,11 +52,11 @@ describe('placePctLabels', () => {
     expect(
       placePctLabels(
         [
-          { x: 0, width: 30, top: 100, bottom: 110 },
-          { x: 40, width: 30, top: 100, bottom: 110 },
+          { x: 0, anchor: 15, width: 30, top: 100, bottom: 110 },
+          { x: 40, anchor: 55, width: 30, top: 100, bottom: 110 },
         ],
         options,
-      ),
+      ).map((p) => p.y),
     ).toEqual([96, 96]);
   });
 
@@ -57,12 +64,12 @@ describe('placePctLabels', () => {
     expect(
       placePctLabels(
         [
-          { x: 0, width: 30, top: 100, bottom: 110 },
-          { x: 20, width: 30, top: 100, bottom: 110 },
-          { x: 10, width: 30, top: 100, bottom: 110 },
+          { x: 0, anchor: 15, width: 30, top: 100, bottom: 110 },
+          { x: 20, anchor: 35, width: 30, top: 100, bottom: 110 },
+          { x: 10, anchor: 25, width: 30, top: 100, bottom: 110 },
         ],
         options,
-      ),
+      ).map((p) => p.y),
     ).toEqual([96, 82, 68]);
   });
 
@@ -70,12 +77,12 @@ describe('placePctLabels', () => {
     expect(
       placePctLabels(
         [
-          { x: 0, width: 30, top: 100, bottom: 110, below: true },
-          { x: 40, width: 30, top: 100, bottom: 110 },
-          { x: 20, width: 30, top: 100, bottom: 110, below: true },
+          { x: 0, anchor: 15, width: 30, top: 100, bottom: 110, below: true },
+          { x: 40, anchor: 55, width: 30, top: 100, bottom: 110 },
+          { x: 20, anchor: 35, width: 30, top: 100, bottom: 110, below: true },
         ],
         options,
-      ),
+      ).map((p) => p.y),
     ).toEqual([124, 96, 138]);
   });
 
@@ -83,11 +90,11 @@ describe('placePctLabels', () => {
     expect(
       placePctLabels(
         [
-          { x: 0, width: 30, top: 100, bottom: 110 },
-          { x: 10, width: 30, top: 100, bottom: 110, below: true },
+          { x: 0, anchor: 15, width: 30, top: 100, bottom: 110 },
+          { x: 10, anchor: 25, width: 30, top: 100, bottom: 110, below: true },
         ],
         options,
-      ),
+      ).map((p) => p.y),
     ).toEqual([96, 124]);
   });
 
@@ -96,11 +103,59 @@ describe('placePctLabels', () => {
     expect(
       placePctLabels(
         [
-          { x: 0, width: 30, top: 100, bottom: 110 },
-          { x: 10, width: 30, top: 100, bottom: 110 },
+          { x: 0, anchor: 15, width: 30, top: 100, bottom: 110 },
+          { x: 10, anchor: 25, width: 30, top: 100, bottom: 110 },
         ],
         tight,
-      ),
+      ).map((p) => p.y),
     ).toEqual([96, 90]);
+  });
+
+  it('선과 겹치면 점 x가 글자 안에 남는 만큼 좌우로 가장 덜 민다', () => {
+    // 점(15, 100)에서 오른쪽 위로 오르는 선: 위 라벨은 왼쪽으로 비킨다
+    const segments = [{ x0: 15, y0: 100, x1: 45, y1: 70 }];
+    const [p] = placePctLabels([{ x: 0, anchor: 15, width: 30, top: 97, bottom: 103 }], {
+      ...options,
+      minX: -100,
+      segments,
+    });
+    expect(p.y).toBe(93);
+    expect(p.x).toBeLessThan(0);
+    expect(p.x).toBeGreaterThanOrEqual(-15);
+  });
+
+  it('비킬 자리가 없으면 그대로 둔다', () => {
+    // 점 양쪽으로 가파르게 오르는 골짜기
+    const segments = [
+      { x0: -15, y0: 0, x1: 15, y1: 100 },
+      { x0: 15, y0: 100, x1: 45, y1: 0 },
+    ];
+    expect(
+      placePctLabels([{ x: 0, anchor: 15, width: 30, top: 97, bottom: 103 }], {
+        ...options,
+        minX: -100,
+        segments,
+      }),
+    ).toEqual([{ x: 0, y: 93 }]);
+  });
+
+  it('왼쪽 끝을 넘어 밀지 않는다', () => {
+    const segments = [{ x0: 15, y0: 100, x1: 45, y1: 70 }];
+    expect(
+      placePctLabels([{ x: 0, anchor: 15, width: 30, top: 97, bottom: 103 }], {
+        ...options,
+        minX: 0,
+        segments,
+      }),
+    ).toEqual([{ x: 0, y: 93 }]);
+  });
+});
+
+describe('segmentHitsBox', () => {
+  it('상자 x 구간 안 선분의 세로 범위로 판정한다', () => {
+    const s = { x0: 0, y0: 0, x1: 10, y1: 10 };
+    expect(segmentHitsBox(s, 4, 6, 3, 7)).toBe(true);
+    expect(segmentHitsBox(s, 4, 6, 7, 9)).toBe(false);
+    expect(segmentHitsBox(s, 11, 20, 0, 10)).toBe(false);
   });
 });

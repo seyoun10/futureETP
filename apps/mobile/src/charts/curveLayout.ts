@@ -40,41 +40,86 @@ export function nearestSlot(
   return Math.min(Math.max(Math.floor((x - left) / slotWidth), 0), count - 1);
 }
 
-// 점 위 변화율 라벨 하나. x는 글자 왼쪽, top·bottom은 그 칸 점들의 가장 위·아래 y.
-// below면 점 아래를 먼저 고른다(하락)
+// 점 위 변화율 라벨 하나. x는 글자 왼쪽(점 가운데 기준), anchor는 점 x, top·bottom은 그 칸 점들의 가장 위·아래 y.
+// below면 점 아래에 둔다(하락)
 export type PctLabelInput = {
   x: number;
+  anchor: number;
   width: number;
   top: number;
   bottom: number;
   below?: boolean;
 };
 
-// 변화율 라벨을 모두 그리되 겹치지 않게 놓을 글자 기준선 y. 오르면 점 위, 내리면(below) 점 아래에만 둔다.
+// 커브 선분 하나
+export type Segment = { x0: number; y0: number; x1: number; y1: number };
+
+// 선분이 [left, right] × [top, bottom] 상자를 지나는지
+export function segmentHitsBox(
+  s: Segment,
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+): boolean {
+  const a = Math.max(Math.min(s.x0, s.x1), left);
+  const b = Math.min(Math.max(s.x0, s.x1), right);
+  if (a > b) return false;
+  const at = (x: number) =>
+    s.x1 === s.x0 ? s.y0 : s.y0 + ((s.y1 - s.y0) * (x - s.x0)) / (s.x1 - s.x0);
+  const ys = s.x1 === s.x0 ? [s.y0, s.y1] : [at(a), at(b)];
+  return Math.max(...ys) >= top && Math.min(...ys) <= bottom;
+}
+
+// 변화율 라벨을 모두 그리되 겹치지 않게 놓을 글자 왼쪽 x와 기준선 y. 오르면 점 위, 내리면(below) 점 아래에만 둔다.
 // 앞 라벨부터 놓고, 이미 놓은 라벨과 겹치면 그 라벨 바깥(위쪽 라벨은 더 위, 아래쪽 라벨은 더 아래)으로 밀어낸다.
-// 밀려서 [minY, maxY]를 벗어나면 그 끝에 붙인다
+// 밀려서 [minY, maxY]를 벗어나면 그 끝에 붙인다. 그 높이에서 선과 겹치면 좌우로 가장 덜 밀어 선·라벨과 겹치지 않는
+// 자리로 옮긴다. 점 x가 글자 폭 안에 남고 [minX, maxX]를 넘지 않는 만큼만 밀고, 그런 자리가 없으면 그대로 둔다
 export function placePctLabels(
   labels: readonly PctLabelInput[],
-  options: { height: number; gap: number; minY: number; maxY: number },
-): number[] {
-  const { height, gap, minY, maxY } = options;
+  options: {
+    height: number;
+    gap: number;
+    minY: number;
+    maxY: number;
+    minX?: number;
+    maxX?: number;
+    segments?: readonly Segment[];
+  },
+): { x: number; y: number }[] {
+  const { height, gap, minY, maxY, minX = -Infinity, maxX = Infinity, segments = [] } = options;
   const placed: { left: number; right: number; y: number }[] = [];
+  const hitsLabel = (x: number, width: number, y: number) =>
+    placed.find(
+      (p) => x < p.right + gap && p.left < x + width + gap && y > p.y - height && p.y > y - height,
+    );
+  const hitsLine = (x: number, width: number, y: number) =>
+    segments.some((s) => segmentHitsBox(s, x, x + width, y - height, y));
   return labels.map((l) => {
     let y = l.below ? l.bottom + gap + height : l.top - gap;
     // 밀 때마다 y가 한쪽으로만 움직여 놓은 라벨 수만큼 안에 끝난다
     for (;;) {
-      const hit = placed.find(
-        (p) =>
-          l.x < p.right + gap &&
-          p.left < l.x + l.width + gap &&
-          y > p.y - height &&
-          p.y > y - height,
-      );
+      const hit = hitsLabel(l.x, l.width, y);
       if (!hit) break;
       y = l.below ? hit.y + height + gap : hit.y - height - gap;
     }
     y = Math.min(Math.max(y, minY + height), maxY);
-    placed.push({ left: l.x, right: l.x + l.width, y });
-    return y;
+    let x = l.x;
+    if (hitsLine(x, l.width, y)) {
+      const lo = Math.max(l.anchor - l.width, minX);
+      const hi = Math.min(l.anchor, maxX - l.width);
+      // 1pt씩 오른쪽·왼쪽을 번갈아 본다
+      for (let d = 1; l.x - d >= lo || l.x + d <= hi; d++) {
+        const found = [l.x + d, l.x - d].find(
+          (c) => c >= lo && c <= hi && !hitsLine(c, l.width, y) && !hitsLabel(c, l.width, y),
+        );
+        if (found !== undefined) {
+          x = found;
+          break;
+        }
+      }
+    }
+    placed.push({ left: x, right: x + l.width, y });
+    return { x, y };
   });
 }

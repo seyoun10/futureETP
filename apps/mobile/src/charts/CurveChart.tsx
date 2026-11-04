@@ -32,7 +32,14 @@ import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { CHART_FONT_SIZE, chartParagraph, numberFont, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
 import { CROSSHAIR_LABEL_PAD, crosshairLabelHeight } from './CrosshairLayer';
-import { labelStride, nearestSlot, niceTicks, placePctLabels, tickDecimals } from './curveLayout';
+import {
+  labelStride,
+  nearestSlot,
+  niceTicks,
+  placePctLabels,
+  type Segment,
+  tickDecimals,
+} from './curveLayout';
 import { cornerRect, leastCoveredCorner } from './detailCorner';
 import { monthTickLabel, widestMonthLabel } from './monthTicks';
 import { LONG_PRESS_MS } from './useChartViewport';
@@ -232,7 +239,8 @@ export const CurveChart = memo(function CurveChart({
   );
   const firstJanuary = points.findIndex((p) => p.contractMonth.endsWith('-01'));
   const strideAnchor = firstJanuary < 0 ? 0 : firstJanuary % monthStride;
-  // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래이고, 이웃과 겹치면 같은 쪽 바깥으로 밀어낸다
+  // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래이고, 이웃과 겹치면 같은 쪽 바깥으로 밀어낸다.
+  // 선과 겹치면 좌우로 민다
   const pctLabels = useMemo(() => {
     if (!layout) return [];
     const items = points.flatMap((p, i) => {
@@ -246,6 +254,7 @@ export const CurveChart = memo(function CurveChart({
           text,
           color: changeColor(p.changePct, palette, pctDecimals),
           x: layout.textX(i, width),
+          anchor: layout.x(i),
           width,
           top: Math.min(...ys) - DOT,
           bottom: Math.max(...ys) + DOT,
@@ -253,13 +262,31 @@ export const CurveChart = memo(function CurveChart({
         },
       ];
     });
-    const ys = placePctLabels(items, {
+    // 두 선의 선분. 값이 빠진 월물에서 끊긴다
+    const segments: Segment[] = [];
+    for (const key of ['base', 'current'] as const) {
+      for (let i = 0; i + 1 < points.length; i++) {
+        const v = points[i][key];
+        const next = points[i + 1][key];
+        if (v === null || next === null) continue;
+        segments.push({
+          x0: layout.x(i),
+          y0: layout.y(v),
+          x1: layout.x(i + 1),
+          y1: layout.y(next),
+        });
+      }
+    }
+    const positions = placePctLabels(items, {
       height: CHART_FONT_SIZE,
       gap: LABEL_GAP,
       minY: TOP + overlay.top,
       maxY: layout.plotBottom - overlay.bottom,
+      minX: layout.left,
+      maxX: layout.right,
+      segments,
     });
-    return items.map((item, i) => ({ ...item, y: ys[i] }));
+    return items.map((item, i) => ({ ...item, ...positions[i] }));
   }, [layout, points, formatPct, pctDecimals, palette, overlay]);
 
   // 상세 박스: 정보 줄 사이 그림 영역의 네 귀퉁이 중 점·선·변화율을 가장 적게 가리는 곳(C-a와 같다)
