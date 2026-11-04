@@ -18,6 +18,7 @@ import * as Updates from 'expo-updates';
 import { useHasAccessKey } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
+import { FooterLine, FooterText } from '@/components/FooterLine';
 import { ErrorView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -63,47 +64,51 @@ export function SettingsScreen() {
     ]);
 
   return (
-    // iOS는 키패드만큼 화면을 줄여 [완료] 줄을 키패드 위에 둔다
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScreenHeader
-        title={t('settings.title')}
-        right={
-          <HeaderIconButton icon="restore" label={t('settings.reset')} onPress={confirmReset} />
-        }
-      />
-      {/* rare-level 키패드는 화면을 끌거나 [완료]로 닫는다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
-      <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
-        {update.isError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {t('settings.saveFailed', { reason: errorText(t, update.error) })}
-          </Text>
-        )}
-        <DisplaySection onLanguageChange={(locale) => save({ locale })} />
-        <SectionHeader title={t('settings.sectionDisparity')} />
-        {settings.isError && settings.data === undefined ? (
-          <ErrorView error={settings.error} onRetry={() => void settings.refetch()} />
-        ) : (
-          <DisparitySection settings={settings.data} onChange={save} />
-        )}
-        <View style={styles.divider} />
-        <LinkRow
-          label={t('settings.accessKey')}
-          value={hasKey ? t('accessKey.saved') : undefined}
-          href="/settings/access-key"
-          description={t('settings.accessKeyDesc')}
+    <View style={styles.container}>
+      {/* iOS는 키패드만큼 화면을 줄여 [완료] 줄을 키패드 위에 둔다. 앱 번들 줄은 밖에 둬 키패드가 덮는다 */}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScreenHeader
+          title={t('settings.title')}
+          right={
+            <HeaderIconButton icon="restore" label={t('settings.reset')} onPress={confirmReset} />
+          }
         />
-        <LinkRow
-          label={t('settings.dataSources')}
-          href="/settings/data-sources"
-          description={t('settings.dataSourcesDesc')}
-        />
-        <BundleInfo />
-      </ScrollView>
-      <KeyboardDoneBar />
-    </KeyboardAvoidingView>
+        {/* rare-level 키패드는 화면을 끌거나 [완료]로 닫는다. 키패드가 열린 채 다른 행을 눌러도 그 행이 눌린다 */}
+        <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled">
+          {update.isError && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {t('settings.saveFailed', { reason: errorText(t, update.error) })}
+            </Text>
+          )}
+          <DisplaySection onLanguageChange={(locale) => save({ locale })} />
+          <SectionHeader title={t('settings.sectionDisparity')} />
+          {settings.isError && settings.data === undefined ? (
+            <ErrorView error={settings.error} onRetry={() => void settings.refetch()} />
+          ) : (
+            <DisparitySection settings={settings.data} onChange={save} />
+          )}
+          <View style={styles.divider} />
+          <LinkRow
+            label={t('settings.accessKey')}
+            value={hasKey ? t('accessKey.saved') : undefined}
+            href="/settings/access-key"
+            description={t('settings.accessKeyDesc')}
+          />
+          <LinkRow
+            label={t('settings.dataSources')}
+            href="/settings/data-sources"
+            description={t('settings.dataSourcesDesc')}
+          />
+        </ScrollView>
+        <KeyboardDoneBar />
+      </KeyboardAvoidingView>
+      <FooterLine>
+        <FooterText>{useBundleText()}</FooterText>
+      </FooterLine>
+    </View>
   );
 }
 
@@ -203,19 +208,17 @@ function DisparitySection({
   );
 }
 
-// 지금 실행 중인 JS 번들. OTA(EAS Update)를 받았는지 기기에서 바로 보려고 둔다
-function BundleInfo() {
+// 지금 실행 중인 JS 번들. OTA(EAS Update)를 받았는지 기기에서 바로 보려고 화면 최하단에 둔다
+function useBundleText() {
   const { t } = useTranslation();
   const runtime = (Updates.runtimeVersion ?? '-').slice(0, 7);
-  const text =
-    Updates.isEmbeddedLaunch || !Updates.updateId || !Updates.createdAt
-      ? t('settings.bundleEmbedded', { runtime })
-      : t('settings.bundleUpdate', {
-          time: formatLocalDateTime(Updates.createdAt.toISOString()),
-          id: Updates.updateId.slice(0, 8),
-          runtime,
-        });
-  return <Text style={styles.bundleInfo}>{text}</Text>;
+  return Updates.isEmbeddedLaunch || !Updates.updateId || !Updates.createdAt
+    ? t('settings.bundleEmbedded', { runtime })
+    : t('settings.bundleUpdate', {
+        time: formatLocalDateTime(Updates.createdAt.toISOString()),
+        id: Updates.updateId.slice(0, 8),
+        runtime,
+      });
 }
 
 type LinkRowProps = { label: string; value?: string; href: Href; description?: string };
@@ -286,13 +289,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textSecondary,
     fontSize: fontSize.caption,
-  },
-  bundleInfo: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.lg,
-    color: colors.textSecondary,
-    fontSize: fontSize.caption,
-    textAlign: 'center',
   },
   value: {
     marginRight: spacing.sm,
