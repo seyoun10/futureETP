@@ -114,6 +114,8 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
     [data],
   );
   const currentDate = data.freshness.tradeDate;
+  // 비교일이 D면 '현재', 지난 거래일이면 그날 종가(D-114)
+  const compareIsCurrent = data.compareDate === currentDate;
   const [stateLine, rollLine] = curveSummaryLines(t, data);
   const range = {
     value: data.baseDate,
@@ -150,7 +152,9 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
                 {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
                 {'   '}
                 <Text style={styles.legendCurrent}>{'── '}</Text>
-                {t('curve.legendCurrent', { date: formatLegendDate(currentDate, currentDate) })}
+                {t(compareIsCurrent ? 'curve.legendCurrent' : 'curve.legendCompare', {
+                  date: formatLegendDate(data.compareDate, currentDate),
+                })}
               </Text>
             }
             overlayBottom={
@@ -245,7 +249,7 @@ function StepButton({ icon, accessibilityLabel, onPress }: StepButtonProps) {
   );
 }
 
-// 툴팁: 월물 / 기준일 / 현재 / 변화율. 그 커브에 없는 값은 줄을 뺀다(screens.md C-b 선차트)
+// 툴팁: 월물 / 기준일 / 현재(비교일) / 변화율. 그 커브에 없는 값은 줄을 뺀다(screens.md C-b 선차트)
 function CurveDetail({ data, index }: { data: Curve; index: number }) {
   const { t } = useTranslation();
   const point = data.points[index];
@@ -259,7 +263,14 @@ function CurveDetail({ data, index }: { data: Curve; index: number }) {
         <DetailRow label={t('curve.tooltipBase')} value={price(point.basePrice)} />
       )}
       {point.currentPrice !== null && (
-        <DetailRow label={t('curve.tooltipCurrent')} value={price(point.currentPrice)} />
+        <DetailRow
+          label={t(
+            data.compareDate === data.freshness.tradeDate
+              ? 'curve.tooltipCurrent'
+              : 'curve.tooltipCompare',
+          )}
+          value={price(point.currentPrice)}
+        />
       )}
       {point.changePct !== null && (
         <DetailRow label={t('curve.tooltipChange')} value={formatCurvePct(point.changePct)} />

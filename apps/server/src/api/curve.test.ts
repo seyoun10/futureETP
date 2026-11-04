@@ -116,6 +116,7 @@ describe('GET /v1/commodities/:code/curve', () => {
       nextBaseDate: null,
       minBaseDate: '2026-10-14',
       maxBaseDate: '2026-10-21',
+      compareDate: '2026-10-22',
     });
     expect(body.points).toEqual([
       expect.objectContaining({ symbol: 'CLZ26', basePrice: 70, currentPrice: 77 }),
@@ -133,7 +134,25 @@ describe('GET /v1/commodities/:code/curve', () => {
       baseOffset: 4,
       prevBaseDate: '2026-10-14',
       nextBaseDate: '2026-10-19',
+      compareDate: '2026-10-19',
     });
+  });
+
+  it('지난 기준일은 다음 거래일 정산가와 비교하고 asOf는 조회 시각이다', async () => {
+    const body = await parse(
+      await setup('/v1/commodities/CL/curve?baseDate=2026-10-19', { withSnapshot: true }),
+    );
+    expect(body).toMatchObject({ baseDate: '2026-10-19', compareDate: '2026-10-20' });
+    expect(body.freshness).toMatchObject({
+      tradeDate: '2026-10-22',
+      delayed: false,
+      asOf: '2026-10-22T15:00:00.000Z',
+    });
+    // D 스냅숏(77)이 아니라 10-20 정산가
+    expect(body.points.map((p) => [p.basePrice, p.currentPrice])).toEqual([
+      [70, 70],
+      [71, 71],
+    ]);
   });
 
   it('D 정산가가 있으면 정산가를 쓴다', async () => {

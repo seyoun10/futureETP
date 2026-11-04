@@ -43,6 +43,7 @@ const DATA: Curve = {
   nextBaseDate: null,
   minBaseDate: '2010-06-07',
   maxBaseDate: '2026-10-21',
+  compareDate: '2026-10-22',
   points: [
     {
       symbol: 'NGX26',
@@ -123,11 +124,16 @@ describe('C-b 월물커브', () => {
       baseOffset: 2,
       prevBaseDate: '2026-10-19',
       nextBaseDate: '2026-10-21',
+      compareDate: '2026-10-21',
     });
     await fireEvent.press(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' }));
 
     expect(mockGet).toHaveBeenLastCalledWith('NG', '2026-10-20', expect.anything());
     expect(await screen.findByText('2026/10/20 (D-2)')).toBeOnTheScreen();
+    // 비교 커브는 기준일 다음 거래일 종가다(D-114)
+    expect(screen.getByTestId('curve-legend')).toHaveTextContent(
+      '╌╌ 기준일 10/20 종가 ── 비교일 10/21 종가',
+    );
     expect(screen.getByRole('button', { name: '기준일을 D-1로' })).toBeEnabled();
   });
 
@@ -161,10 +167,13 @@ describe('C-b 월물커브', () => {
       baseOffset: 4100,
       prevBaseDate: null,
       nextBaseDate: '2010-06-08',
+      compareDate: '2010-06-08',
     });
     await renderScreen();
 
-    expect(await screen.findByTestId('curve-legend')).toHaveTextContent(/기준일 2010\/06\/07 종가/);
+    expect(await screen.findByTestId('curve-legend')).toHaveTextContent(
+      '╌╌ 기준일 2010/06/07 종가 ── 비교일 2010/06/08 종가',
+    );
     expect(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' })).toBeDisabled();
   });
 
@@ -194,6 +203,16 @@ describe('C-b 월물커브', () => {
     await render(<>{lastChartProps().renderDetail(2)}</>);
     expect(screen.getByText('3.450')).toBeOnTheScreen();
     expect(screen.queryByText('기준일')).toBeNull();
+  });
+
+  it('비교일이 지난 거래일이면 툴팁 항목은 비교일이다', async () => {
+    mockGet.mockResolvedValue({ ...DATA, compareDate: '2026-10-21', baseDate: '2026-10-20' });
+    await renderScreen();
+    await screen.findByTestId('curve-base-date');
+
+    await render(<>{lastChartProps().renderDetail(1)}</>);
+    expect(screen.getByText('비교일')).toBeOnTheScreen();
+    expect(screen.queryByText('현재')).toBeNull();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {

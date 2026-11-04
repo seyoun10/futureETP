@@ -101,6 +101,7 @@ export const ko = {
   curve: {
     legendBase: '기준일 {{date}} 종가',
     legendCurrent: '현재 {{date}}',
+    legendCompare: '비교일 {{date}} 종가',
     baseDate: '{{date}} (D-{{n}})',
     prev: '기준일을 1 거래일 앞으로',
     next: '기준일을 1 거래일 뒤로',
@@ -117,6 +118,7 @@ export const ko = {
     unavailable: '산출 불가',
     tooltipBase: '기준일',
     tooltipCurrent: '현재',
+    tooltipCompare: '비교일',
     tooltipChange: '변화율',
     noData: '표시할 월물이 없습니다.',
     pickTitle: '기준일 선택',

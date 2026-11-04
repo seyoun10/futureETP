@@ -94,6 +94,7 @@ export const en: Translation = {
   curve: {
     legendBase: 'Base {{date}} settle',
     legendCurrent: 'Now {{date}}',
+    legendCompare: 'Compare {{date}} close',
     baseDate: '{{date}} (D-{{n}})',
     prev: 'Move base date 1 trading day earlier',
     next: 'Move base date 1 trading day later',
@@ -110,6 +111,7 @@ export const en: Translation = {
     unavailable: 'unavailable',
     tooltipBase: 'Base',
     tooltipCurrent: 'Now',
+    tooltipCompare: 'Compare',
     tooltipChange: 'Change',
     noData: 'No contracts to show.',
     pickTitle: 'Select base date',

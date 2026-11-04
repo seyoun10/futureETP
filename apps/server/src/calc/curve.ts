@@ -97,7 +97,7 @@ export type CurveComparisonPoint = {
   changePct: number | null;
 };
 
-// 기준일 커브와 현재(D) 커브를 월물로 합친다(만기순). 기준일에만 있는 월물(그 사이 만기)과
+// 기준일 커브와 비교 커브(기준일 다음 거래일, D-114)를 월물로 합친다(만기순). 기준일에만 있는 월물(그 사이 만기)과
 // 현재에만 있는 월물(신규 상장·거래량 기준 변화)은 한쪽 값만 있고 변화율이 없다.
 export function compareCurves(
   base: readonly CurvePoint[],
@@ -205,17 +205,17 @@ export type CurveBar = {
 export type CurveInput = {
   // 최종 거래일이 기준일 이후인 월물
   contracts: readonly ListedContract[];
-  // 오름차순. 기준일·D 각각의 거래량 창(20거래일)을 덮어야 한다
+  // 오름차순. 기준일·비교일 각각의 거래량 창(20거래일)을 덮어야 한다
   tradeDates: readonly string[];
   baseDate: string;
-  // D(marketStatus.tradeDate)와 그날 정산이 끝났는지
+  // 비교 커브 날짜(기준일 다음 거래일, 기준일이 D-1이면 D, D-114)와 그날 정산이 끝났는지
   currentDate: string;
   currentSettled: boolean;
   // 그날 보유한 대표월물 = 그 전 거래일 FRONT roll_weight 행(D-068)
   baseFront: string | null;
   currentFront: string | null;
   bars: readonly CurveBar[];
-  // 월물별 D의 최근 스냅숏
+  // 월물별 비교일의 최근 스냅숏(비교일 정산 전에만)
   snapshots: readonly { contractSymbol: string; capturedAt: Date; last: number }[];
 };
 
@@ -225,13 +225,13 @@ export type CurveResult = {
   points: CurveComparisonPoint[];
   base: CurveStatsResult | null;
   current: CurveStatsResult | null;
-  // D 커브 값 중 가장 늦은 시각. 값이 하나도 없으면 null
+  // 비교 커브 값 중 가장 늦은 시각. 값이 하나도 없으면 null
   asOf: Date | null;
-  // D 커브에 장중 스냅숏을 하나라도 썼는지
+  // 비교 커브에 장중 스냅숏을 하나라도 썼는지
   delayed: boolean;
 };
 
-// C-b 조회 조립(D-046, D-068). 기준일 값은 정산가, D 값은 정산가 → 최근 스냅숏 순(D-048)이다.
+// C-b 조회 조립(D-046, D-068). 기준일 값은 정산가, 비교일 값은 정산가 → 최근 스냅숏 순(D-048)이다.
 export function buildCurve(input: CurveInput): CurveResult {
   const barsBySymbol = Map.groupBy(input.bars, (b) => b.contractSymbol);
   const settleOn = (symbol: string, date: string) =>

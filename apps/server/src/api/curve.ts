@@ -37,6 +37,7 @@ const LOOKAHEAD_DAYS = 10;
 const VOLUME_LOOKBACK_DAYS = 45;
 
 // GET /v1/commodities/:code/curve(C-b, D-046). 커브는 저장하지 않고 원천값으로 calc를 부른다.
+// 기준일 커브와 그 다음 거래일(비교일) 커브를 비교한다(D-114).
 export async function loadCurve(
   store: CurveStore,
   code: CommodityCode,
@@ -62,41 +63,43 @@ export async function loadCurve(
   const range = resolveBaseDate(tradeDates, currentDate, firstBarDate, requestedBaseDate);
   if (range === null) throw new ApiException('NOT_FOUND', `Not enough daily bars for ${code}`);
   const { baseDate } = range;
+  // 비교 커브 날짜 = 기준일 다음 거래일. 기준일이 D-1이면 D다
+  const compareDate = range.nextBaseDate ?? currentDate;
 
-  const [contracts, baseFront, currentFront] = await Promise.all([
+  const [contracts, baseFront, compareFront] = await Promise.all([
     store.contracts(code, baseDate),
     store.frontSymbol(code, baseDate),
-    store.frontSymbol(code, currentDate),
+    store.frontSymbol(code, compareDate),
   ]);
   const symbols = contracts.map((c) => c.symbol);
-  // 기준일·D와 각자의 거래량 창(그날 정산 여부와 관계없이 덮도록 그 전 20거래일까지)
+  // 기준일·비교일과 각자의 거래량 창(그날 정산 여부와 관계없이 덮도록 그 전 20거래일까지)
   const windowDates = (date: string) => {
     const end = tradeDates.indexOf(date);
     return tradeDates.slice(Math.max(end - CURVE_VOLUME_DAYS, 0), end + 1);
   };
-  const dates = [...new Set([...windowDates(baseDate), ...windowDates(currentDate)])];
-  const currentSettled = lastSettled !== null && lastSettled >= currentDate;
+  const dates = [...new Set([...windowDates(baseDate), ...windowDates(compareDate)])];
+  const compareSettled = lastSettled !== null && lastSettled >= compareDate;
   const [bars, snapshots] = await Promise.all([
     store.dailyBars(symbols, dates),
-    currentSettled ? Promise.resolve([]) : store.latestSnapshots(symbols, currentDate),
+    compareSettled ? Promise.resolve([]) : store.latestSnapshots(symbols, compareDate),
   ]);
 
   const curve = buildCurve({
     contracts,
     tradeDates,
     baseDate,
-    currentDate,
-    currentSettled,
+    currentDate: compareDate,
+    currentSettled: compareSettled,
     baseFront,
-    currentFront,
+    currentFront: compareFront,
     bars,
     snapshots,
   });
 
   return {
     freshness: {
-      // 값이 하나도 없으면 조회 시각
-      asOf: (curve.asOf ?? now).toISOString(),
+      // 값이 하나도 없거나 비교일이 지난 거래일(확정 정산가)이면 조회 시각
+      asOf: ((compareDate === currentDate ? curve.asOf : null) ?? now).toISOString(),
       tradeDate: currentDate,
       delayed: curve.delayed,
       marketState: status.state,
@@ -104,6 +107,7 @@ export async function loadCurve(
     },
     priceDecimals,
     ...range,
+    compareDate,
     points: curve.points.map(({ symbol, contractMonth, basePrice, currentPrice, changePct }) => ({
       symbol,
       contractMonth,

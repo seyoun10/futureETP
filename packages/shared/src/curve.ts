@@ -42,6 +42,8 @@ export const curveSchema = z.object({
   // 기준일 선택 범위: 그 원자재의 가장 이른 일봉 날짜 ~ D-1
   minBaseDate: z.iso.date(),
   maxBaseDate: z.iso.date(),
+  // 비교 커브 날짜 = 기준일 다음 거래일(기준일이 D-1이면 D, D-114). current* 값은 이 날짜 기준이다
+  compareDate: z.iso.date(),
   // 만기순
   points: z.array(curveContractSchema),
   current: curveStatsSchema.nullable(),
