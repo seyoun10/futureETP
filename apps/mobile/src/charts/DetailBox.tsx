@@ -8,19 +8,25 @@ export function DetailBox({ children }: { children: ReactNode }) {
   return <View style={styles.box}>{children}</View>;
 }
 
-// 상세 박스 한 줄: 이름은 왼쪽, 값은 오른쪽 정렬. 둘 사이는 최소 spacing.md
+// 상세 박스 한 줄: 이름은 왼쪽, 값은 오른쪽 정렬. 둘 사이는 최소 spacing.md.
+// mark는 이름 뒤 표식(C-c 대표월물 ●)으로, 줄 색을 따르지 않고 A 원자재 목록과 같은 색이다
 export function DetailRow({
   label,
   value,
   color = colors.text,
+  mark,
 }: {
   label: string;
   value: string | null;
   color?: string;
+  mark?: string;
 }) {
   return (
     <View style={styles.row}>
-      <Text style={[styles.text, { color }]}>{label}</Text>
+      <Text style={[styles.text, { color }]}>
+        {label}
+        {mark !== undefined && <Text style={styles.mark}>{mark}</Text>}
+      </Text>
       {value !== null && <Text style={[styles.text, { color }]}>{value}</Text>}
     </View>
   );
@@ -42,5 +48,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
+  },
+  mark: {
+    color: colors.textSecondary,
   },
 });

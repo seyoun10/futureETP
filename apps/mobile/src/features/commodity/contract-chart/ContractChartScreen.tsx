@@ -16,15 +16,15 @@ import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
-import { formatChangePct, formatPrice } from '@/lib/formatNumber';
+import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
 import {
   contractChartModel,
-  contractLabel,
   endsRollYieldPct,
+  FRONT_MARK,
   visibleEndLabels,
 } from './contractChartModel';
 import type { ContractChartModel } from './contractChartModel';
@@ -143,14 +143,17 @@ function Legend({ model }: { model: ContractChartModel }) {
       {model.legend.map((item) => (
         <View key={item.key} style={styles.legendItem}>
           <LegendLine color={item.color} />
-          <Text style={styles.legendText}>{item.label}</Text>
+          <Text style={styles.legendText}>
+            {item.label}
+            {item.isFront && <Text style={styles.frontMark}>{FRONT_MARK}</Text>}
+          </Text>
         </View>
       ))}
     </View>
   );
 }
 
-// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색, 대표월물 ●),
+// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색, 대표월물 ●은 A 목록 색),
 // 맨 아래 양끝 월물의 연환산 롤 수익률. 값이 있는 월물이 둘 이상일 때만
 function CrosshairDetail({
   data,
@@ -176,9 +179,10 @@ function CrosshairDetail({
         return (
           <DetailRow
             key={c.symbol}
-            label={contractLabel(c)}
+            label={formatContractMonth(c.contractMonth)}
             value={formatPrice(price, data.priceDecimals)}
             color={model.lines[i].color}
+            mark={c.isFront ? FRONT_MARK : undefined}
           />
         );
       })}
@@ -223,5 +227,9 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.caption,
     fontVariant: ['tabular-nums'],
+  },
+  // 대표월물 표식은 A 원자재 목록과 같은 색(선 색을 따르지 않는다)
+  frontMark: {
+    color: colors.textSecondary,
   },
 });

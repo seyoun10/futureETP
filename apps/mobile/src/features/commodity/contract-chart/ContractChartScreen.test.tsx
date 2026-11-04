@@ -146,6 +146,8 @@ describe('C-c 월물차트', () => {
     await render(<>{lastChartProps().renderDetail(0)}</>);
     expect(screen.getByText('2026-10-20')).toBeOnTheScreen();
     expect(screen.getByText('DEC26●')).toBeOnTheScreen();
+    // 대표월물 표식은 선 색이 아니라 A 원자재 목록 색이다
+    expect(screen.getByText('●')).toHaveStyle({ color: colors.textSecondary });
     expect(screen.getByText('3.100')).toBeOnTheScreen();
     expect(screen.queryByText('JAN27')).toBeNull();
     // 값이 있는 월물이 하나면 롤 수익률을 쓰지 않는다

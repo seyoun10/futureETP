@@ -50,8 +50,8 @@ describe('contractChartModel', () => {
 
   it('범례는 만기순 선 색과 월물명이고, 대표월물에 ●을 붙인다', () => {
     expect(model.legend).toEqual([
-      { key: 'NGZ26', color: colors.chart.contractLines[0], label: 'DEC26●' },
-      { key: 'NGF27', color: colors.chart.contractLines[1], label: 'JAN27' },
+      { key: 'NGZ26', color: colors.chart.contractLines[0], label: 'DEC26', isFront: true },
+      { key: 'NGF27', color: colors.chart.contractLines[1], label: 'JAN27', isFront: false },
     ]);
   });
 

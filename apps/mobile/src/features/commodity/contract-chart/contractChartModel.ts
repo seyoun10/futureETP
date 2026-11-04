@@ -1,5 +1,5 @@
 // C-c 응답 → LinesChart 입력(선 색, 끝값 라벨, y 자동 맞춤 범위)과 범례·롤 수익률. 순수 함수다.
-import type { ContractLine, ContractsChart } from '@futureetp/shared';
+import type { ContractsChart } from '@futureetp/shared';
 import type { ChartLine } from '@/charts/LineLayer';
 import type { PriceLabel } from '@/charts/YAxisLayer';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
@@ -14,7 +14,7 @@ export type ContractChartModel = {
   // 선마다 가장 긴 값의 라벨. 이동해도 우측 라벨 자리가 바뀌지 않게 너비만 잰다
   widestLabels: PriceLabel[];
   // 차트 위 선 색 범례(만기순). 대표월물은 A처럼 ● 표식
-  legend: { key: string; color: string; label: string }[];
+  legend: { key: string; color: string; label: string; isFront: boolean }[];
 };
 
 const lineColor = (index: number) =>
@@ -54,14 +54,14 @@ export function contractChartModel(chart: ContractsChart): ContractChartModel {
   const legend = chart.contracts.map((c, i) => ({
     key: c.symbol,
     color: lineColor(i),
-    label: contractLabel(c),
+    label: formatContractMonth(c.contractMonth),
+    isFront: c.isFront,
   }));
   return { lines, envelope: { hi, lo }, widestLabels, legend };
 }
 
-// 월물명. 대표월물은 A 원자재 목록과 같은 ● 표식을 붙인다
-export const contractLabel = (c: ContractLine): string =>
-  `${formatContractMonth(c.contractMonth)}${c.isFront ? '●' : ''}`;
+// 대표월물 표식(A 원자재 목록과 같다)
+export const FRONT_MARK = '●';
 
 const label = (chart: ContractsChart, i: number, price: number): PriceLabel => ({
   key: chart.contracts[i].symbol,
