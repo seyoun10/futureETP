@@ -185,6 +185,8 @@ export const ko = {
     window: '분포 기간(년)',
     windowALL: '전체',
     alertOff: '끔',
+    // [⚙] 빨간 점의 접근성 힌트
+    alertOffBadge: '알림 꺼짐',
     rareLevels: 'rare-level(%)',
     rareLevelField: 'rare-level {{index}}',
     rareLevelHint: '{{min}}~{{max}}, 소수 첫째 자리, 서로 다른 {{count}}개',

@@ -176,6 +176,7 @@ export const en: Translation = {
     window: 'Distribution period (years)',
     windowALL: 'All',
     alertOff: 'Off',
+    alertOffBadge: 'Alerts off',
     rareLevels: 'Rare levels (%)',
     rareLevelField: 'Rare level {{index}}',
     rareLevelHint: '{{min}}–{{max}}, 1 decimal place, {{count}} distinct values',

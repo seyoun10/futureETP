@@ -6,7 +6,6 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { FreshnessFooter } from '@/components/FreshnessLine';
-import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { QueryStateView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
@@ -20,11 +19,11 @@ import type { UpDownPalette } from '@/theme/upDownColor';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
 import { tapHaptic } from '@/lib/haptics';
+import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
 import { useCommodities } from './useCommodities';
 
 // A 원자재 목록(screens.md A, D-085). 원자재와 월물 줄은 서버가 준 순서대로 그린다.
 export function CommodityListScreen() {
-  const { t } = useTranslation();
   const query = useCommodities();
   const palette = useUpDownPalette();
   // 당겨서 새로고침만 스피너를 띄운다(자동 새로고침·복귀 재조회는 조용히)
@@ -39,17 +38,7 @@ export function CommodityListScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title="futureETP"
-        showBack={false}
-        right={
-          <HeaderIconButton
-            icon="cog-outline"
-            label={t('settings.title')}
-            onPress={() => router.push('/settings')}
-          />
-        }
-      />
+      <ScreenHeader title="futureETP" showBack={false} right={<SettingsHeaderButton />} />
       <QueryStateView query={query}>
         {(data) => (
           <>

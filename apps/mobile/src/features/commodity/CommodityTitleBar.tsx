@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
+import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
 import { lockLandscape, lockPortrait, useIsLandscape } from '@/lib/orientation';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from './useCommodityCode';
@@ -44,12 +45,7 @@ export function CommodityTitleBar() {
             onPress={() => void (isLandscape ? lockPortrait() : lockLandscape())}
           />
         ) : null}
-        <HeaderIconButton
-          icon="cog-outline"
-          label={t('settings.title')}
-          compact={isLandscape}
-          onPress={() => router.push('/settings')}
-        />
+        <SettingsHeaderButton compact={isLandscape} />
       </View>
     </View>
   );

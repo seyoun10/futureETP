@@ -1,4 +1,4 @@
-import type { Commodities, ContractQuote } from '@futureetp/shared';
+import type { Commodities, ContractQuote, Settings } from '@futureetp/shared';
 import type { ReactElement } from 'react';
 import type { RefreshControlProps } from 'react-native';
 import { act, fireEvent, renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
@@ -6,6 +6,7 @@ import { useAccessKeyStore } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { getCommodities } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
+import { queryKeys } from '@/api/queryKeys';
 import { getSettings } from '@/api/settings';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import { UP_DOWN_PALETTES } from '@/theme/upDownColor';
@@ -68,12 +69,26 @@ const DATA: Commodities = {
   ],
 };
 
+const SETTINGS: Settings = {
+  locale: 'ko',
+  timezone: 'Asia/Seoul',
+  basis: 'FRONT',
+  maPeriod: 100,
+  window: 'Y10',
+  rareLevels: [5, 10, 15, 20, 25],
+  alertCommodity: 'CL',
+  quietTime: null,
+};
+
 beforeEach(() => {
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
   mockGet.mockReset().mockResolvedValue(DATA);
-  jest.mocked(getSettings).mockReturnValue(new Promise(() => {}));
+  jest
+    .mocked(getSettings)
+    .mockReset()
+    .mockReturnValue(new Promise(() => {}));
 });
 
 const renderList = () => renderRouter('src/app', { initialUrl: '/' });
@@ -110,6 +125,22 @@ describe('A 원자재 목록', () => {
     expect(within(clRow).getByLabelText('알림 대상')).toBeOnTheScreen();
     expect(within(clRow).getByText('79.00')).toBeOnTheScreen();
     expect(within(clRow).getByText('거래 없음')).toBeOnTheScreen();
+  });
+
+  it('알림 대상 원자재가 없으면 [⚙]에 빨간 점을 띄운다', async () => {
+    jest.mocked(getSettings).mockResolvedValue({ ...SETTINGS, alertCommodity: null });
+    await renderList();
+
+    expect(await screen.findByTestId('header-badge')).toBeOnTheScreen();
+    expect(screen.getByLabelText('설정')).toHaveProp('accessibilityHint', '알림 꺼짐');
+  });
+
+  it('알림 대상 원자재가 있으면 [⚙]에 점이 없다', async () => {
+    jest.mocked(getSettings).mockResolvedValue(SETTINGS);
+    await renderList();
+
+    await waitFor(() => expect(queryClient.getQueryData(queryKeys.settings)).toBeDefined());
+    expect(screen.queryByTestId('header-badge')).not.toBeOnTheScreen();
   });
 
   it('원자재를 누르면 C-a로 간다', async () => {

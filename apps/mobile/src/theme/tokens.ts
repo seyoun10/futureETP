@@ -16,6 +16,8 @@ export const colors = {
   neutral: '#9e9e9e',
   // 오류 안내 문구(B-b 키 거절, B·B-a 저장 실패, rare-level 입력 오류)
   error: '#ef5350',
+  // [⚙] 알림 꺼짐 점
+  badge: '#ef5350',
   chart: {
     grid: '#2a2a2a',
     tick: '#9e9e9e',
