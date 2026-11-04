@@ -5,7 +5,7 @@ import type { PriceLabel } from '@/charts/YAxisLayer';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
 
-const LINE_STROKE = 1.5;
+const LINE_STROKE = 1;
 
 export type ContractChartModel = {
   lines: ChartLine[];

@@ -156,7 +156,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
               <>
                 <View style={styles.legend} testID="curve-legend">
                   <View style={styles.legendItem}>
-                    <LegendLine color={colors.chart.curveBase} strokeWidth={1.5} />
+                    <LegendLine color={colors.chart.curveBase} strokeWidth={1} />
                     <Text style={styles.legendText}>
                       {formatLegendDate(data.baseDate, currentDate)}
                     </Text>
@@ -165,7 +165,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
                     <LegendLine
                       color={colors.chart.curveCurrent}
                       dash={CURVE_DASH}
-                      strokeWidth={1.5}
+                      strokeWidth={1}
                     />
                     <Text style={styles.legendText}>
                       {formatLegendDate(data.compareDate, currentDate)}

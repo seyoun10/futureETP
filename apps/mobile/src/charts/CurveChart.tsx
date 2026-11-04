@@ -338,14 +338,14 @@ export const CurveChart = memo(function CurveChart({
                 path={paths.base}
                 color={colors.chart.curveBase}
                 style="stroke"
-                strokeWidth={1.5}
+                strokeWidth={1}
                 strokeJoin="round"
               />
               <Path
                 path={paths.current}
                 color={colors.chart.curveCurrent}
                 style="stroke"
-                strokeWidth={1.5}
+                strokeWidth={1}
               >
                 <DashPathEffect intervals={CURVE_DASH} />
               </Path>
@@ -360,7 +360,7 @@ export const CurveChart = memo(function CurveChart({
                       r={DOT}
                       color={colors.chart.curveBase}
                       style="stroke"
-                      strokeWidth={1.5}
+                      strokeWidth={1}
                     />
                   ),
                   p.current !== null && (

@@ -35,9 +35,9 @@ export const colors = {
     rollSwitch: 'rgba(77, 208, 225, 0.45)',
     // 보이는 구간 최고가·최저가 꼬리표
     extremeTag: '#e0e0e0',
-    // C-b 커브: 기준일은 점선, 현재는 실선(screens.md C-b)
-    curveBase: '#9e9e9e',
-    curveCurrent: '#e0e0e0',
+    // C-b 커브: 기준일은 흰색 실선, 비교일은 회색 점선(screens.md C-b)
+    curveBase: '#ffffff',
+    curveCurrent: '#9e9e9e',
     // C-c 월물 선은 만기순 순번으로 고른다. 근월물→원월물을 빨·주·노·초·파 무지개 순서로 읽는다.
     // 6번째는 대표월물 안전장치 월물(D-092)
     contractLines: ['#ef5350', '#ffa726', '#ffee58', '#66bb6a', '#42a5f5', '#90a4ae'],
