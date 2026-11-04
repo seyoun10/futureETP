@@ -4,11 +4,11 @@ import type { RareAlertStore } from '../jobs/rareAlert.ts';
 import type { db as Db } from './client.ts';
 import { alertRecord, disparityDistribution } from './schema.ts';
 import { isAlertJudgmentSuspended } from './settle.ts';
-import { createSettingsStore } from './settingsStore.ts';
+import { latestPushDeviceSettings } from './settingsStore.ts';
 
 export function createRareAlertStore(db: typeof Db): RareAlertStore {
   return {
-    settings: createSettingsStore(db).get,
+    settings: () => latestPushDeviceSettings(db),
     isSuspended: () => isAlertJudgmentSuspended(db),
     async distribution(code, basis, maPeriod, window) {
       const [row] = await db

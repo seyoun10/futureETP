@@ -7,7 +7,7 @@ import { createEtpStore } from '../db/etpStore.ts';
 import { createIntradayStore } from '../db/intraday.ts';
 import { createRareAlertStore } from '../db/rareAlertStore.ts';
 import { createRetentionStore } from '../db/retentionStore.ts';
-import { createSettingsStore } from '../db/settingsStore.ts';
+import { latestPushDeviceSettings } from '../db/settingsStore.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { pushSender } from '../push/configuredSender.ts';
 import { createKrxEtpSource } from '../sources/krxEtp.ts';
@@ -46,7 +46,6 @@ const alertDeps = {
 };
 const retry = createAlertRetry(alertDeps);
 const etpStore = createEtpStore(db);
-const settings = createSettingsStore(db);
 
 // 구현된 작업만 등록한다. 스케줄러는 여기 있는 작업만 돌리고, CLI는 없는 작업이면 종료한다.
 export const JOB_HANDLERS: JobHandlers = {
@@ -74,13 +73,13 @@ export const JOB_HANDLERS: JobHandlers = {
       store: etpStore,
       devices: alertDeps.devices,
       sender: pushSender,
-      locale: async () => (await settings.get()).locale,
+      locale: async () => (await latestPushDeviceSettings(db)).locale,
     }),
     majorityAlert: createMajorityAlert({
       store: etpStore,
       devices: alertDeps.devices,
       sender: pushSender,
-      locale: async () => (await settings.get()).locale,
+      locale: async () => (await latestPushDeviceSettings(db)).locale,
     }),
   }),
   CALENDAR: createCalendarHandler({ store: createCalendarStore(db) }),

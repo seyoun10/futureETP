@@ -39,7 +39,7 @@ function setup(etps: MajorityEtp[], rules: RollRuleState[], devices: PushDevice[
   };
   const deviceStore: PushDeviceStore = {
     list: () => Promise.resolve(devices),
-    remove: async () => {},
+    clearToken: async () => {},
   };
   const { sender, sent } = createFakeSender();
   const log = vi.fn();

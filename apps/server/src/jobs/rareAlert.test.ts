@@ -99,7 +99,7 @@ function setup({
       Promise.resolve(
         Object.keys(tokens).map((pushToken) => ({ id: pushToken, platform: 'ANDROID', pushToken })),
       ),
-    remove: () => Promise.resolve(),
+    clearToken: () => Promise.resolve(),
   };
   const fake = createFakeSender(tokens);
   const log = vi.fn();

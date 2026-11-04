@@ -14,11 +14,12 @@ const device = (id: string, pushToken = `token-${id}`): PushDevice => ({
   pushToken,
 });
 
+// 비운 기기는 목록(토큰 있는 기기만)에서 빠진다.
 function memoryStore(devices: PushDevice[]) {
   const rows = [...devices];
   const store: PushDeviceStore = {
     list: () => Promise.resolve([...rows]),
-    remove: (id) => {
+    clearToken: (id) => {
       rows.splice(
         rows.findIndex((d) => d.id === id),
         1,
@@ -36,23 +37,23 @@ describe('broadcast', () => {
 
     const result = await broadcast({ store, sender }, message);
 
-    expect(result).toEqual({ devices: 2, sent: 2, removed: 0, failures: [] });
+    expect(result).toEqual({ devices: 2, sent: 2, cleared: 0, failures: [] });
     expect(delivered(result)).toBe(true);
     expect(sent.map((s) => s.target.pushToken)).toEqual(['token-a', 'token-b']);
     expect(sent[0].message).toBe(message);
   });
 
-  it('무효 토큰이면 그 기기를 지우고 나머지는 보낸다', async () => {
+  it('무효 토큰이면 그 기기의 토큰을 비우고 나머지는 보낸다', async () => {
     const { store, rows } = memoryStore([device('a'), device('b')]);
     const { sender } = createFakeSender({ 'token-a': { status: 'INVALID_TOKEN' } });
 
     const result = await broadcast({ store, sender }, message);
 
-    expect(result).toEqual({ devices: 2, sent: 1, removed: 1, failures: [] });
+    expect(result).toEqual({ devices: 2, sent: 1, cleared: 1, failures: [] });
     expect(rows.map((d) => d.id)).toEqual(['b']);
   });
 
-  it('실패한 기기는 사유를 모으고 지우지 않는다. 발송기가 던져도 다음 기기로 간다', async () => {
+  it('실패한 기기는 사유를 모으고 토큰을 비우지 않는다. 발송기가 던져도 다음 기기로 간다', async () => {
     const { store, rows } = memoryStore([device('a'), device('b')]);
     const sender: PushSender = {
       send: (target) =>
@@ -66,7 +67,7 @@ describe('broadcast', () => {
     expect(result).toEqual({
       devices: 2,
       sent: 0,
-      removed: 0,
+      cleared: 0,
       failures: ['ANDROID a: UNAVAILABLE', 'ANDROID b: network down'],
     });
     expect(delivered(result)).toBe(false);
@@ -79,7 +80,7 @@ describe('broadcast', () => {
 
     const result = await broadcast({ store, sender }, message);
 
-    expect(result).toEqual({ devices: 0, sent: 0, removed: 0, failures: [] });
+    expect(result).toEqual({ devices: 0, sent: 0, cleared: 0, failures: [] });
     expect(delivered(result)).toBe(false);
     expect(sent).toEqual([]);
   });

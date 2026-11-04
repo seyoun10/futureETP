@@ -13,7 +13,7 @@ function setup(devices: PushDevice[], alreadyNotified = false) {
   };
   const deviceStore: PushDeviceStore = {
     list: () => Promise.resolve(devices),
-    remove: async () => {},
+    clearToken: async () => {},
   };
   return { store, deviceStore, marked };
 }

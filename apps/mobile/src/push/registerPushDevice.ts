@@ -37,19 +37,19 @@ const PLATFORM: Partial<Record<typeof Platform.OS, DevicePlatform>> = {
 };
 
 // 앱 실행 때 네이티브 토큰(FCM·APNs)을 받아 PUT /v1/devices로 등록한다(D-037, D-048).
-// 토큰을 못 받으면(Apple 가입 전 iOS 등) 등록하지 않는다. 등록한 토큰을 돌려준다.
+// 빈 토큰이면 토큰 없이 등록해 서버가 그 기기로 보내지 않게 한다(D-120). 토큰 조회가 실패하면
+// (Apple 가입 전 iOS 등) 일시 오류일 수 있어 등록하지 않고 던진다. 등록한 토큰을 돌려준다.
 export async function registerPushDevice(): Promise<string | null> {
   if (PLATFORM[Platform.OS] === undefined) return null;
   await ensurePermission();
   // data는 웹에서만 객체라 any로 선언돼 있다
   const data: unknown = (await getDevicePushTokenAsync()).data;
-  if (typeof data !== 'string' || data === '') return null;
-  return registerPushToken(data);
+  return registerPushToken(typeof data === 'string' && data !== '' ? data : null);
 }
 
 // 이미 받은 토큰을 등록한다. 토큰 변경 리스너는 이것만 부른다: Android의 getDevicePushTokenAsync는
 // 토큰을 돌려준 뒤 토큰 이벤트를 다시 내서, 리스너가 그것을 부르면 끝없이 반복된다.
-export async function registerPushToken(token: string): Promise<string | null> {
+export async function registerPushToken(token: string | null): Promise<string | null> {
   const platform = PLATFORM[Platform.OS];
   if (platform === undefined) return null;
   await registerDevice({

@@ -1,18 +1,19 @@
-// 등록된 모든 기기로 보낸다(D-023, D-037). 무효 토큰이면 그 기기를 지운다.
+// 토큰이 있는 모든 기기로 보낸다(D-023, D-037). 무효 토큰이면 그 기기의 토큰을 비운다(설정은 남김, D-120).
 import type { PushMessage, PushSender, PushTarget, SendResult } from './sender.ts';
 
 export type PushDevice = PushTarget & { id: string };
 
 export interface PushDeviceStore {
+  // 토큰이 있는 기기만
   list(): Promise<PushDevice[]>;
-  remove(id: string): Promise<void>;
+  clearToken(id: string): Promise<void>;
 }
 
 export type BroadcastResult = {
-  // 보낸 기기 수(무효 토큰으로 지운 기기 포함)
+  // 보낸 기기 수(무효 토큰으로 비운 기기 포함)
   devices: number;
   sent: number;
-  removed: number;
+  cleared: number;
   // 실패한 기기별 사유
   failures: string[];
 };
@@ -25,7 +26,7 @@ export async function broadcast(
   message: PushMessage,
 ): Promise<BroadcastResult> {
   const devices = await deps.store.list();
-  const result: BroadcastResult = { devices: devices.length, sent: 0, removed: 0, failures: [] };
+  const result: BroadcastResult = { devices: devices.length, sent: 0, cleared: 0, failures: [] };
   for (const device of devices) {
     let sendResult: SendResult;
     try {
@@ -39,8 +40,8 @@ export async function broadcast(
     if (sendResult.status === 'SENT') {
       result.sent++;
     } else if (sendResult.status === 'INVALID_TOKEN') {
-      await deps.store.remove(device.id);
-      result.removed++;
+      await deps.store.clearToken(device.id);
+      result.cleared++;
     } else {
       result.failures.push(`${device.platform} ${device.id}: ${sendResult.error}`);
     }

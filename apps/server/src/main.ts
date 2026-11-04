@@ -8,7 +8,7 @@ import { createCurveStore } from './db/curveStore.ts';
 import { createDevicesStore, createPushDeviceStore } from './db/devicesStore.ts';
 import { createDisparityStore } from './db/disparityStore.ts';
 import { createEtpsStore } from './db/etpsStore.ts';
-import { createSettingsStore } from './db/settingsStore.ts';
+import { createSettingsStore, latestPushDeviceSettings } from './db/settingsStore.ts';
 import { createBatchRunStore, createOpsAlertStore } from './jobs/batchRunStore.ts';
 import { JOB_HANDLERS } from './jobs/handlers.ts';
 import { createHealthcheck } from './jobs/healthcheck.ts';
@@ -43,7 +43,7 @@ if (config.SCHEDULER_ENABLED) {
       store: createOpsAlertStore(db),
       devices: createPushDeviceStore(db),
       sender: pushSender,
-      locale: async () => (await settings.get()).locale,
+      locale: async () => (await latestPushDeviceSettings(db)).locale,
     }),
     healthcheck: config.HEALTHCHECKS_PING_KEY
       ? createHealthcheck({ pingKey: config.HEALTHCHECKS_PING_KEY })

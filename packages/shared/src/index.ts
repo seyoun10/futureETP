@@ -21,7 +21,9 @@ export {
   type CurveStats,
 } from './curve.ts';
 export {
+  DEVICE_ID_HEADER,
   PUSH_TOKEN_MAX_LENGTH,
+  deviceIdSchema,
   deviceRegistrationSchema,
   deviceSchema,
   type Device,

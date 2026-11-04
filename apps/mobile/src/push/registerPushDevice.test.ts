@@ -79,10 +79,14 @@ describe('registerPushDevice', () => {
     expect(mockRequest).not.toHaveBeenCalled();
   });
 
-  it('토큰이 비어 있으면 등록하지 않는다', async () => {
+  it('토큰이 비어 있으면 토큰 없이 등록한다', async () => {
     mockToken.mockResolvedValue({ type: 'android', data: '' });
     await expect(registerPushDevice()).resolves.toBeNull();
-    expect(mockRegister).not.toHaveBeenCalled();
+    expect(mockRegister).toHaveBeenCalledWith({
+      pushToken: null,
+      platform: 'ANDROID',
+      appVersion: '1.0.0',
+    });
   });
 
   it('토큰을 받지 못하면 오류를 그대로 던진다', async () => {

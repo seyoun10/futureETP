@@ -12,6 +12,7 @@ import {
 import type { SettingsStore } from './settings.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
+const DEVICE_ID = '6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d';
 
 const DEFAULTS: Settings = {
   locale: 'ko',
@@ -24,13 +25,18 @@ const DEFAULTS: Settings = {
   quietTime: null,
 };
 
-// DB 대신 메모리 한 벌. update는 받은 patch를 기록한다.
+// DB 대신 메모리 한 벌. 받은 기기 id와 update의 patch를 기록한다.
 function setup() {
   let current = DEFAULTS;
+  const deviceIds: string[] = [];
   const patches: unknown[] = [];
   const settings: SettingsStore = {
-    get: () => Promise.resolve(current),
-    update: (patch) => {
+    get: (deviceId) => {
+      deviceIds.push(deviceId);
+      return Promise.resolve(current);
+    },
+    update: (deviceId, patch) => {
+      deviceIds.push(deviceId);
       patches.push(patch);
       current = { ...current, ...patch };
       return Promise.resolve(current);
@@ -47,26 +53,52 @@ function setup() {
     devices: UNUSED_DEVICES,
     etps: UNUSED_ETPS,
   });
-  const request = (method: string, body?: string) =>
+  const request = (method: string, body?: string, deviceId: string | null = DEVICE_ID) =>
     app.request('/v1/settings', {
       method,
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        'Content-Type': 'application/json',
+        ...(deviceId !== null && { 'X-Device-Id': deviceId }),
+      },
       body,
     });
-  return { request, patches };
+  return { request, deviceIds, patches };
 }
 
 describe('GET /v1/settings', () => {
-  it('저장된 설정을 돌려준다', async () => {
-    const res = await setup().request('GET');
+  it('헤더 기기의 설정을 돌려준다', async () => {
+    const { request, deviceIds } = setup();
+    const res = await request('GET');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true, data: DEFAULTS });
+    expect(deviceIds).toEqual([DEVICE_ID]);
+  });
+
+  it('기기 id는 소문자로 바꿔 쓴다', async () => {
+    const { request, deviceIds } = setup();
+    await request('GET', undefined, DEVICE_ID.toUpperCase());
+    expect(deviceIds).toEqual([DEVICE_ID]);
+  });
+
+  it.each([
+    ['기기 헤더가 없으면', null],
+    ['기기 헤더가 UUID가 아니면', 'device-1'],
+  ])('%s 400 VALIDATION_FAILED이고 읽지 않는다', async (_, deviceId) => {
+    const { request, deviceIds } = setup();
+    const res = await request('GET', undefined, deviceId);
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({
+      success: false,
+      error: { code: 'VALIDATION_FAILED' },
+    });
+    expect(deviceIds).toEqual([]);
   });
 });
 
 describe('PATCH /v1/settings', () => {
   it('보낸 필드만 저장하고 rare 레벨은 정렬해 전체 설정을 돌려준다', async () => {
-    const { request, patches } = setup();
+    const { request, deviceIds, patches } = setup();
     const res = await request(
       'PATCH',
       JSON.stringify({
@@ -77,6 +109,7 @@ describe('PATCH /v1/settings', () => {
     );
 
     expect(res.status).toBe(200);
+    expect(deviceIds).toEqual([DEVICE_ID]);
     expect(patches).toEqual([
       {
         rareLevels: [2.5, 10, 20, 30, 40],
@@ -109,6 +142,13 @@ describe('PATCH /v1/settings', () => {
       success: false,
       error: { code: 'VALIDATION_FAILED' },
     });
+    expect(patches).toEqual([]);
+  });
+
+  it('기기 헤더가 없으면 400 VALIDATION_FAILED이고 저장하지 않는다', async () => {
+    const { request, patches } = setup();
+    const res = await request('PATCH', JSON.stringify({ locale: 'en' }), null);
+    expect(res.status).toBe(400);
     expect(patches).toEqual([]);
   });
 });

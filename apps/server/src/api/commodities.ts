@@ -7,6 +7,7 @@ import type { ListedContract } from '../calc/monthList.ts';
 import { buildQuotes } from '../calc/quotes.ts';
 import type { QuoteBar, QuoteSnapshot } from '../calc/quotes.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
+import { requireDeviceId } from './deviceId.ts';
 import { ApiException } from './errors.ts';
 import { ok } from './response.ts';
 import type { SettingsStore } from './settings.ts';
@@ -37,6 +38,7 @@ const LOOKAHEAD_DAYS = 10;
 export async function loadCommodities(
   store: CommoditiesStore,
   settings: SettingsStore,
+  deviceId: string,
   now: Date,
 ): Promise<Commodities> {
   const today = now.toISOString().slice(0, 10);
@@ -44,7 +46,7 @@ export async function loadCommodities(
     store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, LOOKAHEAD_DAYS)),
     store.lastSettledTradeDate(),
     store.commodities(),
-    settings.get(),
+    settings.get(deviceId),
   ]);
   const status = marketStatus(now, days, lastSettled);
   const tradeDate = status.tradeDate;
@@ -95,6 +97,8 @@ export function commoditiesRoutes(
   now: () => Date,
 ) {
   const routes = new Hono();
-  routes.get('/', async (c) => ok(c, await loadCommodities(store, settings, now())));
+  routes.get('/', async (c) =>
+    ok(c, await loadCommodities(store, settings, requireDeviceId(c), now())),
+  );
   return routes;
 }

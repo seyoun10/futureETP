@@ -19,7 +19,7 @@ function setup(candidates: EtpCandidate[], devices: PushDevice[] = [PHONE]) {
   };
   const deviceStore: PushDeviceStore = {
     list: () => Promise.resolve(devices),
-    remove: async () => {},
+    clearToken: async () => {},
   };
   const { sender, sent } = createFakeSender();
   const log = vi.fn();

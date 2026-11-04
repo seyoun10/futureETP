@@ -331,11 +331,17 @@ export const etpSeries = pgTable(
 
 // 5. 설정·알림
 
-// 단일 행(id=1). 기본값은 product.md 전역 설정
-export const appSettings = pgTable(
-  'app_settings',
+// 기기 하나에 설정 한 벌(D-120). id는 앱이 만든 installation ID(X-Device-Id)다.
+// 기본값은 product.md 전역 설정이고, 새 기기는 기본값으로 시작한다.
+export const device = pgTable(
+  'device',
   {
-    id: integer().primaryKey().default(1),
+    id: uuid().primaryKey(),
+    // PUT /v1/devices로 채운다. 헤더로 처음 보인 기기는 등록 전까지 null
+    platform: text({ enum: PLATFORMS }),
+    // null = 발송 대상 아님(토큰 없음·무효 토큰으로 비움)
+    pushToken: text().unique(),
+    appVersion: text(),
     locale: text({ enum: LOCALES }).notNull().default('ko'),
     // IANA. 앱 실행 때 기기가 PATCH /v1/settings로 올린다(D-048).
     timezone: text().notNull().default('Asia/Seoul'),
@@ -354,9 +360,9 @@ export const appSettings = pgTable(
     updatedAt: utc().notNull().defaultNow(),
   },
   (t) => [
-    check('app_settings_single_row', sql`${t.id} = 1`),
+    check('device_push_platform', sql`${t.pushToken} IS NULL OR ${t.platform} IS NOT NULL`),
     check(
-      'app_settings_quiet_time',
+      'device_quiet_time',
       sql`(${t.quietStartMin} IS NULL AND ${t.quietEndMin} IS NULL) OR (
         ${t.quietStartMin} BETWEEN 0 AND 1410 AND ${t.quietStartMin} % 30 = 0
         AND ${t.quietEndMin} BETWEEN 0 AND 1410 AND ${t.quietEndMin} % 30 = 0
@@ -364,14 +370,6 @@ export const appSettings = pgTable(
     ),
   ],
 );
-
-export const device = pgTable('device', {
-  id: uuid().primaryKey().defaultRandom(),
-  platform: text({ enum: PLATFORMS }).notNull(),
-  pushToken: text().notNull().unique(),
-  appVersion: text(),
-  updatedAt: utc().notNull().defaultNow(),
-});
 
 // 중복 방지 기록과 보류 큐를 겸한다. 모든 상태가 중복 방지 키를 차지한다(D-006, D-023).
 export const alertRecord = pgTable(

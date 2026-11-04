@@ -14,6 +14,7 @@ import {
 } from './commodities.fixtures.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
+const DEVICE_ID = '6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d';
 const at = (iso: string) => new Date(iso);
 
 // CDT(UTC-5): 세션은 전날 17:00 CT ~ 당일 16:00 CT
@@ -105,7 +106,10 @@ function setup(now: string, data: Data) {
       ),
   };
   const settings = {
-    get: () => Promise.resolve({ alertCommodity: 'CL' } as Settings),
+    get: (deviceId: string) =>
+      deviceId === DEVICE_ID
+        ? Promise.resolve({ alertCommodity: 'CL' } as Settings)
+        : Promise.reject(new Error(`unexpected device ${deviceId}`)),
     update: () => Promise.reject(new Error('unused')),
   };
   const app = createApp({
@@ -120,7 +124,9 @@ function setup(now: string, data: Data) {
     etps: UNUSED_ETPS,
     now: () => at(now).getTime(),
   });
-  return app.request('/v1/commodities', { headers: { Authorization: `Bearer ${TOKEN}` } });
+  return app.request('/v1/commodities', {
+    headers: { Authorization: `Bearer ${TOKEN}`, 'X-Device-Id': DEVICE_ID },
+  });
 }
 
 const parse = async (res: Response) =>

@@ -1,4 +1,4 @@
-import { envelopeSchema } from '@futureetp/shared';
+import { DEVICE_ID_HEADER, envelopeSchema } from '@futureetp/shared';
 import { z } from 'zod';
 import { perfNow, perfRequest } from '@/lib/perfLog';
 import { AppError } from './AppError';
@@ -37,7 +37,7 @@ export async function apiRequest<T extends z.ZodType>(
     if (!token) throw new AppError('UNAUTHORIZED', { message: 'No access token' });
     headers.Authorization = `Bearer ${token}`;
     // 서버가 설정·알림을 기기별로 나누는 키(D-120)
-    headers['X-Device-Id'] = getDeviceId();
+    headers[DEVICE_ID_HEADER] = getDeviceId();
   }
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 

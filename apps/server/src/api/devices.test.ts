@@ -17,13 +17,13 @@ const ID = '6f1c2b8e-3d4a-4f5b-9c6d-7e8f9a0b1c2d';
 const unused = () => Promise.reject(new Error('unused'));
 const UNUSED_SETTINGS: SettingsStore = { get: unused, update: unused };
 
-// DB 대신 받은 등록을 기록한다.
+// DB 대신 받은 기기 id와 등록을 기록한다.
 function setup() {
-  const registrations: DeviceRegistration[] = [];
+  const registrations: { deviceId: string; registration: DeviceRegistration }[] = [];
   const devices: DevicesStore = {
-    upsert: (registration) => {
-      registrations.push(registration);
-      return Promise.resolve({ id: ID });
+    upsert: (deviceId, registration) => {
+      registrations.push({ deviceId, registration });
+      return Promise.resolve({ id: deviceId });
     },
   };
   const app = createApp({
@@ -37,17 +37,21 @@ function setup() {
     devices,
     etps: UNUSED_ETPS,
   });
-  const request = (body: string, token = TOKEN) =>
+  const request = (body: string, token = TOKEN, deviceId: string | null = ID) =>
     app.request('/v1/devices', {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...(deviceId !== null && { 'X-Device-Id': deviceId }),
+      },
       body,
     });
   return { request, registrations };
 }
 
 describe('PUT /v1/devices', () => {
-  it('토큰·플랫폼·앱 버전을 저장하고 기기 id를 돌려준다', async () => {
+  it('헤더 기기에 토큰·플랫폼·앱 버전을 저장하고 기기 id를 돌려준다', async () => {
     const { request, registrations } = setup();
     const res = await request(
       JSON.stringify({ pushToken: ' fcm-token ', platform: 'ANDROID', appVersion: '1.0.0' }),
@@ -56,8 +60,34 @@ describe('PUT /v1/devices', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ success: true, data: { id: ID } });
     expect(registrations).toEqual([
-      { pushToken: 'fcm-token', platform: 'ANDROID', appVersion: '1.0.0' },
+      {
+        deviceId: ID,
+        registration: { pushToken: 'fcm-token', platform: 'ANDROID', appVersion: '1.0.0' },
+      },
     ]);
+  });
+
+  it('토큰이 null이어도 등록한다', async () => {
+    const { request, registrations } = setup();
+    const res = await request(
+      JSON.stringify({ pushToken: null, platform: 'IOS', appVersion: null }),
+    );
+
+    expect(res.status).toBe(200);
+    expect(registrations).toEqual([
+      { deviceId: ID, registration: { pushToken: null, platform: 'IOS', appVersion: null } },
+    ]);
+  });
+
+  it('기기 헤더가 없으면 400 VALIDATION_FAILED이고 저장하지 않는다', async () => {
+    const { request, registrations } = setup();
+    const res = await request(
+      JSON.stringify({ pushToken: 't', platform: 'IOS', appVersion: null }),
+      TOKEN,
+      null,
+    );
+    expect(res.status).toBe(400);
+    expect(registrations).toEqual([]);
   });
 
   it.each([
