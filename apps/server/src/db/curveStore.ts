@@ -1,8 +1,9 @@
-import { and, asc, between, desc, eq, gte, inArray, lt, min } from 'drizzle-orm';
+import { and, asc, between, desc, eq, inArray, lt, min } from 'drizzle-orm';
 import type { CurveStore } from '../api/curve.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
 import { createDisparityStore } from './disparityStore.ts';
+import { contractsFrom } from './queries.ts';
 import { contract, dailyBar, rollWeight, tradingDay } from './schema.ts';
 
 // GET /v1/commodities/:code/curve 조회(D-046). 조립은 api/curve.ts·calc가 한다.
@@ -30,16 +31,7 @@ export function createCurveStore(db: typeof Db): CurveStore {
         .orderBy(asc(tradingDay.tradeDate));
       return rows.map((r) => r.tradeDate);
     },
-    contracts: (code, fromDate) =>
-      db
-        .select({
-          symbol: contract.symbol,
-          contractMonth: contract.contractMonth,
-          lastTradeDate: contract.lastTradeDate,
-          isTarget: contract.isTarget,
-        })
-        .from(contract)
-        .where(and(eq(contract.commodityCode, code), gte(contract.lastTradeDate, fromDate))),
+    contracts: (code, fromDate) => contractsFrom(db, code, fromDate),
     async frontSymbol(code, before) {
       const [row] = await db
         .select({ contractSymbol: rollWeight.contractSymbol })

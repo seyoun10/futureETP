@@ -1,10 +1,11 @@
 // 장중 배치 조회·저장(D-094). 흐름은 jobs/intraday.ts
 import { BASES } from '@futureetp/shared';
-import { and, desc, eq, gte, lt, max, sql } from 'drizzle-orm';
+import { and, desc, eq, lt, max, sql } from 'drizzle-orm';
 import type { IntradayStore } from '../jobs/intraday.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
-import { contract, indexBar, indexSnapshot, intradaySnapshot, rollWeight } from './schema.ts';
+import { contractsFrom } from './queries.ts';
+import { indexBar, indexSnapshot, intradaySnapshot, rollWeight } from './schema.ts';
 
 const excluded = (column: string) => sql.raw(`excluded.${column}`);
 
@@ -13,16 +14,7 @@ export function createIntradayStore(db: typeof Db): IntradayStore {
   return {
     tradingDays,
     lastSettledTradeDate,
-    contracts: (code, fromDate) =>
-      db
-        .select({
-          symbol: contract.symbol,
-          contractMonth: contract.contractMonth,
-          lastTradeDate: contract.lastTradeDate,
-          isTarget: contract.isTarget,
-        })
-        .from(contract)
-        .where(and(eq(contract.commodityCode, code), gte(contract.lastTradeDate, fromDate))),
+    contracts: (code, fromDate) => contractsFrom(db, code, fromDate),
     async heldWeights(code, before) {
       const perBasis = await Promise.all(
         BASES.map((basis) => {

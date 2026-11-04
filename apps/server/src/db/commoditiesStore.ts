@@ -1,31 +1,14 @@
-import { and, asc, between, desc, eq, gte, inArray, lte, max } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, max } from 'drizzle-orm';
 import type { CommoditiesStore } from '../api/commodities.ts';
 import type { db as Db } from './client.ts';
-import {
-  commodity,
-  contract,
-  dailyBar,
-  intradaySnapshot,
-  rollWeight,
-  tradingDay,
-} from './schema.ts';
+import { commodity, contract, dailyBar, intradaySnapshot, rollWeight } from './schema.ts';
+import { settleColumns, tradingDaysBetween } from './queries.ts';
 import { lastSettledTradeDate } from './settle.ts';
 
 // GET /v1/commodities 조회(D-085). 계산은 api/commodities.ts·calc가 한다.
 export function createCommoditiesStore(db: typeof Db): CommoditiesStore {
   return {
-    tradingDays: (from, to) =>
-      db
-        .select({
-          tradeDate: tradingDay.tradeDate,
-          sessionOpenAt: tradingDay.sessionOpenAt,
-          sessionCloseAt: tradingDay.sessionCloseAt,
-          haltStartAt: tradingDay.haltStartAt,
-          haltEndAt: tradingDay.haltEndAt,
-        })
-        .from(tradingDay)
-        .where(between(tradingDay.tradeDate, from, to))
-        .orderBy(asc(tradingDay.tradeDate)),
+    tradingDays: (from, to) => tradingDaysBetween(db, from, to),
     async lastSettledTradeDate() {
       const settled = await lastSettledTradeDate(db);
       if (settled !== null) return settled;
@@ -60,13 +43,7 @@ export function createCommoditiesStore(db: typeof Db): CommoditiesStore {
     async dailyBars(symbols, dates) {
       if (symbols.length === 0) return [];
       return db
-        .select({
-          contractSymbol: dailyBar.contractSymbol,
-          tradeDate: dailyBar.tradeDate,
-          settle: dailyBar.settle,
-          collectedAt: dailyBar.collectedAt,
-          revisedAt: dailyBar.revisedAt,
-        })
+        .select(settleColumns)
         .from(dailyBar)
         .where(and(inArray(dailyBar.contractSymbol, symbols), inArray(dailyBar.tradeDate, dates)));
     },

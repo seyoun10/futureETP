@@ -3,6 +3,7 @@ import type { ContractsStore } from '../api/contracts.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
 import { createDisparityStore } from './disparityStore.ts';
+import { settleColumns } from './queries.ts';
 import { contract, dailyBar } from './schema.ts';
 
 // GET /v1/commodities/:code/contracts 조회(D-092). 조립은 api/contracts.ts·calc가 한다.
@@ -29,13 +30,7 @@ export function createContractsStore(db: typeof Db): ContractsStore {
     async settleHistory(symbols, tradeDate) {
       if (symbols.length === 0) return [];
       return db
-        .select({
-          contractSymbol: dailyBar.contractSymbol,
-          tradeDate: dailyBar.tradeDate,
-          settle: dailyBar.settle,
-          collectedAt: dailyBar.collectedAt,
-          revisedAt: dailyBar.revisedAt,
-        })
+        .select(settleColumns)
         .from(dailyBar)
         .where(and(inArray(dailyBar.contractSymbol, symbols), lte(dailyBar.tradeDate, tradeDate)))
         .orderBy(asc(dailyBar.tradeDate));

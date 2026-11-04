@@ -1,9 +1,10 @@
 // 일일 정산 조회·저장(D-071)과 batch_run 기반 정산 상태. 흐름은 jobs/settle.ts
-import { and, asc, between, desc, eq, inArray, isNotNull, max, sql } from 'drizzle-orm';
+import { and, between, desc, eq, inArray, isNotNull, max, sql } from 'drizzle-orm';
 import type { JobName } from '../constants.ts';
 import type { SettleStore } from '../jobs/settle.ts';
 import type { db as Db } from './client.ts';
-import { activeMonthRule, batchRun, contract, dailyBar, tradingDay } from './schema.ts';
+import { tradingDaysBetween } from './queries.ts';
+import { activeMonthRule, batchRun, contract, dailyBar } from './schema.ts';
 
 async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string | null> {
   const [row] = await db
@@ -30,18 +31,7 @@ export async function isAlertJudgmentSuspended(db: typeof Db): Promise<boolean> 
 
 export function createSettleStore(db: typeof Db): SettleStore {
   return {
-    tradingDays: (from, to) =>
-      db
-        .select({
-          tradeDate: tradingDay.tradeDate,
-          sessionOpenAt: tradingDay.sessionOpenAt,
-          sessionCloseAt: tradingDay.sessionCloseAt,
-          haltStartAt: tradingDay.haltStartAt,
-          haltEndAt: tradingDay.haltEndAt,
-        })
-        .from(tradingDay)
-        .where(between(tradingDay.tradeDate, from, to))
-        .orderBy(asc(tradingDay.tradeDate)),
+    tradingDays: (from, to) => tradingDaysBetween(db, from, to),
     lastSuccessTradeDate: (job) => lastSuccessTradeDate(db, job),
     async lastDailyBarDate() {
       const [row] = await db.select({ tradeDate: max(dailyBar.tradeDate) }).from(dailyBar);
