@@ -106,6 +106,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
     () =>
       data.points.map((p) => ({
         label: formatContractMonthShort(p.contractMonth),
+        contractMonth: p.contractMonth,
         base: p.basePrice,
         current: p.currentPrice,
         changePct: p.changePct,

@@ -3,6 +3,7 @@ import {
   Circle,
   DashPathEffect,
   Line,
+  Paragraph,
   Path,
   Rect,
   Skia,
@@ -11,6 +12,7 @@ import {
 } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
@@ -28,15 +30,19 @@ import { CURVE_DASH, GUIDE_DASH, SERIES_STROKE, X_LABEL_HEIGHT } from './chartLa
 import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
-import { CHART_FONT_SIZE, numberFont } from './chartText';
+import { CHART_FONT_SIZE, chartParagraph, numberFont, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
 import { CROSSHAIR_LABEL_PAD, crosshairLabelHeight } from './CrosshairLayer';
 import { labelStride, nearestSlot, niceTicks, placePctLabels, tickDecimals } from './curveLayout';
 import { cornerRect, leastCoveredCorner } from './detailCorner';
+import { monthTickLabel, widestMonthLabel } from './monthTicks';
 import { LONG_PRESS_MS } from './useChartViewport';
 
 // 만기순 월물 하나. 그 커브에 없으면 null
 export type CurvePoint = {
+  // 십자선 라벨(`YYMM`)
   label: string;
+  // `YYYY-MM`. x축 라벨은 월만 쓰고 1월은 연도다(C-a·C-c x축과 같다)
+  contractMonth: string;
   base: number | null;
   current: number | null;
   changePct: number | null;
@@ -87,6 +93,7 @@ export const CurveChart = memo(function CurveChart({
   onResetView,
   resetLabel,
 }: CurveChartProps) {
+  const { t } = useTranslation();
   const palette = useUpDownPalette();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
@@ -211,10 +218,20 @@ export const CurveChart = memo(function CurveChart({
     );
   }, []);
 
+  // x축 라벨은 겹치지 않게 n개마다 하나씩 쓰고, 첫 1월(연도)이 빠지지 않게 그 칸에 맞춘다
+  const monthLabels = useMemo(
+    () =>
+      points.map((p) =>
+        monthTickLabel(t, Number(p.contractMonth.slice(0, 4)), Number(p.contractMonth.slice(5, 7))),
+      ),
+    [points, t],
+  );
   const monthStride = labelStride(
     layout?.slot ?? 0,
-    numberFont.measureText('0000').width + LABEL_GAP,
+    widestMonthLabel(t, (l) => chartParagraph(l, colors.chart.tick).getLongestLine()) + LABEL_GAP,
   );
+  const firstJanuary = points.findIndex((p) => p.contractMonth.endsWith('-01'));
+  const strideAnchor = firstJanuary < 0 ? 0 : firstJanuary % monthStride;
   // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래가 먼저고, 이웃과 겹치면 반대쪽이나 한 줄 더 옮긴다
   const pctLabels = useMemo(() => {
     if (!layout) return [];
@@ -372,14 +389,16 @@ export const CurveChart = memo(function CurveChart({
                       color={colors.chart.curveCurrent}
                     />
                   ),
-                  i % monthStride === 0 && (
-                    <SkText
+                  i % monthStride === strideAnchor && (
+                    <Paragraph
                       key={`m${p.label}`}
-                      x={layout.textX(i, numberFont.measureText(p.label).width)}
-                      y={size.height - spacing.xs}
-                      text={p.label}
-                      font={numberFont}
-                      color={colors.chart.tick}
+                      paragraph={chartParagraph(monthLabels[i], colors.chart.tick)}
+                      x={layout.textX(
+                        i,
+                        chartParagraph(monthLabels[i], colors.chart.tick).getLongestLine(),
+                      )}
+                      y={size.height - BOTTOM + 4}
+                      width={PARAGRAPH_LAYOUT_WIDTH}
                     />
                   ),
                 ];

@@ -108,9 +108,9 @@ describe('C-b 월물커브', () => {
     expect(screen.queryByText(/콘탱고/)).toBeNull();
     expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent('롤 수익률 -89.0%/년');
     expect(lastChartProps().points).toEqual([
-      { label: '2611', base: 3.1, current: null, changePct: null },
-      { label: '2612', base: 3.2, current: 3.168, changePct: -1 },
-      { label: '2701', base: null, current: 3.45, changePct: null },
+      { label: '2611', contractMonth: '2026-11', base: 3.1, current: null, changePct: null },
+      { label: '2612', contractMonth: '2026-12', base: 3.2, current: 3.168, changePct: -1 },
+      { label: '2701', contractMonth: '2027-01', base: null, current: 3.45, changePct: null },
     ]);
   });
 

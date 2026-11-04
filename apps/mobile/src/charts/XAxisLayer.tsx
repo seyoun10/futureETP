@@ -1,4 +1,5 @@
 import { Group, Line, Paragraph, vec } from '@shopify/react-native-skia';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDerivedValue } from 'react-native-reanimated';
 import type { ChartBounds } from 'victory-native';
@@ -7,7 +8,7 @@ import { colors } from '@/theme/tokens';
 import { chartParagraph, numberFont, PARAGRAPH_LAYOUT_WIDTH } from './chartText';
 import { crosshairDateWidth } from './CrosshairLayer';
 import type { Crosshair } from './CrosshairLayer';
-import { monthTicks } from './monthTicks';
+import { monthTickLabel, monthTicks, widestMonthLabel } from './monthTicks';
 import { useClampedTransform } from './useClampedTransform';
 
 type XAxisLayerProps = {
@@ -19,23 +20,28 @@ type XAxisLayerProps = {
   crosshair: Crosshair;
 };
 
+// 이웃 라벨 사이 최소 여백
+const TICK_GAP = 8;
+
 // 라이브러리 x축은 y 재맞춤 뒤 라벨이 화면 밖으로 밀려서 직접 그린다(D-056).
 // 월 라벨에 한글이 들어가 Paragraph로 그린다(D-087).
 export function XAxisLayer({ dates, chartBounds, x0, dx, crosshair }: XAxisLayerProps) {
   const { t } = useTranslation();
   const { k, tx } = useClampedTransform(dates.length, chartBounds);
+  const labelWidth = useMemo(
+    () => widestMonthLabel(t, (l) => chartParagraph(l, colors.chart.tick).getLongestLine()),
+    [t],
+  );
   if (dx <= 0) return null;
 
   const toScreen = (i: number) => k * (x0 + i * dx) + tx;
   const i0 = Math.max(0, Math.floor(((chartBounds.left - tx) / k - x0) / dx));
   const i1 = Math.min(dates.length - 1, Math.ceil(((chartBounds.right - tx) / k - x0) / dx));
 
-  return monthTicks(dates, i0, i1).map((tick) => {
+  // 겹치지 않는 한 가장 촘촘한 월 간격으로 단다
+  return monthTicks(dates, i0, i1, (labelWidth + TICK_GAP) / (k * dx)).map((tick) => {
     const x = toScreen(tick.index);
-    const label =
-      tick.month === 1
-        ? String(tick.year)
-        : t(`chart.months.${String(tick.month) as '1'}`, { defaultValue: String(tick.month) });
+    const label = monthTickLabel(t, tick.year, tick.month);
     const paragraph = chartParagraph(label, colors.chart.tick);
     const width = paragraph.getLongestLine();
     return [
