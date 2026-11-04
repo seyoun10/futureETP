@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import * as Updates from 'expo-updates';
 import { useHasAccessKey } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
@@ -29,6 +30,7 @@ import {
 import { Icon } from '@/components/Icon';
 import { KeyboardDoneBar } from '@/components/KeyboardDoneBar';
 import { colors, fontSize, size, spacing } from '@/theme/tokens';
+import { formatLocalDateTime } from '@/lib/formatDateTime';
 import { tapHaptic } from '@/lib/haptics';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
@@ -98,6 +100,7 @@ export function SettingsScreen() {
           href="/settings/data-sources"
           description={t('settings.dataSourcesDesc')}
         />
+        <BundleInfo />
       </ScrollView>
       <KeyboardDoneBar />
     </KeyboardAvoidingView>
@@ -200,6 +203,21 @@ function DisparitySection({
   );
 }
 
+// 지금 실행 중인 JS 번들. OTA(EAS Update)를 받았는지 기기에서 바로 보려고 둔다
+function BundleInfo() {
+  const { t } = useTranslation();
+  const runtime = (Updates.runtimeVersion ?? '-').slice(0, 7);
+  const text =
+    Updates.isEmbeddedLaunch || !Updates.updateId || !Updates.createdAt
+      ? t('settings.bundleEmbedded', { runtime })
+      : t('settings.bundleUpdate', {
+          time: formatLocalDateTime(Updates.createdAt.toISOString()),
+          id: Updates.updateId.slice(0, 8),
+          runtime,
+        });
+  return <Text style={styles.bundleInfo}>{text}</Text>;
+}
+
 type LinkRowProps = { label: string; value?: string; href: Href; description?: string };
 
 // 이름 + 값 + › 행. 설명은 이름·값 아래 한 줄이다
@@ -268,6 +286,13 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     color: colors.textSecondary,
     fontSize: fontSize.caption,
+  },
+  bundleInfo: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.lg,
+    color: colors.textSecondary,
+    fontSize: fontSize.caption,
+    textAlign: 'center',
   },
   value: {
     marginRight: spacing.sm,

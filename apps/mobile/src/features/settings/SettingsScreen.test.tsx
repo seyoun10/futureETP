@@ -10,6 +10,28 @@ import { getSettings, patchSettings } from '@/api/settings';
 import { defaultDisplaySettings, useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
+// 실행 중인 번들 정보. 테스트마다 내장·OTA로 바꾼다
+const mockUpdates: {
+  isEmbeddedLaunch: boolean;
+  updateId: string | null;
+  createdAt: Date | null;
+  runtimeVersion: string | null;
+} = { isEmbeddedLaunch: true, updateId: null, createdAt: null, runtimeVersion: null };
+jest.mock('expo-updates', () => ({
+  get isEmbeddedLaunch() {
+    return mockUpdates.isEmbeddedLaunch;
+  },
+  get updateId() {
+    return mockUpdates.updateId;
+  },
+  get createdAt() {
+    return mockUpdates.createdAt;
+  },
+  get runtimeVersion() {
+    return mockUpdates.runtimeVersion;
+  },
+}));
+
 const mockGet = jest.mocked(getSettings);
 const mockPatch = jest.mocked(patchSettings);
 
@@ -25,6 +47,12 @@ const SETTINGS: Settings = {
 };
 
 beforeEach(() => {
+  Object.assign(mockUpdates, {
+    isEmbeddedLaunch: true,
+    updateId: null,
+    createdAt: null,
+    runtimeVersion: 'c2bef25c387be787',
+  });
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
@@ -112,6 +140,25 @@ describe('B 설정', () => {
     mockGet.mockResolvedValue(SETTINGS);
     await fireEvent.press(screen.getByRole('button', { name: '다시 시도' }));
     expect(await screen.findByRole('radio', { name: '대표월물', checked: true })).toBeOnTheScreen();
+  });
+});
+
+describe('B 앱 번들 정보', () => {
+  it('빌드에 내장된 번들이면 내장과 런타임 앞 7자를 보여 준다', async () => {
+    await renderSettings();
+    expect(screen.getByText('앱 번들: 빌드에 내장 · 런타임 c2bef25')).toBeOnTheScreen();
+  });
+
+  it('OTA로 받은 번들이면 발행 시각과 업데이트 ID 앞 8자를 보여 준다', async () => {
+    Object.assign(mockUpdates, {
+      isEmbeddedLaunch: false,
+      updateId: '01a1a55f-af0e-7f29-a9eb-3962dab043c3',
+      createdAt: new Date(2026, 10, 4, 16, 3),
+    });
+    await renderSettings();
+    expect(
+      screen.getByText('앱 번들: 업데이트 11/04 16:03 (01a1a55f) · 런타임 c2bef25'),
+    ).toBeOnTheScreen();
   });
 });
 

@@ -203,6 +203,8 @@ export const ko = {
     alertsDesc: 'rare-level 도달 알림을 받을 원자재와 알림 거부 시간',
     accessKeyDesc: '서버에 접속하는 비밀 키',
     dataSourcesDesc: '시세와 데이터를 가져오는 곳',
+    bundleEmbedded: '앱 번들: 빌드에 내장 · 런타임 {{runtime}}',
+    bundleUpdate: '앱 번들: 업데이트 {{time}} ({{id}}) · 런타임 {{runtime}}',
   },
   dataSources: {
     sections: {
