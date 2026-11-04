@@ -1865,5 +1865,5 @@
 ## D-125: 가로 차트는 좌우 safe area 안쪽에
 - 날짜: 2026-11-04
 - 상태: 확정 (사용자 요청)
-- 결정: 가로 모드의 C-a~C-c 화면(탭 scene)에 `paddingLeft: insets.left`·`paddingRight: insets.right`를 준다(`CommodityTabsLayout`의 `sceneStyle`). title-bar는 그대로다. iOS는 좌우 inset을 같은 값으로 주므로 Dynamic Island 반대쪽(y축 쪽)도 같은 폭만큼 비운다.
+- 결정: 가로 모드의 C-a~C-c 화면(탭 scene)에 `paddingLeft: insets.left`·`paddingRight: insets.right`를 준다(`CommodityTabsLayout`의 `sceneStyle`). header가 scene 안에 그려져 title-bar도 같은 폭만큼 안쪽으로 들어온다([←]·[⚙]이 섬·모서리에서 떨어짐). iOS는 좌우 inset을 같은 값으로 주므로 Dynamic Island 반대쪽(y축 쪽)도 같은 폭만큼 비운다.
 - 근거: 2026-11-04 미러링 확인에서 가로 차트가 화면 끝까지 그려져, Dynamic Island 쪽 가장자리의 봉·선과 왼쪽 위 상세 박스 글자(C-c `APR27`·`롤 수익률`)가 가려졌다. 섬 쪽만 비우려면 회전 방향을 따로 감지해야 하는데, 차트 폭이 조금 줄어드는 것보다 복잡하다.

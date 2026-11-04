@@ -208,7 +208,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] C-b 변화율 라벨 겹침: 방향 쪽 바깥으로 밀기(D-122), 선과 겹치면 좌우로 밀기(D-123) (2026-11-04). 미러링 확인(2026-11-04, prod OTA `9e7ec32`, CL): 12개 라벨 겹침 없음
   - D-114~D-124 앱 변경은 prod OTA(`9e7ec32`, iOS·Android)로 발행 (2026-11-04)
 - [x] 가로 모드 safe area: C-a·C-b·C-c 가로에서 차트 영역이 좌우 inset을 반영하지 않아 Dynamic Island 쪽 가장자리의 봉·선과 왼쪽 위 상세 박스 글자(C-c `APR27`·`롤 수익률` 이름)가 가려짐. title-bar(`CommodityTitleBar`)만 inset을 씀 (2026-11-04 미러링 확인, prod OTA `9e7ec32`, CL)
-  - 가로일 때 C 탭 scene에 좌우 inset padding (2026-11-04, D-125)
+  - 가로일 때 C 탭 scene에 좌우 inset padding (2026-11-04, D-125). 미러링 확인(2026-11-04, prod OTA `dde6c8a`): 세 탭 왼쪽 봉·선, C-c 왼쪽 위 상세 박스 전부 보임, title-bar도 같은 폭 안쪽, 세로 화면은 변화 없음
   - 그 밖의 가로 표시(title-bar·정보 줄·범례·x·y축·C-b 변화율 라벨·세 탭 십자선 상세)는 정상
     - [x] 개발 빌드 재빌드 뒤 Android spinner 다이얼로그 다크 테마·범위 제한 확인 (2026-10-28, 라이트 기기에서 밝게 떠서 스타일 덮어쓰기·버튼 색 지정, D-091)
 - [x] C-c 월물차트: `GET /v1/commodities/:code/contracts` + 화면(C-a 차트 공용 부품 재사용)
