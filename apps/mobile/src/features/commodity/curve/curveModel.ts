@@ -37,6 +37,10 @@ type T = ReturnType<typeof useTranslation>['t'];
 const perYear = (t: T, stats: CurveStats | null) =>
   stats ? t('curve.perYear', { pct: formatCurvePct(stats.rollYieldPct) }) : t('curve.unavailable');
 
-// 롤 수익률 줄(괄호 안에 기준일 값, 문구 없이 D-116)
+// 롤 수익률 줄. 괄호 밖은 비교일, 괄호 안은 범례와 같은 기준일 날짜와 그 값(D-116)
 export const curveRollLine = (t: T, data: Curve): string =>
-  t('curve.rollYield', { value: perYear(t, data.current), base: perYear(t, data.base) });
+  t('curve.rollYield', {
+    value: perYear(t, data.current),
+    baseDate: formatLegendDate(data.baseDate, data.freshness.tradeDate),
+    base: perYear(t, data.base),
+  });

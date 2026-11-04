@@ -46,7 +46,9 @@ export const curveSchema = z.object({
   compareDate: z.iso.date(),
   // 만기순
   points: z.array(curveContractSchema),
+  // 비교일(compareDate) 커브의 수치 요약. 이름과 달리 D가 아닐 수 있다(기준일을 옮기면 함께 옮겨짐)
   current: curveStatsSchema.nullable(),
+  // 기준일(baseDate) 커브의 수치 요약
   base: curveStatsSchema.nullable(),
 });
 export type Curve = z.infer<typeof curveSchema>;
