@@ -146,9 +146,11 @@ function DisparityChartView({
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
           overlayTop={
-            <TodayLine code={code} data={data} model={model} requestedBasis={requestedBasis} />
+            <>
+              <TodayLine code={code} data={data} model={model} requestedBasis={requestedBasis} />
+              <StatsLine data={data} bars={model.bars} range={range} />
+            </>
           }
-          overlayBottom={<StatsLine data={data} bars={model.bars} range={range} />}
           onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
@@ -167,7 +169,7 @@ function DisparityChartView({
   );
 }
 
-// 좌상단 한 줄: 기준값 · 오늘 시고저종. 기준값을 누르면 안내가 열린다(screens.md C-a 좌상단 한 줄)
+// 상단 첫 줄: 기준값 · 오늘 시고저종. 기준값을 누르면 안내가 열린다(screens.md C-a 좌상단 한 줄)
 function TodayLine({
   code,
   data,
@@ -239,7 +241,7 @@ const ohlcText = (t: T, bar: ChartBar, decimals: number) =>
 const DISPARITY_DECIMALS = 1;
 const formatDisparity = (value: number) => `${formatChange(value, DISPARITY_DECIMALS)}%`;
 
-// 좌하단 한 줄: 이격도(꼬리 백분위) · 저점대비 · 고점대비. LC·HC는 보이는 봉 기준이다
+// 상단 둘째 줄: 이격도(꼬리 백분위) · 저점대비 · 고점대비. LC·HC는 보이는 봉 기준이다
 function StatsLine({
   data,
   bars,

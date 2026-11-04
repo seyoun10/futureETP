@@ -7,6 +7,7 @@ import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
+import { PERIOD_CHIPS_HEIGHT } from '@/charts/PeriodChips';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatContractMonthShort, formatPrice } from '@/lib/formatNumber';
@@ -150,16 +151,14 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             }
             resetLabel={t('curve.reset')}
             overlayTop={
-              <Text style={styles.line} numberOfLines={1} testID="curve-legend">
-                <Text style={styles.legendBase}>{'╌╌ '}</Text>
-                {formatLegendDate(data.baseDate, currentDate)}
-                {'   '}
-                <Text style={styles.legendCurrent}>{'── '}</Text>
-                {formatLegendDate(data.compareDate, currentDate)}
-              </Text>
-            }
-            overlayBottom={
               <>
+                <Text style={styles.line} numberOfLines={1} testID="curve-legend">
+                  <Text style={styles.legendBase}>{'╌╌ '}</Text>
+                  {formatLegendDate(data.baseDate, currentDate)}
+                  {'   '}
+                  <Text style={styles.legendCurrent}>{'── '}</Text>
+                  {formatLegendDate(data.compareDate, currentDate)}
+                </Text>
                 <Text style={styles.line} numberOfLines={1} testID="curve-state">
                   {stateLine}
                 </Text>
@@ -304,8 +303,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+    // C-a·C-c 기간 칩 줄과 같은 높이(차트·되돌리기 버튼 위치를 세 탭이 맞춘다)
+    height: PERIOD_CHIPS_HEIGHT,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
   },
   step: {
     minWidth: 44,

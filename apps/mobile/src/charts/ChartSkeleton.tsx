@@ -37,7 +37,7 @@ export function ChartSkeleton({ footer }: Props) {
           ))}
         </View>
       ) : (
-        <View style={[styles.footer, styles.steps]}>
+        <View style={[styles.footer, styles.steps, { height: PERIOD_CHIPS_HEIGHT }]}>
           <View style={styles.step} />
           <View style={[styles.step, styles.baseDate]} />
           <View style={styles.step} />
@@ -74,7 +74,6 @@ const styles = StyleSheet.create({
   },
   steps: {
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
   },
   step: {
     width: STEP_SIZE,

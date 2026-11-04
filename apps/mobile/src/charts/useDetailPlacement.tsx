@@ -19,7 +19,7 @@ type PlacementOptions = {
   lines: readonly ChartLine[];
   // 봉 차트면 봉마다 고가·저가(선 차트는 없음)
   bars?: readonly { high: number; low: number }[];
-  // 차트 안 위·아래 정보 줄 높이. 박스는 그 사이에 놓는다
+  // 차트 안 정보 줄 높이(지금은 위쪽만). 박스는 그 사이에 놓는다
   overlay?: OverlayInsets;
 };
 

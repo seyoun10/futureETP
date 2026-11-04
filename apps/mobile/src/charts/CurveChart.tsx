@@ -24,7 +24,7 @@ import {
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
-import { GUIDE_DASH } from './chartLayout';
+import { GUIDE_DASH, X_LABEL_HEIGHT } from './chartLayout';
 import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
@@ -50,18 +50,18 @@ type CurveChartProps = {
   pctDecimals: number;
   // 십자선이 붙은 월물의 상세 박스 내용. 위치는 차트가 점·선을 가장 적게 가리는 귀퉁이로 정한다
   renderDetail: (index: number) => ReactNode;
-  // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 안내(ChartOverlay). 선·점은 줄을 비켜 그린다
+  // 차트 안 위쪽에 겹치는 정보 줄과 x축 라벨 위에 띄우는 안내(ChartOverlay). 선·점은 줄을 비켜 그린다
   overlayTop?: ReactNode;
-  overlayBottom?: ReactNode;
   floating?: ReactNode;
-  // 있으면 floating 아래(아래 정보 줄 위)에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스도 지운다
+  // 있으면 floating 아래(x축 라벨 위)에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스도 지운다
   onResetView?: () => void;
   resetLabel?: string;
 };
 
 const TICK_COUNT = 5;
 const TOP = CHART_FONT_SIZE + spacing.sm;
-const BOTTOM = CHART_FONT_SIZE + spacing.sm;
+// x축 라벨 자리는 C-a·C-c와 같게 둔다(되돌리기 버튼·하단 줄 위치를 세 탭이 맞춘다)
+const BOTTOM = X_LABEL_HEIGHT;
 // y축 눈금은 다른 탭처럼 그림 영역 오른쪽(YAxisLayer와 같은 간격)
 const Y_LABEL_GAP = 4;
 const DOT = 3;
@@ -79,7 +79,6 @@ export const CurveChart = memo(function CurveChart({
   pctDecimals,
   renderDetail,
   overlayTop,
-  overlayBottom,
   floating,
   onResetView,
   resetLabel,
@@ -448,7 +447,6 @@ export const CurveChart = memo(function CurveChart({
       </GestureDetector>
       <ChartOverlay
         top={overlayTop}
-        bottom={overlayBottom}
         bottomOffset={BOTTOM}
         floating={
           onResetView ? (

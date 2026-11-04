@@ -55,10 +55,9 @@ type CandleChartProps = {
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 십자선 상세 박스 내용. 박스는 차트가 봉·선을 가장 적게 가리는 귀퉁이에 둔다
   renderDetail: (index: number) => ReactNode;
-  // 차트 안 위·아래에 겹치는 정보 줄(ChartOverlay)
+  // 차트 안 위쪽에 겹치는 정보 줄(ChartOverlay)
   overlayTop?: ReactNode;
-  overlayBottom?: ReactNode;
-  // 있으면 아래 줄 위에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스를 지우고 부른다
+  // 있으면 x축 라벨 위에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스를 지우고 부른다
   onResetView?: () => void;
   // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
   locked?: boolean;
@@ -96,7 +95,6 @@ export const CandleChart = memo(function CandleChart({
   onVisibleRangeChange,
   renderDetail,
   overlayTop,
-  overlayBottom,
   onResetView,
   locked,
 }: CandleChartProps) {
@@ -240,7 +238,6 @@ export const CandleChart = memo(function CandleChart({
       </CartesianChart>
       <ChartOverlay
         top={overlayTop}
-        bottom={overlayBottom}
         bottomOffset={X_LABEL_HEIGHT}
         floating={
           onResetView ? (
