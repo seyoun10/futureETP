@@ -6,7 +6,7 @@ import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
-import { CURVE_DASH } from '@/charts/chartLayout';
+import { CURVE_DASH, SERIES_STROKE } from '@/charts/chartLayout';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { LegendLine } from '@/charts/LegendLine';
 import { PERIOD_CHIPS_HEIGHT } from '@/charts/PeriodChips';
@@ -156,7 +156,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
               <>
                 <View style={styles.legend} testID="curve-legend">
                   <View style={styles.legendItem}>
-                    <LegendLine color={colors.chart.curveBase} strokeWidth={1} />
+                    <LegendLine color={colors.chart.curveBase} strokeWidth={SERIES_STROKE} />
                     <Text style={styles.legendText}>
                       {formatLegendDate(data.baseDate, currentDate)}
                     </Text>
@@ -165,7 +165,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
                     <LegendLine
                       color={colors.chart.curveCurrent}
                       dash={CURVE_DASH}
-                      strokeWidth={1}
+                      strokeWidth={SERIES_STROKE}
                     />
                     <Text style={styles.legendText}>
                       {formatLegendDate(data.compareDate, currentDate)}

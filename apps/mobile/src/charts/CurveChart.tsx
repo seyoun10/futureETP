@@ -24,7 +24,7 @@ import {
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
-import { CURVE_DASH, GUIDE_DASH, X_LABEL_HEIGHT } from './chartLayout';
+import { CURVE_DASH, GUIDE_DASH, SERIES_STROKE, X_LABEL_HEIGHT } from './chartLayout';
 import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
@@ -338,14 +338,14 @@ export const CurveChart = memo(function CurveChart({
                 path={paths.base}
                 color={colors.chart.curveBase}
                 style="stroke"
-                strokeWidth={1}
+                strokeWidth={SERIES_STROKE}
                 strokeJoin="round"
               />
               <Path
                 path={paths.current}
                 color={colors.chart.curveCurrent}
                 style="stroke"
-                strokeWidth={1}
+                strokeWidth={SERIES_STROKE}
               >
                 <DashPathEffect intervals={CURVE_DASH} />
               </Path>
@@ -360,7 +360,7 @@ export const CurveChart = memo(function CurveChart({
                       r={DOT}
                       color={colors.chart.curveBase}
                       style="stroke"
-                      strokeWidth={1}
+                      strokeWidth={SERIES_STROKE}
                     />
                   ),
                   p.current !== null && (

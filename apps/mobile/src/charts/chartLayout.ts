@@ -4,3 +4,5 @@ export const X_LABEL_HEIGHT = 20;
 export const GUIDE_DASH = [2, 2];
 // C-b 비교일 커브 점선의 선·빈칸 길이(범례 견본도 같은 값)
 export const CURVE_DASH: [number, number] = [3, 2];
+// C-b 커브·C-c 월물 선 굵기(커브 점·범례 견본도 같은 값)
+export const SERIES_STROKE = 1;

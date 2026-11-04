@@ -1,11 +1,10 @@
 // C-c 응답 → LinesChart 입력(선 색, 끝값 라벨, y 자동 맞춤 범위)과 범례·롤 수익률. 순수 함수다.
 import type { ContractsChart } from '@futureetp/shared';
+import { SERIES_STROKE } from '@/charts/chartLayout';
 import type { ChartLine } from '@/charts/LineLayer';
 import type { PriceLabel } from '@/charts/YAxisLayer';
 import { formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { colors } from '@/theme/tokens';
-
-const LINE_STROKE = 1;
 
 export type ContractChartModel = {
   lines: ChartLine[];
@@ -33,7 +32,7 @@ export function contractChartModel(chart: ContractsChart): ContractChartModel {
     key: c.symbol,
     values: c.prices,
     color: lineColor(i),
-    strokeWidth: LINE_STROKE,
+    strokeWidth: SERIES_STROKE,
   }));
   const hi = chart.dates.map(() => -Infinity);
   const lo = chart.dates.map(() => Infinity);
