@@ -26,7 +26,7 @@ import {
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
-import { CURVE_DASH, GUIDE_DASH, SERIES_STROKE, X_LABEL_HEIGHT } from './chartLayout';
+import { CURVE_DASH, GUIDE_DASH, SERIES_STROKE, X_LABEL_HEIGHT, Y_LABEL_PAD } from './chartLayout';
 import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
@@ -138,7 +138,8 @@ export const CurveChart = memo(function CurveChart({
     const fullDecimals = tickDecimals(fullTicks, priceDecimals);
     const tickLabels = fullTicks.map((t) => formatPrice(t, fullDecimals));
     // 축 폭은 눈금 글자와 십자선 가격 라벨(가격 자릿수 전부) 중 넓은 쪽. 눈금만 보면 `86.85`가 잘린다
-    const tickWidth = Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) + 10;
+    const tickWidth =
+      Math.max(...tickLabels.map((l) => numberFont.measureText(l).width)) + Y_LABEL_PAD;
     const crosshairWidth =
       Math.max(
         ...points

@@ -20,7 +20,7 @@ import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { RollLayer } from './RollLayer';
 import type { RollMarks } from './RollLayer';
-import { X_LABEL_HEIGHT } from './chartLayout';
+import { X_LABEL_HEIGHT, Y_LABEL_PAD } from './chartLayout';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
@@ -146,7 +146,7 @@ export const CandleChart = memo(function CandleChart({
   // 우측 y축 라벨 자리(가장 큰 가격 라벨 + 여백)
   const yLabelWidth = useMemo(() => {
     const max = Math.max(1, ...envelope.hi);
-    return numberFont.measureText(formatPrice(max, priceDecimals)).width + 10;
+    return numberFont.measureText(formatPrice(max, priceDecimals)).width + Y_LABEL_PAD;
   }, [envelope, priceDecimals]);
   // 여백은 x축·y축 라벨 자리
   const padding = useMemo(() => ({ bottom: X_LABEL_HEIGHT, right: yLabelWidth }), [yLabelWidth]);

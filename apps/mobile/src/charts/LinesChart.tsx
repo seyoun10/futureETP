@@ -12,7 +12,7 @@ import { CrosshairLayer } from './CrosshairLayer';
 import type { CandleGeom } from './fitTransform';
 import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
-import { X_LABEL_HEIGHT } from './chartLayout';
+import { X_LABEL_HEIGHT, Y_LABEL_PAD } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { ChartResetButton } from './ChartResetButton';
@@ -114,7 +114,7 @@ export const LinesChart = memo(function LinesChart({
     const widths = widestLabels.map((l) =>
       numberFont.measureText(formatPrice(l.price, priceDecimals)),
     );
-    return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + 10;
+    return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + Y_LABEL_PAD;
   }, [widestLabels, priceDecimals]);
   const axisOptions = useMemo(
     () => (envelope.lo.every((v) => v > 0) ? LOG_AXIS : LINEAR_AXIS),
