@@ -7,7 +7,6 @@ import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CandleChart } from '@/charts/CandleChart';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
-import { ChartResetButton } from '@/charts/ChartResetButton';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
@@ -150,7 +149,7 @@ function DisparityChartView({
             <TodayLine code={code} data={data} model={model} requestedBasis={requestedBasis} />
           }
           overlayBottom={<StatsLine data={data} bars={model.bars} range={range} />}
-          floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
+          onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />

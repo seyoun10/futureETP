@@ -7,7 +7,6 @@ import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
-import { ChartResetButton } from '@/charts/ChartResetButton';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
@@ -112,7 +111,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
           onViewChange={onViewChange}
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
-          floating={gesture ? <ChartResetButton onPress={() => setGesture(null)} /> : undefined}
+          onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />

@@ -263,6 +263,12 @@ export function useChartViewport({
     },
   );
   const crosshair = useCrosshairPosition(press, transform, crosshairVisible);
+  // 차트 밖 버튼(되돌리기)에서 지울 때. 차트 안 탭은 아래 hideCrosshair 제스처가 UI 스레드에서 지운다
+  const hideCrosshair = useCallback(() => {
+    crosshairVisible.set(false);
+    setCrosshairShown(false);
+    setDetail(null);
+  }, [crosshairVisible]);
 
   const pressConfig = useMemo(
     () => ({ pan: crosshairShown ? {} : { activateAfterLongPress: LONG_PRESS_MS } }),
@@ -332,6 +338,7 @@ export function useChartViewport({
     detail,
     onGeom,
     crosshair,
+    hideCrosshair,
     gestures,
     pressConfig,
     fittedStyle,

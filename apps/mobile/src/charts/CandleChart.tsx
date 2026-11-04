@@ -11,6 +11,7 @@ import { colors } from '@/theme/tokens';
 import { useUpDownPalette } from '@/theme/upDownColor';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
+import { ChartResetButton } from './ChartResetButton';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
 import { ExtremeTagsLayer } from './ExtremeTagsLayer';
@@ -54,10 +55,11 @@ type CandleChartProps = {
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 십자선 상세 박스 내용. 박스는 차트가 봉·선을 가장 적게 가리는 귀퉁이에 둔다
   renderDetail: (index: number) => ReactNode;
-  // 차트 안 위·아래에 겹치는 정보 줄과 아래 줄 위에 띄우는 버튼(ChartOverlay)
+  // 차트 안 위·아래에 겹치는 정보 줄(ChartOverlay)
   overlayTop?: ReactNode;
   overlayBottom?: ReactNode;
-  floating?: ReactNode;
+  // 있으면 아래 줄 위에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스를 지우고 부른다
+  onResetView?: () => void;
   // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
   locked?: boolean;
 };
@@ -95,7 +97,7 @@ export const CandleChart = memo(function CandleChart({
   renderDetail,
   overlayTop,
   overlayBottom,
-  floating,
+  onResetView,
   locked,
 }: CandleChartProps) {
   const palette = useUpDownPalette();
@@ -106,15 +108,23 @@ export const CandleChart = memo(function CandleChart({
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const dataInsets = overlay;
   const dates = useMemo(() => bars.map((b) => b.tradeDate), [bars]);
-  const { transform, detail, onGeom, crosshair, gestures, pressConfig, fittedStyle } =
-    useChartViewport({
-      press,
-      periodBars,
-      onViewChange,
-      onVisibleRangeChange,
-      dataInsets,
-      locked,
-    });
+  const {
+    transform,
+    detail,
+    onGeom,
+    crosshair,
+    hideCrosshair,
+    gestures,
+    pressConfig,
+    fittedStyle,
+  } = useChartViewport({
+    press,
+    periodBars,
+    onViewChange,
+    onVisibleRangeChange,
+    dataInsets,
+    locked,
+  });
 
   const data = useMemo(
     () =>
@@ -232,7 +242,16 @@ export const CandleChart = memo(function CandleChart({
         top={overlayTop}
         bottom={overlayBottom}
         bottomOffset={X_LABEL_HEIGHT}
-        floating={floating}
+        floating={
+          onResetView ? (
+            <ChartResetButton
+              onPress={() => {
+                hideCrosshair();
+                onResetView();
+              }}
+            />
+          ) : undefined
+        }
         onInsets={setOverlay}
       />
       {detail !== null && bars[detail.index] && (

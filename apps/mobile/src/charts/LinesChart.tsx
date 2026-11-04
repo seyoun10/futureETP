@@ -13,6 +13,7 @@ import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
+import { ChartResetButton } from './ChartResetButton';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
@@ -35,8 +36,8 @@ type LinesChartProps = {
   onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
-  // 차트 하단 가운데에 띄우는 버튼(차트 되돌리기). 위치는 C-a와 같다
-  floating?: ReactNode;
+  // 있으면 차트 하단 가운데에 되돌리기 버튼을 띄운다(위치는 C-a와 같다). 누르면 십자선·상세 박스를 지우고 부른다
+  onResetView?: () => void;
   // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
   locked?: boolean;
 };
@@ -69,18 +70,26 @@ export const LinesChart = memo(function LinesChart({
   onViewChange,
   onVisibleRangeChange,
   renderDetail,
-  floating,
+  onResetView,
   locked,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
-  const { transform, detail, onGeom, crosshair, gestures, pressConfig, fittedStyle } =
-    useChartViewport({
-      press,
-      periodBars,
-      onViewChange,
-      onVisibleRangeChange,
-      locked,
-    });
+  const {
+    transform,
+    detail,
+    onGeom,
+    crosshair,
+    hideCrosshair,
+    gestures,
+    pressConfig,
+    fittedStyle,
+  } = useChartViewport({
+    press,
+    periodBars,
+    onViewChange,
+    onVisibleRangeChange,
+    locked,
+  });
 
   const { setScales, boxProps } = useDetailPlacement({ detail, lines });
 
@@ -176,7 +185,20 @@ export const LinesChart = memo(function LinesChart({
           <GeomReporter points={points} chartBounds={chartBounds} dates={dates} onGeom={onGeom} />
         )}
       </CartesianChart>
-      <ChartOverlay bottomOffset={X_LABEL_HEIGHT} floating={floating} onInsets={noop} />
+      <ChartOverlay
+        bottomOffset={X_LABEL_HEIGHT}
+        floating={
+          onResetView ? (
+            <ChartResetButton
+              onPress={() => {
+                hideCrosshair();
+                onResetView();
+              }}
+            />
+          ) : undefined
+        }
+        onInsets={noop}
+      />
       {detail !== null && dates[detail.index] && (
         <View
           pointerEvents="none"

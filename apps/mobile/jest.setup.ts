@@ -65,15 +65,21 @@ jest.mock('expo-localization', () => {
 // Skia·Victory Native는 Jest에서 돌지 않는다. 차트는 아무것도 그리지 않는 jest.fn으로 두고,
 // 화면 테스트는 jest.mocked(CandleChart).mock.lastCall로 받은 props(renderDetail 등)를 확인한다.
 // 차트 안에 겹치는 정보 줄·버튼(overlayTop·overlayBottom·floating)은 화면 쪽 내용이라 그대로 그린다.
+// onResetView가 있으면 차트처럼 되돌리기 버튼을 그린다(십자선 지우기는 차트 안이라 빠진다)
 type OverlaySlots = {
   overlayTop?: import('react').ReactNode;
   overlayBottom?: import('react').ReactNode;
   floating?: import('react').ReactNode;
+  onResetView?: () => void;
 };
 const mockChartWithOverlays = () =>
-  jest.fn(({ overlayTop, overlayBottom, floating }: OverlaySlots) => {
+  jest.fn(({ overlayTop, overlayBottom, floating, onResetView }: OverlaySlots) => {
     const { createElement, Fragment } = jest.requireActual<typeof import('react')>('react');
-    return createElement(Fragment, null, overlayTop, overlayBottom, floating);
+    const { ChartResetButton } = jest.requireActual<typeof import('@/charts/ChartResetButton')>(
+      '@/charts/ChartResetButton',
+    );
+    const reset = onResetView ? createElement(ChartResetButton, { onPress: onResetView }) : null;
+    return createElement(Fragment, null, overlayTop, overlayBottom, floating, reset);
   });
 jest.mock('@/charts/CandleChart', () => ({ CandleChart: mockChartWithOverlays() }));
 jest.mock('@/charts/CurveChart', () => ({ CurveChart: mockChartWithOverlays() }));
