@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     paddingHorizontal: spacing.sm,
   },
-  // 차트 위쪽에 띄운다. 아래쪽이면 x축 월물 라벨을 가린다
+  // x축 월물 라벨 바로 위(되돌리기 버튼이 있으면 그 위)에 띄운다
   notice: {
     alignItems: 'center',
   },
