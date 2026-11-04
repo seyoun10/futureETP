@@ -6,6 +6,8 @@ jest.mock('./config', () => ({ apiUrl: 'http://api.test', devApiToken: 'dev-toke
 
 const mockGetAccessToken = jest.fn<Promise<string | null>, []>();
 jest.mock('./accessToken', () => ({ getAccessToken: () => mockGetAccessToken() }));
+const DEVICE_ID = '00000000-0000-4000-8000-000000000001';
+jest.mock('./deviceId', () => ({ getDeviceId: () => DEVICE_ID }));
 
 const schema = z.object({ price: z.number() });
 
@@ -55,6 +57,7 @@ describe('apiRequest', () => {
       'http://api.test/v1/commodities/GC/disparity?basis=KR&ma=200',
     );
     expect(init.headers.Authorization).toBe('Bearer dev-token');
+    expect(init.headers['X-Device-Id']).toBe(DEVICE_ID);
     expect(init.method).toBe('GET');
   });
 
@@ -71,6 +74,7 @@ describe('apiRequest', () => {
     fetchMock.mockResolvedValue(respond(200, { success: true, data: { price: 1 } }));
     await apiRequest('/health', schema, { auth: false });
     expect(firstInit().headers.Authorization).toBeUndefined();
+    expect(firstInit().headers['X-Device-Id']).toBeUndefined();
   });
 
   it('token을 주면 저장된 키 대신 그 키를 보낸다', async () => {

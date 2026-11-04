@@ -4,6 +4,7 @@ import { perfNow, perfRequest } from '@/lib/perfLog';
 import { AppError } from './AppError';
 import { getAccessToken } from './accessToken';
 import { apiUrl } from './config';
+import { getDeviceId } from './deviceId';
 
 const TIMEOUT_MS = 15_000;
 
@@ -13,7 +14,7 @@ export type RequestOptions = {
   method?: 'GET' | 'PATCH' | 'PUT';
   query?: Record<string, string | number | undefined>;
   body?: unknown;
-  // false면 Authorization 헤더 없이 보낸다(`/v1/health`).
+  // false면 Authorization·X-Device-Id 헤더 없이 보낸다(`/v1/health`).
   auth?: boolean;
   // 저장된 키 대신 이 키를 보낸다(B-b에서 저장 전에 키 확인, D-044).
   token?: string;
@@ -35,6 +36,8 @@ export async function apiRequest<T extends z.ZodType>(
     // 키가 없으면 보내도 401이라 요청하지 않는다(D-072).
     if (!token) throw new AppError('UNAUTHORIZED', { message: 'No access token' });
     headers.Authorization = `Bearer ${token}`;
+    // 서버가 설정·알림을 기기별로 나누는 키(D-120)
+    headers['X-Device-Id'] = getDeviceId();
   }
   if (body !== undefined) headers['Content-Type'] = 'application/json';
 

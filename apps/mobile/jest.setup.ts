@@ -16,12 +16,15 @@ jest.mock('expo-sqlite/kv-store', () => {
   };
 });
 
-// expo-secure-store도 네이티브 모듈이라 메모리 Map으로 바꾼다(접근 키, D-044).
+// expo-secure-store도 네이티브 모듈이라 메모리 Map으로 바꾼다(접근 키 D-044, 기기 키 D-120).
 jest.mock('expo-secure-store', () => {
   const items = new Map<string, string>();
   return {
     getItem: (key: string) => items.get(key) ?? null,
     getItemAsync: (key: string) => Promise.resolve(items.get(key) ?? null),
+    setItem: (key: string, value: string) => {
+      items.set(key, value);
+    },
     setItemAsync: (key: string, value: string) => {
       items.set(key, value);
       return Promise.resolve();
