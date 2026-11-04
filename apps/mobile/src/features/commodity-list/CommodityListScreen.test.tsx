@@ -7,7 +7,7 @@ import { AppError } from '@/api/AppError';
 import { getCommodities } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { queryKeys } from '@/api/queryKeys';
-import { getSettings } from '@/api/settings';
+import { getSettings, patchSettings } from '@/api/settings';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import { UP_DOWN_PALETTES } from '@/theme/upDownColor';
 
@@ -140,6 +140,40 @@ describe('A 원자재 목록', () => {
     await renderList();
 
     await waitFor(() => expect(queryClient.getQueryData(queryKeys.settings)).toBeDefined());
+    expect(screen.queryByTestId('header-badge')).not.toBeOnTheScreen();
+  });
+
+  it('B-a에서 알림 대상을 바꾸고 돌아오면 목록을 다시 조회해 🔔와 [⚙] 점이 바뀐다', async () => {
+    let saved: Settings = { ...SETTINGS, alertCommodity: null };
+    jest.mocked(getSettings).mockImplementation(() => Promise.resolve(saved));
+    jest.mocked(patchSettings).mockImplementation((patch) => {
+      saved = { ...saved, ...patch };
+      return Promise.resolve(saved);
+    });
+    // 서버처럼 설정의 알림 대상에만 🔔를 단다
+    mockGet.mockImplementation(() =>
+      Promise.resolve({
+        ...DATA,
+        commodities: DATA.commodities.map((c) => ({
+          ...c,
+          alert: c.code === saved.alertCommodity,
+        })),
+      }),
+    );
+    await renderList();
+    expect(await screen.findByTestId('header-badge')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('알림 대상')).not.toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByLabelText('설정'));
+    await fireEvent.press(await screen.findByText('알림'));
+    await fireEvent.press(await screen.findByRole('radio', { name: '금' }));
+    await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+    await fireEvent.press(screen.getByLabelText('뒤로'));
+    await fireEvent.press(screen.getByLabelText('뒤로'));
+
+    expect(screen).toHavePathname('/');
+    const gcRow = screen.getByRole('button', { name: /금\s\(GC\)/ });
+    expect(await within(gcRow).findByLabelText('알림 대상')).toBeOnTheScreen();
     expect(screen.queryByTestId('header-badge')).not.toBeOnTheScreen();
   });
 

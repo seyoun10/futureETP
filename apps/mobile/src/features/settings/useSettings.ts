@@ -12,6 +12,7 @@ export const useSettings = () => useQuery(settingsQuery);
 
 // 바꾼 값을 바로 보여 주고(낙관적 갱신) 서버 응답으로 덮는다. 실패하면 되돌린다.
 // 같은 scope라 연달아 바꿔도 PATCH가 보낸 순서대로 하나씩 간다(마지막 응답 = 마지막 변경).
+// 알림 대상을 바꾸면 A 목록의 🔔(응답의 `alert`)도 바뀌므로 목록을 다시 조회한다(D-124).
 export function useUpdateSettings() {
   const queryClient = useQueryClient();
 
@@ -28,6 +29,10 @@ export function useUpdateSettings() {
     onError: (_error, _patch, context) => {
       if (context?.previous) queryClient.setQueryData(queryKeys.settings, context.previous);
     },
-    onSuccess: (settings) => queryClient.setQueryData(queryKeys.settings, settings),
+    onSuccess: (settings, patch) => {
+      queryClient.setQueryData(queryKeys.settings, settings);
+      if ('alertCommodity' in patch)
+        void queryClient.invalidateQueries({ queryKey: queryKeys.commodities.list() });
+    },
   });
 }
