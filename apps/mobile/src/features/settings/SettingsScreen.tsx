@@ -90,7 +90,7 @@ export function SettingsScreen() {
           ) : (
             <DisparitySection settings={settings.data} onChange={save} />
           )}
-          <View style={styles.divider} />
+          <SectionHeader title={t('settings.sectionOther')} />
           <LinkRow
             label={t('settings.accessKey')}
             value={hasKey ? t('accessKey.saved') : undefined}
@@ -127,7 +127,7 @@ function DisplaySection({
 
   return (
     <>
-      <SectionHeader title={t('settings.sectionDisplay')} />
+      <SectionHeader title={t('settings.sectionGeneral')} />
       <SegmentedControl
         label={t('settings.language')}
         options={LANGUAGES.map((value) => ({ value, label: languageLabels[value] }))}
@@ -258,11 +258,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.caption,
     textAlign: 'center',
     backgroundColor: colors.surface,
-  },
-  divider: {
-    height: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
   },
   row: {
     flexDirection: 'row',

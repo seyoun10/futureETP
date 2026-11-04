@@ -175,8 +175,9 @@ export const ko = {
     // 언어 이름은 그 언어로 쓴다
     languageKo: '한국어',
     languageEn: 'English',
-    sectionDisplay: '표시',
+    sectionGeneral: '일반',
     sectionDisparity: '이격도차트',
+    sectionOther: '기타',
     basis: '차트 기준값',
     basisFRONT: '대표월물',
     basisKR: '한국형',
