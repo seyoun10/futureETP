@@ -130,7 +130,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] `SETTLE_BACKFILL` 작업(월물마다 1회 `fetchRecentBars`, 빠진 칸만 채우고 채운 원자재만 재계산)·토요일 10:00 CT 트리거 (2026-11-03)
     - [x] dev 실제 Massive 1회: 빈 칸 155개 중 9개 채움(10/27·10/28 18:30 실행 손실분), 12분 39초
   - [x] `DAILY_SETTLE` 건너뛰기: 직전 10거래일 지금 소스 봉 없는 월물 제외, 가까운 2개·대상 월물 5개 보호 (2026-11-03)
-  - [ ] Healthchecks.io check `settle_backfill`(토요일 10:00 CT) 만들기 → `npm run deploy`
+  - [x] Healthchecks.io check `settle_backfill`(토요일 10:00 CT, 여유 60분, `healthchecks-setup.sh`에 추가) 만들기. 작업은 11/04 배포(`5f5eef7`)에 이미 포함돼 재배포 불필요 (2026-11-04)
   - [ ] 첫 토요일 보충 로그(채운 봉 수)와 건너뛰기 시작 뒤(prod Massive 정산일 10거래일, 11/09 무렵) 평일 소요 실측 → `SETTLE_STEP1_EXPECTED_MS` 조정
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
