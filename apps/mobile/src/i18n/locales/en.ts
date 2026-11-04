@@ -95,7 +95,7 @@ export const en: Translation = {
     prev: 'Move base date 1 trading day earlier',
     next: 'Move base date 1 trading day later',
     reset: 'Back to the latest base date',
-    rollYield: 'Roll yield {{value}} ({{baseDate}} {{base}})',
+    rollYield: 'Roll yield {{value}}',
     perYear: '{{pct}}/yr',
     unavailable: 'unavailable',
     tooltipChange: 'Change',

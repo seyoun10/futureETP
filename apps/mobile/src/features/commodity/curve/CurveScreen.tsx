@@ -152,8 +152,9 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
               data.baseDate === data.maxBaseDate ? undefined : () => onChangeBaseDate(null)
             }
             resetLabel={t('curve.reset')}
+            // 범례와 롤 수익률을 한 줄에 둔다
             overlayTop={
-              <>
+              <View style={styles.topLine}>
                 <View style={styles.legend} testID="curve-legend">
                   <View style={styles.legendItem}>
                     <LegendLine color={colors.chart.curveBase} strokeWidth={SERIES_STROKE} />
@@ -172,10 +173,10 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.line} numberOfLines={1} testID="curve-roll-yield">
+                <Text style={styles.legendText} numberOfLines={1} testID="curve-roll-yield">
                   {rollLine}
                 </Text>
-              </>
+              </View>
             }
             floating={
               movedTo === null ? undefined : (
@@ -290,20 +291,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: spacing.lg,
   },
-  line: {
-    color: colors.text,
-    fontSize: fontSize.caption,
-    fontVariant: ['tabular-nums'],
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs,
-    textAlign: 'center',
-  },
-  legend: {
+  topLine: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     justifyContent: 'center',
     columnGap: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.xs,
+  },
+  legend: {
+    flexDirection: 'row',
+    columnGap: spacing.lg,
   },
   legendItem: {
     flexDirection: 'row',

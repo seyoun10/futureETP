@@ -106,9 +106,7 @@ describe('C-b 월물커브', () => {
     expectLegend('10/21', '10/22');
     // 콘탱고·백워데이션 줄은 없다
     expect(screen.queryByText(/콘탱고/)).toBeNull();
-    expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent(
-      '롤 수익률 -89.0%/년 (10/21 -86.7%/년)',
-    );
+    expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent('롤 수익률 -89.0%/년');
     expect(lastChartProps().points).toEqual([
       { label: '2611', base: 3.1, current: null, changePct: null },
       { label: '2612', base: 3.2, current: 3.168, changePct: -1 },
@@ -188,9 +186,7 @@ describe('C-b 월물커브', () => {
     mockGet.mockResolvedValue({ ...DATA, current: null, base: null });
     await renderScreen();
 
-    expect(await screen.findByTestId('curve-roll-yield')).toHaveTextContent(
-      '롤 수익률 산출 불가 (10/21 산출 불가)',
-    );
+    expect(await screen.findByTestId('curve-roll-yield')).toHaveTextContent('롤 수익률 산출 불가');
   });
 
   it('툴팁은 월물·기준일 값·비교일 값·변화율이고 항목은 날짜이며 없는 값은 뺀다', async () => {

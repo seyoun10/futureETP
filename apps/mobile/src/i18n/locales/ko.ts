@@ -102,7 +102,7 @@ export const ko = {
     prev: '기준일을 1 거래일 앞으로',
     next: '기준일을 1 거래일 뒤로',
     reset: '기준일을 최근 거래일로',
-    rollYield: '롤 수익률 {{value}} ({{baseDate}} {{base}})',
+    rollYield: '롤 수익률 {{value}}',
     perYear: '{{pct}}/년',
     unavailable: '산출 불가',
     tooltipChange: '변화율',
