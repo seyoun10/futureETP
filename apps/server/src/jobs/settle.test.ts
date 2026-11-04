@@ -343,11 +343,26 @@ describe('DAILY_SETTLE', () => {
 });
 
 describe('SETTLE_REVISION', () => {
-  // 10-26 일봉이 저장된 상태에서 10-27 18:30 CT에 돈다
+  // 10-26 일봉이 저장된 상태에서 10-27 18:30 CT에 돈다. CLQ27은 가까운 2개·대상 월물이 아닌 먼 월물
   async function seeded(settle: (symbol: string, tradeDate: string) => number | null) {
     const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
+    await env.store.insertContracts(
+      [
+        ['CLZ26', '2026-12', '2026-11-20'],
+        ['CLF27', '2027-01', '2026-12-18'],
+        ['CLQ27', '2027-08', '2027-07-21'],
+        ['NGZ26', '2026-12', '2026-11-25'],
+      ].map(([symbol, contractMonth, lastTradeDate]) => ({
+        symbol,
+        commodityCode: symbol.startsWith('CL') ? 'CL' : 'NG',
+        contractMonth,
+        firstTradeDate: null,
+        lastTradeDate,
+        isTarget: false,
+      })),
+    );
     await env.store.upsertDailyBars(
-      ['CLZ26', 'CLF27', 'NGZ26'].map((contractSymbol) => ({
+      ['CLZ26', 'CLF27', 'CLQ27', 'NGZ26'].map((contractSymbol) => ({
         contractSymbol,
         tradeDate: '2026-10-26',
         open: null,
@@ -390,10 +405,22 @@ describe('SETTLE_REVISION', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG', 'NG']);
   });
 
-  it('소스에서 빠진 월물이 있으면 확인하지 못한 것으로 실패한다', async () => {
-    const { handlers, recompute } = await seeded((symbol) => (symbol === 'CLF27' ? null : 100));
-    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*CLF27/);
+  it('소스에서 보호 월물이 빠지면 확인하지 못한 것으로 실패한다', async () => {
+    const { handlers, recompute } = await seeded((symbol) =>
+      symbol === 'CLF27' || symbol === 'CLQ27' ? null : 100,
+    );
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*: CLF27$/);
     expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('보호 월물이 아닌 드문 월물만 빠지면 그 월물은 확인하지 않고 나머지를 정정한다', async () => {
+    const { handlers, bars, recompute } = await seeded((symbol) =>
+      symbol === 'CLQ27' ? null : symbol === 'CLZ26' ? 101 : 100,
+    );
+    await handlers.SETTLE_REVISION(ctx());
+    expect(bars.get('CLZ26|2026-10-26')).toMatchObject({ settle: 101, revisedAt: NOW });
+    expect(bars.get('CLQ27|2026-10-26')).toMatchObject({ settle: 100, revisedAt: null });
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 
   it('다른 소스(적재)로 저장된 일봉은 다시 확인하지 않는다', async () => {

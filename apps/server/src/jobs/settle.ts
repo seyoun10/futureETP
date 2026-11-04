@@ -227,12 +227,24 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         stored.map((b) => b.contractSymbol),
         tradeDate,
       );
-      // 빠진 월물이 있으면 정정 여부를 알 수 없다
+      // 보호 월물(가까운 2개·대상 월물 5개)이 빠지면 정정 여부를 알 수 없어 실패한다. 드문 월물 봉은
+      // 다음 세션이 열린 뒤 사라졌다가 며칠 뒤 다시 나오므로(D-110) 로그만 남기고 확인하지 않는다
       const fetchedSymbols = new Set(fetched.map((b) => b.contractSymbol));
-      const missing = stored.filter((b) => !fetchedSymbols.has(b.contractSymbol));
+      const missing = stored
+        .map((b) => b.contractSymbol)
+        .filter((symbol) => !fetchedSymbols.has(symbol));
       if (missing.length > 0) {
-        throw new Error(
-          `${tradeDate}: missing from ${source.name}: ${missing.map((b) => b.contractSymbol).join(', ')}`,
+        const protectedSymbols = new Set(
+          settleContracts(await store.contracts(code), tradeDate)
+            .filter(isProtected)
+            .map((c) => c.symbol),
+        );
+        const lost = missing.filter((symbol) => protectedSymbols.has(symbol));
+        if (lost.length > 0) {
+          throw new Error(`${tradeDate}: missing from ${source.name}: ${lost.join(', ')}`);
+        }
+        log(
+          `[revision ${code} ${tradeDate}] not in ${source.name}, unchecked: ${missing.join(', ')}`,
         );
       }
       const changed = findRevisedBars(stored, fetched);
