@@ -210,6 +210,12 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 가로 모드 safe area: C-a·C-b·C-c 가로에서 차트 영역이 좌우 inset을 반영하지 않아 Dynamic Island 쪽 가장자리의 봉·선과 왼쪽 위 상세 박스 글자(C-c `APR27`·`롤 수익률` 이름)가 가려짐. title-bar(`CommodityTitleBar`)만 inset을 씀 (2026-11-04 미러링 확인, prod OTA `9e7ec32`, CL)
   - 가로일 때 C 탭 scene에 좌우 inset padding (2026-11-04, D-125). 미러링 확인(2026-11-04, prod OTA `dde6c8a`): 세 탭 왼쪽 봉·선, C-c 왼쪽 위 상세 박스 전부 보임, title-bar도 같은 폭 안쪽, 세로 화면은 변화 없음
   - 그 밖의 가로 표시(title-bar·정보 줄·범례·x·y축·C-b 변화율 라벨·세 탭 십자선 상세)는 정상
+- [x] 화면 정리 (2026-11-04, prod OTA `7e7461b`, iOS·Android)
+  - B 설정: 맨 아래에 실행 중인 앱 번들(OTA 업데이트·내장) 줄을 기준 시각 줄처럼 화면 아래 고정, 항목을 일반·이격도차트·기타로 묶고 가운데 띠 머리글
+  - C title-bar를 공용 왼쪽 정렬 `ScreenHeader`로, 제목은 `원자재명 (심볼)` 한 줄 + 알림 대상이면 🔔. A 목록 🔔는 원자재명·심볼 아래로(공용 `AlertBell`)
+  - 차트 Paragraph 숫자를 y축 숫자와 같은 글꼴로(`CHART_FONT_FAMILY`, D-087 보충)
+  - 서버 공용 상수·조회 함수, 앱 기간 상태 hook·y축 라벨 여백·테마 토큰 공용화(리팩터, 동작 변화 없음)
+  - [ ] 기기에서 설정 묶음·번들 줄, A·C 🔔 위치 확인
     - [x] 개발 빌드 재빌드 뒤 Android spinner 다이얼로그 다크 테마·범위 제한 확인 (2026-10-28, 라이트 기기에서 밝게 떠서 스타일 덮어쓰기·버튼 색 지정, D-091)
 - [x] C-c 월물차트: `GET /v1/commodities/:code/contracts` + 화면(C-a 차트 공용 부품 재사용)
   - [x] `GET /v1/commodities/:code/contracts` + shared 스키마(공유 날짜 + 월물별 가격 열 배열, 오늘 잠정 값) (2026-10-28, D-092)

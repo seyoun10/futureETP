@@ -61,13 +61,13 @@ flowchart LR
 | App | Expo SDK 58 (React Native 0.88, React 19), Expo Router, TanStack Query, Zustand, Victory Native XL + Skia, Reanimated, i18next |
 | Server | Hono, zod, Drizzle ORM, croner (Node 타입 스트리핑으로 빌드 없이 실행) |
 | DB | PostgreSQL 18 |
-| Infra | Oracle Cloud Always Free ARM VM, Docker Compose, Caddy, Healthchecks.io |
+| Infra | Oracle Cloud Always Free ARM VM, Docker Compose, Caddy, Healthchecks.io, EAS Update(앱 OTA) |
 | Test/Lint | Vitest, jest-expo + React Native Testing Library, ESLint, Prettier, husky |
 
 ## 개발 방식
 
 - 기능을 만들기 전에 기획 → 리서치 → 데이터 모델 → 기술 스택 → 아키텍처 순으로 문서를 먼저 확정했습니다.
-- 설계 결정 100여 건을 근거·대안과 함께 [`docs/decisions.md`](docs/decisions.md)(D-001~)에 기록했습니다.
+- 설계 결정 120여 건을 근거·대안과 함께 [`docs/decisions.md`](docs/decisions.md)(D-001~)에 기록했습니다.
 - 커밋 전 `npm run check`(타입 검사·lint·포맷·전체 테스트)를 통과해야 합니다.
 
 | 문서 | 내용 |
