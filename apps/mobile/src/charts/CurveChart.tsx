@@ -24,7 +24,7 @@ import {
 import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
-import { GUIDE_DASH, X_LABEL_HEIGHT } from './chartLayout';
+import { CURVE_DASH, GUIDE_DASH, X_LABEL_HEIGHT } from './chartLayout';
 import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
@@ -69,7 +69,11 @@ const LABEL_GAP = 4;
 
 type Size = { width: number; height: number };
 
-// C-b 월물커브 선차트(screens.md C-b). 기준일은 점선 + 빈 점, 현재는 실선 + 찬 점, 점 위 변화율은 등락 색.
+// 표시 자릿수로 반올림해 음수인지(0.0%는 방향 없음이라 위)
+const roundsNegative = (pct: number, decimals: number) => Number(pct.toFixed(decimals)) < 0;
+
+// C-b 월물커브 선차트(screens.md C-b). 기준일은 실선 + 빈 점, 비교일(현재)은 점선 + 찬 점, 변화율은 등락 색으로
+// 오르면 점 위, 내리면 점 아래(반올림해 0이면 위).
 // 확대·이동이 없어 victory 없이 Skia 캔버스에 직접 그린다. 십자선은 C-a와 같다(D-056): 길게 누르면 나타나
 // 끄는 대로 월물에 붙고(햅틱), 손을 떼도 남아 있는 동안은 길게 누르지 않고 끌어도 따라오며, 한 번 더 누르면 사라진다.
 export const CurveChart = memo(function CurveChart({
@@ -211,7 +215,7 @@ export const CurveChart = memo(function CurveChart({
     layout?.slot ?? 0,
     numberFont.measureText('0000').width + LABEL_GAP,
   );
-  // 변화율은 모든 월물에 붙이고, 이웃과 겹치면 점 아래나 한 줄 위·아래로 옮긴다
+  // 변화율은 모든 월물에 붙인다. 오르면 점 위, 내리면 점 아래가 먼저고, 이웃과 겹치면 반대쪽이나 한 줄 더 옮긴다
   const pctLabels = useMemo(() => {
     if (!layout) return [];
     const items = points.flatMap((p, i) => {
@@ -228,6 +232,7 @@ export const CurveChart = memo(function CurveChart({
           width,
           top: Math.min(...ys) - DOT,
           bottom: Math.max(...ys) + DOT,
+          below: roundsNegative(p.changePct, pctDecimals),
         },
       ];
     });
@@ -334,16 +339,16 @@ export const CurveChart = memo(function CurveChart({
                 color={colors.chart.curveBase}
                 style="stroke"
                 strokeWidth={1.5}
-              >
-                <DashPathEffect intervals={[4, 3]} />
-              </Path>
+                strokeJoin="round"
+              />
               <Path
                 path={paths.current}
                 color={colors.chart.curveCurrent}
                 style="stroke"
                 strokeWidth={1.5}
-                strokeJoin="round"
-              />
+              >
+                <DashPathEffect intervals={CURVE_DASH} />
+              </Path>
               {points.map((p, i) => {
                 const px = layout.x(i);
                 return [

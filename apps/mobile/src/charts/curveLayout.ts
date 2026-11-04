@@ -40,11 +40,19 @@ export function nearestSlot(
   return Math.min(Math.max(Math.floor((x - left) / slotWidth), 0), count - 1);
 }
 
-// 점 위 변화율 라벨 하나. x는 글자 왼쪽, top·bottom은 그 칸 점들의 가장 위·아래 y
-export type PctLabelInput = { x: number; width: number; top: number; bottom: number };
+// 점 위 변화율 라벨 하나. x는 글자 왼쪽, top·bottom은 그 칸 점들의 가장 위·아래 y.
+// below면 점 아래를 먼저 고른다(하락)
+export type PctLabelInput = {
+  x: number;
+  width: number;
+  top: number;
+  bottom: number;
+  below?: boolean;
+};
 
 // 변화율 라벨을 모두 그리되 겹치지 않게 놓을 글자 기준선 y. 앞 라벨부터 점 위 → 점 아래 → 한 줄씩 더 위·아래 순으로
-// 이미 놓은 라벨과 겹치지 않고 [minY, maxY] 안에 드는 첫 자리를 고른다. 자리가 없으면 점 위
+// (below면 아래 → 위 순으로) 이미 놓은 라벨과 겹치지 않고 [minY, maxY] 안에 드는 첫 자리를 고른다.
+// 자리가 없으면 첫 순서 자리(점 위, below면 점 아래)
 export function placePctLabels(
   labels: readonly PctLabelInput[],
   options: { height: number; gap: number; minY: number; maxY: number; maxRows?: number },
@@ -56,7 +64,9 @@ export function placePctLabels(
     const below = l.bottom + gap + height;
     const candidates: number[] = [];
     for (let row = 0; row < maxRows; row++) {
-      candidates.push(above - row * (height + gap), below + row * (height + gap));
+      const up = above - row * (height + gap);
+      const down = below + row * (height + gap);
+      candidates.push(...(l.below ? [down, up] : [up, down]));
     }
     const fits = (y: number) =>
       y - height >= minY &&
@@ -68,7 +78,7 @@ export function placePctLabels(
           y <= p.y - height ||
           p.y <= y - height,
       );
-    const y = candidates.find(fits) ?? above;
+    const y = candidates.find(fits) ?? candidates[0];
     placed.push({ left: l.x, right: l.x + l.width, y });
     return y;
   });

@@ -66,6 +66,19 @@ describe('placePctLabels', () => {
     ).toEqual([96, 124, 82]);
   });
 
+  it('하락(below)은 점 아래가 먼저고, 겹치면 점 위 → 한 줄 더 아래 순이다', () => {
+    expect(
+      placePctLabels(
+        [
+          { x: 0, width: 30, top: 100, bottom: 110, below: true },
+          { x: 40, width: 30, top: 100, bottom: 110 },
+          { x: 20, width: 30, top: 100, bottom: 110, below: true },
+        ],
+        options,
+      ),
+    ).toEqual([124, 96, 138]);
+  });
+
   it('범위 밖 자리는 건너뛰고 자리가 없으면 점 위다', () => {
     const tight = { ...options, minY: 90, maxY: 120 };
     expect(

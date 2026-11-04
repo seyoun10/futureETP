@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -6,6 +6,7 @@ import type { ComposedGesture } from 'react-native-gesture-handler';
 import { CartesianChart, useChartPressState } from 'victory-native';
 import type { ChartBounds, PointsArray } from 'victory-native';
 
+import { formatPrice } from '@/lib/formatNumber';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
 import type { CandleGeom } from './fitTransform';
@@ -13,12 +14,13 @@ import { LineLayer } from './LineLayer';
 import type { ChartLine } from './LineLayer';
 import { X_LABEL_HEIGHT } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
+import type { OverlayInsets } from './ChartOverlay';
 import { ChartResetButton } from './ChartResetButton';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
 import { XAxisLayer } from './XAxisLayer';
-import { priceLabelText, YAxisLayer } from './YAxisLayer';
+import { YAxisLayer } from './YAxisLayer';
 import type { PriceLabel } from './YAxisLayer';
 
 type LinesChartProps = {
@@ -36,13 +38,14 @@ type LinesChartProps = {
   onViewChange: (gesture: ChartGesture | null) => void;
   onVisibleRangeChange: (i0: number, i1: number) => void;
   renderDetail: (index: number) => ReactNode;
+  // 차트 안 위쪽에 겹치는 정보 줄(ChartOverlay, 선 색 범례). 선은 줄을 비켜 그린다
+  overlayTop?: ReactNode;
   // 있으면 차트 하단 가운데에 되돌리기 버튼을 띄운다(위치는 C-a와 같다). 누르면 십자선·상세 박스를 지우고 부른다
   onResetView?: () => void;
   // 과거 데이터를 받는 동안 모든 터치(십자선·되돌리기 버튼 포함)를 막는다(D-108)
   locked?: boolean;
 };
 
-const noop = () => {};
 const NO_GUIDES: [] = [];
 
 // CartesianChart에 넘기는 설정은 모듈 상수·memo로 고정한다. victory-native는 yKeys·padding·축 설정이
@@ -70,10 +73,12 @@ export const LinesChart = memo(function LinesChart({
   onViewChange,
   onVisibleRangeChange,
   renderDetail,
+  overlayTop,
   onResetView,
   locked,
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
+  const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const {
     transform,
     detail,
@@ -88,10 +93,11 @@ export const LinesChart = memo(function LinesChart({
     periodBars,
     onViewChange,
     onVisibleRangeChange,
+    dataInsets: overlay,
     locked,
   });
 
-  const { setScales, boxProps } = useDetailPlacement({ detail, lines });
+  const { setScales, boxProps } = useDetailPlacement({ detail, lines, overlay });
 
   const data = useMemo(
     () =>
@@ -106,7 +112,7 @@ export const LinesChart = memo(function LinesChart({
   // 우측 y축 라벨 자리(가장 긴 끝값 라벨 + 여백)
   const yLabelWidth = useMemo(() => {
     const widths = widestLabels.map((l) =>
-      numberFont.measureText(priceLabelText(l, priceDecimals)),
+      numberFont.measureText(formatPrice(l.price, priceDecimals)),
     );
     return Math.max(numberFont.measureText('0').width, ...widths.map((w) => w.width)) + 10;
   }, [widestLabels, priceDecimals]);
@@ -186,6 +192,7 @@ export const LinesChart = memo(function LinesChart({
         )}
       </CartesianChart>
       <ChartOverlay
+        top={overlayTop}
         bottomOffset={X_LABEL_HEIGHT}
         floating={
           onResetView ? (
@@ -197,7 +204,7 @@ export const LinesChart = memo(function LinesChart({
             />
           ) : undefined
         }
-        onInsets={noop}
+        onInsets={setOverlay}
       />
       {detail !== null && dates[detail.index] && (
         <View

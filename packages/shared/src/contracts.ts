@@ -6,6 +6,10 @@ export const contractLineSchema = z.object({
   symbol: z.string(),
   // YYYY-MM
   contractMonth: z.string().regex(/^\d{4}-\d{2}$/),
+  // 롤 수익률 연환산(만기 간격)에 쓴다
+  lastTradeDate: z.iso.date(),
+  // 대표월물(A의 ● 표식)
+  isFront: z.boolean(),
   // dates와 같은 길이·순서. 그날 값이 없으면(상장 전 등) null
   prices: z.array(z.number().nullable()),
 });

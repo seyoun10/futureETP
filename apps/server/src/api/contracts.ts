@@ -75,7 +75,12 @@ export async function loadContracts(
     dates: result.dates.slice(page.start, page.end),
     hasMore: page.hasMore,
     provisional: result.provisional,
-    contracts: result.lines.map((l) => ({ ...l, prices: l.prices.slice(page.start, page.end) })),
+    contracts: result.lines.map((l, i) => ({
+      ...l,
+      lastTradeDate: contracts[i].lastTradeDate,
+      isFront: l.symbol === frontSymbol,
+      prices: l.prices.slice(page.start, page.end),
+    })),
   };
 }
 

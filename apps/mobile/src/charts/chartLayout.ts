@@ -2,3 +2,5 @@
 export const X_LABEL_HEIGHT = 20;
 // 가이드 점선(십자선·현재가·대표월물 전환일)의 선·빈칸 길이
 export const GUIDE_DASH = [2, 2];
+// C-b 비교일 커브 점선의 선·빈칸 길이(범례 견본도 같은 값)
+export const CURVE_DASH: [number, number] = [3, 2];

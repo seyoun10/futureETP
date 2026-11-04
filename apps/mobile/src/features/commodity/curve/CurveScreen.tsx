@@ -6,7 +6,9 @@ import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
+import { CURVE_DASH } from '@/charts/chartLayout';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
+import { LegendLine } from '@/charts/LegendLine';
 import { PERIOD_CHIPS_HEIGHT } from '@/charts/PeriodChips';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
@@ -18,7 +20,7 @@ import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
 import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
 import {
-  curveSummaryLines,
+  curveRollLine,
   CURVE_PCT_DECIMALS,
   formatCurvePct,
   formatFullDate,
@@ -115,7 +117,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
     [data],
   );
   const currentDate = data.freshness.tradeDate;
-  const [stateLine, rollLine] = curveSummaryLines(t, data);
+  const rollLine = curveRollLine(t, data);
   const range = {
     value: data.baseDate,
     minBaseDate: data.minBaseDate,
@@ -152,16 +154,24 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             resetLabel={t('curve.reset')}
             overlayTop={
               <>
-                <Text style={styles.line} numberOfLines={1} testID="curve-legend">
-                  <Text style={styles.legendBase}>{'╌╌ '}</Text>
-                  {formatLegendDate(data.baseDate, currentDate)}
-                  {'   '}
-                  <Text style={styles.legendCurrent}>{'── '}</Text>
-                  {formatLegendDate(data.compareDate, currentDate)}
-                </Text>
-                <Text style={styles.line} numberOfLines={1} testID="curve-state">
-                  {stateLine}
-                </Text>
+                <View style={styles.legend} testID="curve-legend">
+                  <View style={styles.legendItem}>
+                    <LegendLine color={colors.chart.curveBase} strokeWidth={1.5} />
+                    <Text style={styles.legendText}>
+                      {formatLegendDate(data.baseDate, currentDate)}
+                    </Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <LegendLine
+                      color={colors.chart.curveCurrent}
+                      dash={CURVE_DASH}
+                      strokeWidth={1.5}
+                    />
+                    <Text style={styles.legendText}>
+                      {formatLegendDate(data.compareDate, currentDate)}
+                    </Text>
+                  </View>
+                </View>
                 <Text style={styles.line} numberOfLines={1} testID="curve-roll-yield">
                   {rollLine}
                 </Text>
@@ -288,11 +298,22 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     textAlign: 'center',
   },
-  legendBase: {
-    color: colors.chart.curveBase,
+  legend: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    columnGap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
   },
-  legendCurrent: {
-    color: colors.chart.curveCurrent,
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  legendText: {
+    color: colors.text,
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
   },
   chart: {
     flex: 1,

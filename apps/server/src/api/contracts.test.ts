@@ -133,6 +133,9 @@ describe('GET /v1/commodities/:code/contracts', () => {
       'CLK27',
     ]);
     expect(body.contracts[0].prices).toEqual([70, 71]);
+    // 롤 수익률용 최종 거래일, 대표월물 표식
+    expect(body.contracts[1].lastTradeDate).toBe('2026-12-18');
+    expect(body.contracts.map((c) => c.isFront)).toEqual([true, false, false, false, false]);
   });
 
   it('before를 주면 그 날짜보다 이른 날짜와 가격만 준다', async () => {

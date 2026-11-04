@@ -13,8 +13,8 @@ import { clampLabelY, overlapsAny, stackLabels } from './priceLabels';
 
 const TICK_COUNT = 6;
 
-// y축 특수 라벨(현재가·이평선·rare-level 등). suffix는 가격 뒤에 붙는 이름(C-c 월물명)
-export type PriceLabel = { key: string; price: number; color: string; suffix?: string };
+// y축 특수 라벨(현재가·이평선·rare-level·C-c 월물 끝값 등)
+export type PriceLabel = { key: string; price: number; color: string };
 
 type YAxisLayerProps = {
   // 변환 전 y 스케일(C-a·C-c log, C-c에 0 이하 값이 있으면 선형)
@@ -111,7 +111,7 @@ export function YAxisLayer({
           key={`s${l.key}`}
           x={x}
           y={l.y}
-          text={priceLabelText(l, priceDecimals)}
+          text={formatPrice(l.price, priceDecimals)}
           color={l.color}
           crosshair={crosshair}
         />
@@ -119,11 +119,6 @@ export function YAxisLayer({
     </>
   );
 }
-
-export const priceLabelText = (label: PriceLabel, decimals: number) =>
-  label.suffix
-    ? `${formatPrice(label.price, decimals)} ${label.suffix}`
-    : formatPrice(label.price, decimals);
 
 type AxisLabelProps = {
   x: number;

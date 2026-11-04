@@ -8,6 +8,7 @@ import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
+import { LegendLine } from '@/charts/LegendLine';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
 import type { ChartGesture } from '@/charts/useChartViewport';
@@ -15,12 +16,17 @@ import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
-import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
+import { formatChangePct, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { useChartPeriod } from '../ChartPeriodProvider';
 import { useCommodityCode } from '../useCommodityCode';
-import { contractChartModel, visibleEndLabels } from './contractChartModel';
+import {
+  contractChartModel,
+  contractLabel,
+  endsRollYieldPct,
+  visibleEndLabels,
+} from './contractChartModel';
 import type { ContractChartModel } from './contractChartModel';
 import { useContracts } from './useContracts';
 
@@ -111,6 +117,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
           onViewChange={onViewChange}
           onVisibleRangeChange={onVisibleRangeChange}
           renderDetail={renderDetail}
+          overlayTop={<Legend model={model} />}
           onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
@@ -129,8 +136,22 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   );
 }
 
-// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색),
-// 맨 아래 양끝 차이(가장 먼 월물 / 가장 가까운 월물 - 1). 값이 있는 월물이 둘 이상일 때만
+// 차트 위 선 색 범례(가운데 정렬). y축 끝값 라벨은 값만 쓰고 월물은 이 범례로 읽는다
+function Legend({ model }: { model: ContractChartModel }) {
+  return (
+    <View style={styles.legend} testID="contracts-legend">
+      {model.legend.map((item) => (
+        <View key={item.key} style={styles.legendItem}>
+          <LegendLine color={item.color} />
+          <Text style={styles.legendText}>{item.label}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// 십자선 상세 박스: 날짜(오늘 잠정 값이면 표시), 그날 값이 있는 월물별 가격(선 색, 대표월물 ●),
+// 맨 아래 양끝 월물의 연환산 롤 수익률. 값이 있는 월물이 둘 이상일 때만
 function CrosshairDetail({
   data,
   model,
@@ -144,12 +165,7 @@ function CrosshairDetail({
   const date = data.dates[index];
   if (!date) return null;
   const provisional = data.provisional && index === data.dates.length - 1;
-  const prices = data.contracts
-    .map((c) => c.prices[index])
-    .filter((p): p is number => p !== null && p !== undefined);
-  const near = prices[0];
-  const far = prices[prices.length - 1];
-  const spread = prices.length >= 2 && near > 0 ? (far / near - 1) * 100 : null;
+  const rollYield = endsRollYieldPct(data, index);
 
   return (
     <DetailBox>
@@ -160,14 +176,17 @@ function CrosshairDetail({
         return (
           <DetailRow
             key={c.symbol}
-            label={formatContractMonth(c.contractMonth)}
+            label={contractLabel(c)}
             value={formatPrice(price, data.priceDecimals)}
             color={model.lines[i].color}
           />
         );
       })}
-      {spread !== null && (
-        <DetailRow label={t('contracts.endSpread')} value={formatChangePct(spread)} />
+      {rollYield !== null && (
+        <DetailRow
+          label={t('contracts.rollYield')}
+          value={t('curve.perYear', { pct: formatChangePct(rollYield) })}
+        />
       )}
     </DetailBox>
   );
@@ -186,5 +205,23 @@ const styles = StyleSheet.create({
   },
   chart: {
     flex: 1,
+  },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    columnGap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.xs,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  legendText: {
+    color: colors.text,
+    fontSize: fontSize.caption,
+    fontVariant: ['tabular-nums'],
   },
 });

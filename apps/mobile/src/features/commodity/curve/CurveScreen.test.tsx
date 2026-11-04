@@ -1,6 +1,6 @@
 import type { Curve } from '@futureetp/shared';
 import type { ComponentProps } from 'react';
-import { act, render } from '@testing-library/react-native';
+import { act, render, within } from '@testing-library/react-native';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { getCommodities, getCurve } from '@/api/commodities';
@@ -87,6 +87,14 @@ beforeEach(() => {
   mockGet.mockReset().mockResolvedValue(DATA);
 });
 
+// 범례: 기준일(실선 견본) → 비교일(점선 견본) 순서
+const expectLegend = (base: string, compare: string) =>
+  expect(
+    within(screen.getByTestId('curve-legend'))
+      .getAllByText(/\d/)
+      .map((t) => t.props.children as string),
+  ).toEqual([base, compare]);
+
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/NG/curve' });
 
 describe('C-b 월물커브', () => {
@@ -95,10 +103,9 @@ describe('C-b 월물커브', () => {
 
     expect(await screen.findByTestId('curve-base-date')).toHaveTextContent('2026/10/21');
     expect(mockGet).toHaveBeenCalledWith('NG', null, expect.anything());
-    expect(screen.getByTestId('curve-legend')).toHaveTextContent('╌╌ 10/21 ── 10/22');
-    expect(screen.getByTestId('curve-state')).toHaveTextContent(
-      '콘탱고 (M1→M2) · DEC26→JAN27 +9.0%',
-    );
+    expectLegend('10/21', '10/22');
+    // 콘탱고·백워데이션 줄은 없다
+    expect(screen.queryByText(/콘탱고/)).toBeNull();
     expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent(
       '롤 수익률 -89.0%/년 (-86.7%/년)',
     );
@@ -129,7 +136,7 @@ describe('C-b 월물커브', () => {
     expect(mockGet).toHaveBeenLastCalledWith('NG', '2026-10-20', expect.anything());
     expect(await screen.findByText('2026/10/20')).toBeOnTheScreen();
     // 비교 커브는 기준일 다음 거래일 종가다(D-114)
-    expect(screen.getByTestId('curve-legend')).toHaveTextContent('╌╌ 10/20 ── 10/21');
+    expectLegend('10/20', '10/21');
     expect(lastChartProps().onResetView).toBeDefined();
     expect(lastChartProps().resetLabel).toBe('기준일을 최근 거래일로');
   });
@@ -172,9 +179,8 @@ describe('C-b 월물커브', () => {
     });
     await renderScreen();
 
-    expect(await screen.findByTestId('curve-legend')).toHaveTextContent(
-      '╌╌ 2010/06/07 ── 2010/06/08',
-    );
+    await screen.findByTestId('curve-legend');
+    expectLegend('2010/06/07', '2010/06/08');
     expect(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' })).toBeDisabled();
   });
 
@@ -182,8 +188,7 @@ describe('C-b 월물커브', () => {
     mockGet.mockResolvedValue({ ...DATA, current: null, base: null });
     await renderScreen();
 
-    expect(await screen.findByTestId('curve-state')).toHaveTextContent('커브 상태 산출 불가');
-    expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent(
+    expect(await screen.findByTestId('curve-roll-yield')).toHaveTextContent(
       '롤 수익률 산출 불가 (산출 불가)',
     );
   });

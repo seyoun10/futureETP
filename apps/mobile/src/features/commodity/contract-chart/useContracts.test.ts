@@ -25,14 +25,34 @@ describe('mergeContractPages', () => {
     const latest = page(
       ['d3', 'd4'],
       [
-        { symbol: 'NGZ26', contractMonth: '2026-12', prices: [3, 4] },
-        { symbol: 'NGF27', contractMonth: '2027-01', prices: [null, 5] },
+        {
+          symbol: 'NGZ26',
+          contractMonth: '2026-12',
+          lastTradeDate: '2026-11-25',
+          isFront: true,
+          prices: [3, 4],
+        },
+        {
+          symbol: 'NGF27',
+          contractMonth: '2027-01',
+          lastTradeDate: '2026-12-28',
+          isFront: false,
+          prices: [null, 5],
+        },
       ],
       true,
     );
     const older = page(
       ['d1', 'd2'],
-      [{ symbol: 'NGZ26', contractMonth: '2026-12', prices: [1, 2] }],
+      [
+        {
+          symbol: 'NGZ26',
+          contractMonth: '2026-12',
+          lastTradeDate: '2026-11-25',
+          isFront: true,
+          prices: [1, 2],
+        },
+      ],
       false,
     );
     const merged = mergeContractPages({ pages: [latest, older], pageParams: [undefined, 'd3'] });

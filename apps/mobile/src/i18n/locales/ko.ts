@@ -1,4 +1,4 @@
-import type { CommodityCode, CurveState, EtpMarket, FxHedge, MarketState } from '@futureetp/shared';
+import type { CommodityCode, EtpMarket, FxHedge, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
 import type { EtpSort } from '@/features/commodity/etp/etpListModel';
 import type { ChartPeriod } from '@/charts/chartPeriods';
@@ -102,13 +102,6 @@ export const ko = {
     prev: '기준일을 1 거래일 앞으로',
     next: '기준일을 1 거래일 뒤로',
     reset: '기준일을 최근 거래일로',
-    state: {
-      CONTANGO: '콘탱고',
-      BACKWARDATION: '백워데이션',
-      FLAT: '플랫',
-    } satisfies Record<CurveState, string>,
-    stateLine: '{{state}} (M1→M2) · {{m1}}→{{m2}} {{spread}}',
-    stateUnavailable: '커브 상태 산출 불가',
     rollYield: '롤 수익률 {{value}} ({{base}})',
     perYear: '{{pct}}/년',
     unavailable: '산출 불가',
@@ -121,7 +114,7 @@ export const ko = {
   // C-c 월물차트(screens.md C-c)
   contracts: {
     provisional: '(잠정)',
-    endSpread: '양끝 차이',
+    rollYield: '롤 수익률',
     noData: '표시할 월물이 없습니다.',
   },
   // C-d ETP 목록·C-d-a 상세(screens.md C-d, C-d-a)

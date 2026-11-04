@@ -27,8 +27,20 @@ const DATA: ContractsChart = {
   provisional: true,
   hasMore: false,
   contracts: [
-    { symbol: 'NGZ26', contractMonth: '2026-12', prices: [3.1, 3.2, 3.3] },
-    { symbol: 'NGF27', contractMonth: '2027-01', prices: [null, 3.5, 3.45] },
+    {
+      symbol: 'NGZ26',
+      contractMonth: '2026-12',
+      lastTradeDate: '2026-11-25',
+      isFront: true,
+      prices: [3.1, 3.2, 3.3],
+    },
+    {
+      symbol: 'NGF27',
+      contractMonth: '2027-01',
+      lastTradeDate: '2026-12-28',
+      isFront: false,
+      prices: [null, 3.5, 3.45],
+    },
   ],
 };
 
@@ -54,7 +66,7 @@ const renderScreen = async () => {
 };
 
 describe('C-c 월물차트', () => {
-  it('월물마다 선 하나와 끝값 라벨(월물명)을 넘긴다', async () => {
+  it('월물마다 선 하나와 끝값 라벨(값만)을 넘기고, 범례에 월물명·대표월물 ●을 쓴다', async () => {
     await renderScreen();
 
     expect(mockGet).toHaveBeenCalledWith('NG', undefined, expect.anything());
@@ -64,20 +76,20 @@ describe('C-c 월물차트', () => {
       [3.1, 3.2, 3.3],
       [null, 3.5, 3.45],
     ]);
-    expect(props.endLabels.map((l) => [l.price, l.suffix, l.color])).toEqual([
-      [3.3, 'DEC26', colors.chart.contractLines[0]],
-      [3.45, 'JAN27', colors.chart.contractLines[1]],
+    expect(props.endLabels.map((l) => [l.price, l.color])).toEqual([
+      [3.3, colors.chart.contractLines[0]],
+      [3.45, colors.chart.contractLines[1]],
     ]);
+    await render(<>{props.overlayTop}</>);
+    expect(screen.getByText('DEC26●')).toBeOnTheScreen();
+    expect(screen.getByText('JAN27')).toBeOnTheScreen();
   });
 
   it('보이는 범위가 바뀌면 끝값 라벨이 그 범위 마지막 날 값으로 바뀐다', async () => {
     await renderScreen();
 
     await act(() => lastChartProps().onVisibleRangeChange(0, 1));
-    expect(lastChartProps().endLabels.map((l) => [l.price, l.suffix])).toEqual([
-      [3.2, 'DEC26'],
-      [3.5, 'JAN27'],
-    ]);
+    expect(lastChartProps().endLabels.map((l) => l.price)).toEqual([3.2, 3.5]);
   });
 
   it('기간은 6M으로 시작하고, 드래그 뒤에는 선택이 남고 핀치 뒤에는 풀리며, 칩을 누르면 그 기간으로 맞춘다', async () => {
@@ -128,25 +140,25 @@ describe('C-c 월물차트', () => {
     expect(screen.queryByRole('button', { name: '선택한 기간의 최근 위치로' })).toBeNull();
   });
 
-  it('십자선 상세는 날짜와 그날 값이 있는 월물 가격·양끝 차이이고, 오늘 잠정 값은 표시한다', async () => {
+  it('십자선 상세는 날짜와 그날 값이 있는 월물 가격(대표월물 ●)·롤 수익률이고, 오늘 잠정 값은 표시한다', async () => {
     await renderScreen();
 
     await render(<>{lastChartProps().renderDetail(0)}</>);
     expect(screen.getByText('2026-10-20')).toBeOnTheScreen();
-    expect(screen.getByText('DEC26')).toBeOnTheScreen();
+    expect(screen.getByText('DEC26●')).toBeOnTheScreen();
     expect(screen.getByText('3.100')).toBeOnTheScreen();
     expect(screen.queryByText('JAN27')).toBeNull();
-    // 값이 있는 월물이 하나면 양끝 차이를 쓰지 않는다
-    expect(screen.queryByText('양끝 차이')).toBeNull();
+    // 값이 있는 월물이 하나면 롤 수익률을 쓰지 않는다
+    expect(screen.queryByText('롤 수익률')).toBeNull();
 
     await render(<>{lastChartProps().renderDetail(2)}</>);
     expect(screen.getByText('2026-10-22')).toBeOnTheScreen();
     expect(screen.getByText('(잠정)')).toBeOnTheScreen();
     expect(screen.getByText('JAN27')).toBeOnTheScreen();
     expect(screen.getByText('3.450')).toBeOnTheScreen();
-    // 양끝 차이: 3.45 / 3.3 - 1
-    expect(screen.getByText('양끝 차이')).toBeOnTheScreen();
-    expect(screen.getByText('+4.55%')).toBeOnTheScreen();
+    // 롤 수익률: (3.3 / 3.45 − 1) × 365 / 33일(11/25 → 12/28)
+    expect(screen.getByText('롤 수익률')).toBeOnTheScreen();
+    expect(screen.getByText('-48.09%/년')).toBeOnTheScreen();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {

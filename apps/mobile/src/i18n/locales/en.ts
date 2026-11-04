@@ -95,13 +95,6 @@ export const en: Translation = {
     prev: 'Move base date 1 trading day earlier',
     next: 'Move base date 1 trading day later',
     reset: 'Back to the latest base date',
-    state: {
-      CONTANGO: 'Contango',
-      BACKWARDATION: 'Backwardation',
-      FLAT: 'Flat',
-    },
-    stateLine: '{{state}} (M1→M2) · {{m1}}→{{m2}} {{spread}}',
-    stateUnavailable: 'Curve state unavailable',
     rollYield: 'Roll yield {{value}} ({{base}})',
     perYear: '{{pct}}/yr',
     unavailable: 'unavailable',
@@ -114,7 +107,7 @@ export const en: Translation = {
   // C-c contract chart (screens.md C-c)
   contracts: {
     provisional: '(provisional)',
-    endSpread: 'Near–far',
+    rollYield: 'Roll yield',
     noData: 'No contracts to show.',
   },
   // C-d ETP list, C-d-a details (screens.md C-d, C-d-a)

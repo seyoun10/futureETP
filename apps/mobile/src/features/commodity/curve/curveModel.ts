@@ -1,6 +1,6 @@
 import type { Curve, CurveStats } from '@futureetp/shared';
 import type { useTranslation } from 'react-i18next';
-import { formatChange, formatContractMonth } from '@/lib/formatNumber';
+import { formatChange } from '@/lib/formatNumber';
 
 // 기준일 버튼은 멀리 옮길 수 있어 연도를 항상 쓴다(screens.md C-b 버튼)
 export const formatFullDate = (date: string): string => date.replaceAll('-', '/');
@@ -37,16 +37,6 @@ type T = ReturnType<typeof useTranslation>['t'];
 const perYear = (t: T, stats: CurveStats | null) =>
   stats ? t('curve.perYear', { pct: formatCurvePct(stats.rollYieldPct) }) : t('curve.unavailable');
 
-// 수치 요약 두 줄: 커브 상태·M1→M2 스프레드, 롤 수익률(괄호 안에 기준일 값, 문구 없이 D-116)
-export function curveSummaryLines(t: T, data: Curve): [string, string] {
-  const { current, base } = data;
-  const state = current
-    ? t('curve.stateLine', {
-        state: t(`curve.state.${current.state}`),
-        m1: formatContractMonth(current.m1ContractMonth),
-        m2: formatContractMonth(current.m2ContractMonth),
-        spread: formatCurvePct(current.spreadPct),
-      })
-    : t('curve.stateUnavailable');
-  return [state, t('curve.rollYield', { value: perYear(t, current), base: perYear(t, base) })];
-}
+// 롤 수익률 줄(괄호 안에 기준일 값, 문구 없이 D-116)
+export const curveRollLine = (t: T, data: Curve): string =>
+  t('curve.rollYield', { value: perYear(t, data.current), base: perYear(t, data.base) });
