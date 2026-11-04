@@ -10,7 +10,7 @@ import {
   type IndexHistoryRow,
   type IntradayIndex,
 } from '../calc/intraday.ts';
-import { marketStatus, type TradingDaySession } from '../calc/marketState.ts';
+import { INTRADAY_SLOT_MS, marketStatus, type TradingDaySession } from '../calc/marketState.ts';
 import type { ListedContract } from '../calc/monthList.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { IntradayQuote, IntradaySource } from '../sources/intraday.ts';
@@ -67,9 +67,8 @@ const LOOKBACK_DAYS = 30;
 // 이평선 200의 직전 유효 종가 199개 + 무효일 여유
 export const INDEX_HISTORY_ROWS = 260;
 // captured_at은 배치 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수) 시각이다. 재시도해도 같은 행이 된다
-const SLOT_MS = 15 * 60_000;
-
-export const batchSlot = (now: Date) => new Date(Math.floor(now.getTime() / SLOT_MS) * SLOT_MS);
+export const batchSlot = (now: Date) =>
+  new Date(Math.floor(now.getTime() / INTRADAY_SLOT_MS) * INTRADAY_SLOT_MS);
 
 export function createIntradayHandler({
   store,

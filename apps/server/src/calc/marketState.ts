@@ -13,14 +13,14 @@ export type TradingDaySession = {
 };
 
 const MINUTE = 60_000;
-// 일일 정산 시작 시각(CT). jobs/scheduler.ts TRIGGERS와 같다(D-019, D-101).
+// 일일 정산 시작 시각(CT). jobs/scheduler.ts TRIGGERS의 cron도 이 값으로 만든다(D-019, D-101).
 export const SETTLE_AT = '16:05';
 // 일일 정산 ① 예상 소요(D-047). Massive 실측 약 23분(D-101)
 export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE;
 // 장중 배치 예상 소요. 실측 5~8초에 여유를 둔 값이다(D-062).
 export const INTRADAY_EXPECTED_MS = MINUTE;
 // 장중 배치는 CT :00/:15/:30/:45. CT 오프셋이 정시 단위라 UTC 15분 배수와 같다.
-const SLOT_MS = 15 * MINUTE;
+export const INTRADAY_SLOT_MS = 15 * MINUTE;
 
 export type MarketStatus = {
   state: MarketState;
@@ -59,7 +59,7 @@ function unsettledPrevious(
   return lastSettledTradeDate !== null && lastSettledTradeDate >= prev ? null : prev;
 }
 
-const ceilSlot = (t: number) => Math.ceil(t / SLOT_MS) * SLOT_MS;
+const ceilSlot = (t: number) => Math.ceil(t / INTRADAY_SLOT_MS) * INTRADAY_SLOT_MS;
 
 // 세션이 now를 포함하는 거래일(공휴일 중간 정지 구간 포함). 장중 배치의 ctx.tradeDate.
 export function findSessionDay(now: Date, days: readonly TradingDaySession[]): string | null {
@@ -85,7 +85,8 @@ function nextUpdateAt(
 ): Date | null {
   const t = now.getTime();
   // 지금 돌고 있는 슬롯도 센다(s + 소요 > now).
-  const earliest = (Math.floor((t - INTRADAY_EXPECTED_MS) / SLOT_MS) + 1) * SLOT_MS;
+  const earliest =
+    (Math.floor((t - INTRADAY_EXPECTED_MS) / INTRADAY_SLOT_MS) + 1) * INTRADAY_SLOT_MS;
   for (const s of sessions(days)) {
     if (s.closeAt.getTime() <= earliest) continue;
     let from = Math.max(earliest, s.openAt.getTime());

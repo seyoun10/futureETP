@@ -1,13 +1,19 @@
 // croner 스케줄 등록(D-034, D-060). SCHEDULER_ENABLED일 때만 main.ts가 시작한다.
 import { randomUUID } from 'node:crypto';
 import { Cron } from 'croner';
+import { SETTLE_AT } from '../calc/marketState.ts';
+import { CME_TIME_ZONE, KRX_TIME_ZONE } from '../calc/tradingCalendar.ts';
 import type { JobName } from '../constants.ts';
 import type { Healthcheck } from './healthcheck.ts';
 import type { OpsAlert } from './opsAlert.ts';
 import { runJob, type BatchRunStore, type JobHandlers } from './runner.ts';
 
-const CHICAGO = 'America/Chicago';
-const SEOUL = 'Asia/Seoul';
+const CHICAGO = CME_TIME_ZONE;
+const SEOUL = KRX_TIME_ZONE;
+
+// 'HH:MM' → 평일 그 시각 cron
+const [settleHour, settleMinute] = SETTLE_AT.split(':').map(Number);
+const SETTLE_CRON = `${settleMinute} ${settleHour} * * 1-5`;
 
 export type Trigger = { cron: string; timezone: string; jobs: readonly JobName[] };
 
@@ -16,7 +22,7 @@ export type Trigger = { cron: string; timezone: string; jobs: readonly JobName[]
 // 정산 ①이 끝나야(재시도 포함) 정정 확인 ②가 돈다(D-047, D-071).
 export const TRIGGERS: readonly Trigger[] = [
   // 마감(16:00) 뒤, Massive가 드문 월물의 그날 봉을 다음 세션 봉으로 바꾸는 17:00 전에 받는다(D-101).
-  { cron: '5 16 * * 1-5', timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
+  { cron: SETTLE_CRON, timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
   // 세션이 없는 토요일에 지난 정산일의 빠진 봉을 채운다(D-110).
   { cron: '0 10 * * 6', timezone: CHICAGO, jobs: ['SETTLE_BACKFILL'] },
   { cron: '0,30 * * * *', timezone: CHICAGO, jobs: ['DEFERRED_PUSH', 'INTRADAY'] },

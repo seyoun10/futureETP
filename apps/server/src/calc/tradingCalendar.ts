@@ -3,6 +3,9 @@
 // 정규 세션: 전날 17:00 ~ 당일 16:00 CT. 중간 정지일은 거래일이 아니고 그 세션은 다음 거래일에 합쳐진다.
 
 export const CME_TIME_ZONE = 'America/Chicago';
+// 국내 ETP(KRX)·미국 ETP 거래소 시간대. ETP 작업 기준일을 이 시간대 날짜로 정한다
+export const KRX_TIME_ZONE = 'Asia/Seoul';
+export const US_EQUITY_TIME_ZONE = 'America/New_York';
 const SESSION_OPEN = '17:00';
 const SESSION_CLOSE = '16:00';
 
