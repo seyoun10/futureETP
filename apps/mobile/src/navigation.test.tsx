@@ -7,9 +7,10 @@ import {
 } from 'expo-notifications';
 import { lockAsync, OrientationLock } from 'expo-screen-orientation';
 import { router } from 'expo-router';
-import { act, fireEvent, renderRouter, screen } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { useAccessKeyStore } from '@/api/accessToken';
 import { getCommodities, getCurve } from '@/api/commodities';
+import { getSettings } from '@/api/settings';
 import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('expo-screen-orientation', () => ({
@@ -22,6 +23,11 @@ jest.mock('expo-screen-orientation', () => ({
 jest.mock('@/api/commodities', () => ({
   getCommodities: jest.fn(),
   getCurve: jest.fn(() => new Promise(() => {})),
+}));
+// 설정 조회는 기본으로 끝나지 않게 두고, C title-bar 🔔 테스트만 결과를 준다
+jest.mock('@/api/settings', () => ({
+  getSettings: jest.fn(() => new Promise(() => {})),
+  patchSettings: jest.fn(() => new Promise(() => {})),
 }));
 jest.mock('@/api/etps', () => ({
   getEtps: jest.fn(() => new Promise(() => {})),
@@ -68,9 +74,35 @@ describe('라우트 골격', () => {
     await fireEvent.press(await screen.findByText('원유\n(CL)'));
 
     expect(screen).toHavePathname('/commodity/CL');
-    expect(screen.getByRole('header', { name: '원유 / CL' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: '원유 (CL)' })).toBeOnTheScreen();
     expect(screen.getByTestId('disparity-chart-screen')).toBeOnTheScreen();
   });
+
+  it.each([
+    ['CL', '원유 (CL)', true],
+    ['GC', '금 (GC)', false],
+  ] as const)(
+    'C title-bar는 원자재명 (심볼) 한 줄이고, 알림 대상(CL)에만 🔔를 붙인다: %s',
+    async (code, name, bell) => {
+      jest.mocked(getSettings).mockResolvedValue({
+        locale: 'ko',
+        timezone: 'Asia/Seoul',
+        basis: 'FRONT',
+        maPeriod: 100,
+        window: 'Y10',
+        rareLevels: [1, 2, 4, 8, 16],
+        alertCommodity: 'CL',
+        quietTime: null,
+      });
+      await renderApp(`/commodity/${code}`);
+      expect(screen.getByRole('header', { name })).toBeOnTheScreen();
+      // 설정 조회 결과가 반영된 뒤에 🔔를 본다
+      await waitFor(() => expect(getSettings).toHaveBeenCalled());
+      await act(() => Promise.resolve());
+      if (bell) expect(await screen.findByLabelText('알림 대상')).toBeOnTheScreen();
+      else expect(screen.queryByLabelText('알림 대상')).toBeNull();
+    },
+  );
 
   it('C 하단 탭으로 C-b~C-d를 오간다', async () => {
     await renderApp('/commodity/NG');

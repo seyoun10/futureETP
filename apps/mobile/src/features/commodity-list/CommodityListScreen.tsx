@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
+import { AlertBell } from '@/components/AlertBell';
 import { FreshnessFooter } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -85,12 +86,8 @@ function CommodityRow({
       style={styles.row}
     >
       <View style={styles.nameColumn}>
-        {commodity.alert && (
-          <Text style={styles.bell} accessibilityLabel={t('commodityList.alert')}>
-            🔔
-          </Text>
-        )}
         <Text style={styles.name}>{`${t(`commodities.${code}`)}\n(${code})`}</Text>
+        {commodity.alert && <AlertBell />}
       </View>
       <View style={styles.quotes}>
         {commodity.contracts.map((quote) => (
@@ -164,9 +161,6 @@ const styles = StyleSheet.create({
     width: 104,
     alignItems: 'center',
     gap: spacing.xs,
-  },
-  bell: {
-    fontSize: fontSize.caption,
   },
   name: {
     color: colors.text,
