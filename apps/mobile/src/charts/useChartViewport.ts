@@ -269,6 +269,19 @@ export function useChartViewport({
     setCrosshairShown(false);
     setDetail(null);
   }, [crosshairVisible]);
+  // 기간 칩·되돌리기로 기간 범위에 다시 맞출 때도 지운다. 제스처로 바꾼 범위(null)에서는 남긴다.
+  // 상태는 렌더링 중에 이전 값과 비교해 바로 고치고(effect에서 고치면 한 번 더 그린다), UI 스레드 값은 effect에서 고친다
+  const [fitBars, setFitBars] = useState(periodBars);
+  if (periodBars !== fitBars) {
+    setFitBars(periodBars);
+    if (periodBars !== null) {
+      setCrosshairShown(false);
+      setDetail(null);
+    }
+  }
+  useEffect(() => {
+    if (periodBars !== null) crosshairVisible.set(false);
+  }, [crosshairVisible, periodBars]);
 
   const pressConfig = useMemo(
     () => ({ pan: crosshairShown ? {} : { activateAfterLongPress: LONG_PRESS_MS } }),
