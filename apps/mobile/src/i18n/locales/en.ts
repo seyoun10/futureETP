@@ -102,7 +102,7 @@ export const en: Translation = {
     },
     stateLine: '{{state}} (M1→M2) · {{m1}}→{{m2}} {{spread}}',
     stateUnavailable: 'Curve state unavailable',
-    rollYield: 'Roll yield {{value}} (base {{base}})',
+    rollYield: 'Roll yield {{value}} ({{base}})',
     perYear: '{{pct}}/yr',
     unavailable: 'unavailable',
     tooltipChange: 'Change',

@@ -100,7 +100,7 @@ describe('C-b 월물커브', () => {
       '콘탱고 (M1→M2) · DEC26→JAN27 +9.0%',
     );
     expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent(
-      '롤 수익률 -89.0%/년 (기준일 -86.7%/년)',
+      '롤 수익률 -89.0%/년 (-86.7%/년)',
     );
     expect(lastChartProps().points).toEqual([
       { label: '2611', base: 3.1, current: null, changePct: null },
@@ -184,7 +184,7 @@ describe('C-b 월물커브', () => {
 
     expect(await screen.findByTestId('curve-state')).toHaveTextContent('커브 상태 산출 불가');
     expect(screen.getByTestId('curve-roll-yield')).toHaveTextContent(
-      '롤 수익률 산출 불가 (기준일 산출 불가)',
+      '롤 수익률 산출 불가 (산출 불가)',
     );
   });
 

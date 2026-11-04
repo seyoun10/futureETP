@@ -109,7 +109,7 @@ export const ko = {
     } satisfies Record<CurveState, string>,
     stateLine: '{{state}} (M1→M2) · {{m1}}→{{m2}} {{spread}}',
     stateUnavailable: '커브 상태 산출 불가',
-    rollYield: '롤 수익률 {{value}} (기준일 {{base}})',
+    rollYield: '롤 수익률 {{value}} ({{base}})',
     perYear: '{{pct}}/년',
     unavailable: '산출 불가',
     tooltipChange: '변화율',
