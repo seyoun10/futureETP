@@ -248,6 +248,13 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 대상 원자재·현재 적용 기준 요약 (2026-10-28)
   - [x] 알림 거부 시간: 켜기(기본 23:00~07:00)·끄기(null), 30분 단위 48칸 시트, 반대쪽 시각은 막음, 자정 넘김은 (다음 날) 표시(`QuietTimeSection.tsx`) (2026-10-28)
 
+- [ ] 기기별 설정(D-120): 설정·알림 판정·기록을 installation ID(`X-Device-Id`) 기준 기기별로
+  - [x] 결정·문서(decisions·product·data-model·architecture·screens) (2026-11-04)
+  - [ ] 앱: installation ID 생성·SecureStore, 모든 요청에 `X-Device-Id`, 토큰 없어도 `PUT /v1/devices`
+  - [ ] 서버: `app_settings` → `device` 설정 컬럼 마이그레이션, `/v1/settings`·`/v1/commodities`·`/v1/devices`가 헤더 기기 사용, 무효 토큰은 비우기
+  - [ ] 알림: `alert_record.device_id`(중복 방지 키), 기기별 판정·재시도·지연 발송, 운영 알림 문구 기기 언어
+  - [ ] 서버 배포 + 앱 업데이트 함께, 기기에서 설정 분리·알림 확인
+
 ### 5-9. ETP
 - [x] ETP 스키마(`etp_product`·`etp_series`) + KRX Open API 가입·ETN 만기일·기초지수 필드 확인
   - [x] KRX Open API 가입·필드 확인, ETN 만기일 소스 조사 → 만기일·상장일은 손 입력 선택 필드 (2026-10-28, D-096)

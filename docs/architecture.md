@@ -102,7 +102,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | `index_snapshot` | 장중 슬롯마다 그 시각 값만 저장 | 지난 슬롯은 그대로. 다음 슬롯부터 반영(지난 값은 90일 뒤 삭제, D-046) |
 | 커브(C-b), C-a rare 레벨·꼬리 백분위·잠정 봉, C-c 월물 선, A 시세 | 조회할 때 | 저장값 없음. 배포 즉시 반영 |
 | `daily_bar`·`intraday_snapshot` | 원천값(수집) | 수집 범위를 바꾸면 그 뒤 수집분부터. 빠진 봉은 주말 보충이 채움(D-110) |
-| `app_settings` 기본값 | 마이그레이션의 컬럼 기본값 | 기존 행은 그대로. 필요하면 설정 화면 초기화 |
+| `device` 설정 기본값 | 마이그레이션의 컬럼 기본값 | 기존 기기 행은 그대로. 필요하면 설정 화면 초기화 |
 
 ## API 통신 및 에러 처리 규약
 
@@ -110,7 +110,7 @@ D-042. 스키마·에러 코드·enum은 `packages/shared`에 한 벌만 두고 
 
 ### 요청
 - 기본 경로 `https://<호스트>/v1`. JSON만 쓴다. 조회는 `GET`, 설정 변경은 `PATCH`, 기기 등록은 `PUT`(멱등 upsert).
-- `/v1/health`를 뺀 모든 요청에 `Authorization: Bearer <비밀 값>`(D-036).
+- `/v1/health`를 뺀 모든 요청에 `Authorization: Bearer <비밀 값>`(D-036)과 `X-Device-Id: <installation ID>`(앱이 처음 실행 때 만든 UUID, SecureStore). 설정을 읽는 API는 헤더가 없거나 UUID가 아니면 `VALIDATION_FAILED`다(D-120).
 - 필드 이름은 camelCase. 서버는 path·query·body를 zod로 검증한다(Hono validator).
 
 ### 응답 봉투
@@ -183,14 +183,14 @@ type Freshness = {
 | 메서드·경로 | 화면 | 내용 |
 |---|---|---|
 | `GET /v1/health` | — | 인증 없음, 배포 확인용. DB `select 1`(3초 제한) 실패 시 500 `INTERNAL`(D-059) |
-| `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시, freshness. 스키마는 shared `commodities.ts`, 표시 값 규칙은 `calc/quotes.ts`(D-085) |
+| `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시(헤더 기기의 설정, D-120), freshness. 스키마는 shared `commodities.ts`, 표시 값 규칙은 `calc/quotes.ts`(D-085) |
 | `GET /v1/commodities/:code/disparity?basis&ma&window&levels` | C-a | 지수 일봉(맞춤 비율 곱함)·이평선·보유 월물·롤 구간, 오늘 잠정 봉, rare 레벨 10개, 꼬리 백분위, 대체 여부, freshness. 스키마는 shared `disparity.ts`, 조립은 `calc/disparityChart.ts`(D-086) |
 | `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일(서버가 거래일로 맞춤, 이전·다음 기준일·범위)·비교일(기준일 다음 거래일, D-114) 커브, 월물별 변화율, M1→M2 스프레드·롤 수익률, freshness. 스키마는 shared `curve.ts`, 조립은 `calc/curve.ts`(D-090) |
 | `GET /v1/commodities/:code/contracts` | C-c | A와 같은 월물 목록의 정산가 선(공유 `dates` + 월물별 `prices` 열 배열, 상장 전 null), 오늘 잠정 값, freshness. 스키마는 shared `contracts.ts`, 조립은 `calc/contractLines.ts`(D-092) |
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서). 매핑 전 후보(`needs_review`)·비활성 상품은 빼고, 행마다 상장 중 종목코드·순자산·평균 거래대금(없으면 null), `asOf`는 상품 수집 시각 중 가장 늦은 값. 스키마는 shared `etps.ts` |
 | `GET /v1/etps/:id` | C-d-a | ETP 상세. 목록 행 + 원자재·운용사·기초지수·총보수·운용사 URL, 상장 중 시리즈 줄(코드·만기일), 상장일(첫 시리즈, 폐지 포함). 목록 대상이 아니거나 uuid가 아니면 `NOT_FOUND` |
-| `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |
-| `PUT /v1/devices` | 앱 실행 | 푸시 토큰·플랫폼·앱 버전 upsert(`pushToken` 기준, 응답은 기기 `id`). 토큰을 못 받으면 부르지 않는다(D-048). 스키마는 shared `devices.ts`(모르는 필드 거절, `appVersion`은 모르면 null) |
+| `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 헤더 기기의 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용, D-120). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |
+| `PUT /v1/devices` | 앱 실행 | 헤더 기기의 푸시 토큰(없으면 null)·플랫폼·앱 버전 upsert(`X-Device-Id` 기준, 다른 기기 행의 같은 토큰은 비움, D-120). 토큰을 못 받아도 부른다. 스키마는 shared `devices.ts`(모르는 필드 거절, `appVersion`은 모르면 null) |
 
 ## 환경 설정 분리 (dev / prod)
 
@@ -275,11 +275,11 @@ D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 
 - 앱 푸시: 배치가 재시도까지 실패하면(`batch_run` 최종 `FAILED`) 등록된 모든 기기로 운영 알림을 보낸다. 소스 응답 형식 검증 실패도 그 배치의 실패로 처리한다. 같은 작업은 실패한 뒤 성공하기 전까지 CME 거래일당 1회만 보낸다(장중 15분 배치가 계속 실패해도 반복하지 않음). 보낸 시각은 그 실행의 `batch_run.ops_notified_at`에 남기고, 같은 작업의 마지막 성공 뒤 같은 거래일에 이 값이 있는 실행이 있으면 보내지 않는다(D-048).
 - 운영 알림은 B-a 알림 설정(원자재 선택·거부 시간)을 따르지 않고 바로 보낸다. Android 알림 채널을 시세 알림(`alerts`)과 나눠(`ops`), 시끄러우면 OS 설정에서 이 채널만 끌 수 있게 한다. 채널 id는 shared `ANDROID_CHANNELS`다.
 - 앱 `push/`(D-037, D-048): 접근 키가 있으면 루트 레이아웃의 `PushRegistration`이 마운트 때 한 번 Android 채널(`alerts` 높음·`ops` 기본, 이름은 표시 언어를 따라 바뀜)을 만들고, 알림 권한을 물을 수 있으면 요청한 뒤 `getDevicePushTokenAsync` 토큰으로 `PUT /v1/devices`를 부른다. 권한이 거부돼도 토큰은 등록한다. 토큰이 바뀌면(`addPushTokenListener`) 다시 등록한다. 실패는 다음 실행 때 다시 시도한다. Firebase 설정은 `apps/mobile/google-services.json`(dev·prod package 모두 포함, 커밋 안 함)을 `android.googleServicesFile`로 넣는다. 앱이 열려 있을 때 온 알림도 배너·알림 목록·소리로 보인다(`foregroundNotifications.ts`의 `setNotificationHandler`, 배지 안 씀. 기본값은 아무것도 보이지 않음). 알림을 누르면 `NotificationTapHandler`가 rare 레벨 알림은 해당 원자재 C-a로, 운영·모르는 알림은 A로 보낸다(`notificationHref.ts`). 꺼진 앱은 마지막 응답을 읽고 지워 다시 마운트돼도 또 이동하지 않는다.
-- 서버 `push/`: `PushSender`(플랫폼별 구현, 결과는 `SENT`·`INVALID_TOKEN`·`FAILED`)와 `broadcast`(등록된 모든 기기로 보내고 `INVALID_TOKEN`이면 기기 삭제, 한 기기라도 `SENT`면 전달로 본다, D-023). 테스트는 `fakeSender.ts`를 주입한다. Android 구현은 `fcmSender.ts`(`firebase-admin` FCM HTTP v1, 서비스 계정 키 `FCM_SERVICE_ACCOUNT_PATH`, Android 채널 id를 `android.notification.channelId`로 지정, `messaging/registration-token-not-registered`만 `INVALID_TOKEN`)이다. 서버는 `configuredSender.ts`의 발송기 하나를 운영 알림(`main.ts`)·rare 레벨 판정·재발송·지연 발송(`jobs/handlers.ts`)이 함께 쓴다. 키가 없으면 모든 발송이 `FAILED`다.
+- 서버 `push/`: `PushSender`(플랫폼별 구현, 결과는 `SENT`·`INVALID_TOKEN`·`FAILED`)와 `broadcast`(토큰이 있는 모든 기기로 기기 언어 문구를 보내고 `INVALID_TOKEN`이면 그 기기의 토큰을 비운다, 한 기기라도 `SENT`면 전달로 본다, D-023·D-120. rare 레벨 알림은 기록의 기기 하나에만 보낸다). 테스트는 `fakeSender.ts`를 주입한다. Android 구현은 `fcmSender.ts`(`firebase-admin` FCM HTTP v1, 서비스 계정 키 `FCM_SERVICE_ACCOUNT_PATH`, Android 채널 id를 `android.notification.channelId`로 지정, `messaging/registration-token-not-registered`만 `INVALID_TOKEN`)이다. 서버는 `configuredSender.ts`의 발송기 하나를 운영 알림(`main.ts`)·rare 레벨 판정·재발송·지연 발송(`jobs/handlers.ts`)이 함께 쓴다. 키가 없으면 모든 발송이 `FAILED`다.
 - 운영 알림(`jobs/opsAlert.ts`, D-045·D-048): 스케줄러가 재시도까지 실패한 작업의 마지막 `batch_run`으로 부른다. 같은 작업·거래일(거래일이 없으면 거래일 없음끼리)로 이미 알렸고 그 뒤 성공이 없으면 건너뛴다. `jobFailedPush`를 저장된 언어로 `ops` 채널에 `broadcast`하고, 전달되면 그 실행의 `ops_notified_at`을 채운다. CLI 1회 실행은 알리지 않는다.
 - rare 레벨 알림 판정(`jobs/rareAlert.ts`, D-069): `INTRADAY`가 원자재마다 잠정 지수를 저장한 뒤 부른다. 설정의 알림 원자재가 아니거나, 정정 확인이 멈춤 상태(D-071)거나, 그 기준값의 잠정 지수·분포가 없으면 건너뛴다. 설정 기준값의 `roll_rule`이 없는 원자재는 대표월물로 판정한다. 잠정 지수의 그 이평선 고가·저가 이격도로 `planDetections`를 돌려 보낼 행은 `RETRY`로 먼저 넣어 중복 방지 키를 차지한 뒤 `alerts` 채널로 `broadcast`하고, 결과로 `SENT`(+`sent_at`) 또는 `RETRY`로 바꾼다. 거부 시간이면 `HELD`, 밀린 레벨은 `SUPPRESSED`로 넣는다. 키가 이미 있으면 넣지도 보내지도 않는다(`ON CONFLICT DO NOTHING`). 판정 시각은 배치 슬롯, 거부 시간은 실제 실행 시각으로 본다. 판정 실패는 그 원자재의 실패로 모아 배치를 실패로 남긴다(스냅숏은 저장됨).
 - `RETRY` 재발송(`createAlertRetry`, D-023): `INTRADAY`(장 상태와 상관없이 판정 앞)와 `DEFERRED_PUSH`가 부른다. 지금 슬롯 전에 감지한 `RETRY`만 집어(첫 발송 중인 행 제외) `planRetries`로 같은 조건·거래일·방향의 더 드문 레벨이 덮었으면 `SUPPRESSED`, 감지 후 24시간이 지났으면 보내지 않고 `FAILED`, 거부 시간이면 그대로 두고, 아니면 "HH:MM 감지 · 지연 발송" 문구로 다시 보내 `SENT` 또는 `FAILED`로 끝낸다(D-097). 이미 판정한 알림이라 판정 중지·알림 원자재 변경과 상관없이 처리한다. 재발송이 실패해도 `INTRADAY`는 장중 값을 저장한 뒤 실패로 남는다.
-- 지연 발송(`DEFERRED_PUSH`, `jobs/deferredPush.ts`): :00/:30 CT에 장 상태와 상관없이 `INTRADAY`보다 먼저 돈다(D-026). `RETRY` 재발송 → `createDeferredAlert` 순서다. 거부 시간이 끝났으면 `HELD` 전부를 `planDeferred`로 원자재·방향별 가장 드문 1건만 "HH:MM 감지 · 지연 발송" 문구로 보내고 나머지는 `SUPPRESSED`로 바꾼다. 거래일·알림 원자재·판정 중지가 바뀌었어도 보내며, 모든 기기에 실패하면 첫 발송처럼 `RETRY`가 된다. 처리 거래일이 없어 `ctx.tradeDate`는 채우지 않는다.
+- 지연 발송(`DEFERRED_PUSH`, `jobs/deferredPush.ts`): :00/:30 CT에 장 상태와 상관없이 `INTRADAY`보다 먼저 돈다(D-026). `RETRY` 재발송 → `createDeferredAlert` 순서다. 거부 시간이 끝났으면 `HELD` 전부를 `planDeferred`로 원자재·방향별 가장 드문 1건만 "HH:MM 감지 · 지연 발송" 문구로 보내고 나머지는 `SUPPRESSED`로 바꾼다. 거래일·알림 원자재·판정 중지가 바뀌었어도 보내며, 발송에 실패하면 첫 발송처럼 `RETRY`가 된다. 거부 시간은 기록의 기기 설정으로 본다(D-120). 처리 거래일이 없어 `ctx.tradeDate`는 채우지 않는다.
 - 달력 점검(`CALENDAR`, `jobs/calendar.ts`, D-047): 16:15 CT에 오늘(CT)부터 60일 뒤까지 걸친 연도마다 `trading_day` 행이 하나라도 있는지 본다. 휴장일은 행이 없어 날짜 단위로는 누락과 구분되지 않고, 입력이 연도 단위(`calendar:import`)라 연도 단위로 점검한다. 빠진 연도가 있으면 실패로 남겨 운영 알림(`jobFailedPush`)이 가고, 거래일이 없는 작업이라 다시 성공할 때까지 1회만 알린다.
 - 푸시 문구는 shared `push.ts`에 있다. 서버가 설정의 언어·시간대로 만든다: rare 레벨 `rareLevelPush`(와이어프레임 X 형식, 판정 시각은 사용자 시간대 HH:mm, 지연 발송이면 `03:00 감지 · 지연 발송`), 운영 알림 `jobFailedPush`(한 줄). 작업 이름 `JOB_NAMES`는 이 문구 때문에 shared `domain.ts`에 두고 서버 `constants.ts`가 다시 내보낸다. ETP 새 후보 `etpCandidatesPush`(D-025), 다수 판정 변경 `majorityChangedPush`(D-024).
 - Healthchecks.io(무료 플랜 20개): 서버 중단·VM 회수처럼 스스로 푸시를 보낼 수 없는 경우를 잡는다. 스케줄 작업마다 check를 하나씩 두고 일정(cron 식·시간대)을 작업과 같게 맞춘다. 작업은 시작 때 `/start`, 끝날 때 성공 또는 `/fail`을 보낸다. URL은 프로젝트 ping key와 작업 이름 slug로 만든다(`https://hc-ping.com/<HEALTHCHECKS_PING_KEY>/<작업 이름>`, D-053). 휴장이라 할 일이 없을 때도 성공 신호를 보낸다. 신호가 일정보다 늦으면 Healthchecks.io가 메일을 보낸다.

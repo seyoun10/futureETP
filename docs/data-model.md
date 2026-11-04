@@ -23,7 +23,7 @@
 | 2. 시세 원천 | `daily_bar`, `intraday_snapshot` | 일일 정산 배치, 장중 배치 |
 | 3. 계산 결과 | `roll_rule`, `roll_weight`, `index_bar`, `index_scale`, `disparity`, `disparity_distribution`, `index_snapshot` | 일일 정산 배치, 장중 배치 |
 | 4. ETP | `etp_product`, `etp_series` | ETP 목록 배치 |
-| 5. 설정·알림 | `app_settings`, `device`, `alert_record` | API, 장중 배치, 지연 발송 배치 |
+| 5. 설정·알림 | `device`(기기별 설정 포함), `alert_record` | API, 장중 배치, 지연 발송 배치 |
 | 6. 운영 | `batch_run` | 모든 배치 |
 
 ## 1~3. 시장 데이터와 계산 결과
@@ -228,13 +228,16 @@ erDiagram
 - **평균 거래대금**: 일별 이력 테이블을 두지 않는다. ETP 배치가 매일 다시 받아 계산해 덮어쓴다. 국내는 KRX 일별 목록을 기준일부터 거슬러 20거래일(최대 40일 전까지) 받아 `ACC_TRDVAL`을, 미국은 최근 45일 Yahoo `chart` 일봉의 종가×거래량을 쓴다(D-017). 거래가 없는 날(0)은 0으로 넣고, 값이 빠진 날(상장 전 포함)은 뺀다. 순자산은 기준일 값(국내 ETF 순자산총액, ETN 시가총액)을 상장 중 시리즈끼리 합산한다.
 
 ## 5~6. 설정·알림·운영
-> 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 단일 행으로 둔다.
+> 사용자는 본인 1명이다(D-011). 사용자 테이블 없이 설정을 기기 행에 둔다(D-120).
 
 ```mermaid
 erDiagram
-    app_settings {
-        int id PK "항상 1(단일 행)"
-        string locale "ko/en, 푸시 문구용. 마지막으로 바꾼 기기의 값"
+    device {
+        uuid id PK "앱이 만든 installation ID(X-Device-Id)"
+        string platform "IOS/ANDROID"
+        string push_token "UK, null=토큰 없음(무효·Apple 가입 전 iOS)"
+        string app_version
+        string locale "ko/en, 푸시 문구용"
         string timezone "IANA, 알림 거부 시간 계산용"
         string basis "기본 FRONT"
         int ma_period "기본 100"
@@ -245,15 +248,9 @@ erDiagram
         int quiet_end_min "start와 달라야 함"
         timestamp updated_at
     }
-    device {
-        uuid id PK
-        string platform "IOS/ANDROID"
-        string push_token "UK"
-        string app_version
-        timestamp updated_at
-    }
     alert_record {
         uuid id PK
+        uuid device_id FK "중복 방지 키 0, 기기 삭제 시 함께 삭제"
         string commodity_code FK "중복 방지 키 1"
         string basis "키 2"
         int ma_period "키 3"
@@ -282,11 +279,11 @@ erDiagram
 
 설명
 - **단일 사용자**: 로그인·계정이 없어 사용자 식별 컬럼을 두지 않는다. 서버 접근은 단일 비밀 값(접근 키)으로 막는다. 키는 서버 환경 변수와 기기 SecureStore에만 있다(D-044).
-- **설정**: `app_settings`는 처음 배포할 때 기본값 한 행으로 만든다. 알림 거부 시간은 현지 시각을 자정 기준 분으로 저장하고 `app_settings.timezone`으로 해석한다. 시간대는 앱 실행 때 기기가 보고한 값으로, 마지막으로 실행한 기기의 값을 쓴다.
-- **기기·푸시 토큰**: 앱 실행 때 등록·갱신한다(`push_token` 유니크). 발송 결과가 "유효하지 않은 토큰"이면 행을 지운다.
+- **기기·설정**: 기기 행 하나가 그 기기의 설정이다(D-120). 키는 앱이 처음 실행될 때 만든 UUID로, 모든 요청의 `X-Device-Id` 헤더로 온다. 행은 `PUT /v1/devices` 또는 헤더의 기기가 처음 보일 때 기본값으로 만든다. 알림 거부 시간은 현지 시각을 자정 기준 분으로 저장하고 그 기기의 `timezone`(앱 실행 때 보고)으로 해석한다. 설정 컬럼의 CHECK 제약(거부 시간 범위·30분 단위·시작≠종료)은 옛 `app_settings`와 같다.
+- **푸시 토큰**: 앱 실행 때 등록·갱신한다(`push_token` 유니크, 다른 기기 행에 같은 토큰이 있으면 그쪽을 비움). 발송 결과가 "유효하지 않은 토큰"이면 행은 두고 `push_token`만 비운다.
 - **`alert_record`**: 중복 방지 기록과 보류 큐를 한 테이블로 처리한다.
-  - 중복 방지 키(D-006) 7개에 유니크 제약을 건다. 같은 키의 두 번째 판정은 insert가 실패하므로 다시 보내지 않는다.
-  - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `RETRY`: 모든 기기에 발송 실패, 다음 주기에 1회 다시 보냄(그사이 같은 방향의 더 드문 레벨을 보냈으면 `SUPPRESSED`). `FAILED`: 재시도도 실패(D-023).
+  - 중복 방지 키(기기 + D-006의 7개, D-120)에 유니크 제약을 건다. 같은 키의 두 번째 판정은 insert가 실패하므로 다시 보내지 않는다.
+  - `SENT`: 보냄. `HELD`: 알림 거부 시간이라 보류. `SUPPRESSED`: 같은 판정에서 더 드문 레벨에 밀린 덜 드문 레벨, 또는 지연 발송 때 방향별 최상위 1건에 밀린 보류 건. `RETRY`: 그 기기에 발송 실패, 다음 주기에 1회 다시 보냄(그사이 같은 방향의 더 드문 레벨을 보냈으면 `SUPPRESSED`). `FAILED`: 재시도도 실패(D-023).
   - 모든 상태가 유니크 키를 차지하므로 "그날 보낸 것"으로 쳐서 중복 방지에 쓴다.
   - 같은 조건·거래일·방향에서 더 드문 레벨의 `SENT`·`HELD`·`RETRY` 기록은 덜 드문 레벨을 덮는다. 덮인 레벨은 새로 닿아도, 재시도 차례여도 `SUPPRESSED`다(D-069).
   - 지연 발송 배치는 거부 시간이 끝나면 `HELD`를 원자재·방향별로 묶어 가장 드문 1건을 보내고, 나머지를 `SUPPRESSED`로 바꾼다(D-069).
@@ -296,7 +293,7 @@ erDiagram
 ## 서버에 두지 않는 데이터 (기기 저장)
 | 데이터 | 비고 |
 |---|---|
-| 표시 설정(언어, 등락 색) | 언어는 `app_settings.locale`로도 보냄 |
+| 표시 설정(언어, 등락 색) | 언어는 그 기기의 `device.locale`로도 보냄 |
 | 기간 버튼 선택(C-a·C-c 따로) | 원자재 스택 화면 상태, 기기에도 저장하지 않음(6M에서 시작, D-107) |
 | 서버 접근 키 | `expo-secure-store`, B-b에서 QR·붙여넣기로 입력(D-044) |
 
