@@ -1392,7 +1392,7 @@
 - 상태: 확정 (한글 표시·선 굵기·제스처 성능은 C-a 화면 연결 뒤 에뮬레이터·실기기에서 확인)
 - 맥락: TODO 5-6 C-a 둘째 단계. D-056 스파이크가 넘긴 것: 한글 글꼴(번들 `useFont` 또는 Paragraph), y축 특수 라벨, '전체'에서 이동 막기, 스파이크 이관.
 - 결정
-  - 한글: 한글이 들어가는 캔버스 글자(x축 월 라벨, 최고가·최저가 꼬리표, 롤 마커)는 Skia Paragraph로 그린다. `Skia.ParagraphBuilder.Make()`는 시스템 글꼴 관리자에 대체 글꼴을 켜고 만들어(react-native-skia 2.14 `JsiSkParagraphBuilder`의 `enableFontFallback`) 글꼴을 번들하지 않아도 된다. 숫자만 쓰는 y축·십자선 라벨은 `matchFont`로 둔다. 같은 글자·색의 Paragraph는 캐시한다(`chartText.ts`).
+  - 한글: 한글이 들어가는 캔버스 글자(x축 월 라벨, 최고가·최저가 꼬리표, 롤 마커)는 Skia Paragraph로 그린다. `Skia.ParagraphBuilder.Make()`는 시스템 글꼴 관리자에 대체 글꼴을 켜고 만들어(react-native-skia 2.14 `JsiSkParagraphBuilder`의 `enableFontFallback`) 글꼴을 번들하지 않아도 된다. 숫자만 쓰는 y축·십자선 라벨은 `matchFont`로 둔다. 같은 글자·색의 Paragraph는 캐시한다(`chartText.ts`). (2026-11-04 추가: iOS에서 `matchFont`는 Helvetica, Paragraph는 시스템 글꼴(SF)이라 x축 월 라벨 숫자와 y축 숫자 모양이 달랐다. 글꼴 이름을 `CHART_FONT_FAMILY` 상수 하나로 두고 Paragraph 글꼴 목록 맨 앞에도 넣어, 숫자는 같은 글꼴로, 그 글꼴에 없는 한글만 대체 글꼴로 그린다.)
   - 이평선·rare-level 밴드: 변환 그룹 안에서 그리면 x·y 배율만큼 선이 굵어진다. 변환 전 좌표로 경로를 한 번 만들고(`useMemo`), UI 스레드 `useDerivedValue`에서 `PathBuilder.MakeFromPath(path).transform(matrix)`로 화면 좌표로 바꾼다(D-106으로 보이는 구간만 점마다 변환하는 방식으로 대체). 봉은 스파이크대로 변환 그룹 안(꼬리 헤어라인)이다.
   - y 자동 맞춤은 봉 고가·저가가 아니라 봉마다 그날 이평선·밴드까지 포함한 위·아래 끝(`chartEnvelope`)으로 한다(screens.md "보이는 봉과 선이 모두 들어가게"). 이 두 값은 `CartesianChart`의 yKeys(`hi`·`lo`)라 기본 y 범위도 선을 포함한다.
   - y축 특수 라벨: 우선순위(현재가 → 이평선 → 현재가에 가까운 rare-level) 순으로 겹치지 않는 것만 그리고, 특수 라벨과 겹치는 기본 눈금 텍스트는 숨긴다(격자선 유지). 현재가는 회색 수평 점선을 함께 그린다.

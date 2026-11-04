@@ -6,9 +6,12 @@ import { Platform } from 'react-native';
 // 한글이 들어가는 글자는 Paragraph로 그린다. matchFont는 시스템 대체 글꼴을 쓰지 않아 한글이 □로 나오지만
 // Paragraph는 시스템 글꼴 관리자 + 대체 글꼴을 켜고 만든다(react-native-skia JsiSkParagraphBuilder).
 export const CHART_FONT_SIZE = 11;
+// 축·라벨 숫자 글꼴. Paragraph도 이 글꼴을 먼저 써서 x축 월 라벨 숫자가 y축 숫자와 같은 모양이 되고,
+// 이 글꼴에 없는 한글만 시스템 대체 글꼴로 그린다
+export const CHART_FONT_FAMILY = Platform.select({ ios: 'Helvetica', default: 'sans-serif' });
 
 export const numberFont = matchFont({
-  fontFamily: Platform.select({ ios: 'Helvetica', default: 'sans-serif' }),
+  fontFamily: CHART_FONT_FAMILY,
   fontSize: CHART_FONT_SIZE,
 });
 // 기본값은 글자 위치를 정수 픽셀로 반올림해 작은 글자에서 `J AN27`처럼 간격이 벌어진다
@@ -29,7 +32,11 @@ export function chartParagraph(text: string, color: string): SkParagraph {
   const hit = cache.get(key);
   if (hit) return hit;
   const paragraph = Skia.ParagraphBuilder.Make({
-    textStyle: { color: Skia.Color(color), fontSize: CHART_FONT_SIZE },
+    textStyle: {
+      color: Skia.Color(color),
+      fontFamilies: [CHART_FONT_FAMILY],
+      fontSize: CHART_FONT_SIZE,
+    },
   })
     .addText(text)
     .build();
