@@ -1861,3 +1861,9 @@
 - 결정: 이 기기 설정의 `alertCommodity`가 `null`이면 A·C title-bar의 [⚙] 아이콘 오른쪽 위에 빨간 점(`colors.badge`, 배경색 테두리)을 그리고 접근성 힌트 "알림 꺼짐"을 붙인다. 값은 루트 레이아웃이 이미 조회하는 설정 쿼리(`useSettings`)에서 읽어 요청을 늘리지 않는다. 설정을 받기 전이나 조회가 실패하면 그리지 않는다. 버튼은 `features/settings/SettingsHeaderButton` 하나로 A·C가 함께 쓴다.
   - 알림 대상을 바꾸는 PATCH가 성공하면 A 목록 query(`commodities.list`)를 무효화한다. B는 A 위에 쌓여 A가 다시 마운트되지 않으므로, 무효화하지 않으면 🔔가 당겨서 새로고침·자동 새로고침·앱 복귀 때까지 옛 값으로 남고 [⚙] 점과 어긋난다.
 - 근거: D-120로 설정이 기기별이라 새 기기·재설치 기기는 알림이 꺼진 채 시작한다. 숫자 배지는 셀 것이 없어 점으로 충분하다.
+
+## D-125: 가로 차트는 좌우 safe area 안쪽에
+- 날짜: 2026-11-04
+- 상태: 확정 (사용자 요청)
+- 결정: 가로 모드의 C-a~C-c 화면(탭 scene)에 `paddingLeft: insets.left`·`paddingRight: insets.right`를 준다(`CommodityTabsLayout`의 `sceneStyle`). title-bar는 그대로다. iOS는 좌우 inset을 같은 값으로 주므로 Dynamic Island 반대쪽(y축 쪽)도 같은 폭만큼 비운다.
+- 근거: 2026-11-04 미러링 확인에서 가로 차트가 화면 끝까지 그려져, Dynamic Island 쪽 가장자리의 봉·선과 왼쪽 위 상세 박스 글자(C-c `APR27`·`롤 수익률`)가 가려졌다. 섬 쪽만 비우려면 회전 방향을 따로 감지해야 하는데, 차트 폭이 조금 줄어드는 것보다 복잡하다.

@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { BottomTabBar, Tabs } from 'expo-router/js-tabs';
 import { useCallback } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { TabFreshnessFooter } from '@/components/FreshnessLine';
 import { lockPortrait, useIsLandscape } from '@/lib/orientation';
@@ -12,10 +13,12 @@ import { CommodityTitleBar } from './CommodityTitleBar';
 // C 원자재 화면의 하단 탭 4개(D-047). 순서는 이격도차트 / 월물차트 / 월물커브 / ETP(D-111). 스와이프로 탭을 바꾸지 않는다(차트 제스처와 충돌).
 // tab-bar 아래에 지금 탭의 기준 시각 줄을 두고, 홈 인디케이터 여백은 tab-bar 대신 그 줄 아래에 둔다.
 // 가로 모드에서는 title-bar와 차트만 남기고 tab-bar·기준 시각 줄을 숨긴다(홈 인디케이터 여백만 둔다, D-103).
+// 가로 차트는 좌우 safe area만큼 안쪽에 둔다(Dynamic Island·둥근 모서리에 봉·상세 박스가 가리지 않게, D-125).
 // ETP 탭으로 가거나 C를 떠나면(A·B·ETP 상세) 세로로 돌아간다(D-076).
 export function CommodityTabsLayout() {
   const { t } = useTranslation();
   const isLandscape = useIsLandscape();
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     useCallback(
@@ -47,7 +50,10 @@ export function CommodityTabsLayout() {
       }
       screenOptions={{
         header: () => <CommodityTitleBar />,
-        sceneStyle: { backgroundColor: colors.background },
+        sceneStyle: [
+          { backgroundColor: colors.background },
+          isLandscape && { paddingLeft: insets.left, paddingRight: insets.right },
+        ],
         tabBarStyle: styles.tabBar,
         // 선택 표시는 기간 칩(PeriodChips)과 같다: 둥근 surfaceSelected 배경 + 흰 굵은 글자
         tabBarItemStyle: styles.tabItem,
