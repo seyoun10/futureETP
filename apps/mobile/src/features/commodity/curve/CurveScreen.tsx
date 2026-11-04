@@ -245,28 +245,23 @@ function StepButton({ icon, accessibilityLabel, onPress }: StepButtonProps) {
   );
 }
 
-// 툴팁: 월물 / 기준일 / 현재(비교일) / 변화율. 그 커브에 없는 값은 줄을 뺀다(screens.md C-b 선차트)
+// 툴팁: 월물 / 기준일 값 / 비교일 값 / 변화율. 항목은 범례와 같은 날짜다(D-116).
+// 그 커브에 없는 값은 줄을 뺀다(screens.md C-b 선차트)
 function CurveDetail({ data, index }: { data: Curve; index: number }) {
   const { t } = useTranslation();
   const point = data.points[index];
   if (!point) return null;
   const price = (v: number) => formatPrice(v, data.priceDecimals);
+  const date = (d: string) => formatLegendDate(d, data.freshness.tradeDate);
 
   return (
     <DetailBox>
       <DetailRow label={formatContractMonth(point.contractMonth)} value={null} />
       {point.basePrice !== null && (
-        <DetailRow label={t('curve.tooltipBase')} value={price(point.basePrice)} />
+        <DetailRow label={date(data.baseDate)} value={price(point.basePrice)} />
       )}
       {point.currentPrice !== null && (
-        <DetailRow
-          label={t(
-            data.compareDate === data.freshness.tradeDate
-              ? 'curve.tooltipCurrent'
-              : 'curve.tooltipCompare',
-          )}
-          value={price(point.currentPrice)}
-        />
+        <DetailRow label={date(data.compareDate)} value={price(point.currentPrice)} />
       )}
       {point.changePct !== null && (
         <DetailRow label={t('curve.tooltipChange')} value={formatCurvePct(point.changePct)} />

@@ -188,32 +188,32 @@ describe('C-b 월물커브', () => {
     );
   });
 
-  it('툴팁은 월물·기준일·현재·변화율이고 없는 값은 뺀다', async () => {
+  it('툴팁은 월물·기준일 값·비교일 값·변화율이고 항목은 날짜이며 없는 값은 뺀다', async () => {
     await renderScreen();
     await screen.findByTestId('curve-base-date');
 
     await render(<>{lastChartProps().renderDetail(1)}</>);
     expect(screen.getByText('DEC26')).toBeOnTheScreen();
-    expect(screen.getByText('기준일')).toBeOnTheScreen();
+    expect(screen.getByText('10/21')).toBeOnTheScreen();
     expect(screen.getByText('3.200')).toBeOnTheScreen();
-    expect(screen.getByText('현재')).toBeOnTheScreen();
+    expect(screen.getByText('10/22')).toBeOnTheScreen();
     expect(screen.getByText('3.168')).toBeOnTheScreen();
     expect(screen.getByText('변화율')).toBeOnTheScreen();
     expect(screen.getByText('-1.0%')).toBeOnTheScreen();
 
     await render(<>{lastChartProps().renderDetail(2)}</>);
     expect(screen.getByText('3.450')).toBeOnTheScreen();
-    expect(screen.queryByText('기준일')).toBeNull();
+    expect(screen.queryByText('10/21')).toBeNull();
   });
 
-  it('비교일이 지난 거래일이면 툴팁 항목은 비교일이다', async () => {
-    mockGet.mockResolvedValue({ ...DATA, compareDate: '2026-10-21', baseDate: '2026-10-20' });
+  it('올해가 아닌 날짜 항목은 연도를 붙인다', async () => {
+    mockGet.mockResolvedValue({ ...DATA, baseDate: '2024-03-14', compareDate: '2024-03-15' });
     await renderScreen();
     await screen.findByTestId('curve-base-date');
 
     await render(<>{lastChartProps().renderDetail(1)}</>);
-    expect(screen.getByText('비교일')).toBeOnTheScreen();
-    expect(screen.queryByText('현재')).toBeNull();
+    expect(screen.getByText('2024/03/14')).toBeOnTheScreen();
+    expect(screen.getByText('2024/03/15')).toBeOnTheScreen();
   });
 
   it('월물이 없으면 안내 문구를 보여 준다', async () => {
