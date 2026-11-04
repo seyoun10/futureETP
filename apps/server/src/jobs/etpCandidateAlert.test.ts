@@ -8,7 +8,7 @@ import {
 } from './etpCandidateAlert.ts';
 
 const NOW = new Date('2026-10-28T23:30:00Z');
-const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1' };
+const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1', locale: 'ko' };
 
 function setup(candidates: EtpCandidate[], devices: PushDevice[] = [PHONE]) {
   const store = {
@@ -27,7 +27,6 @@ function setup(candidates: EtpCandidate[], devices: PushDevice[] = [PHONE]) {
     store,
     devices: deviceStore,
     sender,
-    locale: () => Promise.resolve('ko'),
     log,
   });
   return { store, sent, log, alert };

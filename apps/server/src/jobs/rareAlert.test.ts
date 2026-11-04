@@ -5,6 +5,7 @@ import { createFakeSender } from '../push/fakeSender.ts';
 import type { IndexSnapshotRow } from './intraday.ts';
 import {
   createAlertRetry,
+  type AlertDevice,
   createDeferredAlert,
   createRareAlert,
   type NewAlertRecord,
@@ -46,29 +47,52 @@ const index = (basis: Basis, high: number | null, low: number | null): IndexSnap
 
 type Row = NewAlertRecord & { id: string; sentAt: Date | null };
 
+// 기기 토큰은 tok-<id>. token이 null이면 토큰을 비운 기기다
+type TestDevice = { id: string; settings?: Partial<Settings>; token?: string | null };
+
 function setup({
   settings = {},
+  devices: testDevices = [{ id: 'd1' }],
   suspended = false,
   distribution = SORTED,
   rows = [],
-  tokens = { t1: { status: 'SENT' } },
+  results = {},
 }: {
+  // d1 기본 기기의 설정. devices를 주면 무시한다
   settings?: Partial<Settings>;
+  devices?: TestDevice[];
   suspended?: boolean;
   distribution?: number[] | null;
   rows?: Row[];
-  tokens?: Record<string, { status: 'SENT' } | { status: 'FAILED'; error: string }>;
+  results?: Record<string, { status: 'SENT' } | { status: 'FAILED'; error: string }>;
 } = {}) {
   const records = [...rows];
+  const alertDevices: (AlertDevice | null)[] = testDevices.map((d) => {
+    const token = d.token === undefined ? `tok-${d.id}` : d.token;
+    const merged = { ...SETTINGS, ...(d.id === 'd1' ? settings : {}), ...d.settings };
+    return token === null
+      ? null
+      : {
+          id: d.id,
+          platform: 'ANDROID',
+          pushToken: token,
+          locale: merged.locale,
+          settings: merged,
+        };
+  });
+  const present = alertDevices.filter((d) => d !== null);
   const distributionOf = vi.fn(() => Promise.resolve(distribution));
   const store: RareAlertStore = {
-    settings: () => Promise.resolve({ ...SETTINGS, ...settings }),
+    alertDevices: (code) =>
+      Promise.resolve(present.filter((d) => d.settings.alertCommodity === code)),
+    device: (id) => Promise.resolve(present.find((d) => d.id === id) ?? null),
     isSuspended: () => Promise.resolve(suspended),
     distribution: distributionOf,
     records: (c) =>
       Promise.resolve(
         records.filter(
           (r) =>
+            r.deviceId === c.deviceId &&
             r.commodityCode === c.commodityCode &&
             r.basis === c.basis &&
             r.tradeDate === c.tradeDate,
@@ -77,7 +101,13 @@ function setup({
     insert(newRows) {
       const inserted = newRows
         .filter(
-          (n) => !records.some((r) => r.direction === n.direction && r.rareLevel === n.rareLevel),
+          (n) =>
+            !records.some(
+              (r) =>
+                r.deviceId === n.deviceId &&
+                r.direction === n.direction &&
+                r.rareLevel === n.rareLevel,
+            ),
         )
         .map((n, i) => ({ ...n, id: `new-${records.length + i}`, sentAt: null }));
       records.push(...inserted);
@@ -95,13 +125,10 @@ function setup({
     held: () => Promise.resolve(records.filter((r) => r.status === 'HELD')),
   };
   const devices: PushDeviceStore = {
-    list: () =>
-      Promise.resolve(
-        Object.keys(tokens).map((pushToken) => ({ id: pushToken, platform: 'ANDROID', pushToken })),
-      ),
+    list: () => Promise.resolve(present),
     clearToken: () => Promise.resolve(),
   };
-  const fake = createFakeSender(tokens);
+  const fake = createFakeSender(results);
   const log = vi.fn();
   const deps = { store, devices, sender: fake.sender, log };
   const alert = createRareAlert(deps);
@@ -192,11 +219,11 @@ describe('rare 레벨 알림 판정', () => {
 
   it('모든 기기에 실패하면 RETRY로 남긴다', async () => {
     const { judge, records, log } = setup({
-      tokens: { t1: { status: 'FAILED', error: 'timeout' } },
+      results: { 'tok-d1': { status: 'FAILED', error: 'timeout' } },
     });
     await judge([index('FRONT', 96, null)]);
     expect(records.find((r) => r.rareLevel === 5)).toMatchObject({ status: 'RETRY', sentAt: null });
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('ANDROID t1: timeout'));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('ANDROID d1: timeout'));
   });
 
   it('설정 기준값의 규칙이 없는 원자재는 대표월물로 판정한다', async () => {
@@ -223,13 +250,14 @@ describe('rare 레벨 알림 판정', () => {
     const { judge, records, log } = setup({ settings: { basis: 'KR' } });
     await judge([index('FRONT', 99.5, 0)], ['FRONT', 'KR']);
     expect(records).toHaveLength(0);
-    expect(log).toHaveBeenCalledWith('[alert CL KR] skipped: no index');
+    expect(log).toHaveBeenCalledWith('[alert CL KR d1] skipped: no index');
   });
 });
 
 // 08:45 슬롯에 감지해 첫 발송이 실패한 기록
-const retryRow = (rareLevel: number, status: Row['status'] = 'RETRY'): Row => ({
-  id: `r-${rareLevel}`,
+const retryRow = (rareLevel: number, status: Row['status'] = 'RETRY', deviceId = 'd1'): Row => ({
+  id: `r-${rareLevel}-${deviceId}`,
+  deviceId,
   commodityCode: 'CL',
   basis: 'FRONT',
   maPeriod: 100,
@@ -267,7 +295,7 @@ describe('RETRY 재발송', () => {
   it('다시 모든 기기에 실패하면 FAILED로 끝낸다', async () => {
     const { retry, records } = setup({
       rows: [retryRow(5)],
-      tokens: { t1: { status: 'FAILED', error: 'timeout' } },
+      results: { 'tok-d1': { status: 'FAILED', error: 'timeout' } },
     });
     await retry({ before: SLOT, now: NOW });
     expect(records[0]).toMatchObject({ status: 'FAILED', sentAt: null });
@@ -304,6 +332,7 @@ const heldRow = (
   over: Partial<Row> & Pick<Row, 'direction' | 'rareLevel' | 'detectedAt'>,
 ): Row => ({
   id,
+  deviceId: 'd1',
   commodityCode: 'CL',
   basis: 'FRONT',
   maPeriod: 100,
@@ -370,7 +399,7 @@ describe('HELD 지연 발송', () => {
     const { deferred, records } = setup({
       settings: NIGHT,
       rows: [heldRow('u5', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 })],
-      tokens: { t1: { status: 'FAILED', error: 'timeout' } },
+      results: { 'tok-d1': { status: 'FAILED', error: 'timeout' } },
     });
     await deferred({ now: NOW });
     expect(records[0]).toMatchObject({ status: 'RETRY', sentAt: null });
@@ -384,5 +413,86 @@ describe('HELD 지연 발송', () => {
     });
     await deferred({ now: NOW });
     expect(records[0].status).toBe('SENT');
+  });
+});
+
+describe('기기별 판정·발송(D-120)', () => {
+  it('기기마다 그 기기 설정으로 판정해 기록하고 그 기기로만 그 언어로 보낸다', async () => {
+    const { judge, records, sent, distributionOf } = setup({
+      devices: [
+        { id: 'd1' },
+        { id: 'd2', settings: { locale: 'en', rareLevels: [10, 20] } },
+        { id: 'd3', settings: { alertCommodity: 'GC' } },
+        { id: 'd4', token: null },
+      ],
+    });
+    await judge([index('FRONT', 96, null)]);
+
+    expect(
+      records
+        .filter((r) => r.status === 'SENT')
+        .map((r) => [r.deviceId, r.rareLevel])
+        .sort(),
+    ).toEqual([
+      ['d1', 5],
+      ['d2', 10],
+    ]);
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d1', 'tok-d2']);
+    expect(sent[0].message.text.title).toBe('원유(대표월물) 이격도 상위 5% 도달');
+    // d2는 영어 문구
+    expect(sent[1].message.text.title).toMatch(/^[\x20-\x7e]+$/);
+    expect(sent[1].message.text.title).toContain('10%');
+    // 같은 분포는 한 번만 읽는다
+    expect(distributionOf).toHaveBeenCalledTimes(1);
+  });
+
+  it('한 기기의 기록은 다른 기기의 중복 방지에 걸리지 않는다', async () => {
+    const { judge, sent } = setup({
+      devices: [{ id: 'd1' }, { id: 'd2' }],
+      rows: [retryRow(5, 'SENT', 'd1')],
+    });
+    await judge([index('FRONT', 96, null)]);
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d2']);
+  });
+
+  it('RETRY는 기기마다 그 기기의 거부 시간으로 기다리거나 보낸다', async () => {
+    const { retry, records, sent } = setup({
+      devices: [
+        { id: 'd1', settings: { quietTime: { startMin: 480, endMin: 600 } } },
+        { id: 'd2' },
+      ],
+      rows: [retryRow(5, 'RETRY', 'd1'), retryRow(5, 'RETRY', 'd2')],
+    });
+    await retry({ before: SLOT, now: NOW });
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d2']);
+    expect(records.map((r) => [r.deviceId, r.status])).toEqual([
+      ['d1', 'RETRY'],
+      ['d2', 'SENT'],
+    ]);
+  });
+
+  it('토큰을 비운 기기의 RETRY는 FAILED, HELD는 RETRY가 된다', async () => {
+    const { retry, deferred, records, sent, log } = setup({
+      devices: [{ id: 'd1', token: null }],
+      rows: [retryRow(5), heldRow('h', { direction: 'DOWN', rareLevel: 5, detectedAt: AT_2330 })],
+    });
+    await retry({ before: SLOT, now: NOW });
+    await deferred({ now: NOW });
+    expect(sent).toHaveLength(0);
+    expect(records.map((r) => r.status)).toEqual(['FAILED', 'RETRY']);
+    expect(log).toHaveBeenCalledWith('[alert CL] FAILED: - d1: no push token');
+  });
+
+  it('HELD는 기기별로 묶어 기기마다 가장 드문 1건을 보낸다', async () => {
+    const { deferred, records, sent } = setup({
+      devices: [{ id: 'd1' }, { id: 'd2', settings: { locale: 'en' } }],
+      rows: [
+        heldRow('a', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 }),
+        heldRow('b', { direction: 'UP', rareLevel: 10, detectedAt: AT_2330, deviceId: 'd2' }),
+      ],
+    });
+    await deferred({ now: NOW });
+    expect(records.map((r) => r.status)).toEqual(['SENT', 'SENT']);
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d1', 'tok-d2']);
   });
 });

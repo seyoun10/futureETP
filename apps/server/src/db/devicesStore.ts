@@ -31,13 +31,18 @@ export function createPushDeviceStore(db: typeof Db): PushDeviceStore {
   return {
     async list() {
       const rows = await db
-        .select({ id: device.id, platform: device.platform, pushToken: device.pushToken })
+        .select({
+          id: device.id,
+          platform: device.platform,
+          pushToken: device.pushToken,
+          locale: device.locale,
+        })
         .from(device)
         .where(isNotNull(device.pushToken))
         .orderBy(device.updatedAt);
       // 토큰이 있으면 플랫폼도 있다(CHECK device_push_platform)
-      return rows.flatMap(({ id, platform, pushToken }) =>
-        platform !== null && pushToken !== null ? [{ id, platform, pushToken }] : [],
+      return rows.flatMap(({ id, platform, pushToken, locale }) =>
+        platform !== null && pushToken !== null ? [{ id, platform, pushToken, locale }] : [],
       );
     },
     async clearToken(id) {

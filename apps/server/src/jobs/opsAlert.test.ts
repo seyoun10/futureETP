@@ -18,17 +18,16 @@ function setup(devices: PushDevice[], alreadyNotified = false) {
   return { store, deviceStore, marked };
 }
 
-const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1' };
+const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1', locale: 'ko' };
 
 describe('createOpsAlert', () => {
-  it('저장된 언어로 ops 채널에 보내고 실행에 알림 시각을 남긴다', async () => {
+  it('기기 언어로 ops 채널에 보내고 실행에 알림 시각을 남긴다', async () => {
     const { store, deviceStore, marked } = setup([PHONE]);
     const { sender, sent } = createFakeSender();
     const opsAlert = createOpsAlert({
       store,
       devices: deviceStore,
       sender,
-      locale: () => Promise.resolve('ko'),
       now: () => AT,
     });
 
@@ -53,7 +52,6 @@ describe('createOpsAlert', () => {
       store,
       devices: deviceStore,
       sender,
-      locale: () => Promise.resolve('ko'),
     });
 
     expect(await opsAlert('INTRADAY', 'run-3')).toBe('SKIPPED');
@@ -69,7 +67,6 @@ describe('createOpsAlert', () => {
       store,
       devices: deviceStore,
       sender,
-      locale: () => Promise.resolve('en'),
     });
 
     expect(await opsAlert('ETP', 'run-4')).toBe('UNDELIVERED');

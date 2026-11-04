@@ -12,7 +12,7 @@ export type PushMessage = {
   data?: Record<string, string>;
 };
 
-// INVALID_TOKEN은 FCM UNREGISTERED·APNs 410이다. 받으면 기기를 지운다(D-023, D-037).
+// INVALID_TOKEN은 FCM UNREGISTERED·APNs 410이다. 받으면 그 기기의 토큰을 비운다(D-023, D-037, D-120).
 export type SendResult =
   { status: 'SENT' } | { status: 'INVALID_TOKEN' } | { status: 'FAILED'; error: string };
 

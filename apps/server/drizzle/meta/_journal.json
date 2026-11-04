@@ -50,6 +50,13 @@
       "when": 1793767187341,
       "tag": "0006_device_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793767904404,
+      "tag": "0007_alert_record_device",
+      "breakpoints": true
     }
   ]
 }

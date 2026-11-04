@@ -372,10 +372,14 @@ export const device = pgTable(
 );
 
 // 중복 방지 기록과 보류 큐를 겸한다. 모든 상태가 중복 방지 키를 차지한다(D-006, D-023).
+// 기기별로 판정·발송한다(D-120).
 export const alertRecord = pgTable(
   'alert_record',
   {
     id: uuid().primaryKey().defaultRandom(),
+    deviceId: uuid()
+      .notNull()
+      .references(() => device.id, { onDelete: 'cascade' }),
     commodityCode: commodityCode()
       .notNull()
       .references(() => commodity.code),
@@ -392,6 +396,7 @@ export const alertRecord = pgTable(
   },
   (t) => [
     unique('alert_record_dedup_key').on(
+      t.deviceId,
       t.commodityCode,
       t.basis,
       t.maPeriod,

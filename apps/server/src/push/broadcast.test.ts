@@ -12,6 +12,7 @@ const device = (id: string, pushToken = `token-${id}`): PushDevice => ({
   id,
   platform: 'ANDROID',
   pushToken,
+  locale: 'ko',
 });
 
 // 비운 기기는 목록(토큰 있는 기기만)에서 빠진다.
@@ -31,11 +32,26 @@ function memoryStore(devices: PushDevice[]) {
 }
 
 describe('broadcast', () => {
+  it('기기마다 그 기기로 메시지를 만든다', async () => {
+    const { store } = memoryStore([device('a'), { ...device('b'), locale: 'en' }]);
+    const { sender, sent } = createFakeSender();
+
+    await broadcast({ store, sender }, (d) => ({
+      ...message,
+      text: { title: d.locale, body: null },
+    }));
+
+    expect(sent.map((s) => [s.target.pushToken, s.message.text.title])).toEqual([
+      ['token-a', 'ko'],
+      ['token-b', 'en'],
+    ]);
+  });
+
   it('모든 기기로 같은 메시지를 보낸다', async () => {
     const { store } = memoryStore([device('a'), device('b')]);
     const { sender, sent } = createFakeSender();
 
-    const result = await broadcast({ store, sender }, message);
+    const result = await broadcast({ store, sender }, () => message);
 
     expect(result).toEqual({ devices: 2, sent: 2, cleared: 0, failures: [] });
     expect(delivered(result)).toBe(true);
@@ -47,7 +63,7 @@ describe('broadcast', () => {
     const { store, rows } = memoryStore([device('a'), device('b')]);
     const { sender } = createFakeSender({ 'token-a': { status: 'INVALID_TOKEN' } });
 
-    const result = await broadcast({ store, sender }, message);
+    const result = await broadcast({ store, sender }, () => message);
 
     expect(result).toEqual({ devices: 2, sent: 1, cleared: 1, failures: [] });
     expect(rows.map((d) => d.id)).toEqual(['b']);
@@ -62,7 +78,7 @@ describe('broadcast', () => {
           : Promise.reject(new Error('network down')),
     };
 
-    const result = await broadcast({ store, sender }, message);
+    const result = await broadcast({ store, sender }, () => message);
 
     expect(result).toEqual({
       devices: 2,
@@ -78,7 +94,7 @@ describe('broadcast', () => {
     const { store } = memoryStore([]);
     const { sender, sent } = createFakeSender();
 
-    const result = await broadcast({ store, sender }, message);
+    const result = await broadcast({ store, sender }, () => message);
 
     expect(result).toEqual({ devices: 0, sent: 0, cleared: 0, failures: [] });
     expect(delivered(result)).toBe(false);

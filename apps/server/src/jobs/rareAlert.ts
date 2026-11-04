@@ -1,4 +1,5 @@
 // 장중 rare 레벨 알림 판정·발송(product.md 6, D-006, D-022, D-023, D-026, D-069, D-071).
+// 판정·기록·발송은 기기별이다: 그 원자재를 알림 원자재로 둔 기기마다 그 기기 설정으로 판정하고 그 기기로만 보낸다(D-120).
 // INTRADAY가 원자재마다 잠정 지수를 저장한 뒤 판정을 부른다. RETRY 재발송은 INTRADAY·DEFERRED_PUSH 중
 // 먼저 도는 배치가 한다(product.md 6). HELD 지연 발송은 DEFERRED_PUSH가 한다.
 import {
@@ -19,12 +20,13 @@ import {
   type AlertLevelRecord,
 } from '../calc/alert.ts';
 import type { AlertStatus } from '../constants.ts';
-import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
+import { sendToDevice, type PushDevice, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
 import type { IndexSnapshotRow } from './intraday.ts';
 
-// 중복 방지 키(D-006)에서 방향·레벨을 뺀 판정 조건
+// 중복 방지 키(D-006, D-120)에서 방향·레벨을 뺀 판정 조건
 export type AlertCondition = {
+  deviceId: string;
   commodityCode: CommodityCode;
   basis: Basis;
   maPeriod: MaPeriod;
@@ -49,8 +51,14 @@ export type PendingAlert = AlertCondition & {
   detectedAt: Date;
 };
 
+// 알림을 받는 기기와 그 기기의 설정
+export type AlertDevice = PushDevice & { settings: Settings };
+
 export interface RareAlertStore {
-  settings(): Promise<Settings>;
+  // 토큰이 있고 이 원자재를 알림 원자재로 둔 기기
+  alertDevices(commodityCode: CommodityCode): Promise<AlertDevice[]>;
+  // 토큰이 있는 기기 하나. 토큰을 비웠으면 null
+  device(id: string): Promise<AlertDevice | null>;
   // 정정 확인(SETTLE_REVISION)의 마지막 실행이 실패면 판정을 멈춘다(D-071)
   isSuspended(): Promise<boolean>;
   // 오름차순 이격도 분포. 없으면 null
@@ -68,7 +76,7 @@ export interface RareAlertStore {
   updateStatus(id: string, status: AlertStatus, sentAt: Date | null): Promise<void>;
   // 그 시각 전(미만)에 감지한 RETRY 기록. 지금 배치 슬롯에서 첫 발송 중인 행은 빼려고 슬롯 시각을 넘긴다
   retries(before: Date): Promise<PendingAlert[]>;
-  // HELD 기록 전부(거래일 무관)
+  // HELD 기록 전부(거래일·기기 무관)
   held(): Promise<PendingAlert[]>;
 }
 
@@ -101,14 +109,14 @@ const isQuietNow = (settings: Settings, now: Date) =>
 
 type SendKind = { isRetry: boolean; deferred: boolean };
 
-// 모든 기기로 보내고 결과로 상태를 바꾼다. 모두 실패면 첫 발송(지연 발송 포함)은 RETRY, 재시도는 FAILED(D-023)
+// 기록의 기기로 보내고 결과로 상태를 바꾼다. 실패(토큰 없음 포함)면 첫 발송(지연 발송 포함)은 RETRY, 재시도는 FAILED(D-023)
 function createSend({ store, devices, sender, log = console.log }: RareAlertDeps) {
-  return async (settings: Settings, row: PendingAlert, now: Date, kind: SendKind) => {
+  return async (device: AlertDevice | null, row: PendingAlert, now: Date, kind: SendKind) => {
     const code = row.commodityCode;
-    const result = await broadcast(
-      { store: devices, sender },
-      {
-        text: rareLevelPush(settings.locale, settings.timezone, {
+    const result =
+      device &&
+      (await sendToDevice({ store: devices, sender }, device, {
+        text: rareLevelPush(device.settings.locale, device.settings.timezone, {
           commodity: code,
           basis: row.basis,
           direction: row.direction,
@@ -120,14 +128,17 @@ function createSend({ store, devices, sender, log = console.log }: RareAlertDeps
         }),
         channel: 'alerts',
         data: { type: 'RARE_LEVEL', commodity: code },
-      },
-    );
-    const status = statusAfterSend(delivered(result), kind.isRetry);
+      }));
+    const status = statusAfterSend(result?.status === 'SENT', kind.isRetry);
     await store.updateStatus(row.id, status, status === 'SENT' ? now : null);
     if (status !== 'SENT') {
-      log(
-        `[alert ${code}] ${status}: not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,
-      );
+      const reason =
+        result === null
+          ? 'no push token'
+          : result.status === 'FAILED'
+            ? result.error
+            : 'invalid token, cleared';
+      log(`[alert ${code}] ${status}: ${device?.platform ?? '-'} ${row.deviceId}: ${reason}`);
     }
   };
 }
@@ -136,35 +147,42 @@ function createSend({ store, devices, sender, log = console.log }: RareAlertDeps
 export function createRareAlert(deps: RareAlertDeps) {
   const { store, log = console.log } = deps;
   const send = createSend(deps);
-  return async (input: RareAlertInput): Promise<void> => {
+
+  const judge = async (
+    device: AlertDevice,
+    input: RareAlertInput,
+    distribution: (basis: Basis, maPeriod: MaPeriod, window: Window) => Promise<number[] | null>,
+  ) => {
     const { commodityCode: code, tradeDate, detectedAt } = input;
-    const settings = await store.settings();
-    if (settings.alertCommodity !== code) return;
-    if (await store.isSuspended()) {
-      log(`[alert ${code}] suspended: last SETTLE_REVISION failed`);
-      return;
-    }
+    const { settings } = device;
     const basis =
       settings.basis === 'FRONT' || input.ruleBases.includes(settings.basis)
         ? settings.basis
         : 'FRONT';
     const { maPeriod, window } = settings;
+    const tag = `[alert ${code} ${basis} ${device.id}]`;
     const index = input.indexes.find((i) => i.basis === basis);
-    const sorted = index && (await store.distribution(code, basis, maPeriod, window));
+    const sorted = index && (await distribution(basis, maPeriod, window));
     if (!index || !sorted || sorted.length === 0) {
-      log(`[alert ${code} ${basis}] skipped: no ${index ? 'distribution' : 'index'}`);
+      log(`${tag} skipped: no ${index ? 'distribution' : 'index'}`);
       return;
     }
-    const condition: AlertCondition = { commodityCode: code, basis, maPeriod, window, tradeDate };
+    const condition: AlertCondition = {
+      deviceId: device.id,
+      commodityCode: code,
+      basis,
+      maPeriod,
+      window,
+      tradeDate,
+    };
     const disparity = index.disparityByMa[`${maPeriod}`];
-    const quiet = isQuietNow(settings, input.now);
     const detections = planDetections({
       sorted,
       levels: settings.rareLevels,
       highDisparity: disparity.high,
       lowDisparity: disparity.low,
       existing: await store.records(condition),
-      quiet,
+      quiet: isQuietNow(settings, input.now),
     });
     if (detections.length === 0) return;
 
@@ -180,19 +198,39 @@ export function createRareAlert(deps: RareAlertDeps) {
     );
     for (const d of detections) {
       const row = inserted.find((r) => r.direction === d.direction && r.rareLevel === d.rareLevel);
-      log(`[alert ${code} ${basis}] ${d.direction} ${d.rareLevel}% ${d.action}`);
+      log(`${tag} ${d.direction} ${d.rareLevel}% ${d.action}`);
       if (d.action !== 'SEND' || row === undefined) continue;
-      await send(settings, { ...condition, ...d, id: row.id, detectedAt }, input.now, {
+      await send(device, { ...condition, ...d, id: row.id, detectedAt }, input.now, {
         isRetry: false,
         deferred: false,
       });
     }
   };
+
+  return async (input: RareAlertInput): Promise<void> => {
+    const code = input.commodityCode;
+    const targets = await store.alertDevices(code);
+    if (targets.length === 0) return;
+    if (await store.isSuspended()) {
+      log(`[alert ${code}] suspended: last SETTLE_REVISION failed`);
+      return;
+    }
+    // 같은 분포를 쓰는 기기끼리 한 번만 읽는다
+    const distributions = new Map<string, Promise<number[] | null>>();
+    const distribution = (basis: Basis, maPeriod: MaPeriod, window: Window) => {
+      const key = `${basis}|${maPeriod}|${window}`;
+      if (!distributions.has(key)) {
+        distributions.set(key, store.distribution(code, basis, maPeriod, window));
+      }
+      return distributions.get(key)!;
+    };
+    for (const device of targets) await judge(device, input, distribution);
+  };
 }
 
 export type RareAlert = ReturnType<typeof createRareAlert>;
 
-// RETRY 기록을 1회 다시 보낸다. 더 드문 레벨이 덮었으면 SUPPRESSED, 감지 후 24시간이 지났으면 FAILED,
+// RETRY 기록을 기기별로 1회 다시 보낸다(거부 시간은 그 기기 설정). 더 드문 레벨이 덮었으면 SUPPRESSED, 감지 후 24시간이 지났으면 FAILED,
 // 거부 시간이면 RETRY로 두고 기다린다. 늘 늦게 닿으므로 지연 발송 문구로 보낸다(D-023, D-069, D-097).
 // 이미 판정한 알림이라 판정 중지(D-071)·알림 원자재 변경과 상관없이 처리한다
 export function createAlertRetry(deps: RareAlertDeps) {
@@ -200,51 +238,55 @@ export function createAlertRetry(deps: RareAlertDeps) {
   const send = createSend(deps);
   return async ({ before, now }: { before: Date; now: Date }): Promise<void> => {
     const retries = await store.retries(before);
-    if (retries.length === 0) return;
-    const settings = await store.settings();
-    const quiet = isQuietNow(settings, now);
-    const conditions = new Map<string, AlertCondition>();
-    for (const { commodityCode, basis, maPeriod, window, tradeDate } of retries) {
-      const condition = { commodityCode, basis, maPeriod, window, tradeDate };
-      conditions.set(JSON.stringify(condition), condition);
-    }
-    const existing = (
-      await Promise.all(
-        [...conditions.values()].map(async (c) =>
-          (await store.records(c)).map((r) => ({ ...c, ...r })),
-        ),
-      )
-    ).flat();
-    for (const { id, action } of planRetries(retries, existing, quiet, now)) {
-      const row = retries.find((r) => r.id === id)!;
-      log(
-        `[alert retry ${row.commodityCode} ${row.basis}] ${row.direction} ${row.rareLevel}% ${action}`,
-      );
-      if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
-      if (action === 'EXPIRED') await store.updateStatus(id, 'FAILED', null);
-      if (action === 'SEND') await send(settings, row, now, { isRetry: true, deferred: true });
+    for (const [deviceId, rows] of Map.groupBy(retries, (r) => r.deviceId)) {
+      // 토큰을 비운 기기는 기다리지 않고 보내 본다(실패로 FAILED가 된다)
+      const device = await store.device(deviceId);
+      const quiet = device !== null && isQuietNow(device.settings, now);
+      const conditions = new Map<string, AlertCondition>();
+      for (const { commodityCode, basis, maPeriod, window, tradeDate } of rows) {
+        const condition = { deviceId, commodityCode, basis, maPeriod, window, tradeDate };
+        conditions.set(JSON.stringify(condition), condition);
+      }
+      const existing = (
+        await Promise.all(
+          [...conditions.values()].map(async (c) =>
+            (await store.records(c)).map((r) => ({ ...c, ...r })),
+          ),
+        )
+      ).flat();
+      for (const { id, action } of planRetries(rows, existing, quiet, now)) {
+        const row = rows.find((r) => r.id === id)!;
+        log(
+          `[alert retry ${row.commodityCode} ${row.basis} ${deviceId}] ${row.direction} ${row.rareLevel}% ${action}`,
+        );
+        if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
+        if (action === 'EXPIRED') await store.updateStatus(id, 'FAILED', null);
+        if (action === 'SEND') await send(device, row, now, { isRetry: true, deferred: true });
+      }
     }
   };
 }
 
 export type AlertRetry = ReturnType<typeof createAlertRetry>;
 
-// 거부 시간이 끝나면 HELD를 원자재·방향별 가장 드문 1건만 지연 발송하고 나머지는 SUPPRESSED로 바꾼다(product.md 6, D-069).
+// 그 기기의 거부 시간이 끝나면 HELD를 원자재·방향별 가장 드문 1건만 지연 발송하고 나머지는 SUPPRESSED로 바꾼다(product.md 6, D-069).
 // 보류 중 거래일이 바뀌었거나 알림 원자재·판정 중지가 바뀌었어도 보낸다. 실패하면 첫 발송처럼 RETRY가 된다
 export function createDeferredAlert(deps: RareAlertDeps) {
   const { store, log = console.log } = deps;
   const send = createSend(deps);
   return async ({ now }: { now: Date }): Promise<void> => {
     const held = await store.held();
-    if (held.length === 0) return;
-    const settings = await store.settings();
-    for (const { id, action } of planDeferred(held, isQuietNow(settings, now))) {
-      const row = held.find((r) => r.id === id)!;
-      log(
-        `[alert deferred ${row.commodityCode} ${row.basis}] ${row.direction} ${row.rareLevel}% ${action}`,
-      );
-      if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
-      if (action === 'SEND') await send(settings, row, now, { isRetry: false, deferred: true });
+    for (const [deviceId, rows] of Map.groupBy(held, (r) => r.deviceId)) {
+      const device = await store.device(deviceId);
+      const quiet = device !== null && isQuietNow(device.settings, now);
+      for (const { id, action } of planDeferred(rows, quiet)) {
+        const row = rows.find((r) => r.id === id)!;
+        log(
+          `[alert deferred ${row.commodityCode} ${row.basis} ${deviceId}] ${row.direction} ${row.rareLevel}% ${action}`,
+        );
+        if (action === 'SUPPRESSED') await store.updateStatus(id, 'SUPPRESSED', null);
+        if (action === 'SEND') await send(device, row, now, { isRetry: false, deferred: true });
+      }
     }
   };
 }

@@ -1,14 +1,15 @@
 // 장중 rare 레벨 알림 판정 조회·기록(D-069). 흐름은 jobs/rareAlert.ts
-import { and, eq, lt, type SQL } from 'drizzle-orm';
-import type { RareAlertStore } from '../jobs/rareAlert.ts';
+import { and, eq, isNotNull, lt, type SQL } from 'drizzle-orm';
+import type { AlertDevice, RareAlertStore } from '../jobs/rareAlert.ts';
 import type { db as Db } from './client.ts';
-import { alertRecord, disparityDistribution } from './schema.ts';
+import { alertRecord, device, disparityDistribution } from './schema.ts';
 import { isAlertJudgmentSuspended } from './settle.ts';
-import { latestPushDeviceSettings } from './settingsStore.ts';
+import { toSettings } from './settingsStore.ts';
 
 export function createRareAlertStore(db: typeof Db): RareAlertStore {
   return {
-    settings: () => latestPushDeviceSettings(db),
+    alertDevices: (code) => alertDevices(eq(device.alertCommodity, code)),
+    device: async (id) => (await alertDevices(eq(device.id, id)))[0] ?? null,
     isSuspended: () => isAlertJudgmentSuspended(db),
     async distribution(code, basis, maPeriod, window) {
       const [row] = await db
@@ -24,7 +25,7 @@ export function createRareAlertStore(db: typeof Db): RareAlertStore {
         );
       return row?.sortedValues ?? null;
     },
-    records: ({ commodityCode, basis, maPeriod, window, tradeDate }) =>
+    records: ({ deviceId, commodityCode, basis, maPeriod, window, tradeDate }) =>
       db
         .select({
           direction: alertRecord.direction,
@@ -34,6 +35,7 @@ export function createRareAlertStore(db: typeof Db): RareAlertStore {
         .from(alertRecord)
         .where(
           and(
+            eq(alertRecord.deviceId, deviceId),
             eq(alertRecord.commodityCode, commodityCode),
             eq(alertRecord.basis, basis),
             eq(alertRecord.maPeriod, maPeriod),
@@ -49,6 +51,7 @@ export function createRareAlertStore(db: typeof Db): RareAlertStore {
             .values([...rows])
             .onConflictDoNothing({
               target: [
+                alertRecord.deviceId,
                 alertRecord.commodityCode,
                 alertRecord.basis,
                 alertRecord.maPeriod,
@@ -71,10 +74,33 @@ export function createRareAlertStore(db: typeof Db): RareAlertStore {
     held: () => pending(eq(alertRecord.status, 'HELD')),
   };
 
+  // 토큰이 있는 기기만. 토큰이 있으면 플랫폼도 있다(CHECK device_push_platform)
+  async function alertDevices(where: SQL): Promise<AlertDevice[]> {
+    const rows = await db
+      .select()
+      .from(device)
+      .where(and(where, isNotNull(device.pushToken)))
+      .orderBy(device.updatedAt);
+    return rows.flatMap((row) =>
+      row.platform !== null && row.pushToken !== null
+        ? [
+            {
+              id: row.id,
+              platform: row.platform,
+              pushToken: row.pushToken,
+              locale: row.locale,
+              settings: toSettings(row),
+            },
+          ]
+        : [],
+    );
+  }
+
   function pending(where: SQL | undefined) {
     return db
       .select({
         id: alertRecord.id,
+        deviceId: alertRecord.deviceId,
         commodityCode: alertRecord.commodityCode,
         basis: alertRecord.basis,
         maPeriod: alertRecord.maPeriod,

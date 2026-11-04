@@ -3,12 +3,7 @@
 // 반영은 사람이 roll_rule 행을 바꿔서 하므로 운영 알림처럼 ops 채널로 보내고, 누르면 A로 간다(D-025).
 // 한 기기에도 전달하지 못하면 바뀐 판정은 기록하지 않아 다음 ETP 작업 때 다시 보낸다.
 // 셀 상품이 없으면(순자산을 아직 못 받음 등) 직전 기록을 둔다.
-import {
-  majorityChangedPush,
-  type CommodityCode,
-  type Locale,
-  type MajorityChange,
-} from '@futureetp/shared';
+import { majorityChangedPush, type CommodityCode, type MajorityChange } from '@futureetp/shared';
 import { krRuleId, majorityRules, type MajorityProduct } from '../calc/majorityRule.ts';
 import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
@@ -44,7 +39,6 @@ export function createMajorityAlert(deps: {
   store: MajorityAlertStore;
   devices: PushDeviceStore;
   sender: PushSender;
-  locale: () => Promise<Locale>;
   log?: (message: string) => void;
 }) {
   const log = deps.log ?? console.log;
@@ -89,11 +83,13 @@ export function createMajorityAlert(deps: {
       return 'NONE';
     }
 
-    const text = majorityChangedPush(await deps.locale(), changes);
-    const result = await broadcast(
-      { store: deps.devices, sender: deps.sender },
-      { text, channel: 'ops', data: { type: 'MAJORITY_CHANGED' } },
-    );
+    const result = await broadcast({ store: deps.devices, sender: deps.sender }, (device) => ({
+      text: majorityChangedPush(device.locale, changes),
+      channel: 'ops',
+      data: { type: 'MAJORITY_CHANGED' },
+    }));
+    // 로그는 영문 문구로 남긴다
+    const text = majorityChangedPush('en', changes);
     if (!delivered(result)) {
       await deps.store.setMajority(updates, now);
       log(

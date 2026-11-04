@@ -1,6 +1,5 @@
-import { DISPARITY_SETTINGS_DEFAULTS } from '@futureetp/shared';
 import type { Settings } from '@futureetp/shared';
-import { desc, eq, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { SettingsStore } from '../api/settings.ts';
 import type { db as Db } from './client.ts';
 import { device } from './schema.ts';
@@ -8,7 +7,7 @@ import { device } from './schema.ts';
 type Row = typeof device.$inferSelect;
 
 // 거부 시간 두 컬럼은 API에서 quietTime 하나로 묶는다(D-081).
-function toSettings(row: Row): Settings {
+export function toSettings(row: Row): Settings {
   return {
     locale: row.locale,
     timezone: row.timezone,
@@ -50,26 +49,4 @@ export function createSettingsStore(db: typeof Db): SettingsStore {
       return toSettings(row);
     },
   };
-}
-
-// 토큰 있는 기기가 없을 때. alertCommodity가 null이라 rare 레벨 판정을 하지 않는다.
-const NO_DEVICE_SETTINGS: Settings = {
-  locale: 'ko',
-  timezone: 'Asia/Seoul',
-  ...DISPARITY_SETTINGS_DEFAULTS,
-  rareLevels: [...DISPARITY_SETTINGS_DEFAULTS.rareLevels],
-  alertCommodity: null,
-  quietTime: null,
-};
-
-// 알림 작업용: 토큰이 있는 기기 중 가장 최근에 갱신된 기기의 설정.
-// D-120 기기별 판정(TODO 5-8 알림)으로 바꾸기 전까지 옛 단일 설정 자리를 대신한다.
-export async function latestPushDeviceSettings(db: typeof Db): Promise<Settings> {
-  const [row] = await db
-    .select()
-    .from(device)
-    .where(isNotNull(device.pushToken))
-    .orderBy(desc(device.updatedAt))
-    .limit(1);
-  return row ? toSettings(row) : NO_DEVICE_SETTINGS;
 }

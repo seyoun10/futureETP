@@ -251,8 +251,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] 기기별 설정(D-120): 설정·알림 판정·기록을 installation ID(`X-Device-Id`) 기준 기기별로
   - [x] 결정·문서(decisions·product·data-model·architecture·screens) (2026-11-04)
   - [x] 앱: installation ID 생성·SecureStore(`api/deviceId.ts`, Math.random UUID v4), 인증 요청에 `X-Device-Id` (2026-11-04)
-  - [x] 서버: `app_settings` → `device` 설정 컬럼 마이그레이션(`0006_device_settings`, 기존 기기 행 삭제), 토큰 없어도 `PUT /v1/devices`(shared `pushToken` nullable, 앱은 빈 토큰이면 null로 등록), `/v1/settings`·`/v1/commodities`·`/v1/devices`가 헤더 기기 사용(`api/deviceId.ts`, 처음 보인 기기는 기본값 행), 같은 토큰은 다른 기기 행에서 비움, 무효 토큰은 비우기. 알림 작업은 다음 항목 전까지 토큰 있는 최근 갱신 기기 설정·언어를 씀(`latestPushDeviceSettings`). dev DB 적용·저장소 동작 확인 (2026-11-04)
-  - [ ] 알림: `alert_record.device_id`(중복 방지 키), 기기별 판정·재시도·지연 발송, 운영 알림 문구 기기 언어
+  - [x] 서버: `app_settings` → `device` 설정 컬럼 마이그레이션(`0006_device_settings`, 기존 기기 행 삭제), 토큰 없어도 `PUT /v1/devices`(shared `pushToken` nullable, 앱은 빈 토큰이면 null로 등록), `/v1/settings`·`/v1/commodities`·`/v1/devices`가 헤더 기기 사용(`api/deviceId.ts`, 처음 보인 기기는 기본값 행), 같은 토큰은 다른 기기 행에서 비움, 무효 토큰은 비우기. dev DB 적용·저장소 동작 확인 (2026-11-04)
+  - [x] 알림: `alert_record.device_id`(중복 방지 키, 기기 삭제 시 함께 삭제, `0007_alert_record_device`에서 기존 기록 삭제), 알림 원자재가 같은 기기마다 판정·기록·그 기기로만 발송, 재시도·지연 발송은 기록의 기기 설정(거부 시간)·언어, 운영·ETP 후보·다수 판정 알림은 기기별 언어 문구. dev DB 적용·저장소 동작 확인 (2026-11-04)
   - [ ] 서버 배포 + 앱 업데이트 함께, 기기에서 설정 분리·알림 확인
 
 ### 5-9. ETP

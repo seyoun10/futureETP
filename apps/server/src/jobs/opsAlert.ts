@@ -1,6 +1,6 @@
-// 배치가 재시도까지 실패하면 모든 기기로 운영 알림을 보낸다(D-045).
+// 배치가 재시도까지 실패하면 모든 기기로 운영 알림을 기기별 언어로 보낸다(D-045, D-120).
 // 같은 작업은 다시 성공할 때까지 거래일당 1회만 보낸다(batch_run.ops_notified_at, D-048).
-import { jobFailedPush, type Locale } from '@futureetp/shared';
+import { jobFailedPush } from '@futureetp/shared';
 import type { JobName } from '../constants.ts';
 import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
@@ -15,7 +15,6 @@ export type OpsAlertDeps = {
   store: OpsAlertStore;
   devices: PushDeviceStore;
   sender: PushSender;
-  locale: () => Promise<Locale>;
   now?: () => Date;
 };
 
@@ -26,14 +25,11 @@ export function createOpsAlert(deps: OpsAlertDeps) {
   const now = deps.now ?? (() => new Date());
   return async (job: JobName, runId: string): Promise<OpsAlertOutcome> => {
     if (await deps.store.alreadyNotified(runId)) return 'SKIPPED';
-    const result = await broadcast(
-      { store: deps.devices, sender: deps.sender },
-      {
-        text: jobFailedPush(await deps.locale(), job),
-        channel: 'ops',
-        data: { type: 'JOB_FAILED', job },
-      },
-    );
+    const result = await broadcast({ store: deps.devices, sender: deps.sender }, (device) => ({
+      text: jobFailedPush(device.locale, job),
+      channel: 'ops',
+      data: { type: 'JOB_FAILED', job },
+    }));
     if (!delivered(result)) {
       console.error(
         `[ops ${job}] not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,

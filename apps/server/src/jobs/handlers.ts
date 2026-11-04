@@ -7,7 +7,6 @@ import { createEtpStore } from '../db/etpStore.ts';
 import { createIntradayStore } from '../db/intraday.ts';
 import { createRareAlertStore } from '../db/rareAlertStore.ts';
 import { createRetentionStore } from '../db/retentionStore.ts';
-import { latestPushDeviceSettings } from '../db/settingsStore.ts';
 import { createSettleStore } from '../db/settle.ts';
 import { pushSender } from '../push/configuredSender.ts';
 import { createKrxEtpSource } from '../sources/krxEtp.ts';
@@ -73,13 +72,11 @@ export const JOB_HANDLERS: JobHandlers = {
       store: etpStore,
       devices: alertDeps.devices,
       sender: pushSender,
-      locale: async () => (await latestPushDeviceSettings(db)).locale,
     }),
     majorityAlert: createMajorityAlert({
       store: etpStore,
       devices: alertDeps.devices,
       sender: pushSender,
-      locale: async () => (await latestPushDeviceSettings(db)).locale,
     }),
   }),
   CALENDAR: createCalendarHandler({ store: createCalendarStore(db) }),

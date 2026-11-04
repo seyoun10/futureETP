@@ -9,7 +9,7 @@ import {
 } from './majorityAlert.ts';
 
 const NOW = new Date('2026-10-28T23:30:00Z');
-const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1' };
+const PHONE: PushDevice = { id: 'd1', platform: 'ANDROID', pushToken: 'tok-1', locale: 'ko' };
 
 const us = (rollRuleRef: string, aum = 100_000_000): MajorityEtp => ({
   commodityCode: 'CL',
@@ -47,7 +47,6 @@ function setup(etps: MajorityEtp[], rules: RollRuleState[], devices: PushDevice[
     store,
     devices: deviceStore,
     sender,
-    locale: () => Promise.resolve('ko'),
     log,
   });
   return { store, sent, log, alert };
