@@ -29,6 +29,13 @@ export type TradingDayRow = {
   note: string | null;
 };
 
+export const MINUTE_MS = 60_000;
+export const DAY_MS = 24 * 60 * MINUTE_MS;
+
+// 그 시각의 timeZone 날짜('YYYY-MM-DD')
+export const dateInZone = (at: Date, timeZone: string): string =>
+  new Intl.DateTimeFormat('en-CA', { timeZone }).format(at);
+
 // 'YYYY-MM-DD'에 일 수를 더한다.
 export function addDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);

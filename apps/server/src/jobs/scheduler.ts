@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { Cron } from 'croner';
 import { SETTLE_AT } from '../calc/marketState.ts';
-import { CME_TIME_ZONE, KRX_TIME_ZONE } from '../calc/tradingCalendar.ts';
+import { CME_TIME_ZONE, KRX_TIME_ZONE, MINUTE_MS } from '../calc/tradingCalendar.ts';
 import type { JobName } from '../constants.ts';
 import type { Healthcheck } from './healthcheck.ts';
 import type { OpsAlert } from './opsAlert.ts';
@@ -36,16 +36,15 @@ export const TRIGGERS: readonly Trigger[] = [
 // 실패 시 1회 재시도. 정산 ①은 실패한 원자재만 다시 받아(원자재당 약 6분) 17:00 CT 전에 끝나도록 짧게 기다리고,
 // 정정 확인 ②는 전 거래일 봉이 남아 있어 소스 회복을 더 기다린다(D-101).
 export const MAX_ATTEMPTS = 2;
-const MINUTE = 60_000;
 export const RETRY_DELAY_MS: Record<JobName, number> = {
-  DAILY_SETTLE: 5 * MINUTE,
-  SETTLE_REVISION: 15 * MINUTE,
-  SETTLE_BACKFILL: 15 * MINUTE,
-  INTRADAY: MINUTE,
-  DEFERRED_PUSH: MINUTE,
-  ETP: 10 * MINUTE,
-  CALENDAR: 10 * MINUTE,
-  BACKUP: 10 * MINUTE,
+  DAILY_SETTLE: 5 * MINUTE_MS,
+  SETTLE_REVISION: 15 * MINUTE_MS,
+  SETTLE_BACKFILL: 15 * MINUTE_MS,
+  INTRADAY: MINUTE_MS,
+  DEFERRED_PUSH: MINUTE_MS,
+  ETP: 10 * MINUTE_MS,
+  CALENDAR: 10 * MINUTE_MS,
+  BACKUP: 10 * MINUTE_MS,
 };
 
 type SchedulerDeps = {

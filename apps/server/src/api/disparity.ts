@@ -1,4 +1,4 @@
-import { BASES, COMMODITY_CODES, MA_PERIODS, rareLevelsSchema, WINDOWS } from '@futureetp/shared';
+import { BASES, MA_PERIODS, rareLevelsSchema, WINDOWS } from '@futureetp/shared';
 import type { Basis, CommodityCode, DisparityChart, MaPeriod, Window } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import { beforeSchema, pageRange } from './chartPage.ts';
 import { ApiException } from './errors.ts';
+import { commodityCodeParam } from './params.ts';
 import { ok } from './response.ts';
 
 export type DisparityStore = Pick<CommoditiesStore, 'tradingDays' | 'lastSettledTradeDate'> & {
@@ -146,12 +147,10 @@ export async function loadDisparityChart(
 export function disparityRoutes(store: DisparityStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/disparity', async (c) => {
-    const code = z.enum(COMMODITY_CODES).safeParse(c.req.param('code'));
-    if (!code.success)
-      throw new ApiException('NOT_FOUND', `Unknown commodity ${c.req.param('code')}`);
+    const code = commodityCodeParam(c.req.param('code'));
     const query = querySchema.safeParse(c.req.query());
     if (!query.success) throw new ApiException('VALIDATION_FAILED', z.prettifyError(query.error));
-    return ok(c, await loadDisparityChart(store, code.data, query.data, now()));
+    return ok(c, await loadDisparityChart(store, code, query.data, now()));
   });
   return routes;
 }

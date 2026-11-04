@@ -1,4 +1,3 @@
-import { COMMODITY_CODES } from '@futureetp/shared';
 import type { CommodityCode, Curve } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -10,6 +9,7 @@ import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import type { DisparityStore } from './disparity.ts';
 import { ApiException } from './errors.ts';
+import { commodityCodeParam } from './params.ts';
 import { ok } from './response.ts';
 
 export type CurveStore = Pick<
@@ -134,12 +134,10 @@ const stats = (s: ReturnType<typeof buildCurve>['base']) =>
 export function curveRoutes(store: CurveStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/curve', async (c) => {
-    const code = z.enum(COMMODITY_CODES).safeParse(c.req.param('code'));
-    if (!code.success)
-      throw new ApiException('NOT_FOUND', `Unknown commodity ${c.req.param('code')}`);
+    const code = commodityCodeParam(c.req.param('code'));
     const query = querySchema.safeParse(c.req.query());
     if (!query.success) throw new ApiException('VALIDATION_FAILED', z.prettifyError(query.error));
-    return ok(c, await loadCurve(store, code.data, query.data.baseDate ?? null, now()));
+    return ok(c, await loadCurve(store, code, query.data.baseDate ?? null, now()));
   });
   return routes;
 }

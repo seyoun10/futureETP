@@ -1,7 +1,7 @@
 // ETP 작업의 미국 부분(D-016, D-099). Nasdaq 스크리너를 매핑표로 나눠 매핑 상품은 저장·갱신하고,
 // 새 후보는 needs_review 행으로 둔다(확인 알림은 D-025). 목록에서 빠진 매핑 상품은 폐지·비활성으로 둔다.
 // 속성(순자산·총보수는 Nasdaq summary, 상장일·평균 거래대금은 Yahoo chart)은 받은 값만 덮어쓴다.
-import { US_EQUITY_TIME_ZONE } from '../calc/tradingCalendar.ts';
+import { dateInZone, US_EQUITY_TIME_ZONE } from '../calc/tradingCalendar.ts';
 import { classifyUsListings, US_ETP_MAP, type UsEtpMapping } from '../sources/usEtpMap.ts';
 import type { NasdaqEtpSource, UsListing } from '../sources/nasdaqEtp.ts';
 import type { YahooEtpSource } from '../sources/yahooEtp.ts';
@@ -42,9 +42,6 @@ export interface UsEtpStore {
   usProducts(): Promise<KnownUsEtp[]>;
   applyUsSync(sync: UsEtpSync, at: { baseDate: string; collectedAt: Date }): Promise<void>;
 }
-
-const newYorkDate = (at: Date) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: US_EQUITY_TIME_ZONE }).format(at);
 
 const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
@@ -139,7 +136,7 @@ export async function syncUsEtps({
       )
       .map((product) => product.id),
   };
-  const baseDate = newYorkDate(now);
+  const baseDate = dateInZone(now, US_EQUITY_TIME_ZONE);
   await store.applyUsSync(sync, { baseDate, collectedAt: now });
   log(
     `[etp US ${baseDate}] ${mapped.length} mapped ` +

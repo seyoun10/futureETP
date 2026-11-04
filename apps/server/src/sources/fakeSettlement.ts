@@ -1,7 +1,7 @@
 // dev 전용 가짜 정산 소스(D-071). 날짜·월물로 정해지는 값이라 다시 받아도 같다(정정 없음).
 // 실소스 연결(5-4) 전까지 DAILY_SETTLE 흐름을 dev DB에서 돌려 보는 데 쓴다.
 import type { CommodityCode } from '@futureetp/shared';
-import { addDays } from '../calc/tradingCalendar.ts';
+import { addDays, DAY_MS } from '../calc/tradingCalendar.ts';
 import { parseContractSymbol, toContractSymbol } from '../calc/contractSymbol.ts';
 import type { ContractDefinition, SettlementSource, SourceBar } from './settlement.ts';
 
@@ -9,7 +9,6 @@ const BASE_PRICE: Record<CommodityCode, number> = { GC: 2400, SI: 30, CL: 75, NG
 const DECIMALS: Record<CommodityCode, number> = { GC: 1, SI: 3, CL: 2, NG: 3 };
 // 상장 월물 수(이번 달부터)
 const LISTED_MONTHS = 24;
-const DAY_MS = 86_400_000;
 
 const monthOffset = (contractMonth: string, months: number) => {
   const [y, m] = contractMonth.split('-').map(Number);

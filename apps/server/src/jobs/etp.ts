@@ -5,7 +5,7 @@
 // 그다음 상장 중인 시리즈로 상품별 순자산(기준일)과 최근 20거래일 평균 거래대금을 덮어쓴다.
 // 끝으로 운용사 주소(고정표)와 ETF 총보수(네이버, 비공식이라 실패해도 작업은 계속)를 채운다.
 import { etpProductMetrics, type EtpMetrics } from '../calc/etpMetrics.ts';
-import { addDays, KRX_TIME_ZONE } from '../calc/tradingCalendar.ts';
+import { addDays, dateInZone, KRX_TIME_ZONE } from '../calc/tradingCalendar.ts';
 import { planKrxEtpSeries, type EtpSeriesPlan, type KnownEtpProduct } from '../calc/etpSeries.ts';
 import { krxIssuerUrl } from '../sources/krxIssuerUrls.ts';
 import {
@@ -46,9 +46,6 @@ export interface EtpStore extends UsEtpStore {
   setDetails(details: readonly EtpDetails[]): Promise<void>;
 }
 
-const seoulDate = (at: Date) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone: KRX_TIME_ZONE }).format(at);
-
 // from부터 하루씩 거슬러 목록이 있는 날(거래일)만 낸다. 휴장일·반영 전이면 빈 배열이다
 async function* krxTradingDays(source: KrxEtpSource, from: string, calendarDays: number) {
   for (let i = 0; i < calendarDays; i++) {
@@ -64,7 +61,7 @@ async function* krxTradingDays(source: KrxEtpSource, from: string, calendarDays:
 
 // KRX는 다음 날 08:00 KST에 전일분을 낸다
 async function latestKrxDay(source: KrxEtpSource, now: Date) {
-  const start = addDays(seoulDate(now), -1);
+  const start = addDays(dateInZone(now, KRX_TIME_ZONE), -1);
   for await (const found of krxTradingDays(source, start, KRX_LOOKBACK_DAYS)) return found;
   throw new Error(`KRX: no ETP data in ${KRX_LOOKBACK_DAYS} days before ${start}`);
 }

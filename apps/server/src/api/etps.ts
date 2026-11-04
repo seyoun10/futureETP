@@ -1,8 +1,8 @@
-import { COMMODITY_CODES } from '@futureetp/shared';
 import type { CommodityCode, EtpDetail, EtpList, EtpSummary } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { ApiException } from './errors.ts';
+import { commodityCodeParam } from './params.ts';
 import { ok } from './response.ts';
 
 export type EtpProductRow = Omit<EtpDetail, 'tickers' | 'listedDate' | 'series' | 'collectedAt'> & {
@@ -77,10 +77,8 @@ export async function loadEtpDetail(store: EtpsStore, id: string): Promise<EtpDe
 export function commodityEtpsRoutes(store: EtpsStore) {
   const routes = new Hono();
   routes.get('/:code/etps', async (c) => {
-    const code = z.enum(COMMODITY_CODES).safeParse(c.req.param('code'));
-    if (!code.success)
-      throw new ApiException('NOT_FOUND', `Unknown commodity ${c.req.param('code')}`);
-    return ok(c, await loadEtpList(store, code.data));
+    const code = commodityCodeParam(c.req.param('code'));
+    return ok(c, await loadEtpList(store, code));
   });
   return routes;
 }

@@ -1,4 +1,3 @@
-import { COMMODITY_CODES } from '@futureetp/shared';
 import type { CommodityCode, ContractsChart } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -12,6 +11,7 @@ import type { CommoditiesStore } from './commodities.ts';
 import type { DisparityStore } from './disparity.ts';
 import { beforeSchema, pageRange } from './chartPage.ts';
 import { ApiException } from './errors.ts';
+import { commodityCodeParam } from './params.ts';
 import { ok } from './response.ts';
 
 export type ContractsStore = Pick<
@@ -87,12 +87,10 @@ export async function loadContracts(
 export function contractsRoutes(store: ContractsStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/contracts', async (c) => {
-    const code = z.enum(COMMODITY_CODES).safeParse(c.req.param('code'));
-    if (!code.success)
-      throw new ApiException('NOT_FOUND', `Unknown commodity ${c.req.param('code')}`);
+    const code = commodityCodeParam(c.req.param('code'));
     const before = beforeSchema.safeParse(c.req.query('before'));
     if (!before.success) throw new ApiException('VALIDATION_FAILED', z.prettifyError(before.error));
-    return ok(c, await loadContracts(store, code.data, now(), before.data));
+    return ok(c, await loadContracts(store, code, now(), before.data));
   });
   return routes;
 }

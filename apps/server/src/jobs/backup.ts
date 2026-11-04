@@ -1,9 +1,9 @@
 // 백업 BACKUP(D-045, D-046). 매일 16:30 CT에 pg_dump 덤프를 만들고 최근 7개만 둔 뒤 보관 기간이 지난 행을 지운다.
 // 지우기 전 덤프가 있어야 하므로 덤프가 실패하면 지우지 않는다. 처리 거래일이 없어 ctx.tradeDate는 채우지 않는다.
+import { DAY_MS } from '../calc/tradingCalendar.ts';
 import type { JobHandler } from './runner.ts';
 
 export const BACKUP_KEEP = 7;
-const DAY_MS = 24 * 60 * 60 * 1000;
 export const SNAPSHOT_RETENTION_DAYS = 90;
 export const RECORD_RETENTION_DAYS = 365;
 

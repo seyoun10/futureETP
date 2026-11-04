@@ -1,6 +1,7 @@
 // 미국 ETP 상장일과 일별 거래대금(D-017, D-099). Yahoo chart는 crumb 없이 받는다(quoteSummary는 crumb이 필요해 쓰지 않는다).
 // 상장일은 meta.firstTradeDate(거래소 시간대 날짜), 거래대금은 일봉 종가 × 거래량이다.
 import { z } from 'zod';
+import { dateInZone } from '../calc/tradingCalendar.ts';
 import { USER_AGENT } from './yahooIntraday.ts';
 
 const BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
@@ -46,9 +47,6 @@ export interface YahooEtpSource {
   daily(symbol: string): Promise<YahooEtpDaily>;
 }
 
-const dateIn = (timeZone: string, epochSeconds: number) =>
-  new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date(epochSeconds * 1000));
-
 export function createYahooEtpSource({
   fetchFn = fetch,
 }: { fetchFn?: typeof fetch } = {}): YahooEtpSource {
@@ -72,7 +70,7 @@ export function createYahooEtpSource({
         listedDate:
           meta.firstTradeDate == null
             ? null
-            : dateIn(meta.exchangeTimezoneName, meta.firstTradeDate),
+            : dateInZone(new Date(meta.firstTradeDate * 1000), meta.exchangeTimezoneName),
         tradingValues,
       };
     },

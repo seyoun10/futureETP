@@ -1,7 +1,7 @@
 // CME 거래일·장 상태 판정(D-022, D-047, D-048, D-062). freshness와 배치가 함께 쓴다.
 // 정산 여부는 호출자가 일일 정산 ①이 성공한 가장 최근 거래일(lastSettledTradeDate)로 넘긴다.
 import type { MarketState } from '@futureetp/shared';
-import { CME_TIME_ZONE, zonedTimeToUtc } from './tradingCalendar.ts';
+import { CME_TIME_ZONE, MINUTE_MS, zonedTimeToUtc } from './tradingCalendar.ts';
 
 // trading_day 행. 과거 행(D-048)은 세션 시각이 비어 있어 판정에 쓰지 않는다.
 export type TradingDaySession = {
@@ -12,15 +12,14 @@ export type TradingDaySession = {
   haltEndAt: Date | null;
 };
 
-const MINUTE = 60_000;
 // 일일 정산 시작 시각(CT). jobs/scheduler.ts TRIGGERS의 cron도 이 값으로 만든다(D-019, D-101).
 export const SETTLE_AT = '16:05';
 // 일일 정산 ① 예상 소요(D-047). Massive 실측 약 23분(D-101)
-export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE;
+export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE_MS;
 // 장중 배치 예상 소요. 실측 5~8초에 여유를 둔 값이다(D-062).
-export const INTRADAY_EXPECTED_MS = MINUTE;
+export const INTRADAY_EXPECTED_MS = MINUTE_MS;
 // 장중 배치는 CT :00/:15/:30/:45. CT 오프셋이 정시 단위라 UTC 15분 배수와 같다.
-export const INTRADAY_SLOT_MS = 15 * MINUTE;
+export const INTRADAY_SLOT_MS = 15 * MINUTE_MS;
 
 export type MarketStatus = {
   state: MarketState;
