@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { tapHaptic } from '@/lib/haptics';
-import { colors } from '@/theme/tokens';
+import { colors, size } from '@/theme/tokens';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
@@ -39,8 +39,8 @@ const BADGE_SIZE = 9;
 
 const styles = StyleSheet.create({
   button: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: size.touchTarget,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
   },

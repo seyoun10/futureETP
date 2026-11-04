@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { DEFAULT_PERIOD } from '@/charts/chartPeriods';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 
-type ChartKind = 'disparity' | 'contract';
+export type ChartKind = 'disparity' | 'contract';
 type PeriodState = [ChartPeriod, (period: ChartPeriod) => void];
 
 const ChartPeriodContext = createContext<Record<ChartKind, PeriodState> | null>(null);

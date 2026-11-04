@@ -9,7 +9,7 @@ import { SectionHeader } from '@/features/settings/SectionHeader';
 import { errorText } from '@/features/settings/SettingsScreen';
 import { useSettings, useUpdateSettings } from '@/features/settings/useSettings';
 import { usePushPermission } from '@/push/usePushPermission';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, radius, size, spacing } from '@/theme/tokens';
 import { QuietTimeSection } from './QuietTimeSection';
 
 // 선택지 '없음'은 alertCommodity null(알림 끔)이다
@@ -126,10 +126,10 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
   button: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
-    borderRadius: 4,
+    borderRadius: radius.sm,
     backgroundColor: colors.surfaceSelected,
   },
   buttonText: {

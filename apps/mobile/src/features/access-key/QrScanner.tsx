@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { CameraView } from 'expo-camera';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 
 type Props = {
   // 읽은 QR 내용. 받아들였으면 true를 돌려주고, 그 뒤 들어오는 같은 QR은 무시한다.
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   button: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: spacing.sm,

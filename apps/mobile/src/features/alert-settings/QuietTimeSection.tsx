@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 
 type QuietTime = Settings['quietTime'];
 type Edge = 'startMin' | 'endMin';
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 44,
+    minHeight: size.touchTarget,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
   },
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
   timeButton: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
     borderRadius: spacing.sm,
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.backdrop,
   },
   sheet: {
     maxHeight: '60%',
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   slot: {
     width: '22%',
-    minHeight: 44,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: spacing.sm,

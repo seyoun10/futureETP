@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { formatFullDate, fromPickerDate, toPickerDate } from './curveModel';
 
 // 기준일 선택(screens.md C-b 기준일 선택 시트). 범위 밖 날짜는 OS 피커가 막고, 휴장일은 서버가 옮긴다(D-090).
@@ -101,7 +101,7 @@ function SheetButton({ label, onPress }: { label: string; onPress: () => void })
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.backdrop,
   },
   sheet: {
     gap: spacing.sm,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   button: {
     minWidth: 96,
-    minHeight: 44,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
   },

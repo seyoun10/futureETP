@@ -4,14 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
-import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
-import type { ChartPeriod } from '@/charts/chartPeriods';
 import { LinesChart } from '@/charts/LinesChart';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { LegendLine } from '@/charts/LegendLine';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
-import type { ChartGesture } from '@/charts/useChartViewport';
 import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
@@ -19,7 +16,7 @@ import { QueryStateView } from '@/components/QueryStateView';
 import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
-import { useChartPeriod } from '../ChartPeriodProvider';
+import { useChartPeriodView } from '../useChartPeriodView';
 import { useCommodityCode } from '../useCommodityCode';
 import {
   contractChartModel,
@@ -67,11 +64,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   );
   useEffect(() => perfMark('view committed'), []);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
-  const [period, setPeriod] = useChartPeriod('contract');
-  // 제스처로 범위를 바꾸면 기간 맞춤을 멈춘다. 선택 표시는 핀치(확대·축소)일 때만 지운다.
-  // 고른 기간은 그대로 둔다
-  const [gesture, setGesture] = useState<ChartGesture | null>(null);
-  const [range, setRange] = useState<[number, number] | null>(null);
+  const { range, chartProps, chipProps } = useChartPeriodView('contract', data.dates.length);
   useOlderPages(range?.[0] ?? null, older);
   // 끝값 라벨은 보이는 범위의 마지막 날 값이다(D-093). 범위를 받기 전에는 전체 범위
   const endLabels = useMemo(
@@ -79,17 +72,6 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
     [data, range],
   );
 
-  const onSelectPeriod = (next: ChartPeriod) => {
-    setPeriod(next);
-    setGesture(null);
-  };
-  // 한 번 핀치하면 이후 드래그해도 선택 표시를 되살리지 않는다. 기간 범위로 돌아오면(null) 처음 상태다
-  const onViewChange = useCallback(
-    (next: ChartGesture | null) =>
-      setGesture((prev) => (next !== null && prev === 'zoom' ? prev : next)),
-    [],
-  );
-  const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
   const renderDetail = useCallback(
     (index: number) => <CrosshairDetail data={data} model={model} index={index} />,
     [data, model],
@@ -113,25 +95,14 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
           endLabels={endLabels}
           widestLabels={model.widestLabels}
           priceDecimals={data.priceDecimals}
-          periodBars={gesture ? null : PERIOD_BARS[period]}
-          onViewChange={onViewChange}
-          onVisibleRangeChange={onVisibleRangeChange}
+          {...chartProps}
           renderDetail={renderDetail}
           overlayTop={<Legend model={model} />}
-          onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>
-      <PeriodChips
-        selected={gesture === 'zoom' ? null : period}
-        nearest={
-          gesture === 'zoom' && range
-            ? nearestPeriod(range[1] - range[0] + 1, data.dates.length)
-            : null
-        }
-        onSelect={onSelectPeriod}
-      />
+      <PeriodChips {...chipProps} />
     </>
   );
 }

@@ -1168,7 +1168,7 @@
   - 표시 설정 store(`src/stores/displaySettings.ts`)는 `language`(`ko`|`en`)·`upDownStyle`(`KR`|`US`)·`disparityPeriod`·`contractPeriod`(`3M`~`10Y`|`ALL`, 기본 12M)만 persist한다. 키 `display-settings`, version 1. (기간 목록·version은 D-102, 기간 persist는 D-107로 대체) 제스처로 기간 선택이 풀린 상태는 화면 상태라 저장하지 않는다.
   - 저장소는 `expo-sqlite/kv-store`의 `Storage`를 `getItemSync`·`setItemSync`·`removeItemSync`로 감싸 넘긴다. persist 복원이 동기라 첫 렌더부터 저장된 언어·색이다.
   - 기기 기본값: 첫 기기 언어가 `ko`면 한국어, 그 밖은 영어. 첫 기기 지역이 `KR`이면 한국식, 그 밖은 미국식.
-  - 테마 토큰(`src/theme/tokens.ts`)은 `colors`(배경·표면·글자·차트: 격자·눈금·십자선·현재가 회색·이평선 노랑·rare-level 5색)·`spacing`·`fontSize`다. rare-level 색은 연보라 → 진보라 5단계를 순위(0 = 가장 덜 드묾)로 고른다. 정확한 값은 차트 본 구현 때 실기기에서 조정한다.
+  - 테마 토큰(`src/theme/tokens.ts`)은 `colors`(배경·표면·글자·차트: 격자·눈금·십자선·현재가 회색·이평선 노랑·rare-level 5색, 모달 배경 `backdrop`)·`spacing`·`fontSize`·`radius`·`size`(`touchTarget` 44pt)다. 최소 터치 영역·모서리 반경은 숫자 대신 토큰을 쓴다. rare-level 색은 연보라 → 진보라 5단계를 순위(0 = 가장 덜 드묾)로 고른다. 정확한 값은 차트 본 구현 때 실기기에서 조정한다.
   - 등락 색(`src/theme/upDownColor.ts`): 한국식 상승 `#ef5350`·하락 `#42a5f5`, 미국식 상승 `#26a69a`·하락 `#ef5350`, 0·NaN은 `colors.neutral`. 차트·목록은 `changeColor(change, palette)`와 `useUpDownPalette()`로 읽는다.
   - i18n은 `createInstance()` 인스턴스를 `setupI18n()`(루트 `_layout`에서 호출)으로 동기 초기화(`initAsync: false`)한다. 언어는 표시 설정을 따르고 store를 구독해 바꾼다. fallback은 `ko`.
   - 번역 기준은 `locales/ko.ts`이고 i18next 모듈 확장으로 키를 타입 검사한다. `en`은 `ko`와 같은 구조의 `Translation` 타입이라 키가 빠지면 타입 오류다. `errors`는 `Record<AppErrorCode, string>`이라 코드가 늘면 문구 누락이 타입 오류다.

@@ -5,12 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CandleChart } from '@/charts/CandleChart';
-import { nearestPeriod, PERIOD_BARS } from '@/charts/chartPeriods';
-import type { ChartPeriod } from '@/charts/chartPeriods';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
 import { PeriodChips } from '@/charts/PeriodChips';
-import type { ChartGesture } from '@/charts/useChartViewport';
 import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
@@ -24,7 +21,7 @@ import {
 import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { changeColor, changePairColor, useUpDownPalette } from '@/theme/upDownColor';
-import { useChartPeriod } from '../ChartPeriodProvider';
+import { useChartPeriodView } from '../useChartPeriodView';
 import { useCommodityCode } from '../useCommodityCode';
 import {
   disparityChartModel,
@@ -96,23 +93,8 @@ function DisparityChartView({
     [data],
   );
   useEffect(() => perfMark('view committed'), []);
-  const [period, setPeriod] = useChartPeriod('disparity');
-  // 제스처로 범위를 바꾸면 기간 맞춤을 멈춘다. 선택 표시는 핀치(확대·축소)일 때만 지운다.
-  // 고른 기간은 그대로 둔다
-  const [gesture, setGesture] = useState<ChartGesture | null>(null);
-  const [range, setRange] = useState<[number, number] | null>(null);
+  const { range, chartProps, chipProps } = useChartPeriodView('disparity', model.bars.length);
 
-  const onSelectPeriod = (next: ChartPeriod) => {
-    setPeriod(next);
-    setGesture(null);
-  };
-  // 한 번 핀치하면 이후 드래그해도 선택 표시를 되살리지 않는다. 기간 범위로 돌아오면(null) 처음 상태다
-  const onViewChange = useCallback(
-    (next: ChartGesture | null) =>
-      setGesture((prev) => (next !== null && prev === 'zoom' ? prev : next)),
-    [],
-  );
-  const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
   useOlderPages(range?.[0] ?? null, older);
   // y축 라벨·점선은 보이는 마지막 봉 값. 새로 조회해 봉이 줄었을 수 있어 봉 안으로 자른다
   const labelIndex = Math.min(range?.[1] ?? Infinity, model.bars.length - 1);
@@ -141,9 +123,7 @@ function DisparityChartView({
           guidePrice={model.bars[labelIndex].close}
           priceDecimals={data.priceDecimals}
           roll={model.roll}
-          periodBars={gesture ? null : PERIOD_BARS[period]}
-          onViewChange={onViewChange}
-          onVisibleRangeChange={onVisibleRangeChange}
+          {...chartProps}
           renderDetail={renderDetail}
           overlayTop={
             <>
@@ -151,20 +131,11 @@ function DisparityChartView({
               <StatsLine data={data} bars={model.bars} range={range} />
             </>
           }
-          onResetView={gesture ? () => setGesture(null) : undefined}
           locked={older.isFetchingNextPage}
         />
         <OlderDataIndicator visible={older.isFetchingNextPage} />
       </View>
-      <PeriodChips
-        selected={gesture === 'zoom' ? null : period}
-        nearest={
-          gesture === 'zoom' && range
-            ? nearestPeriod(range[1] - range[0] + 1, model.bars.length)
-            : null
-        }
-        onSelect={onSelectPeriod}
-      />
+      <PeriodChips {...chipProps} />
     </>
   );
 }

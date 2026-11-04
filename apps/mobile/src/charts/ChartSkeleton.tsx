@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useIsLandscape } from '@/lib/orientation';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, size, spacing } from '@/theme/tokens';
 import { PERIOD_CHIPS_HEIGHT } from './PeriodChips';
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 };
 
 const GRID_LINES = 5;
-const STEP_SIZE = 44;
+const STEP_SIZE = size.touchTarget;
 
 // 차트 탭 첫 조회 중 화면(QueryStateView skeleton). 공용 막대 대신 차트 격자와 아래 줄 자리를 그려
 // 차트가 들어설 자리와 모양을 맞춘다. 캐시가 있으면 보이지 않는다

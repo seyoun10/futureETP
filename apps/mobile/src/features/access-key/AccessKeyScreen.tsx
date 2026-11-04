@@ -11,7 +11,7 @@ import {
 } from '@/api/accessToken';
 import { AppError } from '@/api/AppError';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { QrScanner } from './QrScanner';
 import { useSaveAccessKey } from './useSaveAccessKey';
 
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
   input: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     paddingHorizontal: spacing.md,
     borderRadius: spacing.sm,
     backgroundColor: colors.surface,
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.body,
   },
   button: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: spacing.sm,

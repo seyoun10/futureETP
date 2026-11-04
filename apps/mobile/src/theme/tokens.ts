@@ -14,6 +14,8 @@ export const colors = {
   textSecondary: '#9e9e9e',
   // 등락 0, 데이터 없음 등 방향이 없는 값
   neutral: '#9e9e9e',
+  // 모달 뒤 화면을 어둡게 가리는 배경
+  backdrop: 'rgba(0, 0, 0, 0.5)',
   // 오류 안내 문구(B-b 키 거절, B·B-a 저장 실패, rare-level 입력 오류)
   error: '#ef5350',
   // [⚙] 알림 꺼짐 점
@@ -59,4 +61,14 @@ export const fontSize = {
   body: 14,
   title: 17,
   headline: 22,
+} as const;
+
+export const radius = {
+  sm: 4,
+  md: 6,
+} as const;
+
+export const size = {
+  // 최소 터치 영역(Apple HIG 44pt)
+  touchTarget: 44,
 } as const;

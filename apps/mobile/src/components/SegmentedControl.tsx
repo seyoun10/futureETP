@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { tapHaptic } from '@/lib/haptics';
 
 type Option<T> = { value: T; label: string };
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 44,
+    minHeight: size.touchTarget,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   segment: {
     minHeight: 36,
-    minWidth: 44,
+    minWidth: size.touchTarget,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.md,

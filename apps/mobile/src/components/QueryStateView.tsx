@@ -3,7 +3,7 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppError } from '@/api/AppError';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 
 // 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
 type StateQuery<T> = Pick<UseQueryResult<T>, 'data' | 'error' | 'isError' | 'isFetching'> & {
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retry: {
-    minHeight: 44,
+    minHeight: size.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
     borderRadius: spacing.sm,

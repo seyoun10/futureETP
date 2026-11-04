@@ -16,7 +16,7 @@ import { formatContractMonth, formatContractMonthShort, formatPrice } from '@/li
 import { useIsLandscape } from '@/lib/orientation';
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/components/Icon';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { useCommodityCode } from '../useCommodityCode';
 import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
 import {
@@ -329,8 +329,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   step: {
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: size.touchTarget,
+    minHeight: size.touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: spacing.sm,

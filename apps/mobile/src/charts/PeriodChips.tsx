@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useIsLandscape } from '@/lib/orientation';
 import { CHART_PERIODS } from './chartPeriods';
 import type { ChartPeriod } from './chartPeriods';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, radius, size, spacing } from '@/theme/tokens';
 import { tapHaptic } from '@/lib/haptics';
 
 type PeriodChipsProps = {
@@ -14,7 +14,7 @@ type PeriodChipsProps = {
   onSelect: (period: ChartPeriod) => void;
 };
 
-const CHIP_HEIGHT = 44;
+const CHIP_HEIGHT = size.touchTarget;
 // 칩 줄 높이(ChartSkeleton이 자리를 맞춘다)
 export const PERIOD_CHIPS_HEIGHT = CHIP_HEIGHT;
 
@@ -73,12 +73,12 @@ const styles = StyleSheet.create({
   },
   chipSelected: {
     backgroundColor: colors.surfaceSelected,
-    borderRadius: 6,
+    borderRadius: radius.md,
   },
   chipNearest: {
     borderWidth: 1,
     borderColor: colors.surfaceSelected,
-    borderRadius: 6,
+    borderRadius: radius.md,
   },
   chipText: {
     color: colors.textSecondary,

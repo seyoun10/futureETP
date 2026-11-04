@@ -28,7 +28,7 @@ import {
 } from '@/stores/displaySettings';
 import { Icon } from '@/components/Icon';
 import { KeyboardDoneBar } from '@/components/KeyboardDoneBar';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { tapHaptic } from '@/lib/haptics';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 44,
+    minHeight: size.touchTarget,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderBottomWidth: 1,

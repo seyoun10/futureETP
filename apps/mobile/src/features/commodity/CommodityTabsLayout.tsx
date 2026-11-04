@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { TabFreshnessFooter } from '@/components/FreshnessLine';
 import { lockPortrait, useIsLandscape } from '@/lib/orientation';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, radius, size, spacing } from '@/theme/tokens';
 import { tapHaptic } from '@/lib/haptics';
 import { CommodityTitleBar } from './CommodityTitleBar';
 
@@ -83,7 +83,7 @@ export function CommodityTabsLayout() {
 }
 
 // 기간 칩 높이·모서리와 같다
-const TAB_ITEM_HEIGHT = 44;
+const TAB_ITEM_HEIGHT = size.touchTarget;
 
 const styles = StyleSheet.create({
   tabBar: {
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   tabItem: {
     alignSelf: 'center',
     height: TAB_ITEM_HEIGHT,
-    borderRadius: 6,
+    borderRadius: radius.md,
     // 안쪽 버튼의 선택 배경을 둥근 모서리로 자른다
     overflow: 'hidden',
   },
