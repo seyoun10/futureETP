@@ -93,11 +93,9 @@ describe('C-b 월물커브', () => {
   it('기준일 없이 조회하고 범례·기준일·수치 요약을 보여 준다', async () => {
     await renderScreen();
 
-    expect(await screen.findByTestId('curve-base-date')).toHaveTextContent('2026/10/21 (D-1)');
+    expect(await screen.findByTestId('curve-base-date')).toHaveTextContent('2026/10/21');
     expect(mockGet).toHaveBeenCalledWith('NG', null, expect.anything());
-    expect(screen.getByTestId('curve-legend')).toHaveTextContent(
-      '╌╌ 기준일 10/21 종가 ── 현재 10/22',
-    );
+    expect(screen.getByTestId('curve-legend')).toHaveTextContent('╌╌ 10/21 ── 10/22');
     expect(screen.getByTestId('curve-state')).toHaveTextContent(
       '콘탱고 (M1→M2) · DEC26→JAN27 +9.0%',
     );
@@ -111,12 +109,12 @@ describe('C-b 월물커브', () => {
     ]);
   });
 
-  it('D-1에서는 + 와 0이 비활성이고, - 는 앞 거래일로 다시 조회한다', async () => {
+  it('D-1에서는 + 가 비활성이고 되돌리기 버튼이 없으며, - 는 앞 거래일로 다시 조회한다', async () => {
     await renderScreen();
     await screen.findByTestId('curve-base-date');
 
     expect(screen.getByRole('button', { name: '기준일을 1 거래일 뒤로' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '기준일을 D-1로' })).toBeDisabled();
+    expect(lastChartProps().onResetView).toBeUndefined();
 
     mockGet.mockResolvedValue({
       ...DATA,
@@ -129,15 +127,14 @@ describe('C-b 월물커브', () => {
     await fireEvent.press(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' }));
 
     expect(mockGet).toHaveBeenLastCalledWith('NG', '2026-10-20', expect.anything());
-    expect(await screen.findByText('2026/10/20 (D-2)')).toBeOnTheScreen();
+    expect(await screen.findByText('2026/10/20')).toBeOnTheScreen();
     // 비교 커브는 기준일 다음 거래일 종가다(D-114)
-    expect(screen.getByTestId('curve-legend')).toHaveTextContent(
-      '╌╌ 기준일 10/20 종가 ── 비교일 10/21 종가',
-    );
-    expect(screen.getByRole('button', { name: '기준일을 D-1로' })).toBeEnabled();
+    expect(screen.getByTestId('curve-legend')).toHaveTextContent('╌╌ 10/20 ── 10/21');
+    expect(lastChartProps().onResetView).toBeDefined();
+    expect(lastChartProps().resetLabel).toBe('기준일을 최근 거래일로');
   });
 
-  it('+ 로 D-1에 오거나 0을 누르면 기본값(null) 조회 key로 돌아간다', async () => {
+  it('+ 로 D-1에 오거나 되돌리기를 누르면 기본값(null) 조회 key로 돌아간다', async () => {
     const D2 = {
       ...DATA,
       baseDate: '2026-10-20',
@@ -149,12 +146,16 @@ describe('C-b 월물커브', () => {
     await renderScreen();
     await screen.findByTestId('curve-base-date');
 
-    for (const name of ['기준일을 1 거래일 뒤로', '기준일을 D-1로']) {
+    const back = [
+      () => fireEvent.press(screen.getByRole('button', { name: '기준일을 1 거래일 뒤로' })),
+      () => act(() => lastChartProps().onResetView?.()),
+    ];
+    for (const press of back) {
       await fireEvent.press(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' }));
-      expect(await screen.findByText('2026/10/20 (D-2)')).toBeOnTheScreen();
+      expect(await screen.findByText('2026/10/20')).toBeOnTheScreen();
 
-      await fireEvent.press(screen.getByRole('button', { name }));
-      expect(await screen.findByText('2026/10/21 (D-1)')).toBeOnTheScreen();
+      await press();
+      expect(await screen.findByText('2026/10/21')).toBeOnTheScreen();
     }
     // D-1을 날짜로 따로 조회하지 않는다
     expect(new Set(mockGet.mock.calls.map((c) => c[1]))).toEqual(new Set([null, '2026-10-20']));
@@ -172,7 +173,7 @@ describe('C-b 월물커브', () => {
     await renderScreen();
 
     expect(await screen.findByTestId('curve-legend')).toHaveTextContent(
-      '╌╌ 기준일 2010/06/07 종가 ── 비교일 2010/06/08 종가',
+      '╌╌ 2010/06/07 ── 2010/06/08',
     );
     expect(screen.getByRole('button', { name: '기준일을 1 거래일 앞으로' })).toBeDisabled();
   });
@@ -245,7 +246,7 @@ describe('C-b 월물커브', () => {
     });
 
     const openSheet = async () => {
-      await fireEvent.press(await screen.findByRole('button', { name: '2026/10/21 (D-1)' }));
+      await fireEvent.press(await screen.findByRole('button', { name: '2026/10/21' }));
       return screen.getByTestId('base-date-picker');
     };
     const pick = (picker: ReturnType<typeof screen.getByTestId>, y: number, m: number, d: number) =>
@@ -272,7 +273,7 @@ describe('C-b 월물커브', () => {
         expect(await screen.findByTestId('curve-moved')).toHaveTextContent(
           '휴장일이라 10/15(목)로 옮겼습니다',
         );
-        expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/15 (D-5)');
+        expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/15');
         expect(screen.queryByText('기준일 선택')).toBeNull();
 
         await act(() => jest.advanceTimersByTime(3000));
@@ -294,7 +295,7 @@ describe('C-b 월물커브', () => {
       expect(screen.queryByText('기준일 선택')).toBeNull();
 
       expect(mockGet.mock.calls.map((c) => c[1])).toEqual([null]);
-      expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/21 (D-1)');
+      expect(screen.getByTestId('curve-base-date')).toHaveTextContent('2026/10/21');
     });
 
     it('거래일을 고르면 안내 없이 옮기고, D-1을 고르면 기본값 key로 돌아간다', async () => {
@@ -302,13 +303,13 @@ describe('C-b 월물커브', () => {
 
       await pick(await openSheet(), 2026, 10, 20);
       await fireEvent.press(screen.getByRole('button', { name: '확인' }));
-      expect(await screen.findByText('2026/10/20 (D-2)')).toBeOnTheScreen();
+      expect(await screen.findByText('2026/10/20')).toBeOnTheScreen();
       expect(screen.queryByTestId('curve-moved')).toBeNull();
 
-      await fireEvent.press(screen.getByRole('button', { name: '2026/10/20 (D-2)' }));
+      await fireEvent.press(screen.getByRole('button', { name: '2026/10/20' }));
       await pick(screen.getByTestId('base-date-picker'), 2026, 10, 21);
       await fireEvent.press(screen.getByRole('button', { name: '확인' }));
-      expect(await screen.findByText('2026/10/21 (D-1)')).toBeOnTheScreen();
+      expect(await screen.findByText('2026/10/21')).toBeOnTheScreen();
       expect(new Set(mockGet.mock.calls.map((c) => c[1]))).toEqual(new Set([null, '2026-10-20']));
     });
   });

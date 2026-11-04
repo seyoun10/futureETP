@@ -92,13 +92,9 @@ export const en: Translation = {
     },
   },
   curve: {
-    legendBase: 'Base {{date}} settle',
-    legendCurrent: 'Now {{date}}',
-    legendCompare: 'Compare {{date}} close',
-    baseDate: '{{date}} (D-{{n}})',
     prev: 'Move base date 1 trading day earlier',
     next: 'Move base date 1 trading day later',
-    reset: 'Reset base date to D-1',
+    reset: 'Back to the latest base date',
     state: {
       CONTANGO: 'Contango',
       BACKWARDATION: 'Backwardation',

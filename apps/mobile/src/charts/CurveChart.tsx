@@ -25,6 +25,7 @@ import { formatPrice } from '@/lib/formatNumber';
 import { colors, spacing } from '@/theme/tokens';
 import { changeColor, useUpDownPalette } from '@/theme/upDownColor';
 import { GUIDE_DASH } from './chartLayout';
+import { ChartResetButton } from './ChartResetButton';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { CHART_FONT_SIZE, numberFont } from './chartText';
@@ -53,6 +54,9 @@ type CurveChartProps = {
   overlayTop?: ReactNode;
   overlayBottom?: ReactNode;
   floating?: ReactNode;
+  // 있으면 floating 아래(아래 정보 줄 위)에 되돌리기 버튼을 띄운다. 누르면 십자선·상세 박스도 지운다
+  onResetView?: () => void;
+  resetLabel?: string;
 };
 
 const TICK_COUNT = 5;
@@ -77,6 +81,8 @@ export const CurveChart = memo(function CurveChart({
   overlayTop,
   overlayBottom,
   floating,
+  onResetView,
+  resetLabel,
 }: CurveChartProps) {
   const palette = useUpDownPalette();
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -444,7 +450,22 @@ export const CurveChart = memo(function CurveChart({
         top={overlayTop}
         bottom={overlayBottom}
         bottomOffset={BOTTOM}
-        floating={floating}
+        floating={
+          onResetView ? (
+            <View style={styles.floating} pointerEvents="box-none">
+              {floating}
+              <ChartResetButton
+                accessibilityLabel={resetLabel}
+                onPress={() => {
+                  hideCrosshair();
+                  onResetView();
+                }}
+              />
+            </View>
+          ) : (
+            floating
+          )
+        }
         onInsets={setOverlay}
       />
       {selected !== null && points[selected] && (
@@ -467,5 +488,9 @@ const styles = StyleSheet.create({
   },
   detail: {
     position: 'absolute',
+  },
+  floating: {
+    alignItems: 'center',
+    gap: spacing.sm,
   },
 });

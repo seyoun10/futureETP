@@ -5,7 +5,7 @@ import { colors, spacing } from '@/theme/tokens';
 import { PERIOD_CHIPS_HEIGHT } from './PeriodChips';
 
 type Props = {
-  // 차트 아래 줄 모양. periods = 기간 칩(C-a·C-c), steps = 기준일 −/+/0(C-b)
+  // 차트 아래 줄 모양. periods = 기간 칩(C-a·C-c), steps = 기준일 −/날짜/+(C-b)
   footer: 'periods' | 'steps';
 };
 
@@ -40,7 +40,6 @@ export function ChartSkeleton({ footer }: Props) {
         <View style={[styles.footer, styles.steps]}>
           <View style={styles.step} />
           <View style={[styles.step, styles.baseDate]} />
-          <View style={styles.step} />
           <View style={styles.step} />
         </View>
       )}

@@ -99,13 +99,9 @@ export const ko = {
   },
   // C-b 월물커브 범례·기준일 버튼·수치 요약·툴팁(screens.md C-b)
   curve: {
-    legendBase: '기준일 {{date}} 종가',
-    legendCurrent: '현재 {{date}}',
-    legendCompare: '비교일 {{date}} 종가',
-    baseDate: '{{date}} (D-{{n}})',
     prev: '기준일을 1 거래일 앞으로',
     next: '기준일을 1 거래일 뒤로',
-    reset: '기준일을 D-1로',
+    reset: '기준일을 최근 거래일로',
     state: {
       CONTANGO: '콘탱고',
       BACKWARDATION: '백워데이션',

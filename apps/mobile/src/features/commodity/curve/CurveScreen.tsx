@@ -114,8 +114,6 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
     [data],
   );
   const currentDate = data.freshness.tradeDate;
-  // 비교일이 D면 '현재', 지난 거래일이면 그날 종가(D-114)
-  const compareIsCurrent = data.compareDate === currentDate;
   const [stateLine, rollLine] = curveSummaryLines(t, data);
   const range = {
     value: data.baseDate,
@@ -146,15 +144,18 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             formatPct={formatCurvePct}
             pctDecimals={CURVE_PCT_DECIMALS}
             renderDetail={renderDetail}
+            // 기준일을 과거로 옮겼을 때만 C-a·C-c 같은 되돌리기 버튼(D-115)
+            onResetView={
+              data.baseDate === data.maxBaseDate ? undefined : () => onChangeBaseDate(null)
+            }
+            resetLabel={t('curve.reset')}
             overlayTop={
               <Text style={styles.line} numberOfLines={1} testID="curve-legend">
                 <Text style={styles.legendBase}>{'╌╌ '}</Text>
-                {t('curve.legendBase', { date: formatLegendDate(data.baseDate, currentDate) })}
+                {formatLegendDate(data.baseDate, currentDate)}
                 {'   '}
                 <Text style={styles.legendCurrent}>{'── '}</Text>
-                {t(compareIsCurrent ? 'curve.legendCurrent' : 'curve.legendCompare', {
-                  date: formatLegendDate(data.compareDate, currentDate),
-                })}
+                {formatLegendDate(data.compareDate, currentDate)}
               </Text>
             }
             overlayBottom={
@@ -196,7 +197,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
             style={styles.step}
           >
             <Text style={styles.baseDate} testID="curve-base-date">
-              {t('curve.baseDate', { date: formatFullDate(data.baseDate), n: data.baseOffset })}
+              {formatFullDate(data.baseDate)}
             </Text>
           </Pressable>
           <StepButton
@@ -211,11 +212,6 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
                       data.nextBaseDate === data.maxBaseDate ? null : data.nextBaseDate,
                     )
             }
-          />
-          <StepButton
-            icon="page-last"
-            accessibilityLabel={t('curve.reset')}
-            onPress={data.baseDate === data.maxBaseDate ? null : () => onChangeBaseDate(null)}
           />
         </View>
       )}
