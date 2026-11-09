@@ -636,10 +636,21 @@ describe('SETTLE_BACKFILL', () => {
   });
 
   it('소스에도 없으면(거래 없던 날) 저장·재계산 없이 성공한다', async () => {
-    const { handlers, bars, recompute } = await settled(['SIZ26|2026-10-27'], () => null);
+    const { handlers, bars, recompute } = await settled(
+      ['SIZ26|2026-10-27'],
+      (symbol, tradeDate) => (symbol === 'SIZ26' && tradeDate === '2026-10-27' ? null : 90),
+    );
     const size = bars.size;
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
     expect(bars.size).toBe(size);
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('저장된 봉이 있는데 소스 응답이 비면 확인하지 못한 것으로 실패한다', async () => {
+    const { handlers, recompute } = await settled([], () => null);
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(
+      /Backfill failed: .*no bars from FAKE/,
+    );
     expect(recompute).not.toHaveBeenCalled();
   });
 

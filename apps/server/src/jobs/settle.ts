@@ -322,6 +322,10 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       if (symbols.length === 0) return;
 
       const fetched = await source.fetchRecentBars(code, symbols, dates[0]);
+      // 저장된 봉이 있는데 하나도 받지 못하면 비교한 것이 아니다
+      if (fetched.length === 0 && [...sourceBars.values()].some((bars) => bars.length > 0)) {
+        throw new Error(`no bars from ${source.name} since ${dates[0]}`);
+      }
       const found = fetched.filter((b) => missing.has(`${b.contractSymbol}|${b.tradeDate}`));
       const revised = dates.flatMap((date) =>
         findRevisedBars(
