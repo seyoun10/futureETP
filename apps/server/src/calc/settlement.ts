@@ -55,13 +55,13 @@ export type BarValues = {
   volume: number;
 };
 
-// 저장된 일봉과 다시 받은 일봉을 비교해 값이 바뀐 것(다시 받은 값)만 돌려준다.
+// 저장된 일봉과 다시 받은 일봉을 비교해 값이 바뀐 것만 저장된 값·다시 받은 값 쌍으로 돌려준다.
 // 저장되지 않은 월물과 소스에서 빠진 월물은 정정으로 보지 않는다.
 // 소스가 비워 보낸 OHLC·거래량(소스 구현에서 null·0)은 저장된 값을 지우지 않는다(D-110)
-export function findRevisedBars<T extends BarValues>(
-  stored: readonly BarValues[],
+export function findRevisedBars<S extends BarValues, T extends BarValues>(
+  stored: readonly S[],
   fetched: readonly T[],
-): T[] {
+): { before: S; after: T }[] {
   const bySymbol = new Map(stored.map((b) => [b.contractSymbol, b]));
   return fetched.flatMap((b) => {
     const s = bySymbol.get(b.contractSymbol);
@@ -79,6 +79,6 @@ export function findRevisedBars<T extends BarValues>(
       s.open !== merged.open ||
       s.high !== merged.high ||
       s.low !== merged.low;
-    return changed ? [merged] : [];
+    return changed ? [{ before: s, after: merged }] : [];
   });
 }

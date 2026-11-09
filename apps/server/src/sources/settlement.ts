@@ -22,6 +22,9 @@ export function tradesOn(
   );
 }
 
+// 주말 보충이 다시 보는 정산 거래일 수이자 소스가 월물마다 줘야 하는 최근 세션 수(D-110)
+export const BACKFILL_DAYS = 10;
+
 export type SourceBar = {
   contractSymbol: string;
   open: number | null;

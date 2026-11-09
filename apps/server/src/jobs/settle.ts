@@ -12,7 +12,7 @@ import {
 } from '../calc/settlement.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { JobName, Source } from '../constants.ts';
-import { tradesOn } from '../sources/settlement.ts';
+import { BACKFILL_DAYS, tradesOn } from '../sources/settlement.ts';
 import type { SettlementSource } from '../sources/settlement.ts';
 import { forEachCommodity, type JobHandler } from './runner.ts';
 
@@ -89,9 +89,6 @@ function loadDays(store: SettleStore, now: Date) {
 // 원자재마다 일봉을 받는 월물 수: 최종 거래일이 가까운 쪽부터. 커브 상한(D-018 당시 24개) + 2.
 // 먼 월물은 지수·커브에 쓰지 않고, 소스 호출 제한(Massive 분당 5회)에 묶인다(D-095)
 export const MAX_SETTLE_CONTRACTS = 26;
-
-// 주말 보충이 다시 보는 정산 거래일 수. Massive는 월물마다 봉이 있는 최근 10세션을 준다(D-110)
-export const BACKFILL_DAYS = 10;
 
 // 평일 정산은 직전 10거래일 동안 지금 소스 봉이 없던 월물(드문 월물)을 건너뛴다. 그 사이 체결은 주말 보충이 채운다(D-110)
 export const SKIP_LOOKBACK_DAYS = 10;
@@ -186,17 +183,14 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
   // 다시 받아 값이 바뀐 봉의 저장 행. 정산가가 바뀔 때만 정정 시각을 찍고 수집 시각을 옮긴다.
   // 거래량·OHLC만 바뀌면 화면 기준 시각(revised_at ?? collected_at)은 그대로다
   function revisedRows(
-    stored: readonly StoredBar[],
-    changed: readonly BarValues[],
+    changed: readonly { before: StoredBar; after: BarValues }[],
     tradeDate: string,
     now: Date,
   ): DailyBarRow[] {
-    const bySymbol = new Map(stored.map((b) => [b.contractSymbol, b]));
-    return changed.map((b) => {
-      const before = bySymbol.get(b.contractSymbol);
-      const settleChanged = before === undefined || before.settle !== b.settle;
+    return changed.map(({ before, after }) => {
+      const settleChanged = before.settle !== after.settle;
       return {
-        ...b,
+        ...after,
         tradeDate,
         source: source.name,
         collectedAt: settleChanged ? now : before.collectedAt,
@@ -301,8 +295,10 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       }
       const changed = findRevisedBars(stored, fetched);
       if (changed.length > 0) {
-        log(`[revision ${code} ${tradeDate}] ${changed.map((b) => b.contractSymbol).join(', ')}`);
-        await saveAndRecompute(code, revisedRows(stored, changed, tradeDate, ctx.now), ctx.now);
+        log(
+          `[revision ${code} ${tradeDate}] ${changed.map((b) => b.after.contractSymbol).join(', ')}`,
+        );
+        await saveAndRecompute(code, revisedRows(changed, tradeDate, ctx.now), ctx.now);
       }
       // 다음 날은 다음 거래일을 확인하므로, 받은 월물의 정정을 반영한 뒤에 실패로 남긴다
       if (lost.length > 0) {
@@ -313,7 +309,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
 
   // 정산 때 빠진 봉을 채운다(D-110): 17:00 CT 뒤 다음 세션으로 넘어갔다가 며칠 뒤 다시 나온 드문 월물 봉,
   // 일부 월물만 반영된 날 등. 지금 소스로 저장한 봉은 다시 받은 값과 비교해 고친다(Massive 값은 며칠 뒤 바뀐다).
-  // 적재 등 다른 소스 봉은 거래량 기준이 달라(D-095) 건드리지 않는다. 바뀐 원자재만 다시 계산한다
+  // 적재 등 다른 소스 봉은 거래량 기준이 달라(D-095) 건드리지 않는다. 바뀐 원자재와 재계산을 끝내지 못한 원자재만 다시 계산한다
   const SETTLE_BACKFILL: JobHandler = async (ctx) => {
     const settled = await store.lastSuccessTradeDate('DAILY_SETTLE');
     const dates = (await loadDays(store, ctx.now))
@@ -373,7 +369,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
           stored,
           fetched.filter((b) => b.tradeDate === date),
         );
-        return revisedRows(stored, changed, date, ctx.now);
+        return revisedRows(changed, date, ctx.now);
       });
       log(
         `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,

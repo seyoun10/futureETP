@@ -10,15 +10,15 @@ import {
 import { toContractSymbol } from '../calc/contractSymbol.ts';
 import type { JobName } from '../constants.ts';
 import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
-import type {
-  ContractDefinition,
-  DatedSourceBar,
-  SettlementSource,
-  SourceBar,
+import {
+  BACKFILL_DAYS,
+  type ContractDefinition,
+  type DatedSourceBar,
+  type SettlementSource,
+  type SourceBar,
 } from '../sources/settlement.ts';
 import type { JobContext } from './runner.ts';
 import {
-  BACKFILL_DAYS,
   createSettleHandlers,
   MAX_SETTLE_CONTRACTS,
   SKIP_LOOKBACK_DAYS,
