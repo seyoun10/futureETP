@@ -250,6 +250,8 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         (b) => b.source === source.name,
       );
       if (stored.length === 0) return;
+      // 이전 시도가 정정만 저장하고 재계산에서 실패했으면 소스 응답과 상관없이 먼저 복구한다
+      if (previousFailed) await recompute(code, ctx.now);
       const fetched = await source.fetchDailyBars(
         code,
         stored.map((b) => b.contractSymbol),
@@ -283,9 +285,6 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       if (changed.length > 0) {
         await store.upsertDailyBars(revisedRows(stored, changed, tradeDate, ctx.now));
         log(`[revision ${code} ${tradeDate}] ${changed.map((b) => b.contractSymbol).join(', ')}`);
-      }
-      // 이전 시도가 정정만 저장하고 재계산에서 실패했어도 다시 계산한다
-      if (changed.length > 0 || previousFailed) {
         await recompute(code, ctx.now);
       }
       // 다음 날은 다음 거래일을 확인하므로, 받은 월물의 정정을 반영한 뒤에 실패로 남긴다
@@ -352,11 +351,19 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         ]),
       ];
       if (symbols.length === 0) return;
+      // 이전 시도가 봉만 저장하고 재계산에서 실패했으면 소스 응답과 상관없이 먼저 복구한다
+      if (previousFailed) await recompute(code, ctx.now);
 
       const fetched = await source.fetchRecentBars(code, symbols, dates[0]);
-      // 저장된 봉이 있는데 하나도 받지 못하면 비교한 것이 아니다
-      if (fetched.length === 0 && [...sourceBars.values()].some((bars) => bars.length > 0)) {
-        throw new Error(`no bars from ${source.name} since ${dates[0]}`);
+      // 저장된 봉이 있는데 그중 하나도 다시 받지 못하면 비교한 것이 아니다(빈 칸의 봉만 온 경우 포함)
+      const storedKeys = new Set(
+        [...sourceBars].flatMap(([date, bars]) => bars.map((b) => `${b.contractSymbol}|${date}`)),
+      );
+      if (
+        storedKeys.size > 0 &&
+        !fetched.some((b) => storedKeys.has(`${b.contractSymbol}|${b.tradeDate}`))
+      ) {
+        throw new Error(`no stored bars from ${source.name} since ${dates[0]}`);
       }
       const found = fetched.filter((b) => missing.has(`${b.contractSymbol}|${b.tradeDate}`));
       const revised = dates.flatMap((date) => {
@@ -370,11 +377,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       log(
         `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,
       );
-      if (found.length === 0 && revised.length === 0) {
-        // 이전 시도가 봉만 저장하고 재계산에서 실패했으면 값이 같아도 다시 계산한다
-        if (previousFailed) await recompute(code, ctx.now);
-        return;
-      }
+      if (found.length === 0 && revised.length === 0) return;
       await store.upsertDailyBars([
         ...found.map((b) => ({
           ...b,

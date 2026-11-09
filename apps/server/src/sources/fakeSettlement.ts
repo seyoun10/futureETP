@@ -3,7 +3,12 @@
 import type { CommodityCode } from '@futureetp/shared';
 import { addDays, DAY_MS } from '../calc/tradingCalendar.ts';
 import { parseContractSymbol, toContractSymbol } from '../calc/contractSymbol.ts';
-import type { ContractDefinition, SettlementSource, SourceBar } from './settlement.ts';
+import type {
+  ContractDefinition,
+  DatedSourceBar,
+  SettlementSource,
+  SourceBar,
+} from './settlement.ts';
 
 const BASE_PRICE: Record<CommodityCode, number> = { GC: 2400, SI: 30, CL: 75, NG: 3 };
 const DECIMALS: Record<CommodityCode, number> = { GC: 1, SI: 3, CL: 2, NG: 3 };
@@ -64,9 +69,14 @@ export function createFakeSettlementSource(): SettlementSource {
     fetchDailyBars(code, symbols, tradeDate) {
       return Promise.resolve(symbols.map((symbol) => fakeBar(code, symbol, tradeDate)));
     },
-    // 그날 모든 월물 봉을 주므로 정산 때 빠진 봉이 없다
-    fetchRecentBars() {
-      return Promise.resolve([]);
+    // from부터 오늘까지의 봉(주말 포함, 거래일 판단은 작업이 한다). 저장한 가짜 봉과 같아 정정은 없고, 빈 칸은 가짜 봉으로 채운다
+    fetchRecentBars(code, symbols, from) {
+      const today = new Date().toISOString().slice(0, 10);
+      const bars: DatedSourceBar[] = [];
+      for (let tradeDate = from; tradeDate <= today; tradeDate = addDays(tradeDate, 1)) {
+        for (const symbol of symbols) bars.push({ ...fakeBar(code, symbol, tradeDate), tradeDate });
+      }
+      return Promise.resolve(bars);
     },
   };
 }

@@ -98,10 +98,19 @@ describe('findRevisedBars', () => {
     expect(findRevisedBars(stored, fetched)).toEqual([bar('CLF27', 76.1), bar('CLG27', 77, 120)]);
   });
 
-  it('고가·저가가 null로 바뀐 것도 정정이다', () => {
-    expect(findRevisedBars([bar('CLZ26', 75)], [{ ...bar('CLZ26', 75), high: null }])).toHaveLength(
-      1,
-    );
+  it('소스가 비워 보낸 OHLC·거래량만 다르면 정정이 아니다', () => {
+    const empty = { ...bar('CLZ26', 75), open: null, high: null, low: null, volume: 0 };
+    expect(findRevisedBars([bar('CLZ26', 75)], [empty])).toEqual([]);
+  });
+
+  it('다른 값이 바뀌어도 비워 보낸 값은 저장된 값을 남긴다', () => {
+    const fetched = { ...bar('CLZ26', 75.5), open: null, volume: 0 };
+    expect(findRevisedBars([bar('CLZ26', 75)], [fetched])).toEqual([bar('CLZ26', 75.5)]);
+  });
+
+  it('저장된 값이 비어 있으면 받은 값으로 채운다', () => {
+    const stored = { ...bar('CLZ26', 75), open: null, volume: 0 };
+    expect(findRevisedBars([stored], [bar('CLZ26', 75)])).toEqual([bar('CLZ26', 75)]);
   });
 
   it('저장되지 않은 월물과 소스에서 빠진 월물은 무시한다', () => {

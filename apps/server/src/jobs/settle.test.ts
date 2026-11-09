@@ -9,6 +9,7 @@ import {
 } from '../calc/tradingCalendar.ts';
 import { toContractSymbol } from '../calc/contractSymbol.ts';
 import type { JobName } from '../constants.ts';
+import { createFakeSettlementSource } from '../sources/fakeSettlement.ts';
 import type {
   ContractDefinition,
   DatedSourceBar,
@@ -689,9 +690,63 @@ describe('SETTLE_BACKFILL', () => {
   it('저장된 봉이 있는데 소스 응답이 비면 확인하지 못한 것으로 실패한다', async () => {
     const { handlers, recompute } = await settled([], () => null);
     await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(
-      /Backfill failed: .*no bars from FAKE/,
+      /Backfill failed: .*no stored bars from FAKE/,
     );
     expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('빈 칸의 봉만 오고 저장된 봉을 하나도 다시 받지 못하면 실패한다', async () => {
+    const gap = 'CLF27|2026-10-30';
+    const { handlers, bars } = await settled([gap], (symbol, tradeDate) =>
+      `${symbol}|${tradeDate}` === gap ? 90 : null,
+    );
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(
+      /CL: no stored bars from FAKE/,
+    );
+    expect(bars.has(gap)).toBe(false);
+  });
+
+  it('직전 실행이 실패면 소스 응답이 비어도 재계산은 먼저 복구한다', async () => {
+    const { handlers, recompute, failedJobs } = await settled([], () => null);
+    failedJobs.add('SETTLE_BACKFILL');
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/no stored bars/);
+    expect(recompute.mock.calls.map(([code]) => code).sort()).toEqual([...COMMODITY_CODES].sort());
+  });
+
+  it('dev 가짜 소스의 봉은 저장된 값과 같아 정정 없이 성공한다', async () => {
+    const fake = createFakeSettlementSource();
+    const env = setup({ DAILY_SETTLE: '2026-10-30' }, testSource());
+    const fakeHandlers = createSettleHandlers({
+      store: env.store,
+      source: fake,
+      recompute: env.recompute,
+      log: () => {},
+    });
+    const symbols = ['CLZ26', 'CLF27'];
+    await env.store.insertContracts(
+      symbols.map((symbol, i) => ({
+        symbol,
+        commodityCode: 'CL',
+        contractMonth: `${i === 0 ? '2026-12' : '2027-01'}`,
+        firstTradeDate: null,
+        lastTradeDate: i === 0 ? '2026-11-20' : '2026-12-18',
+        isTarget: true,
+      })),
+    );
+    for (const tradeDate of DATES) {
+      const stored = await fake.fetchDailyBars('CL', symbols, tradeDate);
+      await env.store.upsertDailyBars(
+        stored.map((b) => ({
+          ...b,
+          tradeDate,
+          source: 'FAKE',
+          collectedAt: NOW,
+          revisedAt: null,
+        })),
+      );
+    }
+    await fakeHandlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(env.recompute).not.toHaveBeenCalled();
   });
 
   it('보충 기간 밖이거나 아직 정산 전인 날의 봉은 받지 않는다', async () => {
