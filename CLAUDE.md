@@ -81,6 +81,7 @@ futureETP: 2026-11-04 기준 5단계 개발 중. 5-1~5-3·5-7·5-9 완료, prod 
 
 - `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트 (커밋 전 필수)
 - `npm run lint` / `npm run format` / `npm run typecheck` / `npm test`
+- 커버리지 측정(추세 확인용, 임계치 없음): `npm run test:coverage`
 - 단일 테스트: 서버·공유(Vitest) `npm test -w apps/server -- src/config.test.ts -t "PORT"`, 앱(Jest) `npm test -w apps/mobile -- CommodityListScreen -t "렌더링"`
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
 - 앱: `npm run start -w apps/mobile`(dev 변형), `npm run android:dev -w apps/mobile`, `npm run ios:dev -w apps/mobile`
