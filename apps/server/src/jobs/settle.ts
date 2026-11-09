@@ -60,7 +60,7 @@ export interface SettleStore {
     from: string,
     to: string,
   ): Promise<{ contractSymbol: string; tradeDate: string }[]>;
-  // 그 거래일 지수(FRONT·KR·US)에 쓴 월물(roll_weight)
+  // 그 거래일 종가 뒤 지수(FRONT·KR·US) 보유 월물(roll_weight)
   indexSymbols(commodityCode: CommodityCode, tradeDate: string): Promise<string[]>;
   // (월물, 거래일)이 있으면 값을 바꾼다
   upsertDailyBars(rows: readonly DailyBarRow[]): Promise<void>;
@@ -216,6 +216,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       log(`[revision] ${tradeDate} already checked`);
       return;
     }
+    const previousDate = days.findLast((d) => d.tradeDate < tradeDate)?.tradeDate;
 
     await forEachCommodity('Revision', async (code) => {
       // 지금 소스로 받은 일봉만 다시 확인한다. 적재 등 다른 소스 일봉은 거래량 기준이 달라(D-095)
@@ -239,10 +240,14 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         .filter((symbol) => !fetchedSymbols.has(symbol));
       let lost: string[] = [];
       if (missing.length > 0) {
-        const indexSymbols = new Set(await store.indexSymbols(code, tradeDate));
-        // 가중치가 없으면 어느 월물을 썼는지 몰라 모두 지수 월물로 본다
-        lost =
-          indexSymbols.size === 0 ? missing : missing.filter((symbol) => indexSymbols.has(symbol));
+        // 그날 지수 봉은 전일 비중으로, 혼합 가격은 그날 비중으로 계산하므로 둘 다 그날 봉을 쓴다
+        const [held, previous] = await Promise.all([
+          store.indexSymbols(code, tradeDate),
+          previousDate === undefined ? [] : store.indexSymbols(code, previousDate),
+        ]);
+        const indexSymbols = new Set([...held, ...previous]);
+        // 그날 가중치가 없으면 어느 월물을 썼는지 몰라 모두 지수 월물로 본다
+        lost = held.length === 0 ? missing : missing.filter((symbol) => indexSymbols.has(symbol));
         if (lost.length === 0) {
           log(
             `[revision ${code} ${tradeDate}] not in ${source.name}, unchecked: ${missing.join(', ')}`,

@@ -453,6 +453,14 @@ describe('SETTLE_REVISION', () => {
     expect(recompute).not.toHaveBeenCalled();
   });
 
+  it('롤 당일 빠져나간 월물(전 거래일 비중에만 있음)이 빠지면 실패한다', async () => {
+    const { handlers, indexSymbols } = await seeded((symbol) => (symbol === 'CLZ26' ? null : 100));
+    indexSymbols.set('CL|2026-10-26', ['CLF27']);
+    // 10-26은 월요일이라 전 거래일은 10-23이다
+    indexSymbols.set('CL|2026-10-23', ['CLZ26']);
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*: CLZ26$/);
+  });
+
   it('지수 가중치가 없으면 빠진 월물을 모두 지수 월물로 보고 실패한다', async () => {
     const { handlers, indexSymbols } = await seeded((symbol) => (symbol === 'CLQ27' ? null : 100));
     indexSymbols.delete('CL|2026-10-26');
