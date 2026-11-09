@@ -4,7 +4,7 @@ import type { JobName } from '../constants.ts';
 import type { SettleStore } from '../jobs/settle.ts';
 import type { db as Db } from './client.ts';
 import { tradingDaysBetween } from './queries.ts';
-import { activeMonthRule, batchRun, contract, dailyBar } from './schema.ts';
+import { activeMonthRule, batchRun, contract, dailyBar, rollWeight } from './schema.ts';
 
 async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string | null> {
   const [row] = await db
@@ -100,6 +100,13 @@ export function createSettleStore(db: typeof Db): SettleStore {
             between(dailyBar.tradeDate, from, to),
           ),
         ),
+    async indexSymbols(code, tradeDate) {
+      const rows = await db
+        .selectDistinct({ contractSymbol: rollWeight.contractSymbol })
+        .from(rollWeight)
+        .where(and(eq(rollWeight.commodityCode, code), eq(rollWeight.tradeDate, tradeDate)));
+      return rows.map((r) => r.contractSymbol);
+    },
     async upsertDailyBars(rows) {
       if (rows.length === 0) return;
       const excluded = (column: string) => sql.raw(`excluded.${column}`);

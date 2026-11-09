@@ -38,6 +38,8 @@ const NOW = ct('2026-10-27', '18:30');
 function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
   const contracts: NewContract[] = [];
   const bars = new Map<string, DailyBarRow>();
+  // `원자재|거래일` → 지수에 쓴 월물
+  const indexSymbols = new Map<string, string[]>();
   const store: SettleStore = {
     tradingDays: (from, to) =>
       Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
@@ -77,12 +79,14 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
             b.tradeDate <= to,
         ),
       ),
+    indexSymbols: (code, tradeDate) =>
+      Promise.resolve(indexSymbols.get(`${code}|${tradeDate}`) ?? []),
     upsertDailyBars(rows) {
       for (const row of rows) bars.set(`${row.contractSymbol}|${row.tradeDate}`, row);
       return Promise.resolve();
     },
   };
-  return { store, contracts, bars };
+  return { store, contracts, bars, indexSymbols };
 }
 
 // 원자재마다 두 월물: 12월물(최종 거래일 11-20), 1월물(12-18). 값은 settle 함수로 바꿀 수 있다
@@ -343,7 +347,7 @@ describe('DAILY_SETTLE', () => {
 });
 
 describe('SETTLE_REVISION', () => {
-  // 10-26 일봉이 저장된 상태에서 10-27 18:30 CT에 돈다. CLQ27은 가까운 2개·대상 월물이 아닌 먼 월물
+  // 10-26 일봉이 저장된 상태에서 10-27 18:30 CT에 돈다. CLQ27은 지수에 쓰지 않는 먼 월물
   async function seeded(settle: (symbol: string, tradeDate: string) => number | null) {
     const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
     await env.store.insertContracts(
@@ -375,41 +379,8 @@ describe('SETTLE_REVISION', () => {
         revisedAt: null,
       })),
     );
-    return env;
-  }
-
-  // 가까운 2개(대상 아님) 뒤에 대상 월물 6개(CLG27~CLN27)가 있다. stored 월물의 10-26 일봉만 저장된 상태
-  const NEAREST = ['CLZ26', 'CLF27'];
-  const TARGETS = ['CLG27', 'CLH27', 'CLJ27', 'CLK27', 'CLM27', 'CLN27'];
-  async function seededTargets(
-    settle: (symbol: string) => number | null,
-    stored: readonly string[] = [...NEAREST, ...TARGETS],
-  ) {
-    const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
-    await env.store.insertContracts(
-      [...NEAREST, ...TARGETS].map((symbol, i) => ({
-        symbol,
-        commodityCode: 'CL',
-        contractMonth: `2027-${String(i + 1).padStart(2, '0')}`,
-        firstTradeDate: null,
-        lastTradeDate: `2027-${String(i + 1).padStart(2, '0')}-20`,
-        isTarget: TARGETS.includes(symbol),
-      })),
-    );
-    await env.store.upsertDailyBars(
-      stored.map((contractSymbol) => ({
-        contractSymbol,
-        tradeDate: '2026-10-26',
-        open: null,
-        high: null,
-        low: null,
-        settle: 100,
-        volume: 10,
-        source: 'FAKE',
-        collectedAt: NOW,
-        revisedAt: null,
-      })),
-    );
+    env.indexSymbols.set('CL|2026-10-26', ['CLZ26', 'CLF27']);
+    env.indexSymbols.set('NG|2026-10-26', ['NGZ26']);
     return env;
   }
 
@@ -440,7 +411,7 @@ describe('SETTLE_REVISION', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG', 'NG']);
   });
 
-  it('소스에서 보호 월물이 빠지면 확인하지 못한 것으로 실패한다', async () => {
+  it('소스에서 지수 월물이 빠지면 확인하지 못한 것으로 실패한다', async () => {
     const { handlers, recompute } = await seeded((symbol) =>
       symbol === 'CLF27' || symbol === 'CLQ27' ? null : 100,
     );
@@ -448,7 +419,7 @@ describe('SETTLE_REVISION', () => {
     expect(recompute).not.toHaveBeenCalled();
   });
 
-  it('보호 월물이 아닌 드문 월물만 빠지면 그 월물은 확인하지 않고 나머지를 정정한다', async () => {
+  it('지수에 쓰지 않는 월물만 빠지면 그 월물은 확인하지 않고 나머지를 정정한다', async () => {
     const { handlers, bars, recompute } = await seeded((symbol) =>
       symbol === 'CLQ27' ? null : symbol === 'CLZ26' ? 101 : 100,
     );
@@ -458,7 +429,7 @@ describe('SETTLE_REVISION', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 
-  it('보호 월물이 빠져도 받은 월물의 정정을 저장·재계산한 뒤 실패한다', async () => {
+  it('지수 월물이 빠져도 받은 월물의 정정을 저장·재계산한 뒤 실패한다', async () => {
     const { handlers, bars, recompute } = await seeded((symbol) =>
       symbol === 'CLF27' ? null : symbol === 'CLZ26' ? 101 : 100,
     );
@@ -467,23 +438,31 @@ describe('SETTLE_REVISION', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 
-  it.each(TARGETS.slice(2, 5))('대상 월물 5개 안의 %s가 빠지면 실패한다', async (lost) => {
-    const { handlers } = await seededTargets((symbol) => (symbol === lost ? null : 100));
-    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(
-      new RegExp(`CL: .*missing.*: ${lost}$`),
-    );
+  it('가까운 월물이 아니어도 지수에 쓴 먼 월물(US 기준)이 빠지면 실패한다', async () => {
+    const { handlers, indexSymbols } = await seeded((symbol) => (symbol === 'CLQ27' ? null : 100));
+    indexSymbols.set('CL|2026-10-26', ['CLZ26', 'CLQ27']);
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*: CLQ27$/);
   });
 
-  it('6번째 대상 월물은 빠져도 통과한다', async () => {
-    const { handlers, recompute } = await seededTargets((symbol) =>
-      symbol === 'CLN27' ? null : 100,
+  it('가까운 월물이어도 지수에 쓰지 않았으면 빠져도 통과한다', async () => {
+    const { handlers, indexSymbols, recompute } = await seeded((symbol) =>
+      symbol === 'CLF27' ? null : 100,
     );
+    indexSymbols.set('CL|2026-10-26', ['CLZ26']);
     await handlers.SETTLE_REVISION(ctx());
     expect(recompute).not.toHaveBeenCalled();
   });
 
-  it('저장된 봉이 비보호 월물뿐이어도 응답이 비면 확인하지 못한 것으로 실패한다', async () => {
-    const { handlers } = await seededTargets(() => null, ['CLN27']);
+  it('지수 가중치가 없으면 빠진 월물을 모두 지수 월물로 보고 실패한다', async () => {
+    const { handlers, indexSymbols } = await seeded((symbol) => (symbol === 'CLQ27' ? null : 100));
+    indexSymbols.delete('CL|2026-10-26');
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*: CLQ27$/);
+  });
+
+  it('저장된 봉이 지수에 쓰지 않는 월물뿐이어도 응답이 비면 확인하지 못한 것으로 실패한다', async () => {
+    const { handlers, bars } = await seeded((symbol) => (symbol.startsWith('CL') ? null : 100));
+    bars.delete('CLZ26|2026-10-26');
+    bars.delete('CLF27|2026-10-26');
     await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*no bars from FAKE/);
   });
 

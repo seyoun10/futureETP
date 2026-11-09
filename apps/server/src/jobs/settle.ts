@@ -60,6 +60,8 @@ export interface SettleStore {
     from: string,
     to: string,
   ): Promise<{ contractSymbol: string; tradeDate: string }[]>;
+  // 그 거래일 지수(FRONT·KR·US)에 쓴 월물(roll_weight)
+  indexSymbols(commodityCode: CommodityCode, tradeDate: string): Promise<string[]>;
   // (월물, 거래일)이 있으면 값을 바꾼다
   upsertDailyBars(rows: readonly DailyBarRow[]): Promise<void>;
 }
@@ -227,9 +229,9 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         stored.map((b) => b.contractSymbol),
         tradeDate,
       );
-      // 하나도 받지 못하면 보호 월물이 저장되지 않은 원자재도 확인한 것이 아니다
+      // 하나도 받지 못하면 지수 월물이 저장되지 않은 원자재도 확인한 것이 아니다
       if (fetched.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name}`);
-      // 보호 월물(가까운 2개·대상 월물 5개)이 빠지면 정정 여부를 알 수 없어 실패한다. 드문 월물 봉은
+      // 지수에 쓴 월물이 빠지면 알림 판정의 입력을 확인하지 못한 것이라 실패한다. 나머지 월물 봉은
       // 다음 세션이 열린 뒤 사라졌다가 며칠 뒤 다시 나오므로(D-110) 로그만 남기고 확인하지 않는다
       const fetchedSymbols = new Set(fetched.map((b) => b.contractSymbol));
       const missing = stored
@@ -237,12 +239,10 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         .filter((symbol) => !fetchedSymbols.has(symbol));
       let lost: string[] = [];
       if (missing.length > 0) {
-        const protectedSymbols = new Set(
-          settleContracts(await store.contracts(code), tradeDate)
-            .filter(isProtected)
-            .map((c) => c.symbol),
-        );
-        lost = missing.filter((symbol) => protectedSymbols.has(symbol));
+        const indexSymbols = new Set(await store.indexSymbols(code, tradeDate));
+        // 가중치가 없으면 어느 월물을 썼는지 몰라 모두 지수 월물로 본다
+        lost =
+          indexSymbols.size === 0 ? missing : missing.filter((symbol) => indexSymbols.has(symbol));
         if (lost.length === 0) {
           log(
             `[revision ${code} ${tradeDate}] not in ${source.name}, unchecked: ${missing.join(', ')}`,
