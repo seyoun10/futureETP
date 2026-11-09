@@ -176,14 +176,14 @@ export function createMassiveSettlementSource({
     return body.results;
   }
 
-  // 받아 둔 봉에 그날 이후 정산가가 있으면 그날 값은 확정이라 다시 받지 않는다
+  // 받아 둔 봉에 그날 정산가가 있으면 다시 받지 않는다. 그날 봉이 없으면 그 뒤 다시 나왔을 수 있어 다시 받는다(D-110)
   async function sessionBars(ticker: string, tradeDate: string): Promise<SessionBar[]> {
     // 오래된 항목은 지운다(긴 프로세스에서 쌓이지 않게, 연도 1자리 티커가 10년 뒤 다시 쓰여도 섞이지 않게)
     for (const [key, entry] of barCache) if (!fresh(entry)) barCache.delete(key);
     const cached = barCache.get(ticker);
     if (
       cached &&
-      cached.bars.some((b) => b.session_end_date >= tradeDate && b.settlement_price != null)
+      cached.bars.some((b) => b.session_end_date === tradeDate && b.settlement_price != null)
     ) {
       return cached.bars;
     }
@@ -229,7 +229,7 @@ export function createMassiveSettlementSource({
       }
       return bars;
     },
-    // 받아 둔 봉을 다시 쓰지 않고 월물마다 한 번 받는다(드문 월물은 받아 둔 봉에 그날 이후 정산가가 없어 날짜마다 다시 받게 된다)
+    // 받아 둔 봉을 다시 쓰지 않고 월물마다 한 번 받는다(드문 월물은 받아 둔 봉에 그날 정산가가 없어 날짜마다 다시 받게 된다)
     async fetchRecentBars(code, symbols, from) {
       const bars: DatedSourceBar[] = [];
       for (const symbol of symbols) {

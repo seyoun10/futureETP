@@ -236,6 +236,28 @@ describe('Massive 정산 소스', () => {
     expect(aggCalls()).toBe(4);
   });
 
+  it('받아 둔 봉에 그날 봉이 없으면 더 뒤 정산가가 있어도 다시 받는다(정정 확인 재시도)', async () => {
+    let reappeared = false;
+    const { source, calls } = fakeApi({
+      '/futures/v1/contracts': json(CL_CONTRACTS),
+      '/futures/v1/aggs/CLZ6': () =>
+        Response.json({
+          results: [bar('2026-10-27', 99.9), ...(reappeared ? [bar('2026-10-26', 101.76)] : [])],
+        }),
+    });
+    const aggCalls = () => calls.filter((c) => c.path.startsWith('/futures/v1/aggs')).length;
+
+    await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-27');
+    expect(await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-26')).toEqual([]);
+    expect(aggCalls()).toBe(2);
+    reappeared = true;
+    expect(await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-26')).toHaveLength(1);
+    expect(aggCalls()).toBe(3);
+    // 그날 봉이 있으면 다시 받지 않는다
+    expect(await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-26')).toHaveLength(1);
+    expect(aggCalls()).toBe(3);
+  });
+
   it('보충은 월물마다 한 번 받아 시작일 이후 정산가가 있는 봉을 날짜와 함께 준다', async () => {
     const { source, calls } = fakeApi({
       '/futures/v1/contracts': json(CL_CONTRACTS),

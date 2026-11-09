@@ -378,6 +378,41 @@ describe('SETTLE_REVISION', () => {
     return env;
   }
 
+  // 가까운 2개(대상 아님) 뒤에 대상 월물 6개(CLG27~CLN27)가 있다. stored 월물의 10-26 일봉만 저장된 상태
+  const NEAREST = ['CLZ26', 'CLF27'];
+  const TARGETS = ['CLG27', 'CLH27', 'CLJ27', 'CLK27', 'CLM27', 'CLN27'];
+  async function seededTargets(
+    settle: (symbol: string) => number | null,
+    stored: readonly string[] = [...NEAREST, ...TARGETS],
+  ) {
+    const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
+    await env.store.insertContracts(
+      [...NEAREST, ...TARGETS].map((symbol, i) => ({
+        symbol,
+        commodityCode: 'CL',
+        contractMonth: `2027-${String(i + 1).padStart(2, '0')}`,
+        firstTradeDate: null,
+        lastTradeDate: `2027-${String(i + 1).padStart(2, '0')}-20`,
+        isTarget: TARGETS.includes(symbol),
+      })),
+    );
+    await env.store.upsertDailyBars(
+      stored.map((contractSymbol) => ({
+        contractSymbol,
+        tradeDate: '2026-10-26',
+        open: null,
+        high: null,
+        low: null,
+        settle: 100,
+        volume: 10,
+        source: 'FAKE',
+        collectedAt: NOW,
+        revisedAt: null,
+      })),
+    );
+    return env;
+  }
+
   it('바뀐 일봉만 정정 시각과 함께 저장하고 그 원자재만 재계산한다', async () => {
     const { handlers, bars, recompute } = await seeded((symbol) =>
       symbol === 'CLF27' ? 101 : 100,
@@ -421,6 +456,35 @@ describe('SETTLE_REVISION', () => {
     expect(bars.get('CLZ26|2026-10-26')).toMatchObject({ settle: 101, revisedAt: NOW });
     expect(bars.get('CLQ27|2026-10-26')).toMatchObject({ settle: 100, revisedAt: null });
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
+  });
+
+  it('보호 월물이 빠져도 받은 월물의 정정을 저장·재계산한 뒤 실패한다', async () => {
+    const { handlers, bars, recompute } = await seeded((symbol) =>
+      symbol === 'CLF27' ? null : symbol === 'CLZ26' ? 101 : 100,
+    );
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*missing.*: CLF27$/);
+    expect(bars.get('CLZ26|2026-10-26')).toMatchObject({ settle: 101, revisedAt: NOW });
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
+  });
+
+  it.each(TARGETS.slice(2, 5))('대상 월물 5개 안의 %s가 빠지면 실패한다', async (lost) => {
+    const { handlers } = await seededTargets((symbol) => (symbol === lost ? null : 100));
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(
+      new RegExp(`CL: .*missing.*: ${lost}$`),
+    );
+  });
+
+  it('6번째 대상 월물은 빠져도 통과한다', async () => {
+    const { handlers, recompute } = await seededTargets((symbol) =>
+      symbol === 'CLN27' ? null : 100,
+    );
+    await handlers.SETTLE_REVISION(ctx());
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('저장된 봉이 비보호 월물뿐이어도 응답이 비면 확인하지 못한 것으로 실패한다', async () => {
+    const { handlers } = await seededTargets(() => null, ['CLN27']);
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/CL: .*no bars from FAKE/);
   });
 
   it('다른 소스(적재)로 저장된 일봉은 다시 확인하지 않는다', async () => {

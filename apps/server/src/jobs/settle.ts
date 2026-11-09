@@ -217,7 +217,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
 
     await forEachCommodity('Revision', async (code) => {
       // 지금 소스로 받은 일봉만 다시 확인한다. 적재 등 다른 소스 일봉은 거래량 기준이 달라(D-095)
-      // 모두 정정으로 잡히고, 거래 없는 월물은 소스에서 빠져 확인에 실패한다
+      // 모두 정정으로 잡히고, 거래 없는 월물은 소스에서 빠진다
       const stored = (await store.dailyBars(code, tradeDate)).filter(
         (b) => b.source === source.name,
       );
@@ -227,25 +227,27 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         stored.map((b) => b.contractSymbol),
         tradeDate,
       );
+      // 하나도 받지 못하면 보호 월물이 저장되지 않은 원자재도 확인한 것이 아니다
+      if (fetched.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name}`);
       // 보호 월물(가까운 2개·대상 월물 5개)이 빠지면 정정 여부를 알 수 없어 실패한다. 드문 월물 봉은
       // 다음 세션이 열린 뒤 사라졌다가 며칠 뒤 다시 나오므로(D-110) 로그만 남기고 확인하지 않는다
       const fetchedSymbols = new Set(fetched.map((b) => b.contractSymbol));
       const missing = stored
         .map((b) => b.contractSymbol)
         .filter((symbol) => !fetchedSymbols.has(symbol));
+      let lost: string[] = [];
       if (missing.length > 0) {
         const protectedSymbols = new Set(
           settleContracts(await store.contracts(code), tradeDate)
             .filter(isProtected)
             .map((c) => c.symbol),
         );
-        const lost = missing.filter((symbol) => protectedSymbols.has(symbol));
-        if (lost.length > 0) {
-          throw new Error(`${tradeDate}: missing from ${source.name}: ${lost.join(', ')}`);
+        lost = missing.filter((symbol) => protectedSymbols.has(symbol));
+        if (lost.length === 0) {
+          log(
+            `[revision ${code} ${tradeDate}] not in ${source.name}, unchecked: ${missing.join(', ')}`,
+          );
         }
-        log(
-          `[revision ${code} ${tradeDate}] not in ${source.name}, unchecked: ${missing.join(', ')}`,
-        );
       }
       const changed = findRevisedBars(stored, fetched);
       if (changed.length > 0) {
@@ -263,6 +265,10 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       // 이전 시도가 정정만 저장하고 재계산에서 실패했어도 다시 계산한다
       if (changed.length > 0 || stored.some((b) => b.revisedAt !== null)) {
         await recompute(code, ctx.now);
+      }
+      // 다음 날은 다음 거래일을 확인하므로, 받은 월물의 정정을 반영한 뒤에 실패로 남긴다
+      if (lost.length > 0) {
+        throw new Error(`${tradeDate}: missing from ${source.name}: ${lost.join(', ')}`);
       }
     });
   };
