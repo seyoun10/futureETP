@@ -133,7 +133,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Healthchecks.io check `settle_backfill`(토요일 10:00 CT, 여유 60분, `healthchecks-setup.sh`에 추가) 만들기. 작업은 11/04 배포(`5f5eef7`)에 이미 포함돼 재배포 불필요 (2026-11-04)
   - [x] prod `SETTLE_REVISION`(11/02분) 실패 대응: 다음 날 Massive에서 사라진 드문 월물(CLQ27) 때문에 알림 판정이 멈춤 → 보호 월물만 빠졌을 때 실패, 나머지는 로그만, prod 배포 `67d7fa4` (2026-11-04, D-110)
   - [x] 위 변경 리뷰 수정: 보호 월물이 빠져도 받은 정정은 반영한 뒤 실패, 응답이 비면 실패, 봉 캐시는 그날 정산가가 있을 때만 재사용, prod 배포 `37b07ec` (2026-11-09, D-110)
-  - [x] `SETTLE_REVISION` 실패 기준을 그날 지수에 쓴 월물(`roll_weight`)로 변경 (2026-11-09, D-110, prod 미배포)
+  - [x] `SETTLE_REVISION` 실패 기준을 그날 지수에 쓴 월물(`roll_weight`)로 변경, prod 배포 `69db2ef` (2026-11-09, D-110)
   - [ ] 첫 토요일 보충 로그(채운 봉 수)와 건너뛰기 시작 뒤(prod Massive 정산일 10거래일, 11/09 무렵) 평일 소요 실측 → `SETTLE_STEP1_EXPECTED_MS` 조정
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
