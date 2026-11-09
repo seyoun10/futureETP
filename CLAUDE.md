@@ -55,6 +55,7 @@ futureETP: 2026-11-04 기준 5단계 개발 중. 5-1~5-3·5-7·5-9 완료, prod 
 - component: PascalCase
 - util/hook: camelCase
 - commit message: Conventional Commits ('feat:', 'fix:', 'chore:')
+- `fix:` 커밋은 회귀 테스트를 함께 넣는다. 시각 조정만 예외로, 기기 확인으로 대신한다
 - React component는 named export 사용 (default export 금지). 예외: `apps/mobile/src/app/` 아래 Expo Router route 파일(`_layout` 포함)은 default export만 하고, `src/app/` 밖의 named export 화면을 다시 내보내기만 한다 (D-029, D-050)
 - 서버·shared는 ESM + Node 타입 스트리핑: 상대 import에 `.ts` 확장자, 타입만은 `import type`, TS `enum`·`namespace`·생성자 매개변수 속성 금지(enum 대신 shared 상수 문자열), tsconfig `paths` 별칭 금지(필요하면 `package.json` `imports`의 `#/`) (D-051)
 - 앱은 `@/` = `apps/mobile/src/` 별칭을 쓴다 (D-050)
