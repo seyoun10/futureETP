@@ -37,7 +37,7 @@ futureETP: 2026-11-04 기준 5단계 개발 중. 5-1~5-3·5-7·5-9 완료, prod 
 - DB: PostgreSQL 18(dev는 Homebrew `postgresql@18`) — D-035, D-053
 - Infra: Oracle Always Free ARM VM 1대 + Docker Compose + Caddy(HTTPS), Bearer 비밀 토큰 — D-034, D-036
 - Push: FCM·APNs 직접 연동(Android 먼저) — D-037
-- Test/Lint: jest-expo + RNTL 14(앱)·Vitest(서버·공유, 루트에 한 벌), ESLint 9(루트 설정 하나) + Prettier, pre-commit lint·format — D-038, D-054
+- Test/Lint: jest-expo + RNTL 14(앱)·Vitest(서버·공유, 루트에 한 벌), 서버 `*.db.test.ts`는 실제 PostgreSQL(`futureetp_test`, 로컬 서버 필요), ESLint 9(루트 설정 하나) + Prettier, pre-commit lint·format — D-038, D-054, D-126
 - Build: Android 로컬 빌드(Zulu JDK 17, 에뮬레이터 `Pixel_API_36`), iOS는 Apple 가입 전 시뮬레이터만(CocoaPods), EAS Update — D-039, D-055
 
 ## Key Patterns

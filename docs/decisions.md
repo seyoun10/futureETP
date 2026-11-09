@@ -1875,3 +1875,9 @@
 - 상태: 확정 (사용자 요청)
 - 결정: 가로 모드의 C-a~C-c 화면(탭 scene)에 `paddingLeft: insets.left`·`paddingRight: insets.right`를 준다(`CommodityTabsLayout`의 `sceneStyle`). header가 scene 안에 그려져 title-bar도 같은 폭만큼 안쪽으로 들어온다([←]·[⚙]이 섬·모서리에서 떨어짐). iOS는 좌우 inset을 같은 값으로 주므로 Dynamic Island 반대쪽(y축 쪽)도 같은 폭만큼 비운다.
 - 근거: 2026-11-04 미러링 확인에서 가로 차트가 화면 끝까지 그려져, Dynamic Island 쪽 가장자리의 봉·선과 왼쪽 위 상세 박스 글자(C-c `APR27`·`롤 수익률`)가 가려졌다. 섬 쪽만 비우려면 회전 방향을 따로 감지해야 하는데, 차트 폭이 조금 줄어드는 것보다 복잡하다.
+
+## D-126: DB 계층은 실제 PostgreSQL로 통합 테스트
+- 날짜: 2026-11-09
+- 상태: 확정 (사용자 승인)
+- 결정: `apps/server/src/db`의 upsert·트랜잭션·제약은 `*.db.test.ts`에서 실제 PostgreSQL 18로 검증한다. Vitest project를 `unit`·`db`로 나누고 `db`는 파일을 순서대로 돌린다. `db`는 실행마다 `futureetp_test`(`TEST_DATABASE_URL`로 변경)를 지웠다 만들고 마이그레이션 전체를 적용한다. 테스트마다 시드 테이블(`commodity`·`active_month_rule`·`roll_rule`)을 뺀 테이블을 비운다. 이름이 `_test`로 끝나지 않는 DB는 연결 전에 거절한다. 로컬은 Homebrew 서버, CI는 `postgres:18` service를 쓰고, `npm run check`에 포함한다. 단순 조회와 일회성 스크립트(`importCalendar.ts` 등)는 대상에서 뺀다.
+- 근거: 측정 당시 `db`의 커버리지가 0%였고, `jobs` 테스트는 메모리 store만 써서 `coalesce`·`onConflict`·외래 키·트랜잭션 되돌리기와 어긋나도 알 수 없었다. PGlite는 운영과 엔진이 달라 쓰지 않는다. 비용은 `npm run check`에 로컬 Postgres가 필요해지는 것인데, dev 환경에 이미 있다.
