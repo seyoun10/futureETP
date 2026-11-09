@@ -25,6 +25,9 @@ pnpm-debug.log*
 # TypeScript
 *.tsbuildinfo
 
+# Vitest 리포트
+.vitest/
+
 # Expo
 .expo/
 dist/
