@@ -190,7 +190,103 @@ function setup(lastSuccess: Partial<Record<JobName, string>>, source = testSourc
   return { ...memory, source, recompute, handlers };
 }
 
+type SettleEnv = ReturnType<typeof setup>;
+
+// store·source·recompute 호출을 순서대로 세어 failAt번째 호출에서 한 번 실패시킨다.
+// before는 호출 전 실패, after는 호출이 끝난 뒤 실패다(저장은 됐는데 응답을 잃은 경우)
+function faultyHandlers(env: SettleEnv, failAt: number, mode: 'before' | 'after') {
+  let calls = 0;
+  // 봉을 저장한 뒤 재계산이 끝나지 않은 원자재
+  const stale = new Set<string>();
+  const call = async <T>(name: string, run: () => Promise<T>): Promise<T> => {
+    calls += 1;
+    const current = calls;
+    if (current === failAt && mode === 'before') throw new Error(`injected before ${name}`);
+    const result = await run();
+    if (current === failAt && mode === 'after') throw new Error(`injected after ${name}`);
+    return result;
+  };
+  const wrap = <T extends object>(target: T): T =>
+    new Proxy(target, {
+      get(object, key) {
+        const value: unknown = Reflect.get(object, key);
+        if (typeof value !== 'function') return value;
+        return (...args: unknown[]) =>
+          call(String(key), () => Promise.resolve(value.apply(object, args)));
+      },
+    });
+  const store = wrap<SettleStore>({
+    ...env.store,
+    async upsertDailyBars(rows) {
+      await env.store.upsertDailyBars(rows);
+      for (const row of rows) stale.add(row.contractSymbol.slice(0, 2));
+    },
+  });
+  const handlers = createSettleHandlers({
+    store,
+    source: wrap(env.source.source),
+    recompute: (code, now) =>
+      call('recompute', async () => {
+        await env.recompute(code, now);
+        stale.delete(code);
+      }),
+    log: () => {},
+  });
+  return { handlers, stale, callCount: () => calls };
+}
+
+const finalState = ({ bars, contracts, pending }: SettleEnv) => ({
+  bars: [...bars.entries()].sort(([a], [b]) => a.localeCompare(b)),
+  contracts: contracts.map((c) => c.symbol).sort(),
+  pending: [...pending],
+});
+
+// 어느 호출에서 한 번 실패해도, 재시도 한 번이면 실패 없는 실행과 같은 상태로 끝나야 한다
+async function expectRecoveryFromAnyFailure(
+  makeEnv: () => Promise<SettleEnv>,
+  job: 'DAILY_SETTLE' | 'SETTLE_REVISION' | 'SETTLE_BACKFILL',
+  now: Date,
+) {
+  const clean = await makeEnv();
+  const counted = faultyHandlers(clean, 0, 'before');
+  await counted.handlers[job](ctx(now));
+  const expected = finalState(clean);
+  const total = counted.callCount();
+  expect(total).toBeGreaterThan(0);
+
+  const failures: string[] = [];
+  for (const mode of ['before', 'after'] as const) {
+    for (let failAt = 1; failAt <= total; failAt++) {
+      const env = await makeEnv();
+      const { handlers, stale } = faultyHandlers(env, failAt, mode);
+      const label = `${mode} call ${failAt}`;
+      // 실패를 삼키면 러너가 성공으로 기록해 재시도가 없다
+      const swallowed = await handlers[job](ctx(now)).then(
+        () => true,
+        () => false,
+      );
+      if (swallowed) failures.push(`${label}: job succeeded despite the failure`);
+      try {
+        await handlers[job](ctx(now));
+        expect(finalState(env)).toEqual(expected);
+        expect([...stale]).toEqual([]);
+      } catch (error) {
+        failures.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+  expect(failures).toEqual([]);
+}
+
 describe('DAILY_SETTLE', () => {
+  it('어느 호출에서 실패해도 재시도하면 실패 없는 실행과 같아진다', async () => {
+    await expectRecoveryFromAnyFailure(
+      () => Promise.resolve(setup({ DAILY_SETTLE: '2026-10-26' })),
+      'DAILY_SETTLE',
+      NOW,
+    );
+  });
+
   it('월물을 상장하고 그날 일봉을 저장한 뒤 원자재마다 재계산한다', async () => {
     const { handlers, contracts, bars, recompute } = setup({ DAILY_SETTLE: '2026-10-26' });
     const c = ctx();
@@ -399,6 +495,14 @@ describe('SETTLE_REVISION', () => {
     env.indexSymbols.set('NG|2026-10-26', ['NGZ26']);
     return env;
   }
+
+  it('어느 호출에서 실패해도 재시도하면 실패 없는 실행과 같아진다', async () => {
+    await expectRecoveryFromAnyFailure(
+      () => seeded((symbol) => (symbol === 'CLF27' ? 101 : symbol === 'NGZ26' ? 99 : 100)),
+      'SETTLE_REVISION',
+      NOW,
+    );
+  });
 
   it('바뀐 일봉만 정정 시각과 함께 저장하고 그 원자재만 재계산한다', async () => {
     const { handlers, bars, recompute } = await seeded((symbol) =>
@@ -617,6 +721,14 @@ describe('SETTLE_BACKFILL', () => {
     env.source.listContracts.mockClear();
     return env;
   }
+
+  it('어느 호출에서 실패해도 재시도하면 실패 없는 실행과 같아진다', async () => {
+    await expectRecoveryFromAnyFailure(
+      () => settled(['CLZ26|2026-10-28'], (symbol) => (symbol === 'NGZ26' ? 91 : 90)),
+      'SETTLE_BACKFILL',
+      SATURDAY,
+    );
+  });
 
   it('빠진 봉을 채우고 값이 같은 봉은 그대로 두며 바뀐 원자재만 재계산한다', async () => {
     const { handlers, source, bars, recompute } = await settled(
