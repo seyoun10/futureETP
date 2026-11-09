@@ -24,21 +24,13 @@ import {
   visibleRange,
 } from './fitTransform';
 import type { CandleGeom, PinchStart, Transform } from './fitTransform';
+import { nextAway, prependedBars, sameTransform, sameX } from './viewportChange';
+import type { ChartGesture, DateSpan } from './viewportChange';
+
+export type { ChartGesture, DateSpan };
 
 const EPSILON = 1e-3;
 export const LONG_PRESS_MS = 300;
-
-// 봉 x 좌표(폭·첫 봉 위치·간격·봉 수)가 같은지
-const sameX = (a: CandleGeom, b: CandleGeom) => {
-  'worklet';
-  return (
-    a.left === b.left &&
-    a.right === b.right &&
-    a.x0 === b.x0 &&
-    a.dx === b.dx &&
-    a.highY.length === b.highY.length
-  );
-};
 
 const applyTransform = (state: ChartTransform, t: Transform) => {
   'worklet';
@@ -48,8 +40,6 @@ const applyTransform = (state: ChartTransform, t: Transform) => {
 // x·view는 봉에 붙을 때 십자선의 화면 x와 변환 행렬 값(상세 박스 위치 계산용, useDetailPlacement)
 export type ChartView = { scaleX: number; translateX: number; scaleY: number; translateY: number };
 export type ChartDetail = { index: number; x: number; view: ChartView };
-// 드래그(이동)는 보이는 봉 수가 그대로라 기간 선택 표시를 남기고, 핀치(확대·축소)는 지운다(screens.md C-a)
-export type ChartGesture = 'pan' | 'zoom';
 
 type ViewportOptions = {
   press: CrosshairPress;
@@ -131,11 +121,11 @@ export function useChartViewport({
   const onGeom = useCallback(
     (g: CandleGeom, span: DateSpan) => {
       const prev = rawGeom.current;
-      // 앞에 붙은 봉 수. 첫 날짜가 앞당겨지고 마지막 날짜가 같을 때만이다(새로고침으로 오늘 봉이 붙는 경우와 구분)
-      const shift =
-        prev && span.first < prev.span.first && span.last === prev.span.last
-          ? g.highY.length - prev.g.highY.length
-          : 0;
+      const shift = prependedBars(
+        prev && { barCount: prev.g.highY.length, span: prev.span },
+        g.highY.length,
+        span,
+      );
       rawGeom.current = { g, span };
       if (shift > 0) perfMark(`geometry +${shift} bars`);
       applyGeom(g, insets.current, shift);
@@ -183,32 +173,13 @@ export function useChartViewport({
       const t = fitTransform(g, c.scaleX, c.translateX);
       // 제한한 뒤의 값을 기간 범위와 비교한다. 끝에서 더 밀면 제한이 되돌려 보이는 범위가 그대로다
       const home = periodTransform(g, homeBars.get());
-      const sameK = Math.abs(t.k - home.k) < EPSILON;
-      const atHome = sameK && Math.abs(t.tx - home.tx) < EPSILON;
-      const gesture = active.get();
-      const left = away.get();
-      if (atHome) {
-        if (left !== null) {
-          away.set(null);
-          scheduleOnRN(onViewChange, null);
-        }
-      } else if (gesture !== null && left === null) {
-        away.set(gesture);
-        scheduleOnRN(onViewChange, gesture);
-      } else if (gesture === 'zoom' && left === 'pan' && !sameK) {
-        // 드래그로 벗어난 뒤 핀치로 배율까지 바꿨다
-        away.set('zoom');
-        scheduleOnRN(onViewChange, 'zoom');
+      const next = nextAway(t, home, active.get(), away.get());
+      if (next !== undefined) {
+        away.set(next);
+        scheduleOnRN(onViewChange, next);
       }
-      if (
-        Math.abs(t.k - c.scaleX) < EPSILON &&
-        Math.abs(t.tx - c.translateX) < EPSILON &&
-        Math.abs(t.ky - c.scaleY) < EPSILON &&
-        Math.abs(t.ty - c.translateY) < EPSILON
-      ) {
-        return;
-      }
-      applyTransform(transform, t);
+      const current = { k: c.scaleX, tx: c.translateX, ky: c.scaleY, ty: c.translateY };
+      if (!sameTransform(t, current)) applyTransform(transform, t);
     },
   );
 
@@ -359,9 +330,6 @@ export function useChartViewport({
 }
 
 // 변환 전 픽셀 좌표(봉과 선의 위·아래 끝)를 worklet이 읽을 수 있게 넘긴다.
-// 봉 좌표가 어느 날짜 구간인지(과거 봉이 앞에 붙었는지 판단용)
-export type DateSpan = { first: string; last: string };
-
 export function useReportGeom(
   hi: PointsArray,
   lo: PointsArray,
