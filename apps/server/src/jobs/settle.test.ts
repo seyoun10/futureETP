@@ -550,34 +550,64 @@ describe('SETTLE_BACKFILL', () => {
     return env;
   }
 
-  it('빠진 봉만 월물마다 한 번 받아 저장하고 그 원자재만 재계산한다', async () => {
-    const { handlers, source, bars, recompute } = await settled([
-      'CLZ26|2026-10-20',
-      'CLZ26|2026-10-28',
-      'CLF27|2026-10-29',
-    ]);
+  it('빠진 봉을 채우고 값이 같은 봉은 그대로 두며 바뀐 원자재만 재계산한다', async () => {
+    const { handlers, source, bars, recompute } = await settled(
+      ['CLZ26|2026-10-20', 'CLZ26|2026-10-28', 'CLF27|2026-10-29'],
+      () => 90,
+    );
+    const stored = bars.get('CLZ26|2026-10-29');
     const c = ctx(SATURDAY);
     await handlers.SETTLE_BACKFILL(c);
 
     expect(c.tradeDate).toBe('2026-10-30');
-    expect(source.fetchRecentBars.mock.calls).toEqual([['CL', ['CLZ26', 'CLF27'], DATES[0]]]);
+    // 저장된 월물도 값을 비교하려고 원자재의 월물마다 한 번 받는다
+    expect(source.fetchRecentBars.mock.calls.map(([code]) => code)).toEqual([...COMMODITY_CODES]);
+    expect(source.fetchRecentBars).toHaveBeenCalledWith('CL', ['CLZ26', 'CLF27'], DATES[0]);
     for (const key of ['CLZ26|2026-10-20', 'CLZ26|2026-10-28', 'CLF27|2026-10-29']) {
       expect(bars.get(key)).toMatchObject({
-        settle: 100,
+        settle: 90,
         source: 'FAKE',
         collectedAt: SATURDAY,
         revisedAt: null,
       });
     }
-    // 저장돼 있던 봉은 그대로다
-    expect(bars.get('CLZ26|2026-10-29')?.settle).toBe(90);
+    expect(bars.get('CLZ26|2026-10-29')).toBe(stored);
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 
-  it('빠진 봉이 없으면 소스를 부르지 않는다', async () => {
-    const { handlers, source, recompute } = await settled([]);
+  it('저장된 봉과 값이 다르면 정정 시각과 함께 고치고 그 원자재만 재계산한다', async () => {
+    const { handlers, bars, recompute } = await settled([], (symbol, tradeDate) =>
+      symbol === 'NGZ26' && tradeDate === '2026-10-28' ? 91 : 90,
+    );
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
-    expect(source.fetchRecentBars).not.toHaveBeenCalled();
+
+    expect(bars.get('NGZ26|2026-10-28')).toMatchObject({
+      settle: 91,
+      source: 'FAKE',
+      collectedAt: SATURDAY,
+      revisedAt: SATURDAY,
+    });
+    expect(bars.get('NGZ26|2026-10-27')).toMatchObject({ settle: 90, revisedAt: null });
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
+  });
+
+  it('값이 모두 같으면 저장·재계산하지 않는다', async () => {
+    const { handlers, bars, recompute } = await settled([], () => 90);
+    const before = new Map(bars);
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(bars).toEqual(before);
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('다른 소스(적재)로 저장된 봉은 값이 달라도 고치지 않고 받지도 않는다', async () => {
+    const { handlers, store, source, bars, recompute } = await settled([], () => 90);
+    const loaded = [...bars.values()]
+      .filter((b) => b.contractSymbol.startsWith('GC'))
+      .map((b): DailyBarRow => ({ ...b, settle: 1, source: 'DATABENTO' }));
+    await store.upsertDailyBars(loaded);
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(bars.get('GCZ26|2026-10-28')).toMatchObject({ settle: 1, source: 'DATABENTO' });
+    expect(source.fetchRecentBars.mock.calls.map(([code]) => code)).not.toContain('GC');
     expect(recompute).not.toHaveBeenCalled();
   });
 
@@ -590,10 +620,14 @@ describe('SETTLE_BACKFILL', () => {
   });
 
   it('보충 기간 밖이거나 아직 정산 전인 날의 봉은 받지 않는다', async () => {
-    const { handlers, source, bars } = await settled(['NGZ26|2026-10-30'], undefined, '2026-10-29');
+    const { handlers, bars, recompute } = await settled(
+      ['NGZ26|2026-10-30'],
+      () => 90,
+      '2026-10-29',
+    );
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
-    expect(source.fetchRecentBars).not.toHaveBeenCalled();
     expect(bars.has('NGZ26|2026-10-30')).toBe(false);
+    expect(recompute).not.toHaveBeenCalled();
   });
 
   it('정산 이력이 없으면 아무것도 하지 않는다', async () => {
@@ -605,7 +639,10 @@ describe('SETTLE_BACKFILL', () => {
   });
 
   it('한 원자재가 실패해도 나머지를 채우고 실패로 끝난다', async () => {
-    const { handlers, source, recompute } = await settled(['GCZ26|2026-10-28', 'CLZ26|2026-10-28']);
+    const { handlers, source, recompute } = await settled(
+      ['GCZ26|2026-10-28', 'CLZ26|2026-10-28'],
+      () => 90,
+    );
     source.fetchRecentBars.mockRejectedValueOnce(new Error('HTTP 500'));
     await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(
       /Backfill failed: GC: HTTP 500/,

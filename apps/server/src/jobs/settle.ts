@@ -274,7 +274,8 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
   };
 
   // 정산 때 빠진 봉을 채운다(D-110): 17:00 CT 뒤 다음 세션으로 넘어갔다가 며칠 뒤 다시 나온 드문 월물 봉,
-  // 일부 월물만 반영된 날 등. 저장된 봉은 건드리지 않고, 채운 원자재만 다시 계산한다
+  // 일부 월물만 반영된 날 등. 지금 소스로 저장한 봉은 다시 받은 값과 비교해 고친다(Massive 값은 며칠 뒤 바뀐다).
+  // 적재 등 다른 소스 봉은 거래량 기준이 달라(D-095) 건드리지 않는다. 바뀐 원자재만 다시 계산한다
   const SETTLE_BACKFILL: JobHandler = async (ctx) => {
     const settled = await store.lastSuccessTradeDate('DAILY_SETTLE');
     const dates = (await loadDays(store, ctx.now))
@@ -291,25 +292,55 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       const contracts = await store.contracts(code);
       // 날짜마다 받는 월물 중 저장된 봉이 없는 (월물, 날짜)
       const missing = new Set<string>();
+      // 날짜 → 지금 소스로 저장한 봉
+      const sourceBars = new Map<string, Awaited<ReturnType<SettleStore['dailyBars']>>>();
       for (const date of dates) {
-        const stored = new Set((await store.dailyBars(code, date)).map((b) => b.contractSymbol));
+        const bars = await store.dailyBars(code, date);
+        sourceBars.set(
+          date,
+          bars.filter((b) => b.source === source.name),
+        );
+        const stored = new Set(bars.map((b) => b.contractSymbol));
         for (const symbol of settleSymbols(contracts, date)) {
           if (!stored.has(symbol)) missing.add(`${symbol}|${date}`);
         }
       }
-      if (missing.size === 0) return;
+      const symbols = [
+        ...new Set([
+          ...[...missing].map((key) => key.split('|')[0]),
+          ...[...sourceBars.values()].flat().map((b) => b.contractSymbol),
+        ]),
+      ];
+      if (symbols.length === 0) return;
 
-      const symbols = [...new Set([...missing].map((key) => key.split('|')[0]))];
-      const found = (await source.fetchRecentBars(code, symbols, dates[0])).filter((b) =>
-        missing.has(`${b.contractSymbol}|${b.tradeDate}`),
-      );
-      log(`[backfill ${code}] ${found.length} of ${missing.size} missing bars`);
-      if (found.length === 0) return;
-      await store.upsertDailyBars(
-        found.map((b) => ({ ...b, source: source.name, collectedAt: ctx.now, revisedAt: null })),
+      const fetched = await source.fetchRecentBars(code, symbols, dates[0]);
+      const found = fetched.filter((b) => missing.has(`${b.contractSymbol}|${b.tradeDate}`));
+      const revised = dates.flatMap((date) =>
+        findRevisedBars(
+          sourceBars.get(date) ?? [],
+          fetched.filter((b) => b.tradeDate === date),
+        ),
       );
       log(
-        `[backfill ${code}] ${found.map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,
+        `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,
+      );
+      if (found.length === 0 && revised.length === 0) return;
+      await store.upsertDailyBars([
+        ...found.map((b) => ({
+          ...b,
+          source: source.name,
+          collectedAt: ctx.now,
+          revisedAt: null,
+        })),
+        ...revised.map((b) => ({
+          ...b,
+          source: source.name,
+          collectedAt: ctx.now,
+          revisedAt: ctx.now,
+        })),
+      ]);
+      log(
+        `[backfill ${code}] ${[...found, ...revised].map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,
       );
       await recompute(code, ctx.now);
     });
