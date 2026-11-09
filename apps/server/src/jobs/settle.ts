@@ -46,8 +46,10 @@ export interface SettleStore {
   tradingDays(from: string, to: string): Promise<TradingDaySession[]>;
   // 그 작업이 성공한 가장 최근 거래일
   lastSuccessTradeDate(job: JobName): Promise<string | null>;
-  // 그 작업의 마지막으로 끝난 실행이 실패인가(지금 실행 중인 시도는 치지 않는다)
-  lastRunFailed(job: JobName): Promise<boolean>;
+  // 봉을 저장했지만 재계산을 끝내지 못한 원자재인가
+  recomputePending(commodityCode: CommodityCode): Promise<boolean>;
+  // 저장 전에 시각을 남기고 재계산이 끝나면 null로 지운다
+  setRecomputePending(commodityCode: CommodityCode, at: Date | null): Promise<void>;
   // daily_bar의 가장 최근 거래일(적재·이전 정산 데이터)
   lastDailyBarDate(): Promise<string | null>;
   activeMonthRules(commodityCode: CommodityCode): Promise<ActiveMonthRule[]>;
@@ -203,6 +205,24 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     });
   }
 
+  // 재계산이 끝나야 표시를 지운다
+  async function recomputeAndClear(code: CommodityCode, now: Date) {
+    await recompute(code, now);
+    await store.setRecomputePending(code, null);
+  }
+
+  // 표시를 저장 전에 남겨, 재계산이 실패하거나 프로세스가 끊겨도 다음 실행이 그 원자재만 복구한다
+  async function saveAndRecompute(code: CommodityCode, rows: readonly DailyBarRow[], now: Date) {
+    await store.setRecomputePending(code, now);
+    await store.upsertDailyBars(rows);
+    await recomputeAndClear(code, now);
+  }
+
+  // 소스 응답과 상관없이 저장된 봉으로 먼저 복구한다
+  async function recoverRecompute(code: CommodityCode, now: Date) {
+    if (await store.recomputePending(code)) await recomputeAndClear(code, now);
+  }
+
   const DAILY_SETTLE: JobHandler = async (ctx) => {
     const days = await loadDays(store, ctx.now);
     // 정산 이력이 없으면(적재 직후) 저장된 일봉의 마지막 날 다음부터 따라잡는다
@@ -216,7 +236,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     }
     await forEachCommodity('Settle', async (code) => {
       for (const date of plan.dates) await collectDay(code, date, days, ctx.now);
-      await recompute(code, ctx.now);
+      await recomputeAndClear(code, ctx.now);
     });
   };
 
@@ -241,17 +261,15 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       return;
     }
     const previousDate = days.findLast((d) => d.tradeDate < tradeDate)?.tradeDate;
-    const previousFailed = await store.lastRunFailed('SETTLE_REVISION');
 
     await forEachCommodity('Revision', async (code) => {
+      await recoverRecompute(code, ctx.now);
       // 지금 소스로 받은 일봉만 다시 확인한다. 적재 등 다른 소스 일봉은 거래량 기준이 달라(D-095)
       // 모두 정정으로 잡히고, 거래 없는 월물은 소스에서 빠진다
       const stored = (await store.dailyBars(code, tradeDate)).filter(
         (b) => b.source === source.name,
       );
       if (stored.length === 0) return;
-      // 이전 시도가 정정만 저장하고 재계산에서 실패했으면 소스 응답과 상관없이 먼저 복구한다
-      if (previousFailed) await recompute(code, ctx.now);
       const fetched = await source.fetchDailyBars(
         code,
         stored.map((b) => b.contractSymbol),
@@ -283,9 +301,8 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       }
       const changed = findRevisedBars(stored, fetched);
       if (changed.length > 0) {
-        await store.upsertDailyBars(revisedRows(stored, changed, tradeDate, ctx.now));
         log(`[revision ${code} ${tradeDate}] ${changed.map((b) => b.contractSymbol).join(', ')}`);
-        await recompute(code, ctx.now);
+        await saveAndRecompute(code, revisedRows(stored, changed, tradeDate, ctx.now), ctx.now);
       }
       // 다음 날은 다음 거래일을 확인하므로, 받은 월물의 정정을 반영한 뒤에 실패로 남긴다
       if (lost.length > 0) {
@@ -293,10 +310,6 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       }
     });
   };
-
-  // 재시도 때 이미 끝낸 원자재는 다시 받지 않는다(원자재마다 호출이 많아 재시도가 Healthchecks 여유를 넘을 수 있다).
-  // 모두 끝나면 비운다. 프로세스가 재시작되면 잊고 다시 받는다
-  let backfilled: { tradeDate: string; codes: Set<CommodityCode> } | null = null;
 
   // 정산 때 빠진 봉을 채운다(D-110): 17:00 CT 뒤 다음 세션으로 넘어갔다가 며칠 뒤 다시 나온 드문 월물 봉,
   // 일부 월물만 반영된 날 등. 지금 소스로 저장한 봉은 다시 받은 값과 비교해 고친다(Massive 값은 며칠 뒤 바뀐다).
@@ -313,21 +326,11 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     }
     const lastDate = dates[dates.length - 1];
     ctx.tradeDate = lastDate;
-    const previousFailed = await store.lastRunFailed('SETTLE_BACKFILL');
-    const done = backfilled?.tradeDate === lastDate ? backfilled.codes : new Set<CommodityCode>();
-    backfilled = { tradeDate: lastDate, codes: done };
 
-    await forEachCommodity('Backfill', async (code) => {
-      if (done.has(code)) {
-        log(`[backfill ${code}] already done`);
-        return;
-      }
-      await backfillCommodity(code);
-      done.add(code);
-    });
-    backfilled = null;
+    await forEachCommodity('Backfill', backfillCommodity);
 
     async function backfillCommodity(code: CommodityCode) {
+      await recoverRecompute(code, ctx.now);
       const contracts = await store.contracts(code);
       // 날짜마다 받는 월물 중 저장된 봉이 없는 (월물, 날짜)
       const missing = new Set<string>();
@@ -351,8 +354,6 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         ]),
       ];
       if (symbols.length === 0) return;
-      // 이전 시도가 봉만 저장하고 재계산에서 실패했으면 소스 응답과 상관없이 먼저 복구한다
-      if (previousFailed) await recompute(code, ctx.now);
 
       const fetched = await source.fetchRecentBars(code, symbols, dates[0]);
       // 저장된 봉이 있는데 그중 하나도 다시 받지 못하면 비교한 것이 아니다(빈 칸의 봉만 온 경우 포함)
@@ -378,19 +379,22 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,
       );
       if (found.length === 0 && revised.length === 0) return;
-      await store.upsertDailyBars([
-        ...found.map((b) => ({
-          ...b,
-          source: source.name,
-          collectedAt: ctx.now,
-          revisedAt: null,
-        })),
-        ...revised,
-      ]);
       log(
         `[backfill ${code}] ${[...found, ...revised].map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,
       );
-      await recompute(code, ctx.now);
+      await saveAndRecompute(
+        code,
+        [
+          ...found.map((b) => ({
+            ...b,
+            source: source.name,
+            collectedAt: ctx.now,
+            revisedAt: null,
+          })),
+          ...revised,
+        ],
+        ctx.now,
+      );
     }
   };
 

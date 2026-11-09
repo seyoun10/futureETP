@@ -41,13 +41,18 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
   const bars = new Map<string, DailyBarRow>();
   // `원자재|거래일` → 지수에 쓴 월물
   const indexSymbols = new Map<string, string[]>();
-  // 마지막으로 끝난 실행이 실패인 작업
-  const failedJobs = new Set<JobName>();
+  // 봉을 저장했지만 재계산을 끝내지 못한 원자재
+  const pending = new Set<CommodityCode>();
   const store: SettleStore = {
     tradingDays: (from, to) =>
       Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
     lastSuccessTradeDate: (job) => Promise.resolve(lastSuccess[job] ?? null),
-    lastRunFailed: (job) => Promise.resolve(failedJobs.has(job)),
+    recomputePending: (code) => Promise.resolve(pending.has(code)),
+    setRecomputePending(code, at) {
+      if (at === null) pending.delete(code);
+      else pending.add(code);
+      return Promise.resolve();
+    },
     lastDailyBarDate: () =>
       Promise.resolve(
         [...bars.values()]
@@ -90,7 +95,7 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
       return Promise.resolve();
     },
   };
-  return { store, contracts, bars, indexSymbols, failedJobs };
+  return { store, contracts, bars, indexSymbols, pending };
 }
 
 // 원자재마다 두 월물: 12월물(최종 거래일 11-20), 1월물(12-18). 값은 settle 함수로 바꿀 수 있다
@@ -234,6 +239,13 @@ describe('DAILY_SETTLE', () => {
     const { handlers, recompute } = setup({ DAILY_SETTLE: '2026-10-26' }, source);
     await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/SI: 2026-10-27: no bars/);
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'CL', 'NG']);
+  });
+
+  it('재계산이 끝나면 정정·보충이 남긴 재계산 표시를 지운다', async () => {
+    const { handlers, pending } = setup({ DAILY_SETTLE: '2026-10-26' });
+    pending.add('CL');
+    await handlers.DAILY_SETTLE(ctx());
+    expect(pending.size).toBe(0);
   });
 
   it('재계산이 실패해도 실패로 끝난다', async () => {
@@ -408,16 +420,33 @@ describe('SETTLE_REVISION', () => {
   });
 
   it('정정을 저장하고 재계산에 실패했으면 다음 시도에서 다시 계산한다', async () => {
-    const { handlers, recompute, failedJobs } = await seeded((symbol) =>
+    const { handlers, recompute, pending } = await seeded((symbol) =>
       symbol === 'NGZ26' ? 99 : 100,
     );
     recompute.mockRejectedValueOnce(new Error('boom'));
     await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/Revision failed: NG: boom/);
+    expect([...pending]).toEqual(['NG']);
 
-    failedJobs.add('SETTLE_REVISION');
     recompute.mockClear();
     await handlers.SETTLE_REVISION(ctx());
-    expect(recompute.mock.calls.map(([code]) => code)).toContain('NG');
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
+    expect(pending.size).toBe(0);
+  });
+
+  it('프로세스가 끊겨 표시가 남았으면 소스 응답이 비어도 그 원자재만 복구한다', async () => {
+    const { handlers, recompute, pending } = await seeded(() => null);
+    pending.add('NG');
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/no bars from FAKE/);
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
+    expect(pending.size).toBe(0);
+  });
+
+  it('저장 없이 실패한 뒤의 재시도는 값이 그대로인 원자재를 재계산하지 않는다', async () => {
+    const { handlers, recompute, source } = await seeded(() => 100);
+    source.fetchDailyBars.mockRejectedValueOnce(new Error('HTTP 500'));
+    await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/Revision failed/);
+    await handlers.SETTLE_REVISION(ctx());
+    expect(recompute).not.toHaveBeenCalled();
   });
 
   it('예전 정정 기록이 있어도 직전 실행이 성공이고 바뀐 값이 없으면 재계산하지 않는다', async () => {
@@ -652,16 +681,17 @@ describe('SETTLE_BACKFILL', () => {
   });
 
   it('봉을 저장하고 재계산에 실패했으면 다음 시도에서 값이 같아도 다시 계산한다', async () => {
-    const { handlers, recompute, failedJobs } = await settled([], (symbol, tradeDate) =>
+    const { handlers, recompute, pending } = await settled([], (symbol, tradeDate) =>
       symbol === 'NGZ26' && tradeDate === '2026-10-28' ? 91 : 90,
     );
     recompute.mockRejectedValueOnce(new Error('db down'));
     await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/NG: db down/);
+    expect([...pending]).toEqual(['NG']);
 
-    failedJobs.add('SETTLE_BACKFILL');
     recompute.mockClear();
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
-    expect(recompute.mock.calls.map(([code]) => code)).toContain('NG');
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
+    expect(pending.size).toBe(0);
   });
 
   it('다른 소스(적재)로 저장된 봉은 값이 달라도 고치지 않고 받지도 않는다', async () => {
@@ -706,11 +736,12 @@ describe('SETTLE_BACKFILL', () => {
     expect(bars.has(gap)).toBe(false);
   });
 
-  it('직전 실행이 실패면 소스 응답이 비어도 재계산은 먼저 복구한다', async () => {
-    const { handlers, recompute, failedJobs } = await settled([], () => null);
-    failedJobs.add('SETTLE_BACKFILL');
+  it('재계산을 끝내지 못한 원자재는 소스 응답이 비어도 그 원자재만 먼저 복구한다', async () => {
+    const { handlers, recompute, pending } = await settled([], () => null);
+    pending.add('GC');
     await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/no stored bars/);
-    expect(recompute.mock.calls.map(([code]) => code).sort()).toEqual([...COMMODITY_CODES].sort());
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC']);
+    expect(pending.size).toBe(0);
   });
 
   it('dev 가짜 소스의 봉은 저장된 값과 같아 정정 없이 성공한다', async () => {
@@ -768,15 +799,10 @@ describe('SETTLE_BACKFILL', () => {
     expect(source.fetchRecentBars).not.toHaveBeenCalled();
   });
 
-  it('재시도 때 이미 끝낸 원자재는 다시 받지 않고, 모두 끝나면 다음 실행에서 다시 받는다', async () => {
+  it('실패 뒤 다음 실행은 끝낸 원자재도 다시 비교한다', async () => {
     const { handlers, source } = await settled([], () => 90);
     source.fetchRecentBars.mockRejectedValueOnce(new Error('HTTP 500'));
     await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/Backfill failed/);
-    const failed = source.fetchRecentBars.mock.calls[0][0];
-
-    source.fetchRecentBars.mockClear();
-    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
-    expect(source.fetchRecentBars.mock.calls.map(([code]) => code)).toEqual([failed]);
 
     source.fetchRecentBars.mockClear();
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));

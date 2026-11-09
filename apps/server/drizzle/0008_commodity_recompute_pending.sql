@@ -1,0 +1,1 @@
+ALTER TABLE "commodity" ADD COLUMN "recompute_pending_at" timestamp with time zone;

@@ -56,6 +56,8 @@ export const commodity = pgTable('commodity', {
   priceDecimals: integer().notNull(),
   sortOrder: integer().notNull(),
   usesActiveMonths: boolean().notNull(),
+  // 봉을 저장했지만 재계산을 끝내지 못했으면 그 시각(D-110). 다음 정정 확인·보충·정산이 복구하며 지운다
+  recomputePendingAt: utc(),
 });
 
 export const contract = pgTable(

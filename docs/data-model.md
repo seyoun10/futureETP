@@ -49,6 +49,7 @@ erDiagram
         int price_decimals "NG 3, CL 2, GC 1, SI 3"
         int sort_order
         bool uses_active_months "금속 true"
+        timestamp recompute_pending_at "봉 저장 뒤 재계산 전이면 그 시각, D-110"
     }
     contract {
         string symbol PK "표준 심볼 예: CLZ26(루트+월 코드+연도 2자리), D-049"

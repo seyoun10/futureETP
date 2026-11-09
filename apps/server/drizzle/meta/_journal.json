@@ -57,6 +57,13 @@
       "when": 1793767904404,
       "tag": "0007_alert_record_device",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794208176861,
+      "tag": "0008_commodity_recompute_pending",
+      "breakpoints": true
     }
   ]
 }

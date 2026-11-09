@@ -296,6 +296,19 @@ describe('Massive 정산 소스', () => {
     ]);
   });
 
+  it('보충 재시도는 시작일 이후 정산가가 있는 받아 둔 봉을 다시 쓰고, 없으면 다시 받는다', async () => {
+    const { source, calls } = fakeApi({
+      '/futures/v1/contracts': json(CL_CONTRACTS),
+      '/futures/v1/aggs/CLZ6': json({ results: [bar('2026-10-28', 99.9)] }),
+      '/futures/v1/aggs/CLF30': json({ results: [] }),
+    });
+    await source.fetchRecentBars('CL', ['CLZ26', 'CLF30'], '2026-10-19');
+    calls.length = 0;
+    const bars = await source.fetchRecentBars('CL', ['CLZ26', 'CLF30'], '2026-10-19');
+    expect(bars.map((b) => b.contractSymbol)).toEqual(['CLZ26']);
+    expect(calls.map((c) => c.path.split('?')[0])).toEqual(['/futures/v1/aggs/CLF30']);
+  });
+
   it('월물 정의에 없는 심볼은 봉이 없는 것처럼 빠진다', async () => {
     const { source } = fakeApi({
       '/futures/v1/contracts': json(CL_CONTRACTS),

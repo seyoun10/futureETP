@@ -4,7 +4,7 @@ import type { JobName } from '../constants.ts';
 import type { SettleStore } from '../jobs/settle.ts';
 import type { db as Db } from './client.ts';
 import { tradingDaysBetween } from './queries.ts';
-import { activeMonthRule, batchRun, contract, dailyBar, rollWeight } from './schema.ts';
+import { activeMonthRule, batchRun, commodity, contract, dailyBar, rollWeight } from './schema.ts';
 
 async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string | null> {
   const [row] = await db
@@ -36,7 +36,16 @@ export function createSettleStore(db: typeof Db): SettleStore {
   return {
     tradingDays: (from, to) => tradingDaysBetween(db, from, to),
     lastSuccessTradeDate: (job) => lastSuccessTradeDate(db, job),
-    lastRunFailed: (job) => lastRunFailed(db, job),
+    async recomputePending(code) {
+      const [row] = await db
+        .select({ at: commodity.recomputePendingAt })
+        .from(commodity)
+        .where(eq(commodity.code, code));
+      return row?.at != null;
+    },
+    async setRecomputePending(code, at) {
+      await db.update(commodity).set({ recomputePendingAt: at }).where(eq(commodity.code, code));
+    },
     async lastDailyBarDate() {
       const [row] = await db.select({ tradeDate: max(dailyBar.tradeDate) }).from(dailyBar);
       return row?.tradeDate ?? null;

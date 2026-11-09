@@ -230,13 +230,19 @@ export function createMassiveSettlementSource({
       }
       return bars;
     },
-    // 받아 둔 봉을 다시 쓰지 않고 월물마다 한 번 받는다(드문 월물은 받아 둔 봉에 그날 정산가가 없어 날짜마다 다시 받게 된다)
+    // 날짜를 묻지 않고 월물마다 한 번 받는다. 재시도가 호출을 다시 쓰지 않게 시작일 이후 정산가가 있는 받아 둔 봉은 다시 쓴다.
+    // 없으면 비어 온 응답이 실패 원인일 수 있어 다시 받는다
     async fetchRecentBars(code, symbols, from) {
       const bars: DatedSourceBar[] = [];
       for (const symbol of symbols) {
         const ticker = await tickerOf(code, symbol, from);
         if (!ticker) continue;
-        for (const bar of await loadBars(ticker)) {
+        const cached = barCache.get(ticker);
+        const reusable =
+          cached &&
+          fresh(cached) &&
+          cached.bars.some((b) => b.session_end_date >= from && b.settlement_price != null);
+        for (const bar of reusable ? cached.bars : await loadBars(ticker)) {
           const sourceBar = bar.session_end_date >= from && toSourceBar(symbol, bar);
           if (sourceBar) bars.push({ ...sourceBar, tradeDate: bar.session_end_date });
         }
