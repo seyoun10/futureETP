@@ -101,7 +101,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 | `roll_weight`·`index_bar`·`index_scale`·`disparity`·`disparity_distribution` | 정산·정정·주말 보충 때 `recomputeCommodity`가 `daily_bar`에서 처음부터(D-070) | 다음 정산에서 자동 반영. 바로 보려면 `npm run recompute` |
 | `index_snapshot` | 장중 슬롯마다 그 시각 값만 저장 | 지난 슬롯은 그대로. 다음 슬롯부터 반영(지난 값은 90일 뒤 삭제, D-046) |
 | 커브(C-b), C-a rare 레벨·꼬리 백분위·잠정 봉, C-c 월물 선, A 시세 | 조회할 때 | 저장값 없음. 배포 즉시 반영 |
-| `daily_bar`·`intraday_snapshot` | 원천값(수집) | 수집 범위를 바꾸면 그 뒤 수집분부터. 빠진 봉은 주말 보충이 채움(D-110) |
+| `daily_bar`·`intraday_snapshot` | 원천값(수집) | 수집 범위를 바꾸면 그 뒤 수집분부터. 빠진 봉은 주말 보충이 채우고, 바뀐 값은 고침(D-110) |
 | `device` 설정 기본값 | 마이그레이션의 컬럼 기본값 | 기존 기기 행은 그대로. 필요하면 설정 화면 초기화 |
 
 ## API 통신 및 에러 처리 규약

@@ -23,7 +23,7 @@ export type Trigger = { cron: string; timezone: string; jobs: readonly JobName[]
 export const TRIGGERS: readonly Trigger[] = [
   // 마감(16:00) 뒤, Massive가 드문 월물의 그날 봉을 다음 세션 봉으로 바꾸는 17:00 전에 받는다(D-101).
   { cron: SETTLE_CRON, timezone: CHICAGO, jobs: ['DAILY_SETTLE', 'SETTLE_REVISION'] },
-  // 세션이 없는 토요일에 지난 정산일의 빠진 봉을 채운다(D-110).
+  // 세션이 없는 토요일에 지난 정산일의 빠진 봉을 채우고 바뀐 값을 고친다(D-110).
   { cron: '0 10 * * 6', timezone: CHICAGO, jobs: ['SETTLE_BACKFILL'] },
   { cron: '0,30 * * * *', timezone: CHICAGO, jobs: ['DEFERRED_PUSH', 'INTRADAY'] },
   { cron: '15,45 * * * *', timezone: CHICAGO, jobs: ['INTRADAY'] },

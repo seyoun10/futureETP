@@ -713,6 +713,21 @@ describe('SETTLE_BACKFILL', () => {
     expect(source.fetchRecentBars).not.toHaveBeenCalled();
   });
 
+  it('재시도 때 이미 끝낸 원자재는 다시 받지 않고, 모두 끝나면 다음 실행에서 다시 받는다', async () => {
+    const { handlers, source } = await settled([], () => 90);
+    source.fetchRecentBars.mockRejectedValueOnce(new Error('HTTP 500'));
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/Backfill failed/);
+    const failed = source.fetchRecentBars.mock.calls[0][0];
+
+    source.fetchRecentBars.mockClear();
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(source.fetchRecentBars.mock.calls.map(([code]) => code)).toEqual([failed]);
+
+    source.fetchRecentBars.mockClear();
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(source.fetchRecentBars.mock.calls.map(([code]) => code)).toEqual([...COMMODITY_CODES]);
+  });
+
   it('한 원자재가 실패해도 나머지를 채우고 실패로 끝난다', async () => {
     const { handlers, source, recompute } = await settled(
       ['GCZ26|2026-10-28', 'CLZ26|2026-10-28'],

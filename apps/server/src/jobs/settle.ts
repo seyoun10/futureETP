@@ -1,6 +1,6 @@
 // 일일 정산(D-047, D-071). ① DAILY_SETTLE: 밀린 거래일까지 일봉 저장 → 원자재별 전체 재계산. 성공 = 정산 대기 해제.
 // ② SETTLE_REVISION: 직전 거래일 일봉을 다시 받아 바뀐 원자재만 재계산. 마지막 실행이 실패면 알림 판정을 멈춘다.
-// ③ SETTLE_BACKFILL(주말): 최근 정산일에 빠진 봉을 채운다(D-110).
+// ③ SETTLE_BACKFILL(주말): 최근 정산일에 빠진 봉을 채우고 저장된 봉의 바뀐 값을 고친다(D-110).
 import type { CommodityCode } from '@futureetp/shared';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import { isTargetMonth, type ActiveMonthRule } from '../calc/monthList.ts';
@@ -295,6 +295,10 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     });
   };
 
+  // 재시도 때 이미 끝낸 원자재는 다시 받지 않는다(원자재마다 호출이 많아 재시도가 Healthchecks 여유를 넘을 수 있다).
+  // 모두 끝나면 비운다. 프로세스가 재시작되면 잊고 다시 받는다
+  let backfilled: { tradeDate: string; codes: Set<CommodityCode> } | null = null;
+
   // 정산 때 빠진 봉을 채운다(D-110): 17:00 CT 뒤 다음 세션으로 넘어갔다가 며칠 뒤 다시 나온 드문 월물 봉,
   // 일부 월물만 반영된 날 등. 지금 소스로 저장한 봉은 다시 받은 값과 비교해 고친다(Massive 값은 며칠 뒤 바뀐다).
   // 적재 등 다른 소스 봉은 거래량 기준이 달라(D-095) 건드리지 않는다. 바뀐 원자재만 다시 계산한다
@@ -308,10 +312,23 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       log('[backfill] no settled trading day');
       return;
     }
-    ctx.tradeDate = dates.at(-1);
+    const lastDate = dates[dates.length - 1];
+    ctx.tradeDate = lastDate;
     const previousFailed = await store.lastRunFailed('SETTLE_BACKFILL');
+    const done = backfilled?.tradeDate === lastDate ? backfilled.codes : new Set<CommodityCode>();
+    backfilled = { tradeDate: lastDate, codes: done };
 
     await forEachCommodity('Backfill', async (code) => {
+      if (done.has(code)) {
+        log(`[backfill ${code}] already done`);
+        return;
+      }
+      await backfillCommodity(code);
+      done.add(code);
+    });
+    backfilled = null;
+
+    async function backfillCommodity(code: CommodityCode) {
       const contracts = await store.contracts(code);
       // 날짜마다 받는 월물 중 저장된 봉이 없는 (월물, 날짜)
       const missing = new Set<string>();
@@ -371,7 +388,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         `[backfill ${code}] ${[...found, ...revised].map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,
       );
       await recompute(code, ctx.now);
-    });
+    }
   };
 
   return { DAILY_SETTLE, SETTLE_REVISION, SETTLE_BACKFILL };

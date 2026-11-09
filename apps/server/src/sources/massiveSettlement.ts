@@ -17,7 +17,8 @@ export const RATE_LIMIT_WAIT_MS = 60_000;
 const MAX_ATTEMPTS = 3;
 // 응답이 멈춘 요청이 작업을 붙잡지 않게 한다
 export const REQUEST_TIMEOUT_MS = 30_000;
-// 월물마다 받는 최근 거래일 봉 수: 따라잡기 5거래일 + 정정 확인 1일 + 여유
+// 월물마다 받는 최근 거래일 봉 수: 따라잡기 5거래일 + 정정 확인 1일 + 여유.
+// 주말 보충의 비교 창(BACKFILL_DAYS)이기도 해서, 줄이면 그 창 안의 봉을 비교하지 못한다(D-110)
 const SESSION_LIMIT = 10;
 // 받은 월물 정의·봉을 다시 쓰는 시간. 정산 작업 한 번(약 23분)과 이어지는 정정 확인을 덮는다
 export const BAR_CACHE_TTL_MS = 60 * 60_000;
