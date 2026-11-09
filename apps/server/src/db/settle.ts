@@ -14,25 +14,29 @@ async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string
   return row?.tradeDate ?? null;
 }
 
-// 일일 정산 ①이 성공한 가장 최근 거래일. 정산 대기 판정(marketState)의 입력이다(D-022, D-062)
-export const lastSettledTradeDate = (db: typeof Db) => lastSuccessTradeDate(db, 'DAILY_SETTLE');
-
-// 정정 확인 ②의 마지막으로 끝난 실행이 실패면 알림 판정을 멈춘다(product.md 배치 실패, D-071).
-// ① 실패는 정산 대기라 장중 배치가 이미 돌지 않는다
-export async function isAlertJudgmentSuspended(db: typeof Db): Promise<boolean> {
+// 그 작업의 마지막으로 끝난 실행이 실패인가
+async function lastRunFailed(db: typeof Db, job: JobName): Promise<boolean> {
   const [row] = await db
     .select({ status: batchRun.status })
     .from(batchRun)
-    .where(and(eq(batchRun.job, 'SETTLE_REVISION'), isNotNull(batchRun.finishedAt)))
+    .where(and(eq(batchRun.job, job), isNotNull(batchRun.finishedAt)))
     .orderBy(desc(batchRun.startedAt))
     .limit(1);
   return row?.status === 'FAILED';
 }
 
+// 일일 정산 ①이 성공한 가장 최근 거래일. 정산 대기 판정(marketState)의 입력이다(D-022, D-062)
+export const lastSettledTradeDate = (db: typeof Db) => lastSuccessTradeDate(db, 'DAILY_SETTLE');
+
+// 정정 확인 ②의 마지막으로 끝난 실행이 실패면 알림 판정을 멈춘다(product.md 배치 실패, D-071).
+// ① 실패는 정산 대기라 장중 배치가 이미 돌지 않는다
+export const isAlertJudgmentSuspended = (db: typeof Db) => lastRunFailed(db, 'SETTLE_REVISION');
+
 export function createSettleStore(db: typeof Db): SettleStore {
   return {
     tradingDays: (from, to) => tradingDaysBetween(db, from, to),
     lastSuccessTradeDate: (job) => lastSuccessTradeDate(db, job),
+    lastRunFailed: (job) => lastRunFailed(db, job),
     async lastDailyBarDate() {
       const [row] = await db.select({ tradeDate: max(dailyBar.tradeDate) }).from(dailyBar);
       return row?.tradeDate ?? null;

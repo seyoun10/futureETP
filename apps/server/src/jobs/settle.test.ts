@@ -40,10 +40,13 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
   const bars = new Map<string, DailyBarRow>();
   // `원자재|거래일` → 지수에 쓴 월물
   const indexSymbols = new Map<string, string[]>();
+  // 마지막으로 끝난 실행이 실패인 작업
+  const failedJobs = new Set<JobName>();
   const store: SettleStore = {
     tradingDays: (from, to) =>
       Promise.resolve(DAYS.filter((d) => d.tradeDate >= from && d.tradeDate <= to)),
     lastSuccessTradeDate: (job) => Promise.resolve(lastSuccess[job] ?? null),
+    lastRunFailed: (job) => Promise.resolve(failedJobs.has(job)),
     lastDailyBarDate: () =>
       Promise.resolve(
         [...bars.values()]
@@ -86,7 +89,7 @@ function memoryStore(lastSuccess: Partial<Record<JobName, string>> = {}) {
       return Promise.resolve();
     },
   };
-  return { store, contracts, bars, indexSymbols };
+  return { store, contracts, bars, indexSymbols, failedJobs };
 }
 
 // 원자재마다 두 월물: 12월물(최종 거래일 11-20), 1월물(12-18). 값은 settle 함수로 바꿀 수 있다
@@ -605,6 +608,19 @@ describe('SETTLE_BACKFILL', () => {
     await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
     expect(bars).toEqual(before);
     expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('봉을 저장하고 재계산에 실패했으면 다음 시도에서 값이 같아도 다시 계산한다', async () => {
+    const { handlers, recompute, failedJobs } = await settled([], (symbol, tradeDate) =>
+      symbol === 'NGZ26' && tradeDate === '2026-10-28' ? 91 : 90,
+    );
+    recompute.mockRejectedValueOnce(new Error('db down'));
+    await expect(handlers.SETTLE_BACKFILL(ctx(SATURDAY))).rejects.toThrow(/NG: db down/);
+
+    failedJobs.add('SETTLE_BACKFILL');
+    recompute.mockClear();
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(recompute.mock.calls.map(([code]) => code)).toContain('NG');
   });
 
   it('다른 소스(적재)로 저장된 봉은 값이 달라도 고치지 않고 받지도 않는다', async () => {

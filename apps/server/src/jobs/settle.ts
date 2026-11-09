@@ -46,6 +46,8 @@ export interface SettleStore {
   tradingDays(from: string, to: string): Promise<TradingDaySession[]>;
   // 그 작업이 성공한 가장 최근 거래일
   lastSuccessTradeDate(job: JobName): Promise<string | null>;
+  // 그 작업의 마지막으로 끝난 실행이 실패인가(지금 실행 중인 시도는 치지 않는다)
+  lastRunFailed(job: JobName): Promise<boolean>;
   // daily_bar의 가장 최근 거래일(적재·이전 정산 데이터)
   lastDailyBarDate(): Promise<string | null>;
   activeMonthRules(commodityCode: CommodityCode): Promise<ActiveMonthRule[]>;
@@ -292,6 +294,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       return;
     }
     ctx.tradeDate = dates.at(-1);
+    const previousFailed = await store.lastRunFailed('SETTLE_BACKFILL');
 
     await forEachCommodity('Backfill', async (code) => {
       const contracts = await store.contracts(code);
@@ -329,7 +332,11 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       log(
         `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,
       );
-      if (found.length === 0 && revised.length === 0) return;
+      if (found.length === 0 && revised.length === 0) {
+        // 이전 시도가 봉만 저장하고 재계산에서 실패했으면 값이 같아도 다시 계산한다
+        if (previousFailed) await recompute(code, ctx.now);
+        return;
+      }
       await store.upsertDailyBars([
         ...found.map((b) => ({
           ...b,
