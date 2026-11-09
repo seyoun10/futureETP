@@ -32,7 +32,7 @@ export type DailyBarRow = BarValues & {
   revisedAt: Date | null;
 };
 
-export type StoredBar = BarValues & { source: Source; revisedAt: Date | null };
+export type StoredBar = BarValues & { source: Source; collectedAt: Date; revisedAt: Date | null };
 
 export type SettleContract = {
   symbol: string;
@@ -181,6 +181,28 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     );
   }
 
+  // 다시 받아 값이 바뀐 봉의 저장 행. 정산가가 바뀔 때만 정정 시각을 찍고 수집 시각을 옮긴다.
+  // 거래량·OHLC만 바뀌면 화면 기준 시각(revised_at ?? collected_at)은 그대로다
+  function revisedRows(
+    stored: readonly StoredBar[],
+    changed: readonly BarValues[],
+    tradeDate: string,
+    now: Date,
+  ): DailyBarRow[] {
+    const bySymbol = new Map(stored.map((b) => [b.contractSymbol, b]));
+    return changed.map((b) => {
+      const before = bySymbol.get(b.contractSymbol);
+      const settleChanged = before === undefined || before.settle !== b.settle;
+      return {
+        ...b,
+        tradeDate,
+        source: source.name,
+        collectedAt: settleChanged ? now : before.collectedAt,
+        revisedAt: settleChanged ? now : before.revisedAt,
+      };
+    });
+  }
+
   const DAILY_SETTLE: JobHandler = async (ctx) => {
     const days = await loadDays(store, ctx.now);
     // 정산 이력이 없으면(적재 직후) 저장된 일봉의 마지막 날 다음부터 따라잡는다
@@ -219,6 +241,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       return;
     }
     const previousDate = days.findLast((d) => d.tradeDate < tradeDate)?.tradeDate;
+    const previousFailed = await store.lastRunFailed('SETTLE_REVISION');
 
     await forEachCommodity('Revision', async (code) => {
       // 지금 소스로 받은 일봉만 다시 확인한다. 적재 등 다른 소스 일봉은 거래량 기준이 달라(D-095)
@@ -258,19 +281,11 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       }
       const changed = findRevisedBars(stored, fetched);
       if (changed.length > 0) {
-        await store.upsertDailyBars(
-          changed.map((b) => ({
-            ...b,
-            tradeDate,
-            source: source.name,
-            collectedAt: ctx.now,
-            revisedAt: ctx.now,
-          })),
-        );
+        await store.upsertDailyBars(revisedRows(stored, changed, tradeDate, ctx.now));
         log(`[revision ${code} ${tradeDate}] ${changed.map((b) => b.contractSymbol).join(', ')}`);
       }
       // 이전 시도가 정정만 저장하고 재계산에서 실패했어도 다시 계산한다
-      if (changed.length > 0 || stored.some((b) => b.revisedAt !== null)) {
+      if (changed.length > 0 || previousFailed) {
         await recompute(code, ctx.now);
       }
       // 다음 날은 다음 거래일을 확인하므로, 받은 월물의 정정을 반영한 뒤에 실패로 남긴다
@@ -301,7 +316,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       // 날짜마다 받는 월물 중 저장된 봉이 없는 (월물, 날짜)
       const missing = new Set<string>();
       // 날짜 → 지금 소스로 저장한 봉
-      const sourceBars = new Map<string, Awaited<ReturnType<SettleStore['dailyBars']>>>();
+      const sourceBars = new Map<string, StoredBar[]>();
       for (const date of dates) {
         const bars = await store.dailyBars(code, date);
         sourceBars.set(
@@ -327,12 +342,14 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
         throw new Error(`no bars from ${source.name} since ${dates[0]}`);
       }
       const found = fetched.filter((b) => missing.has(`${b.contractSymbol}|${b.tradeDate}`));
-      const revised = dates.flatMap((date) =>
-        findRevisedBars(
-          sourceBars.get(date) ?? [],
+      const revised = dates.flatMap((date) => {
+        const stored = sourceBars.get(date) ?? [];
+        const changed = findRevisedBars(
+          stored,
           fetched.filter((b) => b.tradeDate === date),
-        ),
-      );
+        );
+        return revisedRows(stored, changed, date, ctx.now);
+      });
       log(
         `[backfill ${code}] ${found.length} of ${missing.size} missing bars, ${revised.length} revised`,
       );
@@ -348,12 +365,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
           collectedAt: ctx.now,
           revisedAt: null,
         })),
-        ...revised.map((b) => ({
-          ...b,
-          source: source.name,
-          collectedAt: ctx.now,
-          revisedAt: ctx.now,
-        })),
+        ...revised,
       ]);
       log(
         `[backfill ${code}] ${[...found, ...revised].map((b) => `${b.contractSymbol} ${b.tradeDate}`).join(', ')}`,

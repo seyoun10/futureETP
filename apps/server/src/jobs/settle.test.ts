@@ -407,11 +407,38 @@ describe('SETTLE_REVISION', () => {
   });
 
   it('정정을 저장하고 재계산에 실패했으면 다음 시도에서 다시 계산한다', async () => {
-    const { handlers, recompute } = await seeded((symbol) => (symbol === 'NGZ26' ? 99 : 100));
+    const { handlers, recompute, failedJobs } = await seeded((symbol) =>
+      symbol === 'NGZ26' ? 99 : 100,
+    );
     recompute.mockRejectedValueOnce(new Error('boom'));
     await expect(handlers.SETTLE_REVISION(ctx())).rejects.toThrow(/Revision failed: NG: boom/);
+
+    failedJobs.add('SETTLE_REVISION');
+    recompute.mockClear();
     await handlers.SETTLE_REVISION(ctx());
-    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG', 'NG']);
+    expect(recompute.mock.calls.map(([code]) => code)).toContain('NG');
+  });
+
+  it('예전 정정 기록이 있어도 직전 실행이 성공이고 바뀐 값이 없으면 재계산하지 않는다', async () => {
+    const { handlers, bars, recompute } = await seeded(() => 100);
+    const bar = bars.get('CLZ26|2026-10-26');
+    if (bar) bars.set('CLZ26|2026-10-26', { ...bar, revisedAt: ct('2026-10-24', '10:20') });
+    await handlers.SETTLE_REVISION(ctx());
+    expect(recompute).not.toHaveBeenCalled();
+  });
+
+  it('거래량만 바뀌면 저장·재계산하되 기준 시각(정정·수집 시각)은 그대로 둔다', async () => {
+    const { handlers, bars, recompute } = await seeded(() => 100);
+    const collectedAt = ct('2026-10-26', '16:05');
+    const bar = bars.get('CLZ26|2026-10-26');
+    if (bar) bars.set('CLZ26|2026-10-26', { ...bar, volume: 5, collectedAt });
+    await handlers.SETTLE_REVISION(ctx());
+    expect(bars.get('CLZ26|2026-10-26')).toMatchObject({
+      volume: 10,
+      collectedAt,
+      revisedAt: null,
+    });
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['CL']);
   });
 
   it('소스에서 지수 월물이 빠지면 확인하지 못한 것으로 실패한다', async () => {
@@ -599,6 +626,19 @@ describe('SETTLE_BACKFILL', () => {
       revisedAt: SATURDAY,
     });
     expect(bars.get('NGZ26|2026-10-27')).toMatchObject({ settle: 90, revisedAt: null });
+    expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
+  });
+
+  it('거래량만 바뀌면 저장·재계산하되 기준 시각(정정·수집 시각)은 그대로 둔다', async () => {
+    const { handlers, bars, recompute } = await settled([], () => 90);
+    const bar = bars.get('NGZ26|2026-10-28');
+    if (bar) bars.set('NGZ26|2026-10-28', { ...bar, volume: 5 });
+    await handlers.SETTLE_BACKFILL(ctx(SATURDAY));
+    expect(bars.get('NGZ26|2026-10-28')).toMatchObject({
+      volume: 10,
+      collectedAt: NOW,
+      revisedAt: null,
+    });
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['NG']);
   });
 

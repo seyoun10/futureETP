@@ -77,6 +77,7 @@ export function createSettleStore(db: typeof Db): SettleStore {
           settle: dailyBar.settle,
           volume: dailyBar.volume,
           source: dailyBar.source,
+          collectedAt: dailyBar.collectedAt,
           revisedAt: dailyBar.revisedAt,
         })
         .from(dailyBar)
