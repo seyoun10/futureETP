@@ -62,6 +62,6 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 모두 저장소 루트에서 실행한다. workspace 하나만 돌릴 때는 `-w apps/mobile`·`-w apps/server`·`-w packages/shared`. 영역별 명령은 각 rules 파일, 운영·배포·기기 확인 명령은 `docs/ops.md`.
 
 - `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트
-- `npm run lint` / `npm run format` / `npm run typecheck` / `npm test`
+- `npm run lint` / `npm run format`(파일 수정, 확인만은 `npm run format:check`) / `npm run typecheck` / `npm test`
 - 커버리지 측정(추세 확인용, 임계치 없음): `npm run test:coverage`
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
