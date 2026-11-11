@@ -1,6 +1,8 @@
 # Architecture
 
 > TODO.md 3단계 산출물.
+>
+> 이 문서는 구조와 근거를 자세히 적는다. 코딩할 때 지킬 규칙의 요약은 영역별로 `.claude/rules/mobile.md`(`apps/mobile`)와 `.claude/rules/server.md`(`apps/server`·`packages/shared`), 공통 규칙은 루트 `CLAUDE.md`에 있다. 규칙이 바뀌면 이 문서와 함께 갱신한다.
 
 ## 디렉터리 구조
 
