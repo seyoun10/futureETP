@@ -1,6 +1,7 @@
 # 운영·기기 확인 명령
 
 가끔 쓰는 명령 모음. 일상 개발 명령은 `CLAUDE.md`의 Commands. 모두 저장소 루트에서 실행한다.
+배포 순서·사전 확인은 `.claude/skills/release`, 기기 확인 절차는 `.claude/skills/device-check` skill에 있다. 여기는 명령 문법만 둔다.
 
 ## 데이터 적재
 
