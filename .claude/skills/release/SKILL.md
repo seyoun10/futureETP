@@ -19,12 +19,13 @@ disable-model-invocation: true
    - `packages/shared`가 바뀌면 server와 앱 둘 다
 4. 앱은 OTA로 되는지 먼저 본다. 마지막 APK 빌드 이후 `apps/mobile/package.json`(scripts·의존성), `app.config.ts`, config plugin, 네이티브 모듈이 바뀌었으면 fingerprint(runtime version)가 달라져 설치된 빌드가 OTA를 못 받는다 → android로 새로 빌드한다.
 5. 대상과 실행할 명령을 사용자에게 보여 주고 확인을 받은 뒤 진행한다(외부로 나가는 작업).
+6. 배포 명령(`deploy`·`update:prod`·`distribute:android`)은 확인 한 번에 한 번만 실행한다. 출력은 `2>&1 | tee <scratchpad>/release-<대상>.log`로 남기고, 결과 확인(커밋 해시·runtime version 등)은 이 파일을 읽어서 한다. 확인용 명령에 배포 명령을 다시 넣지 않는다. 실패해도 다시 실행하기 전에 사용자 확인을 받는다.
 
 ## server
 
 1. `npm run deploy`. 설정은 `~/.config/futureetp/ops.env`의 `DEPLOY_HOST`.
 2. VM에서 ② 이미지 빌드 → ③ pg_dump → ④ migrate → ⑤ 서버 교체가 돈다. ④가 실패하면 이전 서버가 그대로 돈다. 실패하면 출력의 단계 번호와 오류를 보고하고 멈춘다(VM에서 임의로 고치지 않는다).
-3. 끝나면 출력에 배포한 커밋 해시가 맞는지 확인한다.
+3. 끝나면 남긴 출력의 `deploy: ① <커밋> →` 줄이 배포한 커밋 해시와 맞는지 확인한다.
 
 ## ota
 
