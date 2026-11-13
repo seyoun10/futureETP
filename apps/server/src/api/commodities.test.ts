@@ -98,6 +98,16 @@ function setup(now: string, data: Data) {
           (b) => symbols.includes(b.contractSymbol) && dates.includes(b.tradeDate),
         ),
       ),
+    lastBarsBefore: (symbols, tradeDate) =>
+      Promise.resolve(
+        symbols.flatMap((symbol) => {
+          const last = (data.bars ?? [])
+            .filter((b) => b.contractSymbol === symbol && b.tradeDate < tradeDate)
+            .sort((a, b) => a.tradeDate.localeCompare(b.tradeDate))
+            .at(-1);
+          return last ? [last] : [];
+        }),
+      ),
     latestSnapshots: (symbols, tradeDate) =>
       Promise.resolve(
         (data.snapshots ?? []).filter(
@@ -184,6 +194,22 @@ describe('GET /v1/commodities', () => {
     });
     expect(cl[1]).toMatchObject({ price: 79, change: null, noTrade: true, isFront: false });
     expect(data.commodities[0].contracts[0]).toMatchObject({ price: null, noTrade: true });
+  });
+
+  it('직전 거래일에도 봉이 없는 월물은 그 전 마지막 정산가를 거래 없음으로 준다', async () => {
+    const res = await setup('2026-10-23T15:00:00Z', {
+      lastSettled: '2026-10-22',
+      // CLG27은 10-21 뒤로 거래가 없다(Massive는 거래 없는 날 봉을 주지 않는다)
+      bars: [bar('CLZ26', '2026-10-22', 80), bar('CLG27', '2026-10-21', 77)],
+    });
+    expect(res.status).toBe(200);
+    const cl = (await parse(res)).commodities[1].contracts;
+    expect(cl.find((c) => c.symbol === 'CLG27')).toMatchObject({
+      price: 77,
+      change: null,
+      changePct: null,
+      noTrade: true,
+    });
   });
 
   it('정산이 끝난 주말에는 그 거래일 정산가와 정산 뒤 대표월물을 쓰고, 다음 개장 뒤 갱신 시각을 준다', async () => {

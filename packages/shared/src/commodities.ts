@@ -7,7 +7,7 @@ export const contractQuoteSchema = z.object({
   symbol: z.string(),
   // YYYY-MM
   contractMonth: z.string().regex(/^\d{4}-\d{2}$/),
-  // 거래일 정산가 → 장중 스냅숏 → 직전 거래일 정산가("거래 없음") 순. 셋 다 없으면 null
+  // 거래일 정산가 → 장중 스냅숏 → 마지막 정산가("거래 없음", 직전 거래일 또는 그 전) 순. 일봉이 하나도 없으면 null
   price: z.number().nullable(),
   // 직전 거래일 정산가 대비. 거래 없음이거나 직전 정산가가 없으면 null
   change: z.number().nullable(),

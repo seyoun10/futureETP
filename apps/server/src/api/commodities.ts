@@ -26,6 +26,8 @@ export type CommoditiesStore = {
     tradeDate: string,
   ) => Promise<{ commodityCode: CommodityCode; contractSymbol: string }[]>;
   dailyBars: (symbols: string[], dates: string[]) => Promise<QuoteBar[]>;
+  // 월물별 tradeDate 전(미만) 가장 최근 일봉(거래 없음 표시 값)
+  lastBarsBefore: (symbols: string[], tradeDate: string) => Promise<QuoteBar[]>;
   // 월물별 그 거래일 최근 스냅숏
   latestSnapshots: (symbols: string[], tradeDate: string) => Promise<QuoteSnapshot[]>;
 };
@@ -64,15 +66,23 @@ export async function loadCommodities(
   });
   const symbols = lists.flatMap((l) => l.contracts.map((c) => c.symbol));
   const dates = prevTradeDate === null ? [tradeDate] : [prevTradeDate, tradeDate];
-  const [bars, snapshots] = await Promise.all([
+  const [bars, lastBars, snapshots] = await Promise.all([
     store.dailyBars(symbols, dates),
+    store.lastBarsBefore(symbols, tradeDate),
     store.latestSnapshots(symbols, tradeDate),
   ]);
 
   let asOf: Date | null = null;
   let delayed = false;
   const summaries = commodities.map(({ code, priceDecimals }, i) => {
-    const result = buildQuotes({ ...lists[i], tradeDate, prevTradeDate, bars, snapshots });
+    const result = buildQuotes({
+      ...lists[i],
+      tradeDate,
+      prevTradeDate,
+      bars,
+      lastBars,
+      snapshots,
+    });
     if (result.asOf && (asOf === null || result.asOf > asOf)) asOf = result.asOf;
     delayed ||= result.delayed;
     return { code, priceDecimals, alert: code === alertCommodity, contracts: result.quotes };

@@ -1362,9 +1362,10 @@
   - 응답(shared `commoditiesSchema`): `{ freshness, commodities: [{ code, priceDecimals, alert, contracts: [{ symbol, contractMonth, price, change, changePct, noTrade, isFront }] }] }`. 원자재 이름은 보내지 않는다. 앱이 `commodities.<code>` i18n 키로 쓴다(D-033). 가격은 반올림하지 않고 앱이 `priceDecimals`로 맞춘다.
   - 기준 거래일 T = `marketStatus(now).tradeDate`(정산 대기면 직전 거래일). 정산 완료 거래일은 DAILY_SETTLE 성공 기록, 없으면 저장된 일봉의 마지막 날이다(`jobs/settle.ts`와 같음). T가 없으면(달력 없음) 500 `INTERNAL`이다.
   - 월물 목록: `selectMonthList(contracts, T, front)`. 대표월물은 roll_weight FRONT 중 T 이하 가장 최근 행이다. 장중에는 직전 거래일 행(그날 보유 월물), 정산이 끝나면 T 행(다음 거래일 보유 월물)이 된다.
-  - 표시 값(`calc/quotes.ts` `buildQuotes`): T 정산가 → T의 최근 스냅숏 → 직전 거래일 정산가(`noTrade`) 순. 셋 다 없으면 `price: null`. 장 상태로 나누지 않는다(장중에는 T 정산가가 없음). `change`·`changePct`는 직전 거래일 정산가 대비이고, `noTrade`이거나 직전 정산가가 없으면 null이다.
+  - 표시 값(`calc/quotes.ts` `buildQuotes`): T 정산가 → T의 최근 스냅숏 → 직전 거래일 정산가(`noTrade`) 순. 셋 다 없으면 `price: null`(2026-11-13 고침: 그 전 마지막 정산가까지 본다, 아래 리뷰 수정). 장 상태로 나누지 않는다(장중에는 T 정산가가 없음). `change`·`changePct`는 직전 거래일 정산가 대비이고, `noTrade`이거나 직전 정산가가 없으면 null이다.
   - `asOf` = 표시한 값 중 가장 늦은 시각(스냅숏 `capturedAt`, 일봉 `revisedAt ?? collectedAt`). 값이 하나도 없으면 조회 시각이다. `delayed` = 스냅숏을 하나라도 썼는지.
   - `alert` = 설정의 `alertCommodity`와 같은 원자재. 조회는 `db/commoditiesStore.ts`(`CommoditiesStore`), 조립은 `api/commodities.ts` `loadCommodities`이고, 라우트 테스트는 메모리 저장소로 한다.
+  - 리뷰 수정(2026-11-13, 코드 리뷰, 사용자가 권장안 선택): 거래 없음 표시 값은 직전 거래일 정산가가 없으면 그 전 마지막 정산가다(store `lastBarsBefore`: 월물별 T 전 가장 최근 일봉). product.md 월물 목록·screens.md A의 "마지막 정산가"에 맞춘다. 적재 데이터는 거래 없는 날에도 봉이 있었지만 Massive는 주지 않아(D-095), 이틀 넘게 거래 없는 드문 월물(은 4~5번째 등)이 빈 값으로 보였다. 일봉이 하나도 없을 때만 `price: null`이다. 등락은 그대로 비운다.
 - 근거:
   - 장 상태로 값을 나누지 않고 우선순위 하나로 고르면, 마감 뒤 정산 전(그날 마지막 스냅숏)과 정산 뒤(정산가)를 같은 코드가 처리한다(D-048).
   - 대표월물을 "T 이하 최근 행"으로 두면 장중에는 지금 보유 월물을, 주말에는 다음 개장 때 보유할 월물을 보여 준다. C-a 대표월물 전환일 점선(D-103)과도 같은 행을 쓴다.

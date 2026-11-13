@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, lte, max } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lt, lte, max } from 'drizzle-orm';
 import type { CommoditiesStore } from '../api/commodities.ts';
 import type { db as Db } from './client.ts';
 import { commodity, contract, dailyBar, intradaySnapshot, rollWeight } from './schema.ts';
@@ -46,6 +46,14 @@ export function createCommoditiesStore(db: typeof Db): CommoditiesStore {
         .select(settleColumns)
         .from(dailyBar)
         .where(and(inArray(dailyBar.contractSymbol, symbols), inArray(dailyBar.tradeDate, dates)));
+    },
+    async lastBarsBefore(symbols, tradeDate) {
+      if (symbols.length === 0) return [];
+      return db
+        .selectDistinctOn([dailyBar.contractSymbol], settleColumns)
+        .from(dailyBar)
+        .where(and(inArray(dailyBar.contractSymbol, symbols), lt(dailyBar.tradeDate, tradeDate)))
+        .orderBy(dailyBar.contractSymbol, desc(dailyBar.tradeDate));
     },
     async latestSnapshots(symbols, tradeDate) {
       if (symbols.length === 0) return [];

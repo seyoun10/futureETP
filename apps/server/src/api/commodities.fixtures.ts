@@ -15,6 +15,7 @@ export const UNUSED_COMMODITIES: CommoditiesStore = {
   contracts: unused,
   frontSymbols: unused,
   dailyBars: unused,
+  lastBarsBefore: unused,
   latestSnapshots: unused,
 };
 

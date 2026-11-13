@@ -20,6 +20,9 @@ export type QuoteInput = {
   tradeDate: string;
   prevTradeDate: string | null;
   bars: readonly QuoteBar[];
+  // 월물별 그 거래일 전(미만) 가장 최근 일봉. 직전 거래일에도 봉이 없을 때 거래 없음 표시 값이다
+  // (Massive는 거래 없는 날 봉을 주지 않는다, D-095)
+  lastBars: readonly QuoteBar[];
   snapshots: readonly QuoteSnapshot[];
 };
 
@@ -31,7 +34,8 @@ export type QuoteResult = {
   delayed: boolean;
 };
 
-// 값은 그 거래일 정산가 → 최근 스냅숏 → 직전 거래일 정산가(거래 없음) 순으로 고른다.
+// 값은 그 거래일 정산가 → 최근 스냅숏 → 마지막 정산가(거래 없음, 직전 거래일 또는 그 전) 순으로 고른다.
+// 등락은 직전 거래일 정산가 대비라, 거래 없음이면 비운다.
 // 장 상태로 나누지 않는다. 장중에는 그날 정산가가 없고, 마감 뒤 정산 전에는 그날 마지막 스냅숏이 남는다(D-048).
 export function buildQuotes(input: QuoteInput): QuoteResult {
   const bar = (symbol: string, date: string | null) =>
@@ -57,9 +61,10 @@ export function buildQuotes(input: QuoteInput): QuoteResult {
       delayed = true;
     } else {
       noTrade = true;
-      if (prev) {
-        price = prev.settle;
-        seen(prev.revisedAt ?? prev.collectedAt);
+      const last = prev ?? input.lastBars.find((b) => b.contractSymbol === c.symbol);
+      if (last) {
+        price = last.settle;
+        seen(last.revisedAt ?? last.collectedAt);
       }
     }
     const change = !noTrade && price !== null && prev ? price - prev.settle : null;

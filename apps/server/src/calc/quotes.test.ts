@@ -23,6 +23,7 @@ const input = (overrides: Partial<QuoteInput>): QuoteInput => ({
   tradeDate: '2026-10-22',
   prevTradeDate: '2026-10-21',
   bars: [bar('CLZ26', '2026-10-21', 80, '2026-10-21T23:31:00Z')],
+  lastBars: [],
   snapshots: [],
   ...overrides,
 });
@@ -99,6 +100,31 @@ describe('buildQuotes', () => {
       },
     ]);
     expect(result).toMatchObject({ asOf: at('2026-10-21T23:31:00Z'), delayed: false });
+  });
+
+  it('직전 거래일에도 봉이 없으면 그 전 마지막 정산가를 거래 없음으로 보여 준다', () => {
+    const result = buildQuotes(
+      input({
+        contracts: [contract('SIU27', '2027-09')],
+        frontSymbol: null,
+        bars: [],
+        lastBars: [bar('SIU27', '2026-10-16', 31.5, '2026-10-16T23:31:00Z')],
+      }),
+    );
+    expect(result.quotes[0]).toMatchObject({
+      price: 31.5,
+      change: null,
+      changePct: null,
+      noTrade: true,
+    });
+    expect(result.asOf).toEqual(at('2026-10-16T23:31:00Z'));
+  });
+
+  it('직전 거래일 정산가가 있으면 그 전 일봉보다 앞선다', () => {
+    const result = buildQuotes(
+      input({ lastBars: [bar('CLZ26', '2026-10-21', 80, '2026-10-21T23:31:00Z')] }),
+    );
+    expect(result.quotes[0]).toMatchObject({ price: 80, noTrade: true });
   });
 
   it('값이 하나도 없으면 asOf는 null이다', () => {
