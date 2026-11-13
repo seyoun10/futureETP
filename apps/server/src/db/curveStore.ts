@@ -1,4 +1,4 @@
-import { and, asc, between, desc, eq, inArray, lt, min } from 'drizzle-orm';
+import { and, asc, between, desc, eq, gte, inArray, lt, min } from 'drizzle-orm';
 import type { CurveStore } from '../api/curve.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
@@ -31,7 +31,19 @@ export function createCurveStore(db: typeof Db): CurveStore {
         .orderBy(asc(tradingDay.tradeDate));
       return rows.map((r) => r.tradeDate);
     },
-    contracts: (code, fromDate) => contractsFrom(db, code, fromDate),
+    async contracts(code, fromDate) {
+      const [contracts, firstBars] = await Promise.all([
+        contractsFrom(db, code, fromDate),
+        db
+          .select({ symbol: dailyBar.contractSymbol, firstBarDate: min(dailyBar.tradeDate) })
+          .from(dailyBar)
+          .innerJoin(contract, eq(contract.symbol, dailyBar.contractSymbol))
+          .where(and(eq(contract.commodityCode, code), gte(contract.lastTradeDate, fromDate)))
+          .groupBy(dailyBar.contractSymbol),
+      ]);
+      const firstBarDate = new Map(firstBars.map((b) => [b.symbol, b.firstBarDate]));
+      return contracts.map((c) => ({ ...c, firstBarDate: firstBarDate.get(c.symbol) ?? null }));
+    },
     async frontSymbol(code, before) {
       const [row] = await db
         .select({ contractSymbol: rollWeight.contractSymbol })

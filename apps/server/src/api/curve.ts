@@ -2,9 +2,8 @@ import type { CommodityCode, Curve } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { buildCurve, CURVE_VOLUME_DAYS, resolveBaseDate } from '../calc/curve.ts';
-import type { CurveBar } from '../calc/curve.ts';
+import type { CurveBar, CurveListing } from '../calc/curve.ts';
 import { marketStatus } from '../calc/marketState.ts';
-import type { ListedContract } from '../calc/monthList.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import type { DisparityStore } from './disparity.ts';
@@ -21,8 +20,8 @@ export type CurveStore = Pick<
     firstBarDate: (code: CommodityCode) => Promise<string | null>;
     // 거래일 날짜만(과거 행 포함), 오름차순
     tradeDates: (from: string, to: string) => Promise<string[]>;
-    // 최종 거래일이 fromDate 이후인 그 원자재의 월물
-    contracts: (code: CommodityCode, fromDate: string) => Promise<ListedContract[]>;
+    // 최종 거래일이 fromDate 이후인 그 원자재의 월물과 월물별 가장 이른 일봉 날짜
+    contracts: (code: CommodityCode, fromDate: string) => Promise<CurveListing[]>;
     // 그 날짜 전(미만) 가장 최근 FRONT roll_weight 행의 월물 = 그날 보유한 대표월물(D-068)
     frontSymbol: (code: CommodityCode, before: string) => Promise<string | null>;
     dailyBars: (symbols: string[], dates: string[]) => Promise<CurveBar[]>;

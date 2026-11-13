@@ -123,7 +123,7 @@ describe('averageVolume', () => {
 
   it('창 안의 일봉 거래량을 평균한다', () => {
     const bars = days.map((tradeDate, i) => ({ tradeDate, volume: (i + 1) * 100 }));
-    expect(averageVolume(bars, days)).toBeCloseTo(300);
+    expect(averageVolume(bars, days, days[0])).toBeCloseTo(300);
   });
 
   it('창 밖의 일봉은 무시한다', () => {
@@ -132,15 +132,15 @@ describe('averageVolume', () => {
       { tradeDate: days[0], volume: 100 },
       { tradeDate: days[1], volume: 300 },
     ];
-    expect(averageVolume(bars, days.slice(0, 2))).toBeCloseTo(200);
+    expect(averageVolume(bars, days.slice(0, 2), '2025-12-31')).toBeCloseTo(200);
   });
 
-  it('상장 후 일수가 모자라면 일봉이 있는 날만으로 평균한다', () => {
+  it('상장 후 일수가 모자라면 첫 일봉 날짜 이후 거래일만으로 평균한다', () => {
     const bars = [
       { tradeDate: days[3], volume: 50 },
       { tradeDate: days[4], volume: 150 },
     ];
-    expect(averageVolume(bars, days)).toBeCloseTo(100);
+    expect(averageVolume(bars, days, days[3])).toBeCloseTo(100);
   });
 
   it('거래량 0인 날도 일봉이 있으면 평균에 넣는다', () => {
@@ -148,13 +148,23 @@ describe('averageVolume', () => {
       { tradeDate: days[0], volume: 0 },
       { tradeDate: days[1], volume: 200 },
     ];
-    expect(averageVolume(bars, days)).toBeCloseTo(100);
+    expect(averageVolume(bars, days.slice(0, 2), days[0])).toBeCloseTo(100);
+  });
+
+  it('첫 일봉 뒤 일봉이 없는 날은 거래량 0으로 센다(소스가 거래 없는 날 봉을 주지 않는다)', () => {
+    // 창 5일 중 하루만 150계약: 봉이 있는 날로만 나누면 150이라 100계약 기준을 통과한다
+    const bars = [{ tradeDate: days[2], volume: 150 }];
+    expect(averageVolume(bars, days, '2025-06-02')).toBeCloseTo(30);
   });
 
   it('창 안에 일봉이 없으면 0이다', () => {
-    expect(averageVolume([{ tradeDate: '2025-12-31', volume: 500 }], days)).toBe(0);
-    expect(averageVolume([], days)).toBe(0);
-    expect(averageVolume([], [])).toBe(0);
+    expect(averageVolume([{ tradeDate: '2025-12-31', volume: 500 }], days, '2025-12-31')).toBe(0);
+    expect(averageVolume([], days, null)).toBe(0);
+    expect(averageVolume([], [], null)).toBe(0);
+  });
+
+  it('첫 일봉이 창보다 뒤면 0이다', () => {
+    expect(averageVolume([{ tradeDate: '2026-02-02', volume: 500 }], days, '2026-02-02')).toBe(0);
   });
 });
 
@@ -181,6 +191,42 @@ describe('selectCurve', () => {
     const curve = selectCurve(candidates, curveDate, 'GCZ26');
     expect(symbols(curve.contracts)).toEqual(['GCZ26', 'GCJ27']);
     expect(curve.m2?.symbol).toBe('GCJ27');
+  });
+
+  it('처음 미달한 월물에 그날 값이 없어도 거기서 멈춘다(먼 월물을 띄엄띄엄 넣지 않는다)', () => {
+    const candidates = [
+      cand('GC', '2026-12', '2026-12-29', 2418, 5000),
+      cand('GC', '2027-02', '2027-02-24', 2430, 3000),
+      cand('GC', '2027-04', '2027-04-28', 2445, 2000),
+      cand('GC', '2027-06', '2027-06-28', null, 40), // 미달이고 그날 봉 없음
+      cand('GC', '2027-12', '2027-12-29', 2500, 1500),
+    ];
+    const curve = selectCurve(candidates, curveDate, 'GCZ26');
+    expect(symbols(curve.contracts)).toEqual(['GCZ26', 'GCG27', 'GCJ27']);
+  });
+
+  it('M2 자리 월물이 미달이고 그날 값이 없으면 M1에서 멈추고 m2는 null이다', () => {
+    const candidates = [
+      cand('GC', '2026-12', '2026-12-29', 2418, 5000),
+      cand('GC', '2027-02', '2027-02-24', null, 40),
+      cand('GC', '2027-04', '2027-04-28', 2445, 2000),
+    ];
+    const curve = selectCurve(candidates, curveDate, 'GCZ26');
+    expect(symbols(curve.contracts)).toEqual(['GCZ26']);
+    expect(curve.m1?.symbol).toBe('GCZ26');
+    expect(curve.m2).toBeNull();
+  });
+
+  it('M1보다 이른 월물에 그날 값이 없으면 빼고 M1·M2는 그대로 정한다', () => {
+    const candidates = [
+      cand('GC', '2026-11', '2026-11-25', null, 0),
+      cand('GC', '2026-12', '2026-12-29', 2418, 5000),
+      cand('GC', '2027-02', '2027-02-24', 2430, 3000),
+    ];
+    const curve = selectCurve(candidates, curveDate, 'GCZ26');
+    expect(symbols(curve.contracts)).toEqual(['GCZ26', 'GCG27']);
+    expect(curve.m1?.symbol).toBe('GCZ26');
+    expect(curve.m2?.symbol).toBe('GCG27');
   });
 
   it('최종 거래일 당일인 월물은 넣는다', () => {
@@ -498,6 +544,7 @@ describe('buildCurve', () => {
     contractMonth: month,
     lastTradeDate,
     isTarget: true,
+    firstBarDate: DAYS[0],
   });
   // DEC26(M1)·JAN27(M2)·FEB27, 매일 거래량 1000
   const CONTRACTS = [
@@ -585,5 +632,15 @@ describe('buildCurve', () => {
       currentPrice: 72,
       changePct: null,
     });
+  });
+
+  it('창에 봉이 하루뿐인 드문 월물은 그날 거래량이 많아도 평균 미달로 빠진다', () => {
+    // FEB27은 기준일 하루만 150계약 체결됐다(다른 날은 봉이 없다). 20거래일 평균 7.5
+    const sparse = BARS.filter((b) => b.contractSymbol !== 'CLG27');
+    const r = input({ bars: [...sparse, { ...bars('2027-02', BASE, 72), volume: 150 }] });
+    expect(r.points.map((p) => [p.contractMonth, p.basePrice])).toEqual([
+      ['2026-12', 70],
+      ['2027-01', 71],
+    ]);
   });
 });

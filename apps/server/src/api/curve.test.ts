@@ -33,7 +33,7 @@ const SESSIONS = [
 const CONTRACTS = [
   { symbol: 'CLZ26', contractMonth: '2026-12', lastTradeDate: '2026-11-20', isTarget: true },
   { symbol: 'CLF27', contractMonth: '2027-01', lastTradeDate: '2026-12-18', isTarget: true },
-];
+].map((c) => ({ ...c, firstBarDate: '2026-10-14' }));
 const bar = (contractSymbol: string, tradeDate: string, settle: number): CurveBar => ({
   contractSymbol,
   tradeDate,

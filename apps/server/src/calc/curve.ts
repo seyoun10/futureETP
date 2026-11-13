@@ -23,19 +23,24 @@ export function volumeWindow(
   return upTo.slice(-CURVE_VOLUME_DAYS);
 }
 
-// 창 안에 일봉이 있는 날만으로 평균한다(상장 후 20거래일이 안 된 월물). 하나도 없으면 0
+// 창에서 그 월물의 첫 일봉 날짜(firstBarDate) 이후 거래일로 나눈다(상장 후 20거래일이 안 된 월물은 있는 날만).
+// 그 뒤 일봉이 없는 날은 거래 없음(0)으로 센다: 소스가 거래 없는 날 봉을 주지 않아(D-095) 봉이 있는 날로만
+// 나누면 드문 월물의 평균이 부풀려진다. 첫 일봉이 없거나 창보다 뒤면 0
 export function averageVolume(
   bars: readonly { tradeDate: string; volume: number }[],
   window: readonly string[],
+  firstBarDate: string | null,
 ): number {
-  const days = new Set(window);
-  const volumes = bars.filter((b) => days.has(b.tradeDate)).map((b) => b.volume);
-  return volumes.length === 0 ? 0 : volumes.reduce((s, v) => s + v, 0) / volumes.length;
+  if (firstBarDate === null) return 0;
+  const days = new Set(window.filter((d) => d >= firstBarDate));
+  if (days.size === 0) return 0;
+  const total = bars.reduce((s, b) => (days.has(b.tradeDate) ? s + b.volume : s), 0);
+  return total / days.size;
 }
 
 // 커브 후보: 월물 + 그 커브 날짜의 값(정산가, 없으면 최근 스냅숏, D-048)과 평균 거래량
 export type CurveCandidate = ListedContract & {
-  // null = 그날 값이 없음(아직 상장 전 등)
+  // null = 그날 값이 없음(아직 상장 전, 그날 거래 없음 등)
   price: number | null;
   avgVolume: number;
 };
@@ -51,37 +56,41 @@ export type Curve<T extends CurveCandidate = CurveCandidate> = {
 };
 
 // 커브 날짜 curveDate의 월물을 고른다.
-// - 그날 만기되지 않았고 값이 있는 대상 월물을 만기순으로 잇는다.
+// - 그날 만기되지 않은 대상 월물을 만기순으로 보고, 그날 값이 있는 월물만 커브에 넣는다.
 // - M1보다 만기가 이른 월물과 M1·M2는 거래량과 관계없이 넣는다. 미달 판정은 M2부터 하고,
 //   처음 미달한 월물에서 멈춘다(M2가 미달이면 M2까지). 최대 12개.
-// - frontSymbol이 후보에 없으면 처음부터 거래량으로 판정하고 m1·m2는 null이다.
+// - 미달 판정은 그날 값이 없는 월물도 한다. 값이 없는 미달 월물을 건너뛰면 그 뒤의 거래 많은 먼 월물이
+//   띄엄띄엄 들어온다(D-018 연속 구간). 거래량이 충분한데 그날 값만 없는 월물은 빼고 이어 간다.
+// - frontSymbol이 후보에 없거나 그날 값이 없으면 처음부터 거래량으로 판정하고 m1·m2는 null이다.
 export function selectCurve<T extends CurveCandidate>(
   candidates: readonly T[],
   curveDate: string,
   frontSymbol: string | null,
 ): Curve<T> {
+  const hasPrice = (c: T): c is CurvePoint<T> => c.price !== null;
   const sorted = candidates
-    .filter(
-      (c): c is CurvePoint<T> => c.isTarget && c.lastTradeDate >= curveDate && c.price !== null,
-    )
+    .filter((c) => c.isTarget && c.lastTradeDate >= curveDate)
     .sort(byExpiry);
-  const m1Index = sorted.findIndex((c) => c.symbol === frontSymbol);
+  const frontIndex = sorted.findIndex((c) => c.symbol === frontSymbol);
+  const m1Index = frontIndex >= 0 && hasPrice(sorted[frontIndex]) ? frontIndex : -1;
 
   const contracts: CurvePoint<T>[] = [];
+  let m1: CurvePoint<T> | null = null;
   for (const [i, c] of sorted.entries()) {
     if (contracts.length === CURVE_MAX_CONTRACTS) break;
     if (i <= m1Index) {
-      contracts.push(c);
+      if (hasPrice(c)) contracts.push(c);
+      if (i === m1Index && hasPrice(c)) m1 = c;
       continue;
     }
     const isM2 = m1Index >= 0 && i === m1Index + 1;
     const passes = c.avgVolume >= CURVE_MIN_AVG_VOLUME;
-    if (passes || isM2) contracts.push(c);
+    if (hasPrice(c) && (passes || isM2)) contracts.push(c);
     if (!passes) break;
   }
 
-  const m1 = m1Index >= 0 ? (contracts[m1Index] ?? null) : null;
-  const m2 = m1Index >= 0 ? (contracts[m1Index + 1] ?? null) : null;
+  // M2 = 커브에서 M1 다음 월물
+  const m2 = m1 === null ? null : (contracts[contracts.indexOf(m1) + 1] ?? null);
   return { contracts, m1, m2 };
 }
 
@@ -201,9 +210,12 @@ export type CurveBar = {
   revisedAt: Date | null;
 };
 
+// 커브 조회가 읽는 월물. firstBarDate는 그 월물의 가장 이른 일봉 날짜(없으면 null)로 평균 거래량의 분모를 정한다
+export type CurveListing = ListedContract & { firstBarDate: string | null };
+
 export type CurveInput = {
   // 최종 거래일이 기준일 이후인 월물
-  contracts: readonly ListedContract[];
+  contracts: readonly CurveListing[];
   // 오름차순. 기준일·비교일 각각의 거래량 창(20거래일)을 덮어야 한다
   tradeDates: readonly string[];
   baseDate: string;
@@ -243,7 +255,7 @@ export function buildCurve(input: CurveInput): CurveResult {
   const baseCandidates = input.contracts.map((c) => ({
     ...c,
     price: settleOn(c.symbol, input.baseDate)?.settle ?? null,
-    avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], baseWindow),
+    avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], baseWindow, c.firstBarDate),
   }));
   const currentCandidates = input.contracts.map((c) => {
     const settled = settleOn(c.symbol, input.currentDate);
@@ -254,7 +266,7 @@ export function buildCurve(input: CurveInput): CurveResult {
       // 값을 매긴 시각. 스냅숏이면 지연 시세다
       valuedAt: settled ? (settled.revisedAt ?? settled.collectedAt) : snapshot?.capturedAt,
       fromSnapshot: !settled && snapshot !== undefined,
-      avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], currentWindow),
+      avgVolume: averageVolume(barsBySymbol.get(c.symbol) ?? [], currentWindow, c.firstBarDate),
     };
   });
   const base = selectCurve(baseCandidates, input.baseDate, input.baseFront);
