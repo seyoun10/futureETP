@@ -1896,7 +1896,7 @@
   - TS: 세 workspace에 `noImplicitOverride`·`noImplicitReturns`·`noFallthroughCasesInSwitch`·`noUncheckedIndexedAccess`를 켠다. `exactOptionalPropertyTypes`는 서버·shared만 켠다. 앱 tsconfig는 fingerprint 대상이 아니라 OTA에 영향이 없다(변경 전후 해시 같음).
   - 인덱스 접근: 루프 범위나 앞선 검사로 보장되는 곳만 `!`를 쓴다. 빈 배열일 수 있는 첫·마지막 원소는 가드하거나 던진다. `percentile`·`percentileRank`는 빈 분포면 NaN 대신 `RangeError`를 던진다. 한 행이 꼭 돌아와야 하는 `returning()`은 `db/oneRow.ts`로 꺼낸다. Yahoo 응답의 길이 1 배열은 `z.tuple`로 검증하고, Databento 적재는 CSV 헤더에 필요한 열이 없으면 시작할 때 던진다.
   - 선택 값을 그대로 넘기는 옵션 타입은 `?: T | undefined`로 쓴다. 외부 타입(FCM `Message` 등)에는 조건부 spread로 키를 뺀다.
-  - lint: `@typescript-eslint/switch-exhaustiveness-check`를 error로 건다(위반 0). `strictTypeChecked` 전체·`no-unnecessary-condition`·`restrict-template-expressions`는 위반 수에 비해 잡는 버그가 적어 켜지 않는다. `no-deprecated`(대부분 Gesture Handler 구 API)는 API 이전 작업과 함께 따로 한다.
+  - lint: `@typescript-eslint/switch-exhaustiveness-check`를 error로 건다(위반 0). `strictTypeChecked` 전체·`no-unnecessary-condition`·`restrict-template-expressions`는 위반 수에 비해 잡는 버그가 적어 켜지 않는다. `no-deprecated`(대부분 Gesture Handler 구 API)는 API 이전 작업과 함께 따로 한다 → D-128.
   - 커버리지 하한: `npm run check`의 마지막 단계를 `test:gate`로 바꿔 서버·shared는 `--coverage`로 돌린다. 하한은 각 `vitest.config.ts`에 두고 측정값을 내린 값이다. 서버 전체 lines·statements·functions·branches 80, `src/calc/**` lines·functions 100·statements 95·branches 90, shared lines·statements 75·functions·branches 90. `npm test`·단일 테스트 실행은 하한을 걸지 않는다. 앱은 하한 없이 `npm run test:coverage`로 추세만 본다.
   - mutation 테스트(StrykerJS 10.1.1 + vitest runner)는 의존성에 넣지 않고 필요할 때 저장소 밖에 설치해 1회 돌린다. `src/calc`만 대상으로 한다.
 - 근거
@@ -1904,3 +1904,17 @@
   - 앱 커버리지 모드는 부하가 크면 화면 테스트가 5초 시간 초과로 실패해 하한을 걸면 check가 불안정해진다. `apps/mobile/package.json`의 jest 설정을 바꾸면 fingerprint가 바뀌어 OTA를 받지 못한다.
   - mutation 1회 결과(2026-11-15, calc 2,068개): 점수 91.5%, 생존 165·미도달 8. 생존의 상당수는 오류 메시지 문자열이나 결과가 같은 동치 변이였다(예: `isLeapYear`는 N이 3·5·10년이라 윤년이 대상이 될 수 없다). 의미 있는 경계 누락(정산 따라잡기 한도와 첫 적재일, 시가·고가·저가만 바뀐 정정, N·B가 정확히 0인 지수, 롤 규칙 검증 경계, 월물 차트 스냅숏 필터)만 테스트로 보강했고, 그 네 파일의 생존은 57 → 39개다. CI에 넣지 않은 것은 실행이 수 분 걸리고 동치 변이 판정에 사람이 필요해서다.
 - 영향: D-038·D-054의 `check` 순서에 커버리지 하한이 붙는다. `CLAUDE.md` Commands, `.claude/rules/server.md`·`mobile.md`, `docs/tech-stack.md`.
+
+## D-128: deprecated API 금지(no-deprecated), 차트 제스처는 legacy 유지
+- 날짜: 2026-11-15
+- 상태: 확정 (사용자 승인)
+- 맥락: D-127 후속. `@typescript-eslint/no-deprecated` 위반 14건은 TanStack Query 5.105의 `fetchQuery`·`prefetchQuery`·`ensureQueryData`·`prefetchInfiniteQuery` 3곳과 `charts/useChartViewport.ts`의 Gesture Handler 3 builder API(`Gesture.Tap`·`Pinch`·`Pan`·`Race`·`Simultaneous`)였다.
+- 결정
+  - `no-deprecated`를 error로 켠다.
+  - TanStack Query는 `queryClient.query()`·`infiniteQuery()`로 옮긴다. `ensureQueryData`는 `query({ ...options, staleTime: 'static' })`, prefetch는 `.catch(() => {})`로 오류를 버린다.
+  - C-a·C-c 차트 제스처(`useChartViewport`)는 builder API를 그대로 두고, 그 블록만 `eslint-disable`/`eslint-enable`로 예외를 둔다. victory-native가 hook API로 옮기면 이전한다. C-b(`CurveChart`)는 이미 hook API다.
+- 근거
+  - victory-native 42.0.1은 `customGestures`를 내부에서 legacy `Gesture.Race`로 자기 제스처(길게 누르기·변환)와 합친다. RNGH 3의 legacy 합성은 legacy 제스처 클래스만 다루고, hook 제스처는 다른 형식이라 넘길 수 없다.
+  - victory-native 43은 Skia 패키지를 `react-native-skia`로 바꾸고(네이티브 재빌드) Gesture Handler를 2.x로 제한해 지금 RNGH 3.3과 맞지 않는다.
+  - customGestures를 버리고 차트 바깥 hook detector로 다시 짜면 victory-native 내부 길게 누르기와의 우선순위가 바뀔 수 있어 실기기 검증 비용이 크다. 줄 단위 예외면 동작 변화가 없다.
+

@@ -365,5 +365,6 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] 서버·shared 커버리지 하한을 `npm run check`(`test:gate`)에 연결, calc 하한이 실제로 실패시키는지 확인 (2026-11-15)
 - [x] `exactOptionalPropertyTypes`(서버·shared), `jobs/recompute.ts`·`sources/databento.ts` 테스트 보강 (2026-11-15)
 - [x] calc mutation 테스트 1회(점수 91.5%) → 의미 있는 경계만 테스트 보강 (2026-11-15)
-- [ ] push 뒤 GitHub Actions `check`가 커버리지 하한 포함으로 통과하는지 확인
-- [ ] (후속) Gesture Handler 구 API(`Gesture.Tap` 등) 이전 후 `@typescript-eslint/no-deprecated` 켜기
+- [x] push 뒤 GitHub Actions `check` 통과(커버리지 하한 포함, 2m55s) (2026-11-15)
+- [x] `@typescript-eslint/no-deprecated` 켜기: TanStack Query 3곳은 `query()`·`infiniteQuery()`로 이전, C-a·C-c 차트 제스처는 victory-native 42 제약으로 builder API 유지 + 블록 예외 (2026-11-15, D-128)
+- [ ] (후속) victory-native가 Gesture Handler hook API를 받으면 `useChartViewport` 제스처 이전, 예외 주석 삭제 (D-128)

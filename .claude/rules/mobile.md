@@ -25,6 +25,7 @@ paths:
 - 서버 접근 키는 SecureStore에만 둔다. 앱 번들·app config·저장소에 넣지 않는다. 예외는 dev 변형의 `DEV_API_TOKEN`뿐 (D-043, D-044)
 - 테스트는 RNTL 14라 `await render(...)`로 쓴다 (D-054)
 - 인덱스 접근은 `T | undefined`다(`noUncheckedIndexedAccess`). 범위가 보장될 때만 `!`, 빈 배열일 수 있으면 가드한다. 앱 커버리지는 하한 없이 추세만 본다 (D-127)
+- deprecated API는 쓰지 않는다(`no-deprecated`). TanStack Query는 `queryClient.query()`·`infiniteQuery()`. 예외는 victory-native `customGestures`에 넘기는 `useChartViewport`의 Gesture builder뿐 (D-128)
 
 ## Conventions
 
