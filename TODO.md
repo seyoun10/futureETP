@@ -378,4 +378,4 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - 14 Pro 미러링 확인: A 목록·C-a(십자선)·C-b·C-c 표시, 기존 접근 키·설정 유지, 등락 색 저장 → 재시작 뒤 복원
   - 백그라운드 셸에서 `pod install`이 `Unicode Normalization ... ASCII-8BIT`로 실패하면 `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`
 - [x] 코드 리뷰 수정·중복 정리 배포 (2026-11-15, `f6219e5`): 서버 `npm run deploy`(마이그레이션 변경 없음, health 200), 앱 OTA `update:prod`(iOS runtime `0721e7a`, Android `ac494f9`). 네이티브 변경이 없어 재빌드는 하지 않음
-  - [ ] 기기에서 앱 재시작 두 번 뒤 C 화면 세 탭·설정 왕복(설정을 열었다 돌아와도 기준일·줌 유지) 확인
+  - [x] iPhone 14 Pro: 재시작 두 번 뒤 OTA 적용(설정 하단 `업데이트 11/15 21:13 (01a1df20)`), 금 C-a·C-b·C-c 표시, C-b 기준일 11/11·C-a 2M이 설정 왕복 뒤 유지 (2026-11-15)
