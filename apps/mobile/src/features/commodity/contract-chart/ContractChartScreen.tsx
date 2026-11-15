@@ -1,9 +1,8 @@
 import type { CommodityCode, ContractsChart } from '@futureetp/shared';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
-import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { LinesChart } from '@/charts/LinesChart';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { LegendLine } from '@/charts/LegendLine';
@@ -12,12 +11,11 @@ import { PeriodChips } from '@/charts/PeriodChips';
 import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
-import { QueryStateView } from '@/components/QueryStateView';
 import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
-import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
+import { perfMark, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { ChartTabMessage, ChartTabQuery, ChartTabScreen, useChartTabPerf } from '../ChartTab';
 import { useChartPeriodView } from '../useChartPeriodView';
-import { useCommodityCode } from '../useCommodityCode';
 import {
   contractChartModel,
   endsRollYieldPct,
@@ -29,29 +27,21 @@ import { useContracts } from './useContracts';
 
 // C-c 월물차트 탭(screens.md C-c, D-092)
 export function ContractChartScreen() {
-  const { t } = useTranslation();
-  const code = useCommodityCode();
-
   return (
-    <View style={styles.container} testID="contract-chart-screen">
-      {code ? (
-        <ContractChartContent code={code} />
-      ) : (
-        <Text style={styles.message}>{t('errors.NOT_FOUND')}</Text>
-      )}
-    </View>
+    <ChartTabScreen testID="contract-chart-screen">
+      {(code) => <ContractChartContent code={code} />}
+    </ChartTabScreen>
   );
 }
 
 function ContractChartContent({ code }: { code: CommodityCode }) {
-  // 진입 측정은 첫 렌더에 시작한다(effect는 자식 조회 뒤라 늦다)
-  useState(() => perfStart(`C-c ${code}`));
+  useChartTabPerf(`C-c ${code}`);
   const query = useContracts(code);
   useAutoRefresh(query);
   return (
-    <QueryStateView query={query} skeleton={<ChartSkeleton footer="periods" />}>
+    <ChartTabQuery query={query} footer="periods">
       {(data) => <ContractChartView data={data} older={query} />}
-    </QueryStateView>
+    </ChartTabQuery>
   );
 }
 
@@ -80,7 +70,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   if (data.dates.length === 0 || model.lines.length === 0) {
     return (
       <>
-        <Text style={styles.message}>{t('contracts.noData')}</Text>
+        <ChartTabMessage>{t('contracts.noData')}</ChartTabMessage>
       </>
     );
   }
@@ -168,16 +158,6 @@ function CrosshairDetail({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  message: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    textAlign: 'center',
-    padding: spacing.lg,
-  },
   chart: {
     flex: 1,
   },

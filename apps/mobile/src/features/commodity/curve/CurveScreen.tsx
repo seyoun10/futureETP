@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
-import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CurveChart } from '@/charts/CurveChart';
 import type { CurvePoint } from '@/charts/CurveChart';
 import { CURVE_DASH, SERIES_STROKE } from '@/charts/chartLayout';
@@ -11,13 +10,12 @@ import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { LegendLine } from '@/charts/LegendLine';
 import { PERIOD_CHIPS_HEIGHT } from '@/charts/PeriodChips';
 import { useTabFreshness } from '@/components/FreshnessLine';
-import { QueryStateView } from '@/components/QueryStateView';
 import { formatContractMonth, formatContractMonthShort, formatPrice } from '@/lib/formatNumber';
 import { useIsLandscape } from '@/lib/orientation';
 import { Icon } from '@/components/Icon';
 import type { IconName } from '@/components/Icon';
 import { colors, fontSize, size, spacing } from '@/theme/tokens';
-import { useCommodityCode } from '../useCommodityCode';
+import { ChartTabMessage, ChartTabQuery, ChartTabScreen } from '../ChartTab';
 import { BaseDateSheet, openAndroidBaseDatePicker } from './BaseDatePicker';
 import {
   curveRollLine,
@@ -31,17 +29,8 @@ import { useCurve } from './useCurve';
 
 // C-b 월물커브 탭(screens.md C-b, D-090)
 export function CurveScreen() {
-  const { t } = useTranslation();
-  const code = useCommodityCode();
-
   return (
-    <View style={styles.container} testID="curve-screen">
-      {code ? (
-        <CurveContent code={code} />
-      ) : (
-        <Text style={styles.message}>{t('errors.NOT_FOUND')}</Text>
-      )}
-    </View>
+    <ChartTabScreen testID="curve-screen">{(code) => <CurveContent code={code} />}</ChartTabScreen>
   );
 }
 
@@ -73,7 +62,7 @@ function CurveContent({ code }: { code: CommodityCode }) {
   }, []);
 
   return (
-    <QueryStateView query={curve} skeleton={<ChartSkeleton footer="steps" />}>
+    <ChartTabQuery query={curve} footer="steps">
       {(data) => (
         <CurveView
           data={data}
@@ -82,7 +71,7 @@ function CurveContent({ code }: { code: CommodityCode }) {
           onPickBaseDate={pickBaseDate}
         />
       )}
-    </QueryStateView>
+    </ChartTabQuery>
   );
 }
 
@@ -140,7 +129,7 @@ function CurveView({ data, movedTo, onChangeBaseDate, onPickBaseDate }: ViewProp
     <>
       <View style={styles.chart}>
         {points.length === 0 ? (
-          <Text style={styles.message}>{t('curve.noData')}</Text>
+          <ChartTabMessage>{t('curve.noData')}</ChartTabMessage>
         ) : (
           <CurveChart
             points={points}
@@ -282,16 +271,6 @@ function CurveDetail({ data, index }: { data: Curve; index: number }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  message: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    textAlign: 'center',
-    padding: spacing.lg,
-  },
   topLine: {
     flexDirection: 'row',
     flexWrap: 'wrap',
