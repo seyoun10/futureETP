@@ -24,7 +24,7 @@ export function monthTicks(
   let ticks: MonthTick[] = [];
   for (const step of MONTH_STEPS) {
     ticks = boundaries.filter((t) => (t.year * 12 + (t.month - 1)) % step === 0);
-    if (ticks.every((t, j) => j === 0 || t.index - ticks[j - 1].index >= minGap)) break;
+    if (ticks.every((t, j) => j === 0 || t.index - ticks[j - 1]!.index >= minGap)) break;
   }
   return ticks;
 }

@@ -13,7 +13,7 @@ export const formatLegendDate = (date: string, currentDate: string): string =>
 
 // OS 날짜 피커는 기기 시간대 Date를 쓴다. 날짜만 오가므로 기기 시간대 자정으로 바꾼다.
 export const toPickerDate = (date: string): Date => {
-  const [y, m, d] = date.split('-').map(Number);
+  const [y = NaN, m = NaN, d = NaN] = date.split('-').map(Number);
   return new Date(y, m - 1, d);
 };
 

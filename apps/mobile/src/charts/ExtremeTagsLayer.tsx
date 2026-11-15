@@ -55,14 +55,14 @@ export function ExtremeTagsLayer({
   let hi = i0;
   let lo = i0;
   for (let i = i0; i <= i1; i++) {
-    if (bars[i].high > bars[hi].high) hi = i;
-    if (bars[i].low < bars[lo].low) lo = i;
+    if (bars[i]!.high > bars[hi]!.high) hi = i;
+    if (bars[i]!.low < bars[lo]!.low) lo = i;
   }
 
   // 점선(YAxisLayer)과 같은 위치
   const currentY = ky * yScale(guidePrice) + ty;
   const tag = (index: number, kind: 'high' | 'low') => {
-    const bar = bars[index];
+    const bar = bars[index]!;
     const price = kind === 'high' ? bar.high : bar.low;
     const text = t(kind === 'high' ? 'chart.highTag' : 'chart.lowTag', {
       price: formatPrice(price, priceDecimals),

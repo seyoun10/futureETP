@@ -85,8 +85,8 @@ export function fitTransform(g: CandleGeom, k0: number, tx0: number): Transform 
   let yTop = Infinity;
   let yBottom = -Infinity;
   for (let i = i0; i <= i1; i++) {
-    const h = g.highY[i];
-    const l = g.lowY[i];
+    const h = g.highY[i]!;
+    const l = g.lowY[i]!;
     if (h < yTop) yTop = h;
     if (l > yBottom) yBottom = l;
   }

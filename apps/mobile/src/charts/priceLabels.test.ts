@@ -45,6 +45,6 @@ describe('stackLabels', () => {
       { key: 'in2', y: 55 },
     ];
     expect(stackLabels(labels, 14, 0, 500).map((l) => l.key)).toEqual(['in', 'in2']);
-    expect(labels[2].y).toBe(55);
+    expect(labels[2]!.y).toBe(55);
   });
 });

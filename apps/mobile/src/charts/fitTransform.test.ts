@@ -45,8 +45,8 @@ describe('fitTransform', () => {
     const t = fitTransform(g, 2, -1000); // 뒤쪽 절반(봉 50~99)
     const [i0, i1] = visibleRange(g, t.k, t.tx);
     expect([i0, i1]).toEqual([49, 99]);
-    const topPx = t.ky * g.highY[99] + t.ty;
-    const bottomPx = t.ky * g.lowY[49] + t.ty;
+    const topPx = t.ky * g.highY[99]! + t.ty;
+    const bottomPx = t.ky * g.lowY[49]! + t.ty;
     expect(topPx).toBeCloseTo(30);
     expect(bottomPx).toBeCloseTo(470);
   });

@@ -52,8 +52,8 @@ export function chartEnvelope(bars: readonly ChartBar[], bands: readonly BandLin
     const values = [b.ma, ...bands.map((band) => band.values[i])];
     for (const v of values) {
       if (v === null || v === undefined) continue;
-      if (v > hi[i]) hi[i] = v;
-      if (v < lo[i]) lo[i] = v;
+      if (v > hi[i]!) hi[i] = v;
+      if (v < lo[i]!) lo[i] = v;
     }
   });
   return { hi, lo };
@@ -76,8 +76,8 @@ export function rollSegments(bars: readonly ChartBar[]): [number, number][] {
 export function frontSwitches(bars: readonly ChartBar[]) {
   const switches: { index: number; contractMonth: string }[] = [];
   for (let i = 1; i < bars.length; i++) {
-    const prev = bars[i - 1].holdings[0]?.contractMonth;
-    const cur = bars[i].holdings[0]?.contractMonth;
+    const prev = bars[i - 1]!.holdings[0]?.contractMonth;
+    const cur = bars[i]!.holdings[0]?.contractMonth;
     if (prev !== undefined && cur !== undefined && prev !== cur)
       switches.push({ index: i - 1, contractMonth: cur });
   }
@@ -91,13 +91,13 @@ export function visibleStats(bars: readonly ChartBar[], i0: number, i1: number) 
   let highIndex = i0;
   let lowIndex = i0;
   for (let i = i0; i <= i1; i++) {
-    if (bars[i].high > bars[highIndex].high) highIndex = i;
-    if (bars[i].low < bars[lowIndex].low) lowIndex = i;
+    if (bars[i]!.high > bars[highIndex]!.high) highIndex = i;
+    if (bars[i]!.low < bars[lowIndex]!.low) lowIndex = i;
   }
   return {
     highIndex,
     lowIndex,
-    fromLowPct: (current.close / bars[lowIndex].low - 1) * 100,
-    fromHighPct: (current.close / bars[highIndex].high - 1) * 100,
+    fromLowPct: (current.close / bars[lowIndex]!.low - 1) * 100,
+    fromHighPct: (current.close / bars[highIndex]!.high - 1) * 100,
   };
 }

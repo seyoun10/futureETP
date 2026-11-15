@@ -9,6 +9,8 @@ import { queryKeys } from '@/api/queryKeys';
 // 이전 페이지에 없는 월물은 그 구간을 null로 채운다
 export function mergeContractPages(data: InfiniteData<ContractsChart>): ContractsChart {
   const [latest, ...older] = data.pages;
+  // 데이터가 있으면 페이지가 하나 이상이다
+  if (latest === undefined) throw new Error('No chart page');
   if (older.length === 0) return latest;
   const pages = [...older].reverse();
   return {
@@ -24,7 +26,7 @@ export function mergeContractPages(data: InfiniteData<ContractsChart>): Contract
         )
         .concat(c.prices),
     })),
-    hasMore: data.pages[data.pages.length - 1].hasMore,
+    hasMore: data.pages[data.pages.length - 1]!.hasMore,
   };
 }
 

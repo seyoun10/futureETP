@@ -134,7 +134,7 @@ describe('C-a 이격도차트', () => {
 
     await act(() => resolveOlder({ ...DATA, bars: [bar('2026-10-19', 88)] }));
     await waitFor(() => expect(lastChartProps().bars).toHaveLength(latestCount + 1));
-    expect(lastChartProps().bars[0].tradeDate).toBe('2026-10-19');
+    expect(lastChartProps().bars[0]!.tradeDate).toBe('2026-10-19');
     expect(screen.queryByRole('progressbar', { name: '불러오는 중' })).toBeNull();
     expect(lastChartProps().locked).toBe(false);
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
@@ -261,7 +261,7 @@ describe('C-a 이격도차트', () => {
       ['고', '81.0'],
       ['저', '79.0'],
       ['종', '80.0'],
-    ]) {
+    ] as const) {
       expect(row(value)).toBe(row(label));
     }
     expect(screen.getByText('-10.0 (-11.11%)')).toBeOnTheScreen();

@@ -25,7 +25,7 @@ export function leastCoveredCorner({ area, box, crosshairX, marksIn }: CornerInp
     { vertical: 'top', horizontal: near },
     { vertical: 'bottom', horizontal: near },
   ];
-  let best = corners[0];
+  let best = corners[0]!;
   let bestScore = Infinity;
   for (const corner of corners) {
     const r = cornerRect(area, box, corner);

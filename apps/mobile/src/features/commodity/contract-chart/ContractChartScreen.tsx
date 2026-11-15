@@ -152,7 +152,7 @@ function CrosshairDetail({
             key={c.symbol}
             label={formatContractMonth(c.contractMonth)}
             value={formatPrice(price, data.priceDecimals)}
-            color={model.lines[i].color}
+            color={model.lines[i]!.color}
             mark={c.isFront ? FRONT_MARK : undefined}
           />
         );

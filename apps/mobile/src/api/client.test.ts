@@ -22,7 +22,7 @@ let fetchMock: jest.SpiedFunction<typeof fetch>;
 
 // 첫 fetch 호출의 init. 래퍼는 headers를 일반 객체로 넘긴다.
 const firstInit = () =>
-  fetchMock.mock.calls[0][1] as RequestInit & { headers: Record<string, string> };
+  fetchMock.mock.calls[0]![1] as RequestInit & { headers: Record<string, string> };
 
 beforeEach(() => {
   mockGetAccessToken.mockResolvedValue('dev-token');
@@ -53,7 +53,7 @@ describe('apiRequest', () => {
     ).resolves.toEqual({ price: 1.5 });
 
     const init = firstInit();
-    expect(fetchMock.mock.calls[0][0]).toBe(
+    expect(fetchMock.mock.calls[0]![0]).toBe(
       'http://api.test/v1/commodities/GC/disparity?basis=KR&ma=200',
     );
     expect(init.headers.Authorization).toBe('Bearer dev-token');

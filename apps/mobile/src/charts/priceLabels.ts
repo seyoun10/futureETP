@@ -21,11 +21,11 @@ export function stackLabels<T extends { y: number }>(
     .map((l) => ({ ...l, y: clampLabelY(l.y, height, top, bottom) }))
     .sort((a, b) => a.y - b.y);
   for (let i = 1; i < sorted.length; i++) {
-    sorted[i].y = Math.max(sorted[i].y, sorted[i - 1].y + height);
+    sorted[i]!.y = Math.max(sorted[i]!.y, sorted[i - 1]!.y + height);
   }
   for (let i = sorted.length - 1; i >= 0; i--) {
-    const limit = i === sorted.length - 1 ? bottom - height / 2 : sorted[i + 1].y - height;
-    sorted[i].y = Math.min(sorted[i].y, limit);
+    const limit = i === sorted.length - 1 ? bottom - height / 2 : sorted[i + 1]!.y - height;
+    sorted[i]!.y = Math.min(sorted[i]!.y, limit);
   }
   return sorted;
 }

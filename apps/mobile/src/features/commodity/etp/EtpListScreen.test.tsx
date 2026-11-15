@@ -70,7 +70,7 @@ const renderScreen = async () => {
 const titles = () =>
   within(screen.getByTestId('etp-list'))
     .getAllByRole('button')
-    .map((row) => within(row).getAllByText(/./)[0].props.children as string);
+    .map((row) => within(row).getAllByText(/./)[0]!.props.children as string);
 
 describe('C-d ETP 목록', () => {
   it('기본 정렬(시장 → 배수 → 이름)로 행과 속성 줄을 보여 준다', async () => {

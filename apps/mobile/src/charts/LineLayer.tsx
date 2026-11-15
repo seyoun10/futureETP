@@ -91,7 +91,7 @@ function TransformedLine({
     let drawing = false;
     for (let i = sample.first; ; i += sample.step) {
       const j = Math.min(i, sample.last);
-      const y = ys[j];
+      const y = ys[j]!;
       if (Number.isNaN(y)) {
         drawing = false;
       } else {

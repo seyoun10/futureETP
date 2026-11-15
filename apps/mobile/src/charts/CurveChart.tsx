@@ -267,8 +267,8 @@ export const CurveChart = memo(function CurveChart({
     const segments: Segment[] = [];
     for (const key of ['base', 'current'] as const) {
       for (let i = 0; i + 1 < points.length; i++) {
-        const v = points[i][key];
-        const next = points[i + 1][key];
+        const v = points[i]![key];
+        const next = points[i + 1]![key];
         if (v === null || next === null) continue;
         segments.push({
           x0: layout.x(i),
@@ -287,7 +287,7 @@ export const CurveChart = memo(function CurveChart({
       maxX: layout.right,
       segments,
     });
-    return items.map((item, i) => ({ ...item, ...positions[i] }));
+    return items.map((item, i) => ({ ...item, ...positions[i]! }));
   }, [layout, points, formatPct, pctDecimals, palette, overlay]);
 
   // 상세 박스: 정보 줄 사이 그림 영역의 네 귀퉁이 중 점·선·변화율을 가장 적게 가리는 곳(C-a와 같다)
@@ -306,7 +306,7 @@ export const CurveChart = memo(function CurveChart({
       *marksIn(x0, x1) {
         for (const key of ['base', 'current'] as const) {
           for (let i = 0; i < points.length; i++) {
-            const v = points[i][key];
+            const v = points[i]![key];
             if (v === null) continue;
             const px = layout.x(i);
             const py = layout.y(v);
@@ -373,7 +373,7 @@ export const CurveChart = memo(function CurveChart({
                     key={`l${t}`}
                     x={layout.right + Y_LABEL_GAP}
                     y={ty + CHART_FONT_SIZE / 2 - 1}
-                    text={layout.tickLabels[i]}
+                    text={layout.tickLabels[i]!}
                     font={numberFont}
                     color={colors.chart.tick}
                   />,
@@ -420,10 +420,10 @@ export const CurveChart = memo(function CurveChart({
                   i % monthStride === strideAnchor && (
                     <Paragraph
                       key={`m${p.label}`}
-                      paragraph={chartParagraph(monthLabels[i], colors.chart.tick)}
+                      paragraph={chartParagraph(monthLabels[i]!, colors.chart.tick)}
                       x={layout.textX(
                         i,
-                        chartParagraph(monthLabels[i], colors.chart.tick).getLongestLine(),
+                        chartParagraph(monthLabels[i]!, colors.chart.tick).getLongestLine(),
                       )}
                       y={size.height - BOTTOM + 4}
                       width={PARAGRAPH_LAYOUT_WIDTH}

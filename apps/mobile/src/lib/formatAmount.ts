@@ -24,7 +24,7 @@ export function compactAmount(value: number, scheme: AmountScheme): string {
   const units = UNITS[scheme];
   const index = units.findIndex(([, size]) => Math.abs(value) >= size);
   if (index === -1) return formatPrice(value, 0);
-  const [unit, size] = units[index];
+  const [unit, size] = units[index]!;
   const upper = units[index - 1];
   // 반올림해서 위 단위에 닿으면(9,999.6만 → 10,000만) 위 단위로 쓴다(1억)
   const rounded = Math.abs(Number((value / size).toFixed(decimals)));

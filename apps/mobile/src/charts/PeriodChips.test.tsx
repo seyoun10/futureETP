@@ -19,11 +19,11 @@ describe('PeriodChips', () => {
     await render(<PeriodChips selected="6M" onSelect={onSelect} />);
     const radios = screen.getAllByRole('radio');
 
-    await fireEvent.press(radios[2]); // 6M(이미 선택)
+    await fireEvent.press(radios[2]!); // 6M(이미 선택)
     expect(Haptics.selectionAsync).not.toHaveBeenCalled();
     expect(onSelect).toHaveBeenLastCalledWith('6M');
 
-    await fireEvent.press(radios[5]); // 12M
+    await fireEvent.press(radios[5]!); // 12M
     expect(Haptics.selectionAsync).toHaveBeenCalledTimes(1);
     expect(onSelect).toHaveBeenLastCalledWith('12M');
   });

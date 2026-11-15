@@ -124,7 +124,7 @@ describe('contractChartModel', () => {
         })),
       ),
     );
-    expect(many.lines[6].color).toBe(colors.chart.contractLines[5]);
+    expect(many.lines[6]!.color).toBe(colors.chart.contractLines[5]);
   });
 
   it('롤 수익률은 그날 양끝 월물의 연환산 (near / far − 1) × 365 / 만기 간격이다', () => {

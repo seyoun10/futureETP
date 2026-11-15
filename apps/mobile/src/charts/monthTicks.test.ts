@@ -44,7 +44,7 @@ describe('monthTicks', () => {
   it('긴 구간도 이웃 눈금이 minGap 이상 떨어진다', () => {
     const ticks = monthTicks(dates, 0, dates.length - 1, 300);
     expect(ticks.length).toBeGreaterThan(0);
-    ticks.slice(1).forEach((t, j) => expect(t.index - ticks[j].index).toBeGreaterThanOrEqual(300));
+    ticks.slice(1).forEach((t, j) => expect(t.index - ticks[j]!.index).toBeGreaterThanOrEqual(300));
   });
 
   it('눈금은 그 달의 첫 거래일에 놓인다', () => {

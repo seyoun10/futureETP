@@ -119,9 +119,9 @@ describe('placePctLabels', () => {
       minX: -100,
       segments,
     });
-    expect(p.y).toBe(93);
-    expect(p.x).toBeLessThan(0);
-    expect(p.x).toBeGreaterThanOrEqual(-15);
+    expect(p!.y).toBe(93);
+    expect(p!.x).toBeLessThan(0);
+    expect(p!.x).toBeGreaterThanOrEqual(-15);
   });
 
   it('비킬 자리가 없으면 그대로 둔다', () => {

@@ -47,8 +47,8 @@ describe('bandLines', () => {
   const bands = bandLines(bars, [rare('UP', 5, 20), rare('UP', 10, 10), rare('DOWN', 5, -20)]);
 
   it('이평선 × (1 + 레벨 이격도/100)이고 이평선이 없는 날은 null이다', () => {
-    expect(bands[0].values).toEqual([null, 120]);
-    expect(bands[2].values).toEqual([null, 80]);
+    expect(bands[0]!.values).toEqual([null, 120]);
+    expect(bands[2]!.values).toEqual([null, 80]);
   });
 
   it('같은 방향에서 작은 레벨(드묾)일수록 순위가 높다', () => {

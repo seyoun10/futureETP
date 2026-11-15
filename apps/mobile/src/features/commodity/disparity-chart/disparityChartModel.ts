@@ -32,7 +32,7 @@ export type DisparityChartModel = {
 };
 
 const bandColor = (rank: number) =>
-  colors.chart.rareLevels[Math.min(rank, colors.chart.rareLevels.length - 1)];
+  colors.chart.rareLevels[Math.min(rank, colors.chart.rareLevels.length - 1)]!;
 
 export function disparityChartModel(chart: DisparityChart): DisparityChartModel {
   const bars = chartBars(chart.bars);
@@ -72,8 +72,8 @@ export function disparityChartModel(chart: DisparityChart): DisparityChartModel 
 // 보이는 마지막 봉이 마지막 봉이면 종가는 흰색 하나만. 겹치면 모두 남긴 채 위·아래로 민다(screens.md C-a y축 라벨)
 export function priceLabelsAt(model: DisparityChartModel, index: number): PriceLabel[] {
   const bar = model.bars[index];
-  const last = model.bars[model.bars.length - 1];
-  if (!bar) return [];
+  const last = model.bars.at(-1);
+  if (!bar || !last) return [];
   return [
     { key: 'last', price: last.close, color: colors.chart.lastPrice },
     ...(bar === last
@@ -91,7 +91,7 @@ export function priceLabelsAt(model: DisparityChartModel, index: number): PriceL
 // 십자선 상세의 월물 구성: 대표월물은 월물명, 한국형·미국형은 `DEC26 60% · JAN27 40%`
 export function holdingsText(bar: ChartBar, basis: DisparityChart['basis']): string | null {
   if (bar.holdings.length === 0) return null;
-  if (basis === 'FRONT') return formatContractMonth(bar.holdings[0].contractMonth);
+  if (basis === 'FRONT') return formatContractMonth(bar.holdings[0]!.contractMonth);
   return bar.holdings
     .map((h) => `${formatContractMonth(h.contractMonth)} ${Math.round(h.weight * 100)}%`)
     .join(' · ');

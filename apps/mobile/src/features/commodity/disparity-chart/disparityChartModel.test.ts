@@ -63,7 +63,7 @@ describe('disparityChartModel', () => {
       ['DOWN-25', colors.chart.rareLevels[0]],
       ['ma', colors.chart.movingAverage],
     ]);
-    expect(lines[4].strokeWidth).toBeGreaterThan(lines[0].strokeWidth);
+    expect(lines[4]!.strokeWidth).toBeGreaterThan(lines[0]!.strokeWidth);
   });
 
   it('y축 특수 라벨은 마지막 봉 종가 흰색, 이평선 노랑, 밴드는 선과 같은 색이다', () => {
@@ -112,14 +112,14 @@ describe('disparityChartModel', () => {
 });
 
 describe('holdingsText', () => {
-  const [b] = chartBars([
+  const b = chartBars([
     bar('2026-10-22', 100, {
       holdings: [
         { contractMonth: '2026-12', weight: 0.6 },
         { contractMonth: '2027-01', weight: 0.4 },
       ],
     }),
-  ]);
+  ])[0]!;
 
   it('한국형·미국형은 월물별 비중, 대표월물은 월물명이다', () => {
     expect(holdingsText(b, 'KR')).toBe('DEC26 60% · JAN27 40%');

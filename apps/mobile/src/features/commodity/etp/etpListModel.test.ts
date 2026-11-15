@@ -76,7 +76,7 @@ it('배수 선택지는 있는 배수만 기본 정렬 순서로 준다', () => 
 });
 
 it('정렬 값은 기본 정렬이면 붙이지 않는다', () => {
-  expect(sortValue(ETPS[0], 'DEFAULT')).toBeUndefined();
-  expect(sortValue(ETPS[0], 'AUM')).toBe(900);
-  expect(sortValue(ETPS[2], 'TRADING_VALUE')).toBeNull();
+  expect(sortValue(ETPS[0]!, 'DEFAULT')).toBeUndefined();
+  expect(sortValue(ETPS[0]!, 'AUM')).toBe(900);
+  expect(sortValue(ETPS[2]!, 'TRADING_VALUE')).toBeNull();
 });

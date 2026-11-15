@@ -4,7 +4,7 @@
 // 천 단위 쉼표 + 고정 소수 자릿수. 차트 십자선이 UI 스레드에서도 부른다
 export function formatPrice(value: number, decimals: number): string {
   'worklet';
-  const [int, frac] = Math.abs(value).toFixed(decimals).split('.');
+  const [int = '', frac] = Math.abs(value).toFixed(decimals).split('.');
   const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   // 반올림해 0이면 부호를 붙이지 않는다(worklet은 바깥 함수를 부르기 까다로워 안에 둔다)
   const sign = value < 0 && !/^0*$/.test(int + (frac ?? '')) ? '-' : '';

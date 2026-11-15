@@ -31,7 +31,7 @@ type YAxisLayerProps = {
 // 소수 자릿수는 눈금 간격에 맞추되 가격 자릿수를 넘지 않는다.
 function decimalsFor(ticks: number[], max: number): number {
   let step = Infinity;
-  for (let i = 1; i < ticks.length; i++) step = Math.min(step, ticks[i] - ticks[i - 1]);
+  for (let i = 1; i < ticks.length; i++) step = Math.min(step, ticks[i]! - ticks[i - 1]!);
   if (!Number.isFinite(step) || step <= 0) return max;
   return Math.min(max, Math.max(0, -Math.floor(Math.log10(step))));
 }

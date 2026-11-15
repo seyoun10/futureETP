@@ -20,7 +20,7 @@ export function niceTicks(min: number, max: number, count: number): number[] {
 
 // 눈금 간격에 맞춘 소수 자릿수. 가격 자릿수를 넘지 않는다
 export function tickDecimals(ticks: readonly number[], max: number): number {
-  const step = ticks.length > 1 ? ticks[1] - ticks[0] : 0;
+  const step = ticks.length > 1 ? ticks[1]! - ticks[0]! : 0;
   if (!(step > 0)) return max;
   return Math.min(max, Math.max(0, -Math.floor(Math.log10(step) + 1e-9)));
 }

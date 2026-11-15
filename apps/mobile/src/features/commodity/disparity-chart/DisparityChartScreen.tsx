@@ -120,7 +120,7 @@ function DisparityChartView({
           envelope={model.envelope}
           lines={model.lines}
           priceLabels={priceLabels}
-          guidePrice={model.bars[labelIndex].close}
+          guidePrice={model.bars[labelIndex]!.close}
           priceDecimals={data.priceDecimals}
           roll={model.roll}
           {...chartProps}
@@ -149,7 +149,8 @@ function TodayLine({
 }: ViewProps & { model: DisparityChartModel }) {
   const { t } = useTranslation();
   const [hintOpen, setHintOpen] = useState(false);
-  const today = model.bars[model.bars.length - 1];
+  // 봉이 없으면 화면이 빈 상태를 보여 이 줄을 그리지 않는다
+  const today = model.bars.at(-1)!;
   const basisName = t(`settings.basis${data.basis}`);
 
   let basisLabel = data.fallback ? t('disparity.basisFallback', { basis: basisName }) : basisName;
@@ -223,7 +224,8 @@ function StatsLine({
   range: [number, number] | null;
 }) {
   const { t } = useTranslation();
-  const today = bars[bars.length - 1];
+  // 봉이 없으면 화면이 빈 상태를 보여 이 줄을 그리지 않는다
+  const today = bars.at(-1)!;
   // 새로 조회해 봉이 줄었을 수 있어 범위를 봉 안으로 자른다
   const stats = range ? visibleStats(bars, range[0], Math.min(range[1], bars.length - 1)) : null;
   const items: string[] = [];

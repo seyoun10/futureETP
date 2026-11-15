@@ -20,6 +20,8 @@ const nextBefore = (last: DisparityChart) => (last.hasMore ? last.bars[0]?.trade
 // 최근 페이지(pages[0])의 값에 이전 페이지 봉을 앞에 붙여 한 응답처럼 만든다
 export function mergeDisparityPages(data: InfiniteData<DisparityChart>): DisparityChart {
   const [latest, ...older] = data.pages;
+  // 데이터가 있으면 페이지가 하나 이상이다
+  if (latest === undefined) throw new Error('No chart page');
   if (older.length === 0) return latest;
   return {
     ...latest,
@@ -27,7 +29,7 @@ export function mergeDisparityPages(data: InfiniteData<DisparityChart>): Dispari
       .reverse()
       .flatMap((p) => p.bars)
       .concat(latest.bars),
-    hasMore: data.pages[data.pages.length - 1].hasMore,
+    hasMore: data.pages[data.pages.length - 1]!.hasMore,
   };
 }
 

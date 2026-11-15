@@ -17,12 +17,12 @@ export type ContractChartModel = {
 };
 
 const lineColor = (index: number) =>
-  colors.chart.contractLines[Math.min(index, colors.chart.contractLines.length - 1)];
+  colors.chart.contractLines[Math.min(index, colors.chart.contractLines.length - 1)]!;
 
 function lastValue(values: readonly (number | null)[], i0: number, i1: number): number | null {
   for (let i = Math.min(i1, values.length - 1); i >= Math.max(i0, 0); i--) {
     const v = values[i];
-    if (v !== null) return v;
+    if (v != null) return v;
   }
   return null;
 }
@@ -39,8 +39,8 @@ export function contractChartModel(chart: ContractsChart): ContractChartModel {
   for (const c of chart.contracts) {
     c.prices.forEach((v, i) => {
       if (v === null) return;
-      if (v > hi[i]) hi[i] = v;
-      if (v < lo[i]) lo[i] = v;
+      if (v > hi[i]!) hi[i] = v;
+      if (v < lo[i]!) lo[i] = v;
     });
   }
   const widestLabels = chart.contracts.flatMap((c, i) => {
@@ -63,7 +63,7 @@ export function contractChartModel(chart: ContractsChart): ContractChartModel {
 export const FRONT_MARK = '●';
 
 const label = (chart: ContractsChart, i: number, price: number): PriceLabel => ({
-  key: chart.contracts[i].symbol,
+  key: chart.contracts[i]!.symbol,
   price,
   color: lineColor(i),
 });
@@ -88,8 +88,8 @@ export function endsRollYieldPct(chart: ContractsChart, index: number): number |
     .filter((c): c is { price: number; lastTradeDate: string } => c.price != null)
     .sort((a, b) => a.lastTradeDate.localeCompare(b.lastTradeDate));
   const near = priced[0];
-  const far = priced[priced.length - 1];
-  if (priced.length < 2 || near.price <= 0 || far.price <= 0) return null;
+  const far = priced.at(-1);
+  if (priced.length < 2 || !near || !far || near.price <= 0 || far.price <= 0) return null;
   const days = (Date.parse(far.lastTradeDate) - Date.parse(near.lastTradeDate)) / DAY_MS;
   if (days <= 0) return null;
   return (((near.price / far.price - 1) * 365) / days) * 100;
