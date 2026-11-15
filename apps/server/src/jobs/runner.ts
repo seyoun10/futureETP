@@ -52,21 +52,27 @@ export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-// 원자재마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
-export async function forEachCommodity(
+// 항목마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
+export async function forEachIsolated<T>(
   label: string,
-  task: (code: CommodityCode) => Promise<void>,
+  items: Iterable<T>,
+  name: (item: T) => string,
+  task: (item: T) => Promise<void>,
 ): Promise<void> {
   const failures: string[] = [];
-  for (const code of COMMODITY_CODES) {
+  for (const item of items) {
     try {
-      await task(code);
+      await task(item);
     } catch (error) {
-      failures.push(`${code}: ${errorMessage(error)}`);
+      failures.push(`${name(item)}: ${errorMessage(error)}`);
     }
   }
   if (failures.length > 0) throw new Error(`${label} failed: ${failures.join('; ')}`);
 }
+
+// 원자재마다 따로 처리한다
+export const forEachCommodity = (label: string, task: (code: CommodityCode) => Promise<void>) =>
+  forEachIsolated(label, COMMODITY_CODES, (code) => code, task);
 
 // 시도마다 batch_run 행을 하나씩 만든다(attempt 1, 2). 마지막 행의 FAILED가 최종 실패다.
 export async function runJob(

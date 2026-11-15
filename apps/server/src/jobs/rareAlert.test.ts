@@ -57,6 +57,7 @@ function setup({
   distribution = SORTED,
   rows = [],
   results = {},
+  broken,
 }: {
   // d1 기본 기기의 설정. devices를 주면 무시한다
   settings?: Partial<Settings>;
@@ -65,7 +66,10 @@ function setup({
   distribution?: number[] | null;
   rows?: Row[];
   results?: Record<string, { status: 'SENT' } | { status: 'FAILED'; error: string }>;
+  // 이 기기의 기록·기기 조회가 실패한다
+  broken?: string;
 } = {}) {
+  const fail = (id: string) => Promise.reject(new Error(`db down for ${id}`));
   const records = [...rows];
   const alertDevices: (AlertDevice | null)[] = testDevices.map((d) => {
     const token = d.token === undefined ? `tok-${d.id}` : d.token;
@@ -85,19 +89,22 @@ function setup({
   const store: RareAlertStore = {
     alertDevices: (code) =>
       Promise.resolve(present.filter((d) => d.settings.alertCommodity === code)),
-    device: (id) => Promise.resolve(present.find((d) => d.id === id) ?? null),
+    device: (id) =>
+      id === broken ? fail(id) : Promise.resolve(present.find((d) => d.id === id) ?? null),
     isSuspended: () => Promise.resolve(suspended),
     distribution: distributionOf,
     records: (c) =>
-      Promise.resolve(
-        records.filter(
-          (r) =>
-            r.deviceId === c.deviceId &&
-            r.commodityCode === c.commodityCode &&
-            r.basis === c.basis &&
-            r.tradeDate === c.tradeDate,
-        ),
-      ),
+      c.deviceId === broken
+        ? fail(c.deviceId)
+        : Promise.resolve(
+            records.filter(
+              (r) =>
+                r.deviceId === c.deviceId &&
+                r.commodityCode === c.commodityCode &&
+                r.basis === c.basis &&
+                r.tradeDate === c.tradeDate,
+            ),
+          ),
     insert(newRows) {
       const inserted = newRows
         .filter(
@@ -494,5 +501,27 @@ describe('기기별 판정·발송(D-120)', () => {
     await deferred({ now: NOW });
     expect(records.map((r) => r.status)).toEqual(['SENT', 'SENT']);
     expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d1', 'tok-d2']);
+  });
+
+  it('한 기기의 실패가 다른 기기의 판정·발송을 막지 않고 실패는 끝에 모아 던진다', async () => {
+    const { judge, sent } = setup({ devices: [{ id: 'd1' }, { id: 'd2' }], broken: 'd1' });
+    await expect(judge([index('FRONT', 96, null)])).rejects.toThrow(/Alert CL failed: d1: db down/);
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d2']);
+  });
+
+  it('RETRY·HELD도 한 기기가 실패해도 다른 기기에는 보낸다', async () => {
+    const { retry, deferred, sent } = setup({
+      devices: [{ id: 'd1' }, { id: 'd2' }],
+      broken: 'd1',
+      rows: [
+        retryRow(5, 'RETRY', 'd1'),
+        retryRow(5, 'RETRY', 'd2'),
+        heldRow('a', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 }),
+        heldRow('b', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330, deviceId: 'd2' }),
+      ],
+    });
+    await expect(retry({ before: SLOT, now: NOW })).rejects.toThrow(/Alert retry failed: d1/);
+    await expect(deferred({ now: NOW })).rejects.toThrow(/Deferred alert failed: d1/);
+    expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d2', 'tok-d2']);
   });
 });
