@@ -171,6 +171,26 @@ describe('INTRADAY', () => {
     expect(saved.indexes.map((i) => i.basis)).toEqual(['FRONT']);
   });
 
+  it('커브 전용 월물 현재가를 받지 못해도 지수·알림은 이어 가고 배치는 실패로 남긴다', async () => {
+    const { store, saved } = memoryStore();
+    const source = fakeSource();
+    source.fetchLastPrices.mockRejectedValue(new Error('spark 500'));
+    const alert = vi.fn(() => Promise.resolve());
+    const handler = createIntradayHandler({ store, source, alert, log: () => {} });
+    await expect(run(handler)).rejects.toThrow('CL: curve prices spark 500');
+    expect(saved.quotes.map((q) => q.contractSymbol)).toEqual(['CLZ26', 'CLF27']);
+    expect(saved.indexes.map((i) => i.basis)).toEqual(['FRONT', 'KR']);
+    expect(alert).toHaveBeenCalledTimes(4);
+  });
+
+  it('달력에 직전 거래일 행이 없으면 원인이 드러나는 메시지로 실패한다', async () => {
+    const { store } = memoryStore();
+    store.tradingDays = (from, to) =>
+      Promise.resolve(DAYS.filter((d) => d.tradeDate >= '2026-10-28' && d.tradeDate <= to));
+    const handler = createIntradayHandler({ store, source: fakeSource(), log: () => {} });
+    await expect(run(handler)).rejects.toThrow(/trading calendar has no session or previous day/);
+  });
+
   it('직전 거래일 재계산 결과가 없으면(날짜 어긋남) 지수를 만들지 않고 실패한다', async () => {
     const stale = HISTORY.slice(0, -1);
     const { store, saved } = memoryStore({ history: stale });

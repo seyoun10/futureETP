@@ -108,8 +108,11 @@ export function createIntradayHandler({
     ctx.tradeDate = tradeDate;
     // OPEN이면 세션 행과 정산된 직전 거래일 행이 있다
     const index = days.findIndex((d) => d.tradeDate === tradeDate);
-    const sessionOpenAt = days[index].sessionOpenAt!;
-    const previous = days[index - 1].tradeDate;
+    const sessionOpenAt = days[index]?.sessionOpenAt;
+    const previous = index > 0 ? days[index - 1].tradeDate : undefined;
+    if (sessionOpenAt == null || previous === undefined) {
+      throw new Error(`${tradeDate}: trading calendar has no session or previous day`);
+    }
 
     await forEachCommodity('Intraday', async (code) => {
       const [contracts, held] = await Promise.all([
@@ -125,14 +128,19 @@ export function createIntradayHandler({
       const curveOnly = intradayCurveContracts(contracts, tradeDate)
         .map((c) => c.symbol)
         .filter((s) => !indexSymbols.includes(s));
-      const quotes = [
-        ...(await source.fetchSessionQuotes(indexSymbols, sessionOpenAt)),
-        ...(await source.fetchLastPrices(curveOnly)),
-      ];
+      const failures: string[] = [];
+      const sessionQuotes = await source.fetchSessionQuotes(indexSymbols, sessionOpenAt);
+      // 커브 전용 월물(현재가)을 받지 못해도 지수 스냅샷·알림은 이어 간다. 작업은 마지막에 실패로 남긴다
+      let lastPrices: typeof sessionQuotes = [];
+      try {
+        lastPrices = await source.fetchLastPrices(curveOnly);
+      } catch (error) {
+        failures.push(`curve prices ${errorMessage(error)}`);
+      }
+      const quotes = [...sessionQuotes, ...lastPrices];
       const prices = new Map(quotes.map((q) => [q.contractSymbol, q]));
 
       const indexes: IndexSnapshotRow[] = [];
-      const failures: string[] = [];
       for (const basis of BASES) {
         const rows = weights.get(basis);
         // 규칙이 없는 기준값
