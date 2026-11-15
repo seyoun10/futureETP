@@ -1,8 +1,10 @@
 import { getItemAsync } from 'expo-secure-store';
+import { AppError } from './AppError';
 import {
   ACCESS_KEY_QR_PREFIX,
   getAccessToken,
   parseAccessKey,
+  reportAuthError,
   saveAccessToken,
   useAccessKeyStore,
 } from './accessToken';
@@ -34,5 +36,19 @@ describe('saveAccessToken', () => {
 
     await expect(getItemAsync('access-key')).resolves.toBe(KEY);
     await expect(getAccessToken()).resolves.toBe(KEY);
+  });
+});
+
+describe('reportAuthError', () => {
+  it('저장된 키로 받은 UNAUTHORIZED만 거절로 본다', () => {
+    useAccessKeyStore.setState({ key: KEY, rejected: false });
+    reportAuthError(new AppError('UNAUTHORIZED'));
+    expect(useAccessKeyStore.getState().rejected).toBe(true);
+  });
+
+  it('키가 없어 보내지 않은 요청은 거절로 보지 않는다', () => {
+    useAccessKeyStore.setState({ key: null, rejected: false });
+    reportAuthError(new AppError('UNAUTHORIZED', { message: 'No access token' }));
+    expect(useAccessKeyStore.getState().rejected).toBe(false);
   });
 });

@@ -49,7 +49,12 @@ export async function saveAccessToken(key: string) {
 
 // query·mutation 캐시의 onError에서 부른다. 저장된 키로 보낸 요청의 UNAUTHORIZED만 거절로 본다.
 export function reportAuthError(error: unknown) {
-  if (error instanceof AppError && error.code === 'UNAUTHORIZED') {
+  // 키가 없어 보내지 않은 요청(client.ts)도 UNAUTHORIZED라 저장된 키가 있을 때만 거절로 본다
+  if (
+    error instanceof AppError &&
+    error.code === 'UNAUTHORIZED' &&
+    useAccessKeyStore.getState().key !== null
+  ) {
     useAccessKeyStore.setState({ rejected: true });
   }
 }
