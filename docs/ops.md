@@ -16,6 +16,7 @@
 ## 서버 운영 (Mac, 설정은 `~/.config/futureetp/ops.env`)
 
 - prod 배포: `npm run deploy`(D-048)
+- 배치 결과 보기(읽기 전용): `npm run batch:result -- [작업 이름(기본 SETTLE_BACKFILL)] [기록 개수(기본 5)]` — prod `batch_run` 최근 기록과 마지막 실행 동안의 그 작업 로그 줄(재시도 포함)
 - VM 백업 내려받기: `npm run backup:pull`
 - dev DB에 덤프 복원: `npm run dev:restore -- [덤프 파일] [--yes]`(D-045)
 - 첫 배포 뒤 빈 prod DB에 dev DB 넣기: `npm run prod:seed -- [--yes]`(D-100)
