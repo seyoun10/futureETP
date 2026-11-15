@@ -8,7 +8,6 @@ export type Source = (typeof SOURCES)[number];
 export { JOB_NAMES, type JobName } from '@futureetp/shared';
 
 export const BATCH_STATUSES = ['RUNNING', 'SUCCESS', 'FAILED'] as const;
-export type BatchStatus = (typeof BATCH_STATUSES)[number];
 
 // D-006, D-023
 export const ALERT_STATUSES = ['SENT', 'HELD', 'SUPPRESSED', 'RETRY', 'FAILED'] as const;

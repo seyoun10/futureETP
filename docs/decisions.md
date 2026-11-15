@@ -1156,7 +1156,7 @@
   - 봉투가 아닌 응답은 HTTP 5xx면 `INTERNAL`(재시도 대상), 그 밖은 `SCHEMA_MISMATCH`. 모르는 에러 코드(서버가 더 새 버전)도 봉투 불일치로 `SCHEMA_MISMATCH`다.
   - 재시도 판정 `isRetryable`은 `AppError`만 대상이다. 그 밖의 예외(코드 버그)는 재시도하지 않는다.
   - query key는 `['commodities', code, ...]` 접두 계층이라 원자재 단위로 무효화한다. `focusManager` + `AppState`는 `queryClient.ts`의 `setupFocusManager()`를 루트 `_layout`에서 부른다.
-  - shared에 `healthSchema`를 두고 `GET /v1/health`를 래퍼의 첫 엔드포인트(`auth: false`)로 쓴다.
+  - shared에 `healthSchema`를 두고 `GET /v1/health`를 래퍼의 첫 엔드포인트(`auth: false`)로 쓴다. (2026-11-15 코드 리뷰: 앱이 부르지 않아 앱 `getHealth`와 shared `healthSchema`를 지웠다. 서버 `/v1/health`는 그대로)
 - 근거:
   - 키 읽는 곳이 하나면 SecureStore 전환 때 래퍼·테스트를 바꾸지 않는다. 키 없이 보내면 서버 인증 실패 횟수 제한(D-059)만 쌓인다.
   - Hermes·RN의 `AbortSignal.timeout`·`AbortSignal.any` 지원이 확실하지 않고, 직접 만들면 Jest fake timer로 그대로 검증된다.

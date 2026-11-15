@@ -55,7 +55,6 @@ export {
   type ApiErrorCode,
 } from './envelope.ts';
 export { freshnessSchema, type Freshness } from './freshness.ts';
-export { healthSchema, type Health } from './health.ts';
 export {
   ANDROID_CHANNELS,
   etpCandidatesPush,
