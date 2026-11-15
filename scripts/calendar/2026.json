@@ -14,5 +14,8 @@
     { "date": "2026-09-07", "at": "12:00", "note": "Labor Day" },
     { "date": "2026-11-26", "at": "13:30", "note": "Thanksgiving Day" }
   ],
-  "earlyCloses": [{ "date": "2026-11-27", "at": "12:45", "note": "Day after Thanksgiving" }]
+  "earlyCloses": [
+    { "date": "2026-11-27", "at": "13:45", "note": "Day after Thanksgiving" },
+    { "date": "2026-12-24", "at": "12:45", "note": "Christmas Eve" }
+  ]
 }

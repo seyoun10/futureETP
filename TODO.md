@@ -88,7 +88,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] Hono 앱 골격: 응답 봉투·`onError`·`notFound`, Bearer 검사·인증 실패 횟수 제한, `GET /v1/health`, 라우트 테스트(`app.request`) (2026-10-27, D-059)
 - [x] 배치 러너: `batch_run` 기록·1회 재시도·`npm run job -- <이름> [기준 시각]` CLI, croner 등록(`SCHEDULER_ENABLED`) (2026-10-27, D-060)
 - [x] 시장 기준 데이터: `commodity`·`active_month_rule` 시드 마이그레이션, `trading_day` 생성 함수 + `calendar:import` CLI(2026·2027 입력), 표준 심볼 유틸(D-049) (2026-10-27, D-061)
-  - [ ] CME 2027 공식 휴일 공지가 나오면 `scripts/calendar/2027.json` 대조
+  - [x] CME 2027 공식 휴일 공지가 나오면 `scripts/calendar/2027.json` 대조 (2026-11-15: 공식 Globex 시간표로 대조. 2027 날짜는 모두 맞고 시각 3개 수정(Juneteenth 정지 12:00, Labor Day 정지 13:30, 추수감사절 다음 날 마감 13:45). 2026도 11/27 마감 12:45→13:45, 12/24 조기 마감 12:45 추가. dev DB 재입력)
+    - [ ] prod 반영: 서버 배포 뒤 VM에서 `calendar:import` 2026·2027 실행(11/26 추수감사절 전)
     - 2026-11-02 확인: CME 공식 2027 달력은 아직 받지 못함(cmegroup.com이 스크립트 접근에 403). 제3자 달력(financecalendar.com)의 2027 휴일 날짜 11개는 `2027.json`과 모두 같음. 다만 에너지 시각은 없고 일부는 "Schedule not verified" 표시라 시각(13:30·12:00·12:45)은 미확인. CME 휴일 공지(보통 휴일 2주 전)로 첫 휴일 2027-01-01 전에 다시 대조
 
 ### 5-2. calc 순수 함수 (Vitest, product.md 계산 정의를 테스트로 먼저)

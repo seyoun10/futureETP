@@ -69,7 +69,7 @@ describe('findSessionDay', () => {
   });
 
   it('조기 마감 뒤에는 세션이 없다', () => {
-    expect(findSessionDay(ct('2026-11-27', '13:00'), days)).toBeNull();
+    expect(findSessionDay(ct('2026-11-27', '14:00'), days)).toBeNull();
   });
 
   it('세션 시각이 빈 과거 행은 무시한다', () => {
@@ -101,7 +101,7 @@ describe('lastClosedTradeDate', () => {
   });
 
   it('조기 마감 뒤에는 그날이다', () => {
-    expect(lastClosedTradeDate(ct('2026-11-27', '13:00'), days)).toBe('2026-11-27');
+    expect(lastClosedTradeDate(ct('2026-11-27', '14:00'), days)).toBe('2026-11-27');
   });
 
   it('세션 시각이 빈 과거 행은 무시한다', () => {
@@ -287,10 +287,34 @@ describe('marketStatus', () => {
     });
 
     it('조기 마감 뒤에는 휴장이고 일요일 개장 뒤 첫 배치를 준다', () => {
-      expect(marketStatus(ct('2026-11-27', '13:00'), days, '2026-11-25')).toEqual({
+      expect(marketStatus(ct('2026-11-27', '14:00'), days, '2026-11-25')).toEqual({
         state: 'CLOSED',
         tradeDate: '2026-11-27',
         nextUpdateAt: ct('2026-11-29', '17:01'),
+      });
+    });
+
+    it('조기 마감은 CME 공지대로 13:45 CT라 그 전에는 장중이다', () => {
+      expect(marketStatus(ct('2026-11-27', '13:40'), days, '2026-11-25')).toMatchObject({
+        state: 'OPEN',
+        tradeDate: '2026-11-27',
+      });
+      expect(marketStatus(ct('2026-11-27', '13:45'), days, '2026-11-25')).toMatchObject({
+        state: 'CLOSED',
+        tradeDate: '2026-11-27',
+      });
+    });
+  });
+
+  describe('크리스마스이브 조기 마감(2026)', () => {
+    it('12:45 CT 전에는 장중, 뒤에는 휴장이다', () => {
+      expect(marketStatus(ct('2026-12-24', '12:40'), days, '2026-12-23')).toMatchObject({
+        state: 'OPEN',
+        tradeDate: '2026-12-24',
+      });
+      expect(marketStatus(ct('2026-12-24', '12:45'), days, '2026-12-23')).toMatchObject({
+        state: 'CLOSED',
+        tradeDate: '2026-12-24',
       });
     });
   });
