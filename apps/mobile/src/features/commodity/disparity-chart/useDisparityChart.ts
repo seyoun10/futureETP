@@ -65,9 +65,10 @@ export function useDisparityChart(code: CommodityCode) {
 // 실패는 무시한다(화면이 다시 조회하고 오류를 보여 준다)
 export async function prefetchDisparityChart(queryClient: QueryClient, code: CommodityCode) {
   try {
-    const settings = await queryClient.ensureQueryData(settingsQuery);
-    await queryClient.prefetchInfiniteQuery(disparityChartQuery(code, disparityParams(settings)));
+    // 캐시에 설정이 있으면 오래됐어도 그대로 쓴다(ensureQueryData와 같다)
+    const settings = await queryClient.query({ ...settingsQuery, staleTime: 'static' });
+    await queryClient.infiniteQuery(disparityChartQuery(code, disparityParams(settings)));
   } catch {
-    // 설정 조회 실패
+    // 설정·차트 조회 실패
   }
 }

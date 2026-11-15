@@ -17,9 +17,7 @@ describe('createQueryClient', () => {
   const fetchCount = async (error: Error) => {
     const client = createQueryClient();
     const queryFn = jest.fn().mockRejectedValue(error);
-    await expect(client.fetchQuery({ queryKey: ['t'], queryFn, retryDelay: 0 })).rejects.toBe(
-      error,
-    );
+    await expect(client.query({ queryKey: ['t'], queryFn, retryDelay: 0 })).rejects.toBe(error);
     client.clear();
     return queryFn.mock.calls.length;
   };

@@ -260,6 +260,9 @@ export function useChartViewport({
   );
 
   // 핀치: 시작 때 손가락 가운데 있던 지점이 손가락 가운데를 따라가게 확대·축소한다(두 손가락 이동 포함)
+  // victory-native 42가 customGestures를 legacy Gesture.Race로 합쳐서 hook API(useTapGesture 등)를 쓸 수 없다.
+  // RNGH 3의 legacy 합성은 hook 제스처를 다루지 못한다. victory-native가 hook API로 옮기면 이전한다(D-128)
+  /* eslint-disable @typescript-eslint/no-deprecated */
   const gestures = useMemo(() => {
     const hideCrosshair = Gesture.Tap()
       .enabled(!locked)
@@ -294,6 +297,7 @@ export function useChartViewport({
       .onFinalize(() => transform.panActive.set(false));
     return Gesture.Race(hideCrosshair, Gesture.Simultaneous(pinch, pan));
   }, [crosshairVisible, crosshairShown, geom, locked, pinchStart, transform, zoomed]);
+  /* eslint-enable @typescript-eslint/no-deprecated */
 
   // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신
   const onSnap = useCallback((index: number, x: number, view: ChartView) => {

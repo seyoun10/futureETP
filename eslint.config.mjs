@@ -45,6 +45,8 @@ export default defineConfig([
     rules: {
       // union(장 상태·에러 code 등)에 값이 늘면 빠진 case를 잡는다(D-127)
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      // 곧 없어질 API를 새로 쓰지 않는다. 불가피한 곳은 줄 단위 예외에 이유를 적는다(D-128)
+      '@typescript-eslint/no-deprecated': 'error',
     },
   },
 

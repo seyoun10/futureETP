@@ -167,10 +167,12 @@ describe('B-b 접근 키', () => {
     // 화면의 조회가 저장된 키로 UNAUTHORIZED를 받은 경우
     const failQuery = (code: 'UNAUTHORIZED' | 'NOT_FOUND') =>
       act(() =>
-        queryClient.prefetchQuery({
-          queryKey: ['test', code],
-          queryFn: () => Promise.reject(new AppError(code)),
-        }),
+        queryClient
+          .query({
+            queryKey: ['test', code],
+            queryFn: () => Promise.reject(new AppError(code)),
+          })
+          .catch(() => {}),
       );
 
     it('어느 화면에서든 B-b로 와서 오류 줄을 보여 주고, 키는 지우지 않는다', async () => {
