@@ -368,3 +368,12 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] push 뒤 GitHub Actions `check` 통과(커버리지 하한 포함, 2m55s) (2026-11-15)
 - [x] `@typescript-eslint/no-deprecated` 켜기: TanStack Query 3곳은 `query()`·`infiniteQuery()`로 이전, C-a·C-c 차트 제스처는 victory-native 42 제약으로 builder API 유지 + 블록 예외 (2026-11-15, D-128)
 - [ ] (후속) victory-native가 Gesture Handler hook API를 받으면 `useChartViewport` 제스처 이전, 예외 주석 삭제 (D-128)
+
+### 5-12. 의존성 패치 업데이트
+- [x] Expo SDK 58 패치(`expo` 58.0.19 → 58.0.25, `expo-*`·`jest-expo` 함께)와 RN 0.88.1(루트 `overrides` 포함), `react-native-safe-area-context` 5.11.1·`react-native-screens` 4.30.1. `@expo/cli` 58.1.20으로 high 취약점(≤58.1.19) 해결, `expo install --check`·`expo-doctor` 통과 (2026-11-15, `dc6ec27`)
+  - 남은 audit: `zod` 3.25.76 high는 `@expo/cli`·`eslint-plugin-react-hooks` 간접 의존(상류 대기), 나머지 moderate는 jest·typescript-eslint·drizzle-kit 아래 개발 도구
+- [x] 새 fingerprint(iOS runtime `0721e7a`)로 네이티브 재배포 (2026-11-15)
+  - Android: 1.0.0 (444) Firebase App Distribution `owner` 배포. 기기 설치·확인은 아직
+  - iOS: worktree에서 prod Release(Personal Team, `IOS_PERSONAL_TEAM=1`) 빌드 → 14 Pro·16 Pro Max 설치(7일 만료). 한 기기만 대상으로 빌드하면 프로필에 그 기기만 들어가 다른 기기는 `0xe8008012` → 두 번째 기기를 `-destination`·`-allowProvisioningDeviceRegistration`으로 다시 빌드. 재설치 뒤 기기마다 개발자 신뢰를 다시 허용해야 실행됨
+  - 14 Pro 미러링 확인: A 목록·C-a(십자선)·C-b·C-c 표시, 기존 접근 키·설정 유지, 등락 색 저장 → 재시작 뒤 복원
+  - 백그라운드 셸에서 `pod install`이 `Unicode Normalization ... ASCII-8BIT`로 실패하면 `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`
