@@ -362,6 +362,49 @@ describe('DAILY_SETTLE', () => {
     expect(recompute.mock.calls.map(([code]) => code)).toEqual(['GC', 'CL', 'NG']);
   });
 
+  it('일부 월물만 반영된 때 받았으면 재시도 때 빠진 지수 월물만 다시 받는다', async () => {
+    let published = false;
+    const source = testSource((symbol) => (symbol === 'CLZ26' && !published ? null : 100));
+    const { handlers, bars, recompute, indexSymbols } = setup(
+      { DAILY_SETTLE: '2026-10-26' },
+      source,
+    );
+    // 그날 지수 봉은 전 거래일(10-26) 보유 월물로 계산한다
+    indexSymbols.set('CL|2026-10-26', ['CLZ26', 'CLF27']);
+    recompute.mockImplementation((code) =>
+      code === 'CL' && !bars.has('CLZ26|2026-10-27')
+        ? Promise.reject(new Error('no settle for CLZ26'))
+        : Promise.resolve(),
+    );
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/CL: no settle/);
+    expect(bars.has('CLF27|2026-10-27')).toBe(true);
+
+    published = true;
+    source.fetchDailyBars.mockClear();
+    await handlers.DAILY_SETTLE(ctx());
+    expect(source.fetchDailyBars.mock.calls.map(([code, symbols]) => [code, symbols])).toEqual([
+      ['CL', ['CLZ26']],
+    ]);
+    expect(bars.get('CLZ26|2026-10-27')).toMatchObject({ settle: 100 });
+  });
+
+  it('빠진 지수 월물이 아직도 없으면 실패로 남는다', async () => {
+    const source = testSource((symbol) => (symbol === 'CLZ26' ? null : 100));
+    const { handlers, indexSymbols } = setup({ DAILY_SETTLE: '2026-10-26' }, source);
+    indexSymbols.set('CL|2026-10-26', ['CLZ26']);
+    await handlers.DAILY_SETTLE(ctx());
+    await expect(handlers.DAILY_SETTLE(ctx())).rejects.toThrow(/CL: 2026-10-27: no bars/);
+  });
+
+  it('전 거래일 지수 월물이 그날 거래되지 않으면(만기) 다시 받지 않는다', async () => {
+    const { handlers, source, indexSymbols } = setup({ DAILY_SETTLE: '2026-10-26' });
+    await handlers.DAILY_SETTLE(ctx());
+    indexSymbols.set('CL|2026-10-26', ['CLV26', 'CLZ26']);
+    source.fetchDailyBars.mockClear();
+    await handlers.DAILY_SETTLE(ctx());
+    expect(source.fetchDailyBars).not.toHaveBeenCalled();
+  });
+
   it('최종 거래일이 가까운 월물 26개만 받는다', async () => {
     // 먼 쪽부터 받아도 만기순으로 고른다
     const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-26' }, manyContractsSource());

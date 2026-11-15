@@ -118,16 +118,68 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
   SETTLE_REVISION: JobHandler;
   SETTLE_BACKFILL: JobHandler;
 } {
+  // 받은 봉을 검증해 저장한다. 하나도 없으면 소스 반영 전(D-019)이라 실패로 끝내 재시도에 맡긴다
+  async function saveFetched(
+    code: CommodityCode,
+    tradeDate: string,
+    symbols: readonly string[],
+    now: Date,
+  ) {
+    const bars = await source.fetchDailyBars(code, symbols, tradeDate);
+    if (bars.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name} yet`);
+    const unknown = bars.filter((b) => !symbols.includes(b.contractSymbol));
+    if (unknown.length > 0) {
+      throw new Error(
+        `${tradeDate}: unexpected symbols ${unknown.map((b) => b.contractSymbol).join(', ')}`,
+      );
+    }
+    await store.upsertDailyBars(
+      bars.map((b) => ({
+        ...b,
+        tradeDate,
+        source: source.name,
+        collectedAt: now,
+        revisedAt: null,
+      })),
+    );
+    return bars.length;
+  }
+
+  // 이미 받은 날에 빠진 지수 월물. 그날 지수 봉은 전 거래일 비중으로 계산하므로 그 보유 월물 중
+  // 그날 거래되는 것이 모두 있어야 재계산이 된다(일부만 반영된 때 받은 날을 다시 채움)
+  async function missingIndexSymbols(
+    code: CommodityCode,
+    tradeDate: string,
+    days: readonly TradingDaySession[],
+    stored: readonly StoredBar[],
+  ) {
+    const previousDate = days.findLast((d) => d.tradeDate < tradeDate)?.tradeDate;
+    if (previousDate === undefined) return [];
+    const held = await store.indexSymbols(code, previousDate);
+    if (held.length === 0) return [];
+    const trading = new Set(settleSymbols(await store.contracts(code), tradeDate));
+    const have = new Set(stored.map((b) => b.contractSymbol));
+    return [...new Set(held)].filter((s) => trading.has(s) && !have.has(s));
+  }
+
   // 월물 상장(소스의 새 월물 추가) → 그날 거래되는 월물의 일봉 저장.
-  // 이미 받은 날은 건너뛴다(다른 원자재 실패로 재시도·따라잡기할 때 소스 호출을 아낌)
+  // 이미 받은 날은 건너뛴다(다른 원자재 실패로 재시도·따라잡기할 때 소스 호출을 아낌).
+  // 다만 지수 월물이 빠졌으면 그 월물만 다시 받는다
   async function collectDay(
     code: CommodityCode,
     tradeDate: string,
     days: readonly TradingDaySession[],
     now: Date,
   ) {
-    if ((await store.dailyBars(code, tradeDate)).length > 0) {
-      log(`[settle ${code} ${tradeDate}] already collected`);
+    const stored = await store.dailyBars(code, tradeDate);
+    if (stored.length > 0) {
+      const missing = await missingIndexSymbols(code, tradeDate, days, stored);
+      if (missing.length === 0) {
+        log(`[settle ${code} ${tradeDate}] already collected`);
+        return;
+      }
+      const count = await saveFetched(code, tradeDate, missing, now);
+      log(`[settle ${code} ${tradeDate}] refetched ${count} of missing ${missing.join(', ')}`);
       return;
     }
     const [rules, definitions] = await Promise.all([
@@ -157,26 +209,9 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
     const symbols = candidates
       .filter((c, i, sorted) => !canSkip || traded.has(c.symbol) || isProtected(c, i, sorted))
       .map((c) => c.symbol);
-    const bars = await source.fetchDailyBars(code, symbols, tradeDate);
-    // 소스 반영 전(D-019)이면 실패로 끝내 재시도에 맡긴다
-    if (bars.length === 0) throw new Error(`${tradeDate}: no bars from ${source.name} yet`);
-    const unknown = bars.filter((b) => !symbols.includes(b.contractSymbol));
-    if (unknown.length > 0) {
-      throw new Error(
-        `${tradeDate}: unexpected symbols ${unknown.map((b) => b.contractSymbol).join(', ')}`,
-      );
-    }
-    await store.upsertDailyBars(
-      bars.map((b) => ({
-        ...b,
-        tradeDate,
-        source: source.name,
-        collectedAt: now,
-        revisedAt: null,
-      })),
-    );
+    const count = await saveFetched(code, tradeDate, symbols, now);
     log(
-      `[settle ${code} ${tradeDate}] ${bars.length} bars, skipped ${candidates.length - symbols.length}`,
+      `[settle ${code} ${tradeDate}] ${count} bars, skipped ${candidates.length - symbols.length}`,
     );
   }
 
