@@ -135,6 +135,19 @@ describe('라우트 골격', () => {
     expect(screen).toHavePathname('/commodity/GC');
   });
 
+  it('B를 열어도 아래에 남은 C 탭은 원자재 코드를 잃지 않는다(화면 상태 유지)', async () => {
+    await renderApp('/commodity/GC/curve');
+    await fireEvent.press(screen.getByLabelText('설정'));
+    expect(screen).toHavePathname('/settings');
+    expect(
+      screen.queryByText('데이터를 찾을 수 없습니다.', { includeHiddenElements: true }),
+    ).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('뒤로'));
+    expect(screen).toHavePathname('/commodity/GC/curve');
+    expect(screen.getByRole('header', { name: '금 (GC)' })).toBeOnTheScreen();
+  });
+
   it('C-d-a는 탭 밖 스택이라 하단 탭이 없고, 뒤로 가면 C 탭이다', async () => {
     await renderApp('/commodity/SI/etp/123');
     expect(screen.getByTestId('etp-detail-screen')).toBeOnTheScreen();
