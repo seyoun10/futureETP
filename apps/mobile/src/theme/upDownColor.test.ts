@@ -1,5 +1,13 @@
 import { colors } from './tokens';
-import { changeColor, changePairColor, UP_DOWN_PALETTES, upDownPalette } from './upDownColor';
+import { act, renderHook } from '@testing-library/react-native';
+import { useDisplaySettings } from '@/stores/displaySettings';
+import {
+  changeColor,
+  changePairColor,
+  UP_DOWN_PALETTES,
+  upDownPalette,
+  useUpDownPalette,
+} from './upDownColor';
 
 describe('upDownPalette', () => {
   it('한국식은 상승 빨강·하락 파랑, 미국식은 상승 초록·하락 빨강이다', () => {
@@ -45,5 +53,19 @@ describe('changePairColor', () => {
   it('둘 중 0이 아닌 쪽의 부호를 따른다', () => {
     expect(changePairColor(0.0004, 0.014, 3, palette)).toBe(palette.up);
     expect(changePairColor(-0.1, -0.002, 1, palette)).toBe(palette.down);
+  });
+});
+
+describe('useUpDownPalette', () => {
+  it('설정이 그대로면 렌더마다 같은 객체를 준다(memo 의존성이 깨지지 않게)', async () => {
+    const { result, rerender } = await renderHook(() => useUpDownPalette());
+    const first = result.current;
+    await rerender({});
+    expect(result.current).toBe(first);
+
+    const other = useDisplaySettings.getState().upDownStyle === 'KR' ? 'US' : 'KR';
+    await act(() => useDisplaySettings.setState({ upDownStyle: other }));
+    expect(result.current).not.toBe(first);
+    expect(result.current).toEqual(upDownPalette(other));
   });
 });

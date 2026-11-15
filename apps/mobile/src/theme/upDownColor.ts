@@ -36,4 +36,11 @@ export const changePairColor = (
   return changeColor(shown, palette);
 };
 
-export const useUpDownPalette = () => upDownPalette(useDisplaySettings((s) => s.upDownStyle));
+// 스타일마다 같은 객체를 돌려준다. 렌더마다 새 객체면 팔레트를 의존성으로 둔 memo(CurveChart 변화율 라벨 배치 등)가
+// 크로스헤어를 옮길 때마다 다시 계산된다
+const PALETTES: Record<UpDownStyle, UpDownPalette> = {
+  KR: upDownPalette('KR'),
+  US: upDownPalette('US'),
+};
+
+export const useUpDownPalette = () => PALETTES[useDisplaySettings((s) => s.upDownStyle)];

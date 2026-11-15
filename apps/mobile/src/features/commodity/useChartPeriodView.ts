@@ -25,6 +25,7 @@ export function useChartPeriodView(chart: ChartKind, barCount: number) {
     [],
   );
   const onVisibleRangeChange = useCallback((i0: number, i1: number) => setRange([i0, i1]), []);
+  const resetView = useCallback(() => setGesture(null), []);
 
   return {
     range,
@@ -32,7 +33,7 @@ export function useChartPeriodView(chart: ChartKind, barCount: number) {
       periodBars: gesture ? null : PERIOD_BARS[period],
       onViewChange,
       onVisibleRangeChange,
-      onResetView: gesture ? () => setGesture(null) : undefined,
+      onResetView: gesture ? resetView : undefined,
     },
     chipProps: {
       selected: gesture === 'zoom' ? null : period,
