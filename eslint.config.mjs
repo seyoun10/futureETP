@@ -42,6 +42,10 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // union(장 상태·에러 code 등)에 값이 늘면 빠진 case를 잡는다(D-127)
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+    },
   },
 
   // default export 금지(CLAUDE.md, D-029). route 파일과 도구 설정 파일만 예외다.
