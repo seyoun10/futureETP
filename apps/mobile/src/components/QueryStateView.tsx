@@ -6,7 +6,7 @@ import { AppError } from '@/api/AppError';
 import { colors, fontSize, size, spacing } from '@/theme/tokens';
 
 // 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
-type StateQuery<T> = Pick<UseQueryResult<T>, 'data' | 'error' | 'isError' | 'isFetching'> & {
+export type StateQuery<T> = Pick<UseQueryResult<T>, 'data' | 'error' | 'isError' | 'isFetching'> & {
   refetch: () => Promise<unknown>;
 };
 

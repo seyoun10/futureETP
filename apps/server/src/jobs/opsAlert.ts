@@ -2,7 +2,7 @@
 // 같은 작업은 다시 성공할 때까지 거래일당 1회만 보낸다(batch_run.ops_notified_at, D-048).
 import { jobFailedPush } from '@futureetp/shared';
 import type { JobName } from '../constants.ts';
-import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
+import { broadcastOps, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
 
 export interface OpsAlertStore {
@@ -25,19 +25,18 @@ export function createOpsAlert(deps: OpsAlertDeps) {
   const now = deps.now ?? (() => new Date());
   return async (job: JobName, runId: string): Promise<OpsAlertOutcome> => {
     if (await deps.store.alreadyNotified(runId)) return 'SKIPPED';
-    const result = await broadcast({ store: deps.devices, sender: deps.sender }, (device) => ({
-      text: jobFailedPush(device.locale, job),
-      channel: 'ops',
-      data: { type: 'JOB_FAILED', job },
-    }));
-    if (!delivered(result)) {
-      console.error(
-        `[ops ${job}] not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,
-      );
-      return 'UNDELIVERED';
-    }
-    await deps.store.markNotified(runId, now());
-    return 'SENT';
+    return broadcastOps(
+      { store: deps.devices, sender: deps.sender },
+      (device) => ({
+        text: jobFailedPush(device.locale, job),
+        data: { type: 'JOB_FAILED', job },
+      }),
+      {
+        label: `[ops ${job}]`,
+        log: console.error,
+        onDelivered: () => deps.store.markNotified(runId, now()),
+      },
+    );
   };
 }
 

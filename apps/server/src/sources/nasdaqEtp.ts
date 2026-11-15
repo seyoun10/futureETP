@@ -1,6 +1,7 @@
 // 미국 ETP 후보 목록과 순자산·총보수(D-016, D-099). Nasdaq 비공식 API라 형식이 바뀌면 zod 검증이 던진다.
 // 스크리너는 전 종목(약 5,500, ETN 포함)의 심볼·이름만 주고, 종목별 summary가 순자산(천 달러)·총보수(%)를 준다.
 import { z } from 'zod';
+import { fetchJson } from './http.ts';
 
 const BASE_URL = 'https://api.nasdaq.com/api';
 export const REQUEST_TIMEOUT_MS = 30_000;
@@ -47,11 +48,10 @@ export function createNasdaqEtpSource({
   fetchFn = fetch,
 }: { fetchFn?: typeof fetch } = {}): NasdaqEtpSource {
   async function get(path: string, label: string): Promise<unknown> {
-    const response = await fetchFn(`${BASE_URL}${path}`, {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    return fetchJson(fetchFn, `${BASE_URL}${path}`, {
+      label: `Nasdaq ${label}`,
+      timeoutMs: REQUEST_TIMEOUT_MS,
     });
-    if (!response.ok) throw new Error(`Nasdaq ${label}: HTTP ${response.status}`);
-    return response.json();
   }
 
   return {

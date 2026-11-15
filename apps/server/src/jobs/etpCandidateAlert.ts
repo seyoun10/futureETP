@@ -2,7 +2,7 @@
 // 처리는 코드의 매핑표 수정이라 운영 알림처럼 ops 채널로 보내고, 누르면 A로 간다(앱 push/notificationHref.ts).
 // 한 기기에도 전달하지 못하면 표시하지 않아 다음 ETP 작업 때 다시 보낸다.
 import { etpCandidatesPush } from '@futureetp/shared';
-import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
+import { broadcastOps, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
 
 export type EtpCandidate = { id: string; ticker: string };
@@ -26,24 +26,24 @@ export function createEtpCandidateAlert(deps: {
     const candidates = await deps.store.unnotifiedCandidates();
     if (candidates.length === 0) return 'NONE';
     const symbols = candidates.map((candidate) => candidate.ticker);
-    const result = await broadcast({ store: deps.devices, sender: deps.sender }, (device) => ({
-      text: etpCandidatesPush(device.locale, symbols),
-      channel: 'ops',
-      data: { type: 'ETP_CANDIDATES' },
-    }));
-    if (!delivered(result)) {
-      log(
-        `[etp candidates] ${symbols.join(', ')} not delivered to ${result.devices} device(s): ` +
-          result.failures.join('; '),
-      );
-      return 'UNDELIVERED';
-    }
-    await deps.store.markCandidatesNotified(
-      candidates.map((candidate) => candidate.id),
-      now,
+    return broadcastOps(
+      { store: deps.devices, sender: deps.sender },
+      (device) => ({
+        text: etpCandidatesPush(device.locale, symbols),
+        data: { type: 'ETP_CANDIDATES' },
+      }),
+      {
+        label: `[etp candidates] ${symbols.join(', ')}`,
+        log,
+        onDelivered: async () => {
+          await deps.store.markCandidatesNotified(
+            candidates.map((candidate) => candidate.id),
+            now,
+          );
+          log(`[etp candidates] notified ${symbols.join(', ')}`);
+        },
+      },
     );
-    log(`[etp candidates] notified ${symbols.join(', ')}`);
-    return 'SENT';
   };
 }
 

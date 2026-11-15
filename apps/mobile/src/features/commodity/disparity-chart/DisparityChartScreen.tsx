@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
-import { ChartSkeleton } from '@/charts/ChartSkeleton';
 import { CandleChart } from '@/charts/CandleChart';
 import { DetailBox, DetailRow } from '@/charts/DetailBox';
 import { OlderDataIndicator } from '@/charts/OlderDataIndicator';
@@ -11,18 +10,18 @@ import { PeriodChips } from '@/charts/PeriodChips';
 import { useOlderPages } from '@/charts/useOlderPages';
 import type { OlderPagesQuery } from '@/charts/useOlderPages';
 import { useTabFreshness } from '@/components/FreshnessLine';
-import { ErrorView, QueryStateView } from '@/components/QueryStateView';
+import { ErrorView } from '@/components/QueryStateView';
 import {
   formatChange,
   formatChangePct,
   formatContractMonth,
   formatPrice,
 } from '@/lib/formatNumber';
-import { perfMark, perfStart, perfTime } from '@/lib/perfLog';
+import { perfMark, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { changeColor, changePairColor, useUpDownPalette } from '@/theme/upDownColor';
+import { ChartTabMessage, ChartTabQuery, ChartTabScreen, useChartTabPerf } from '../ChartTab';
 import { useChartPeriodView } from '../useChartPeriodView';
-import { useCommodityCode } from '../useCommodityCode';
 import {
   disparityChartModel,
   formatTailPct,
@@ -36,23 +35,15 @@ import { useDisparityChart } from './useDisparityChart';
 
 // C-a 이격도차트 탭(screens.md C-a, D-086, D-087)
 export function DisparityChartScreen() {
-  const { t } = useTranslation();
-  const code = useCommodityCode();
-
   return (
-    <View style={styles.container} testID="disparity-chart-screen">
-      {code ? (
-        <DisparityChartContent code={code} />
-      ) : (
-        <Text style={styles.message}>{t('errors.NOT_FOUND')}</Text>
-      )}
-    </View>
+    <ChartTabScreen testID="disparity-chart-screen">
+      {(code) => <DisparityChartContent code={code} />}
+    </ChartTabScreen>
   );
 }
 
 function DisparityChartContent({ code }: { code: CommodityCode }) {
-  // 진입 측정은 첫 렌더에 시작한다(effect는 자식 조회 뒤라 늦다)
-  useState(() => perfStart(`C-a ${code}`));
+  useChartTabPerf(`C-a ${code}`);
   const { settings, chart } = useDisparityChart(code);
   useAutoRefresh(chart);
 
@@ -61,7 +52,7 @@ function DisparityChartContent({ code }: { code: CommodityCode }) {
     return <ErrorView error={settings.error} onRetry={() => void settings.refetch()} />;
   }
   return (
-    <QueryStateView query={chart} skeleton={<ChartSkeleton footer="periods" />}>
+    <ChartTabQuery query={chart} footer="periods">
       {(data) => (
         <DisparityChartView
           code={code}
@@ -70,7 +61,7 @@ function DisparityChartContent({ code }: { code: CommodityCode }) {
           older={chart}
         />
       )}
-    </QueryStateView>
+    </ChartTabQuery>
   );
 }
 
@@ -107,7 +98,7 @@ function DisparityChartView({
   if (model.bars.length === 0) {
     return (
       <>
-        <Text style={styles.message}>{t('disparity.noData')}</Text>
+        <ChartTabMessage>{t('disparity.noData')}</ChartTabMessage>
       </>
     );
   }
@@ -327,16 +318,6 @@ function CrosshairDetail({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  message: {
-    color: colors.text,
-    fontSize: fontSize.body,
-    textAlign: 'center',
-    padding: spacing.lg,
-  },
   line: {
     color: colors.text,
     fontSize: fontSize.caption,

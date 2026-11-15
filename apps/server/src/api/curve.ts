@@ -3,19 +3,16 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { buildCurve, CURVE_VOLUME_DAYS, resolveBaseDate } from '../calc/curve.ts';
 import type { CurveBar, CurveListing } from '../calc/curve.ts';
-import { marketStatus } from '../calc/marketState.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
-import type { DisparityStore } from './disparity.ts';
 import { ApiException } from './errors.ts';
-import { commodityCodeParam } from './params.ts';
+import { freshness, loadChartMarket } from './market.ts';
+import type { ChartMarketStore } from './market.ts';
+import { commodityCodeParam, parseInput } from './params.ts';
 import { ok } from './response.ts';
 
-export type CurveStore = Pick<
-  CommoditiesStore,
-  'tradingDays' | 'lastSettledTradeDate' | 'latestSnapshots'
-> &
-  Pick<DisparityStore, 'priceDecimals'> & {
+export type CurveStore = ChartMarketStore &
+  Pick<CommoditiesStore, 'latestSnapshots'> & {
     // 그 원자재의 가장 이른 일봉 날짜(기준일 하한, D-020). 적재 전이면 null
     firstBarDate: (code: CommodityCode) => Promise<string | null>;
     // 거래일 날짜만(과거 행 포함), 오름차순
@@ -29,9 +26,6 @@ export type CurveStore = Pick<
 
 const querySchema = z.object({ baseDate: z.iso.date().optional() });
 
-// 직전 거래일(휴장 연휴)과 다음 개장(nextUpdateAt)을 찾을 만큼 읽는다(commodities.ts와 같다)
-const LOOKBACK_DAYS = 30;
-const LOOKAHEAD_DAYS = 10;
 // 거래량 창 20거래일과 휴장일로 옮길 직전 거래일을 덮는 달력 일수
 const VOLUME_LOOKBACK_DAYS = 45;
 
@@ -43,17 +37,13 @@ export async function loadCurve(
   requestedBaseDate: string | null,
   now: Date,
 ): Promise<Curve> {
-  const today = now.toISOString().slice(0, 10);
-  const [days, lastSettled, priceDecimals, firstBarDate] = await Promise.all([
-    store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, LOOKAHEAD_DAYS)),
-    store.lastSettledTradeDate(),
-    store.priceDecimals(code),
-    store.firstBarDate(code),
-  ]);
-  if (priceDecimals === null) throw new ApiException('INTERNAL', `Commodity ${code} is missing`);
-  const status = marketStatus(now, days, lastSettled);
-  const currentDate = status.tradeDate;
-  if (currentDate === null) throw new ApiException('INTERNAL', 'Trading calendar is missing');
+  const {
+    lastSettled,
+    status,
+    tradeDate: currentDate,
+    priceDecimals,
+    extra: firstBarDate,
+  } = await loadChartMarket(store, code, now, store.firstBarDate(code));
   if (firstBarDate === null) throw new ApiException('NOT_FOUND', `No daily bars for ${code}`);
 
   const from =
@@ -96,14 +86,14 @@ export async function loadCurve(
   });
 
   return {
-    freshness: {
-      // 값이 하나도 없거나 비교일이 지난 거래일(확정 정산가)이면 조회 시각
-      asOf: ((compareDate === currentDate ? curve.asOf : null) ?? now).toISOString(),
-      tradeDate: currentDate,
-      delayed: curve.delayed,
-      marketState: status.state,
-      nextUpdateAt: status.nextUpdateAt?.toISOString() ?? null,
-    },
+    // 값이 하나도 없거나 비교일이 지난 거래일(확정 정산가)이면 조회 시각
+    freshness: freshness(
+      status,
+      currentDate,
+      compareDate === currentDate ? curve.asOf : null,
+      curve.delayed,
+      now,
+    ),
     priceDecimals,
     ...range,
     compareDate,
@@ -134,9 +124,8 @@ export function curveRoutes(store: CurveStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/curve', async (c) => {
     const code = commodityCodeParam(c.req.param('code'));
-    const query = querySchema.safeParse(c.req.query());
-    if (!query.success) throw new ApiException('VALIDATION_FAILED', z.prettifyError(query.error));
-    return ok(c, await loadCurve(store, code, query.data.baseDate ?? null, now()));
+    const query = parseInput(querySchema, c.req.query());
+    return ok(c, await loadCurve(store, code, query.baseDate ?? null, now()));
   });
   return routes;
 }
