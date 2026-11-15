@@ -9,6 +9,9 @@ export type AuthFailureLimit = {
 
 // 인증 실패 횟수 제한(D-036, D-059). IP별로 첫 실패부터 windowMs 안의 실패를 세고,
 // maxFailures에 닿으면 그 창이 끝날 때까지 그 IP의 모든 요청을 막는다. 서버는 프로세스 하나라 메모리에 둔다.
+// 이 수를 넘으면 기록할 때 창이 끝난 항목을 지운다
+export const SWEEP_AT = 1000;
+
 export function createAuthFailureLimiter(limit: AuthFailureLimit, now: () => number = Date.now) {
   const failures = new Map<string, { count: number; resetAt: number }>();
 
@@ -22,10 +25,16 @@ export function createAuthFailureLimiter(limit: AuthFailureLimit, now: () => num
   };
 
   return {
+    size: () => failures.size,
     isBlocked(ip: string): boolean {
       return (current(ip)?.count ?? 0) >= limit.maxFailures;
     },
     recordFailure(ip: string): void {
+      // 같은 IP가 다시 오지 않으면 지나간 항목이 남으므로 커지면 한꺼번에 지운다
+      if (failures.size >= SWEEP_AT) {
+        const t = now();
+        for (const [key, entry] of failures) if (entry.resetAt <= t) failures.delete(key);
+      }
       const entry = current(ip);
       if (entry) entry.count += 1;
       else failures.set(ip, { count: 1, resetAt: now() + limit.windowMs });
