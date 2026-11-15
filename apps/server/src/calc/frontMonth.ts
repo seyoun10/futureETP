@@ -1,6 +1,6 @@
 // 대표월물 선택과 전환(product.md 계산 정의 > 기준값 > 대표월물, D-004, D-064).
 
-import { byExpiry, type ListedContract } from './monthList.ts';
+import { byExpiry, liveTargets, type ListedContract } from './monthList.ts';
 
 // 월물별 그 거래일 거래량(daily_bar.volume). 없는 월물은 0으로 본다.
 export type DayVolumes = ReadonlyMap<string, number>;
@@ -29,9 +29,7 @@ export function initialFrontSymbol(
   tradeDate: string,
   volumes: DayVolumes,
 ): string | null {
-  const candidates = contracts
-    .filter((c) => c.isTarget && c.lastTradeDate >= tradeDate)
-    .sort(byExpiry);
+  const candidates = liveTargets(contracts, tradeDate);
   return mostTraded(candidates, volumes)?.symbol ?? null;
 }
 

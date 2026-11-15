@@ -56,7 +56,7 @@ export function chainIndex(
   return (anchorClose * held) / anchorBlend;
 }
 
-const positiveOrNull = (v: number) => (v > 0 ? v : null);
+export const positiveOrNull = (v: number) => (v > 0 ? v : null);
 
 // 거래일(오름차순)마다 원래 지수 봉을 만든다. 첫 유효일의 종가 지수는 그날 혼합 가격이다.
 // 지수(분자)나 혼합 가격이 0 이하인 날은 산출 불가로 두고, 다음 유효일은 직전 유효일에 이어 붙인다.

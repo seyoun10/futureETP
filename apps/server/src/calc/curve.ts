@@ -2,7 +2,7 @@
 // (product.md 계산 정의 > 커브, D-018, D-026, D-068).
 
 import type { CurveState } from '@futureetp/shared';
-import { byExpiry, type ListedContract } from './monthList.ts';
+import { byExpiry, liveTargets, type ListedContract } from './monthList.ts';
 import { DAY_MS } from './tradingCalendar.ts';
 
 // 커브에 넣는 월물의 직전 거래일 평균 거래량 하한(계약)
@@ -68,9 +68,7 @@ export function selectCurve<T extends CurveCandidate>(
   frontSymbol: string | null,
 ): Curve<T> {
   const hasPrice = (c: T): c is CurvePoint<T> => c.price !== null;
-  const sorted = candidates
-    .filter((c) => c.isTarget && c.lastTradeDate >= curveDate)
-    .sort(byExpiry);
+  const sorted = liveTargets(candidates, curveDate);
   const frontIndex = sorted.findIndex((c) => c.symbol === frontSymbol);
   const m1Index = frontIndex >= 0 && hasPrice(sorted[frontIndex]) ? frontIndex : -1;
 

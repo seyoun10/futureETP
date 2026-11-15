@@ -3,8 +3,8 @@
 import { MA_PERIODS, type MaPeriod } from '@futureetp/shared';
 import { CURVE_MAX_CONTRACTS } from './curve.ts';
 import { liveDisparity } from './disparity.ts';
-import { chainIndex, type HeldWeights } from './indexChain.ts';
-import { byExpiry, type ListedContract } from './monthList.ts';
+import { chainIndex, positiveOrNull, type HeldWeights } from './indexChain.ts';
+import { liveTargets, type ListedContract } from './monthList.ts';
 
 // 이평선 4종 현재가·고가·저가 이격도(index_snapshot.disparity_by_ma)
 export type DisparityByMa = Record<
@@ -50,10 +50,7 @@ export function intradayCurveContracts<T extends ListedContract>(
   contracts: readonly T[],
   tradeDate: string,
 ): T[] {
-  return contracts
-    .filter((c) => c.isTarget && c.lastTradeDate >= tradeDate)
-    .sort(byExpiry)
-    .slice(0, CURVE_MAX_CONTRACTS);
+  return liveTargets(contracts, tradeDate).slice(0, CURVE_MAX_CONTRACTS);
 }
 
 // 저장된 index_bar(오름차순)에서 이어 붙일 직전 유효일. 유효일이 없으면 null
@@ -69,8 +66,6 @@ export function indexAnchor(rows: readonly IndexHistoryRow[]): IndexAnchor | nul
     prevCloses: valid.map((r) => r.close),
   };
 }
-
-const positiveOrNull = (v: number) => (v > 0 ? v : null);
 
 // 잠정 지수 봉과 이평선 4종 이격도. 보유 월물의 장중 값이 하나라도 없으면 던진다.
 // 세션 값이 없는 월물은 현재가로 대신한다(index_bar가 거래 없는 월물에 정산가를 쓰는 것과 같다)

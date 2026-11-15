@@ -39,6 +39,14 @@ export const byExpiry = (
 ) =>
   a.lastTradeDate.localeCompare(b.lastTradeDate) || a.contractMonth.localeCompare(b.contractMonth);
 
+// date에 아직 만기되지 않은 대상 월물(만기순). 목록·대표월물·커브·장중이 같은 후보를 쓴다
+export const liveTargets = <
+  T extends Pick<ListedContract, 'isTarget' | 'lastTradeDate' | 'contractMonth'>,
+>(
+  contracts: readonly T[],
+  date: string,
+): T[] => contracts.filter((c) => c.isTarget && c.lastTradeDate >= date).sort(byExpiry);
+
 // tradeDate(표시 데이터가 속한 거래일, marketStatus.tradeDate)에 아직 만기되지 않은 대상 월물을
 // 만기순으로 5개 고른다. 최종 거래일 당일까지 남고 다음 거래일에 빠진다.
 // 대표월물이 그 안에 없으면 6번째로 덧붙인다(안전장치).
@@ -47,10 +55,7 @@ export function selectMonthList<T extends ListedContract>(
   tradeDate: string,
   frontSymbol: string | null,
 ): T[] {
-  const list = contracts
-    .filter((c) => c.isTarget && c.lastTradeDate >= tradeDate)
-    .sort(byExpiry)
-    .slice(0, MONTH_LIST_SIZE);
+  const list = liveTargets(contracts, tradeDate).slice(0, MONTH_LIST_SIZE);
   if (frontSymbol !== null && !list.some((c) => c.symbol === frontSymbol)) {
     const front = contracts.find((c) => c.symbol === frontSymbol);
     if (front) list.push(front);
