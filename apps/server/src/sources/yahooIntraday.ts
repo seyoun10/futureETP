@@ -4,6 +4,7 @@
 import { z } from 'zod';
 import { parseContractSymbol } from '../calc/contractSymbol.ts';
 import type { IntradayQuote, IntradaySource } from './intraday.ts';
+import { fetchJsonOrNull } from './http.ts';
 
 const BASE_URL = 'https://query1.finance.yahoo.com';
 // spark 한 번에 받을 수 있는 심볼 수(넘으면 400)
@@ -77,13 +78,11 @@ export function createYahooIntradaySource({
     const wait = lastCallAt + MIN_CALL_INTERVAL_MS - now();
     if (wait > 0) await sleep(wait);
     lastCallAt = now();
-    const response = await fetchFn(`${BASE_URL}${path}?${params}`, {
+    return fetchJsonOrNull(fetchFn, `${BASE_URL}${path}?${params}`, {
+      label: `Yahoo ${path}`,
+      timeoutMs: REQUEST_TIMEOUT_MS,
       headers: { 'user-agent': USER_AGENT },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (response.status === 404) return null;
-    if (!response.ok) throw new Error(`Yahoo ${path}: HTTP ${response.status}`);
-    return response.json();
   }
 
   async function sessionQuote(symbol: string, sessionOpenAt: Date): Promise<IntradayQuote | null> {

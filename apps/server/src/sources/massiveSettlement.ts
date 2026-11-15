@@ -10,6 +10,7 @@ import type {
   SettlementSource,
   SourceBar,
 } from './settlement.ts';
+import { readJson, request } from './http.ts';
 
 const BASE_URL = 'https://api.massive.com';
 export const MIN_CALL_INTERVAL_MS = 13_000;
@@ -106,19 +107,16 @@ export function createMassiveSettlementSource({
       const wait = lastCallAt + MIN_CALL_INTERVAL_MS - now();
       if (wait > 0) await sleep(wait);
       lastCallAt = now();
-      const response = await fetchFn(url, {
+      const response = await request(fetchFn, url, {
+        timeoutMs: REQUEST_TIMEOUT_MS,
         headers: { authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
       if (response.status === 429 && attempt < MAX_ATTEMPTS) {
         await sleep(RATE_LIMIT_WAIT_MS);
         continue;
       }
       const path = url.slice(BASE_URL.length).split('?')[0];
-      if (!response.ok) {
-        throw new Error(`Massive ${path}: HTTP ${response.status} ${await response.text()}`);
-      }
-      return response.json();
+      return readJson(response, { label: `Massive ${path}`, withBody: true });
     }
   }
 

@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { dateInZone } from '../calc/tradingCalendar.ts';
 import { USER_AGENT } from './yahooIntraday.ts';
+import { fetchJson } from './http.ts';
 
 const BASE_URL = 'https://query1.finance.yahoo.com/v8/finance/chart';
 export const REQUEST_TIMEOUT_MS = 15_000;
@@ -53,12 +54,12 @@ export function createYahooEtpSource({
   return {
     async daily(symbol) {
       const params = new URLSearchParams({ range: RANGE, interval: '1d' });
-      const response = await fetchFn(`${BASE_URL}/${encodeURIComponent(symbol)}?${params}`, {
+      const body = await fetchJson(fetchFn, `${BASE_URL}/${encodeURIComponent(symbol)}?${params}`, {
+        label: `Yahoo ${symbol}`,
+        timeoutMs: REQUEST_TIMEOUT_MS,
         headers: { 'user-agent': USER_AGENT },
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      if (!response.ok) throw new Error(`Yahoo ${symbol}: HTTP ${response.status}`);
-      const [result] = chartSchema.parse(await response.json()).chart.result;
+      const [result] = chartSchema.parse(body).chart.result;
       const { meta, timestamp } = result;
       const [{ close, volume }] = result.indicators.quote;
       const tradingValues = timestamp.flatMap((_, i) => {

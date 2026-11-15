@@ -4,6 +4,7 @@ import type { EtpType } from '@futureetp/shared';
 import { z } from 'zod';
 import type { KrxEtpListing } from '../calc/etpSeries.ts';
 import { parseKrxEtpName } from './krxEtpName.ts';
+import { fetchJson } from './http.ts';
 
 const BASE_URL = 'https://data-dbg.krx.co.kr/svc/apis/etp';
 export const REQUEST_TIMEOUT_MS = 30_000;
@@ -94,12 +95,12 @@ export function createKrxEtpSource({
 }): KrxEtpSource {
   async function get(api: string, basDd: string): Promise<KrxEtpRow[]> {
     if (!apiKey) throw new Error('KRX_API_KEY is not set');
-    const response = await fetchFn(`${BASE_URL}/${api}?basDd=${basDd}`, {
+    const body = await fetchJson(fetchFn, `${BASE_URL}/${api}?basDd=${basDd}`, {
+      label: `KRX ${api}`,
+      timeoutMs: REQUEST_TIMEOUT_MS,
       headers: { AUTH_KEY: apiKey },
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
-    if (!response.ok) throw new Error(`KRX ${api}: HTTP ${response.status}`);
-    return responseSchema.parse(await response.json()).OutBlock_1;
+    return responseSchema.parse(body).OutBlock_1;
   }
 
   return {

@@ -2,6 +2,7 @@
 // `etfKeyIndicator.totalFee`(%)를 쓴다(research/etp-sources.md). ETN은 이 값이 없다.
 // 비공식이라 실패해도 ETP 작업은 계속하고 저장된 값을 둔다(jobs/etp.ts).
 import { z } from 'zod';
+import { fetchJson } from './http.ts';
 
 const BASE_URL = 'https://m.stock.naver.com/api/stock';
 export const REQUEST_TIMEOUT_MS = 15_000;
@@ -20,11 +21,15 @@ export function createNaverEtfSource({
 }: { fetchFn?: typeof fetch } = {}): NaverEtfSource {
   return {
     async expenseRatio(ticker) {
-      const response = await fetchFn(`${BASE_URL}/${encodeURIComponent(ticker)}/integration`, {
-        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      });
-      if (!response.ok) throw new Error(`Naver ${ticker}: HTTP ${response.status}`);
-      return responseSchema.parse(await response.json()).etfKeyIndicator?.totalFee ?? null;
+      const body = await fetchJson(
+        fetchFn,
+        `${BASE_URL}/${encodeURIComponent(ticker)}/integration`,
+        {
+          label: `Naver ${ticker}`,
+          timeoutMs: REQUEST_TIMEOUT_MS,
+        },
+      );
+      return responseSchema.parse(body).etfKeyIndicator?.totalFee ?? null;
     },
   };
 }
