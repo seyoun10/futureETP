@@ -5,7 +5,7 @@
 // 셀 상품이 없으면(순자산을 아직 못 받음 등) 직전 기록을 둔다.
 import { majorityChangedPush, type CommodityCode, type MajorityChange } from '@futureetp/shared';
 import { krRuleId, majorityRules, type MajorityProduct } from '../calc/majorityRule.ts';
-import { broadcast, delivered, type PushDeviceStore } from '../push/broadcast.ts';
+import { broadcastOps, type PushDeviceStore } from '../push/broadcast.ts';
 import type { PushSender } from '../push/sender.ts';
 
 export type MajorityEtp = Omit<MajorityProduct, 'ruleId'> & {
@@ -83,34 +83,34 @@ export function createMajorityAlert(deps: {
       return 'NONE';
     }
 
-    const result = await broadcast({ store: deps.devices, sender: deps.sender }, (device) => ({
-      text: majorityChangedPush(device.locale, changes),
-      channel: 'ops',
-      data: { type: 'MAJORITY_CHANGED' },
-    }));
     // 로그는 영문 문구로 남긴다
     const text = majorityChangedPush('en', changes);
-    if (!delivered(result)) {
-      await deps.store.setMajority(updates, now);
-      log(
-        `[etp majority] ${text.body} not delivered to ${result.devices} device(s): ` +
-          result.failures.join('; '),
-      );
-      return 'UNDELIVERED';
-    }
-    await deps.store.setMajority(
-      [
-        ...updates,
-        ...changes.map((change) => ({
-          commodityCode: change.commodity,
-          basis: change.basis,
-          majorityRuleId: change.majorityRuleId,
-        })),
-      ],
-      now,
+    return broadcastOps(
+      { store: deps.devices, sender: deps.sender },
+      (device) => ({
+        text: majorityChangedPush(device.locale, changes),
+        data: { type: 'MAJORITY_CHANGED' },
+      }),
+      {
+        label: `[etp majority] ${text.body}`,
+        log,
+        onUndelivered: () => deps.store.setMajority(updates, now),
+        onDelivered: async () => {
+          await deps.store.setMajority(
+            [
+              ...updates,
+              ...changes.map((change) => ({
+                commodityCode: change.commodity,
+                basis: change.basis,
+                majorityRuleId: change.majorityRuleId,
+              })),
+            ],
+            now,
+          );
+          log(`[etp majority] notified ${text.body}`);
+        },
+      },
     );
-    log(`[etp majority] notified ${text.body}`);
-    return 'SENT';
   };
 }
 

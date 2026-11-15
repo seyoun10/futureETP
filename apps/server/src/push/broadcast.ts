@@ -55,3 +55,31 @@ export async function broadcast(
   }
   return result;
 }
+
+export type OpsBroadcastOptions = {
+  // 미전달 로그 앞부분(예: '[etp candidates] AAA, BBB')
+  label: string;
+  log: (message: string) => void;
+  // 한 기기라도 전달했을 때(알림 표시 기록 등)
+  onDelivered: () => Promise<void>;
+  // 한 기기에도 전달하지 못했을 때. 표시하지 않아 다음에 다시 보낸다
+  onUndelivered?: () => Promise<void>;
+};
+
+// 운영 알림(ops 채널, D-045)을 모든 기기로 보낸다. 미전달이면 로그를 남기고 UNDELIVERED다.
+export async function broadcastOps(
+  deps: PushDeps,
+  message: (device: PushDevice) => Omit<PushMessage, 'channel'>,
+  options: OpsBroadcastOptions,
+): Promise<'SENT' | 'UNDELIVERED'> {
+  const result = await broadcast(deps, (device) => ({ ...message(device), channel: 'ops' }));
+  if (!delivered(result)) {
+    await options.onUndelivered?.();
+    options.log(
+      `${options.label} not delivered to ${result.devices} device(s): ${result.failures.join('; ')}`,
+    );
+    return 'UNDELIVERED';
+  }
+  await options.onDelivered();
+  return 'SENT';
+}
