@@ -56,6 +56,14 @@ describe('planSettle', () => {
     ]);
   });
 
+  it(`밀린 거래일이 꼭 ${MAX_CATCH_UP_DAYS}일이면 모두 받는다`, () => {
+    const upTo = days.map((d) => d.tradeDate).filter((d) => d <= '2026-10-27');
+    const lastSettled = upTo[upTo.length - 1 - MAX_CATCH_UP_DAYS]!;
+    expect(planSettle(ct('2026-10-27', '18:30'), days, lastSettled).dates).toHaveLength(
+      MAX_CATCH_UP_DAYS,
+    );
+  });
+
   it(`밀린 거래일이 ${MAX_CATCH_UP_DAYS}일을 넘으면 실패한다`, () => {
     expect(() => planSettle(ct('2026-10-27', '18:30'), days, '2026-10-16')).toThrow(/exceed/);
   });
@@ -64,6 +72,15 @@ describe('planSettle', () => {
     expect(() => planSettle(ct('2026-10-27', '18:30'), days.slice(200), '2026-01-05')).toThrow(
       /not loaded/,
     );
+  });
+
+  it('마지막 정산일이 넘겨받은 달력의 첫날이면 그 뒤부터 받는다', () => {
+    const from = days.findIndex((d) => d.tradeDate === '2026-10-22');
+    expect(planSettle(ct('2026-10-27', '18:30'), days.slice(from), '2026-10-22').dates).toEqual([
+      '2026-10-23',
+      '2026-10-26',
+      '2026-10-27',
+    ]);
   });
 
   it('끝난 세션이 없으면 실패한다', () => {
@@ -117,6 +134,13 @@ describe('findRevisedBars', () => {
     const stored = { ...bar('CLZ26', 75), open: null, volume: 0 };
     expect(findRevisedBars([stored], [bar('CLZ26', 75)])).toEqual([
       { before: stored, after: bar('CLZ26', 75) },
+    ]);
+  });
+
+  it.each(['open', 'high', 'low'] as const)('%s만 바뀌어도 정정이다', (field) => {
+    const fetched = { ...bar('CLZ26', 75), [field]: 9 };
+    expect(findRevisedBars([bar('CLZ26', 75)], [fetched])).toEqual([
+      { before: bar('CLZ26', 75), after: fetched },
     ]);
   });
 

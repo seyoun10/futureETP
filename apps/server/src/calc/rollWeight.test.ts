@@ -439,16 +439,24 @@ describe('rollRuleParamsSchema', () => {
   });
 
   it('rollDays와 oldShares 길이가 다르면 거부한다', () => {
-    const bad = { ...GSCI_GC, rollDays: [5, 6], oldShares: [0.8] };
+    // 길이 말고는 다른 조건을 모두 지키는 값이다
+    const bad = { ...GSCI_GC, rollDays: [5, 6], oldShares: [0] };
     expect(rollRuleParamsSchema.safeParse(bad).success).toBe(false);
   });
 
   it.each([
     ['이전 월물 비중이 늘어나면', { rollDays: [5, 6, 7], oldShares: [0.5, 0.7, 0] }],
+    ['롤 영업일이 같으면', { rollDays: [5, 5, 7], oldShares: [0.5, 0.2, 0] }],
+    ['롤 영업일이 줄어들면', { rollDays: [5, 7, 6], oldShares: [0.5, 0.2, 0] }],
     ['마지막 비중이 0이 아니면', { rollDays: [5, 6], oldShares: [0.5, 0.2] }],
     ['재조정일이 첫 롤 영업일보다 앞이 아니면', { rebalance: { months: [3], businessDay: 5 } }],
   ])('%s 거부한다', (_, over) => {
     expect(rollRuleParamsSchema.safeParse({ ...GSCI_GC, ...over }).success).toBe(false);
+  });
+
+  it('이전 월물 비중이 며칠 그대로인 것은 허용한다', () => {
+    const flat = { ...GSCI_GC, rollDays: [5, 6, 7], oldShares: [0.5, 0.5, 0] };
+    expect(rollRuleParamsSchema.safeParse(flat).success).toBe(true);
   });
 });
 

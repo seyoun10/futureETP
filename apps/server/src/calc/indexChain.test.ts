@@ -206,6 +206,18 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
     expect(rows[2]!.close).toBeCloseTo(8, 10);
   });
 
+  it('N이나 B(t)가 정확히 0이어도 무효다', () => {
+    const rows = buildIndexBars([
+      day('2026-01-05', { A: bar(20), B: bar(10) }, { A: 1 }),
+      // N = 전일 비중 A·0 = 0, B(t) = B·10
+      day('2026-01-06', { A: bar(0), B: bar(10) }, { B: 1 }),
+      day('2026-01-07', { A: bar(5), B: bar(10) }, { A: 1 }),
+      // N = 전일 비중 A·6 > 0, B(t) = B·0
+      day('2026-01-08', { A: bar(6), B: bar(0) }, { B: 1 }),
+    ]);
+    expect(rows.map((r) => r.isValid)).toEqual([true, false, true, false]);
+  });
+
   it('첫날 B ≤ 0이면 무효, B > 0인 다음 날이 시작(close = B)', () => {
     const rows = buildIndexBars([
       day('2026-01-05', { A: bar(-5) }, { A: 1 }),

@@ -76,6 +76,38 @@ describe('buildContractLines', () => {
     expect(result.asOf).toEqual(at('2026-10-22T13:00:00Z'));
   });
 
+  it('그날 일봉이 없어도 스냅숏이 있으면 그날을 날짜에 넣는다', () => {
+    const result = buildContractLines({
+      contracts: CONTRACTS.slice(0, 1),
+      tradeDate: '2026-10-22',
+      bars: [bar('CLZ26', '2026-10-21', 71)],
+      snapshots: [{ contractSymbol: 'CLZ26', capturedAt: at('2026-10-22T20:00:00Z'), last: 72 }],
+    });
+    expect(result.dates).toEqual(['2026-10-21', '2026-10-22']);
+    expect(result.lines[0]!.prices).toEqual([71, 72]);
+    expect(result.provisional).toBe(true);
+  });
+
+  it('목록 밖 월물이나 이미 정산된 월물의 스냅숏은 날짜·잠정 여부에 넣지 않는다', () => {
+    const result = buildContractLines({
+      contracts: CONTRACTS.slice(0, 1),
+      tradeDate: '2026-10-22',
+      bars: [bar('CLZ26', '2026-10-21', 71)],
+      snapshots: [{ contractSymbol: 'CLF27', capturedAt: at('2026-10-22T20:00:00Z'), last: 74 }],
+    });
+    expect(result.dates).toEqual(['2026-10-21']);
+    expect(result.provisional).toBe(false);
+
+    const settled = buildContractLines({
+      contracts: CONTRACTS.slice(0, 1),
+      tradeDate: '2026-10-22',
+      bars: [bar('CLZ26', '2026-10-22', 73)],
+      snapshots: [{ contractSymbol: 'CLZ26', capturedAt: at('2026-10-22T20:00:00Z'), last: 99 }],
+    });
+    expect(settled.lines[0]!.prices).toEqual([73]);
+    expect(settled.provisional).toBe(false);
+  });
+
   it('값이 하나도 없으면 날짜가 비고 asOf는 null이다', () => {
     const result = buildContractLines({
       contracts: CONTRACTS,
