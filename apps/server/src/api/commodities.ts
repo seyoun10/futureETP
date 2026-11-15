@@ -1,14 +1,12 @@
 import type { Commodities, CommodityCode } from '@futureetp/shared';
 import { Hono } from 'hono';
-import { marketStatus } from '../calc/marketState.ts';
 import type { TradingDaySession } from '../calc/marketState.ts';
 import { selectMonthList } from '../calc/monthList.ts';
 import type { ListedContract } from '../calc/monthList.ts';
 import { buildQuotes } from '../calc/quotes.ts';
 import type { QuoteBar, QuoteSnapshot } from '../calc/quotes.ts';
-import { addDays } from '../calc/tradingCalendar.ts';
 import { requireDeviceId } from './deviceId.ts';
-import { ApiException } from './errors.ts';
+import { freshness, loadMarket } from './market.ts';
 import { ok } from './response.ts';
 import type { SettingsStore } from './settings.ts';
 
@@ -32,10 +30,6 @@ export type CommoditiesStore = {
   latestSnapshots: (symbols: string[], tradeDate: string) => Promise<QuoteSnapshot[]>;
 };
 
-// 직전 거래일(휴장 연휴)과 다음 개장(nextUpdateAt)을 찾을 만큼 읽는다
-const LOOKBACK_DAYS = 30;
-const LOOKAHEAD_DAYS = 10;
-
 // GET /v1/commodities(A, D-085). 장 상태의 거래일 기준으로 원자재마다 월물 목록과 표시 값을 고른다.
 export async function loadCommodities(
   store: CommoditiesStore,
@@ -43,16 +37,12 @@ export async function loadCommodities(
   deviceId: string,
   now: Date,
 ): Promise<Commodities> {
-  const today = now.toISOString().slice(0, 10);
-  const [days, lastSettled, commodities, { alertCommodity }] = await Promise.all([
-    store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, LOOKAHEAD_DAYS)),
-    store.lastSettledTradeDate(),
-    store.commodities(),
-    settings.get(deviceId),
-  ]);
-  const status = marketStatus(now, days, lastSettled);
-  const tradeDate = status.tradeDate;
-  if (tradeDate === null) throw new ApiException('INTERNAL', 'Trading calendar is missing');
+  const {
+    days,
+    status,
+    tradeDate,
+    extra: [commodities, { alertCommodity }],
+  } = await loadMarket(store, now, Promise.all([store.commodities(), settings.get(deviceId)]));
   const prevTradeDate = days.findLast((d) => d.tradeDate < tradeDate)?.tradeDate ?? null;
 
   const [contracts, fronts] = await Promise.all([
@@ -89,14 +79,8 @@ export async function loadCommodities(
   });
 
   return {
-    freshness: {
-      // 값이 하나도 없으면(적재 전) 조회 시각
-      asOf: (asOf ?? now).toISOString(),
-      tradeDate,
-      delayed,
-      marketState: status.state,
-      nextUpdateAt: status.nextUpdateAt?.toISOString() ?? null,
-    },
+    // 값이 하나도 없으면(적재 전) 조회 시각
+    freshness: freshness(status, tradeDate, asOf, delayed, now),
     commodities: summaries,
   };
 }
