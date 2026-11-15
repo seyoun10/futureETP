@@ -5,7 +5,30 @@ import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
 import { MONTH_CODES, toContractSymbol } from '../calc/contractSymbol.ts';
 import { CME_TIME_ZONE, addDays } from '../calc/tradingCalendar.ts';
 
-export type CsvRow = Readonly<Record<string, string>>;
+// CSV 파일 종류별로 읽는 열. 적재할 때 헤더에 모두 있는지 먼저 확인한다(databentoImport.ts)
+export const DEFINITION_COLUMNS = [
+  'instrument_id',
+  'raw_symbol',
+  'instrument_class',
+  'security_type',
+  'asset',
+  'maturity_year',
+  'maturity_month',
+  'activation',
+  'expiration',
+] as const;
+export const STATISTICS_COLUMNS = [
+  'ts_recv',
+  'ts_event',
+  'ts_ref',
+  'instrument_id',
+  'stat_type',
+  'price',
+  'quantity',
+] as const;
+export type CsvRow<K extends string> = Readonly<Record<K, string>>;
+export type DefinitionRow = CsvRow<(typeof DEFINITION_COLUMNS)[number]>;
+export type StatisticsRow = CsvRow<(typeof STATISTICS_COLUMNS)[number]>;
 
 // statistics stat_type
 const OPENING_PRICE = '1';
@@ -71,7 +94,7 @@ export type ContractInfo = {
 const OUTRIGHT_SUFFIX = new RegExp(`^[${MONTH_CODES.join('')}]\\d{1,2}$`);
 
 // definition 행 → 단일 월물 계약. 연도 1자리 심볼 대신 만기 연·월로 표준 심볼을 만든다(D-049)
-export function parseDefinition(row: CsvRow): ContractInfo | null {
+export function parseDefinition(row: DefinitionRow): ContractInfo | null {
   if (row.instrument_class !== 'F' || row.security_type !== 'FUT') return null;
   const code = COMMODITY_CODES.find((c) => c === row.asset);
   if (!code || !OUTRIGHT_SUFFIX.test(row.raw_symbol.slice(code.length))) return null;
@@ -92,7 +115,7 @@ function ceil(sorted: readonly string[], date: string): string | undefined {
   let hi = sorted.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (sorted[mid] < date) lo = mid + 1;
+    if (sorted[mid]! < date) lo = mid + 1;
     else hi = mid;
   }
   return sorted[lo];
@@ -103,7 +126,7 @@ function floor(sorted: readonly string[], date: string): string | undefined {
   let hi = sorted.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    if (sorted[mid] <= date) lo = mid + 1;
+    if (sorted[mid]! <= date) lo = mid + 1;
     else hi = mid;
   }
   return lo > 0 ? sorted[lo - 1] : undefined;
@@ -137,7 +160,7 @@ export function createBarBuilder() {
   const sessions = new Map<string, Session>();
   let tradeDates: string[] | null = null;
 
-  function addSettlement(row: CsvRow): void {
+  function addSettlement(row: StatisticsRow): void {
     if (row.ts_ref === '') return;
     const tradeDate = row.ts_ref.slice(0, 10);
     // 주말 ts_ref는 월물 1개짜리 잘못 붙은 재전송이다(2011-08-07 GCZ1, 2014-02-23 CLJ4)
@@ -196,7 +219,7 @@ export function createBarBuilder() {
     return tradeDates;
   }
 
-  function addSessionStat(row: CsvRow): void {
+  function addSessionStat(row: StatisticsRow): void {
     const dates = getTradeDates();
     if (row.stat_type === CLEARED_VOLUME) {
       if (row.ts_ref !== '') return;

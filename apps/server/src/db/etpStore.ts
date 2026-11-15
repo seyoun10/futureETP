@@ -9,6 +9,7 @@ import type { KrxEtpEntry } from '../sources/krxEtp.ts';
 import { US_ISSUER_URLS } from '../sources/usEtpMap.ts';
 import type { db as Db } from './client.ts';
 import { etpProduct, etpSeries, rollRule } from './schema.ts';
+import { oneRow } from './oneRow.ts';
 
 type SeriesState = KnownEtpProduct['series'][number];
 
@@ -52,23 +53,25 @@ export function createEtpStore(
         for (const { groupingKey, listings } of plan.newProducts) {
           // 묶인 ETN은 첫 시리즈 이름을 상품 이름으로 쓴다
           const [first] = listings;
-          const [{ id }] = await tx
-            .insert(etpProduct)
-            .values({
-              commodityCode: first.commodityCode,
-              market: 'KRX',
-              type: first.type,
-              leverage: first.leverage,
-              fxHedge: first.fxHedge,
-              name: first.name,
-              nameLang: 'ko',
-              issuer: first.issuer,
-              underlyingIndex: first.underlyingIndex,
-              groupingKey,
-              source: 'KRX',
-              collectedAt,
-            })
-            .returning({ id: etpProduct.id });
+          const { id } = oneRow(
+            await tx
+              .insert(etpProduct)
+              .values({
+                commodityCode: first.commodityCode,
+                market: 'KRX',
+                type: first.type,
+                leverage: first.leverage,
+                fxHedge: first.fxHedge,
+                name: first.name,
+                nameLang: 'ko',
+                issuer: first.issuer,
+                underlyingIndex: first.underlyingIndex,
+                groupingKey,
+                source: 'KRX',
+                collectedAt,
+              })
+              .returning({ id: etpProduct.id }),
+          );
           await tx.insert(etpSeries).values(listings.map((entry) => seriesRow(id, entry)));
         }
         if (plan.addSeries.length > 0) {
@@ -157,10 +160,18 @@ export function createEtpStore(
             ...productAttributes,
           };
           if (productId === null) {
-            const [{ id }] = await tx
-              .insert(etpProduct)
-              .values({ ...values, market: 'US', fxHedge: 'NA', nameLang: 'en', source: 'NASDAQ' })
-              .returning({ id: etpProduct.id });
+            const { id } = oneRow(
+              await tx
+                .insert(etpProduct)
+                .values({
+                  ...values,
+                  market: 'US',
+                  fxHedge: 'NA',
+                  nameLang: 'en',
+                  source: 'NASDAQ',
+                })
+                .returning({ id: etpProduct.id }),
+            );
             await tx.insert(etpSeries).values({ ticker: symbol, productId: id, listedDate });
           } else {
             await tx.update(etpProduct).set(values).where(eq(etpProduct.id, productId));
@@ -171,18 +182,20 @@ export function createEtpStore(
           }
         }
         for (const { symbol, name } of sync.newCandidates) {
-          const [{ id }] = await tx
-            .insert(etpProduct)
-            .values({
-              market: 'US',
-              fxHedge: 'NA',
-              name,
-              nameLang: 'en',
-              needsReview: true,
-              source: 'NASDAQ',
-              collectedAt,
-            })
-            .returning({ id: etpProduct.id });
+          const { id } = oneRow(
+            await tx
+              .insert(etpProduct)
+              .values({
+                market: 'US',
+                fxHedge: 'NA',
+                name,
+                nameLang: 'en',
+                needsReview: true,
+                source: 'NASDAQ',
+                collectedAt,
+              })
+              .returning({ id: etpProduct.id }),
+          );
           await tx.insert(etpSeries).values({ ticker: symbol, productId: id });
         }
         for (const { productId, ticker } of sync.delist) {

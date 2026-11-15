@@ -122,7 +122,7 @@ describe('GET /v1/commodities/:code/curve', () => {
       expect.objectContaining({ symbol: 'CLZ26', basePrice: 70, currentPrice: 77 }),
       expect.objectContaining({ symbol: 'CLF27', basePrice: 71, currentPrice: 71 }),
     ]);
-    expect(body.points[0].changePct).toBeCloseTo(10);
+    expect(body.points[0]!.changePct).toBeCloseTo(10);
     expect(body.base).toMatchObject({ m1ContractMonth: '2026-12', state: 'CONTANGO' });
     expect(body.current).toMatchObject({ m2ContractMonth: '2027-01', state: 'BACKWARDATION' });
   });

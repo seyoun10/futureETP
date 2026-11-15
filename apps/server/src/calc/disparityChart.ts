@@ -79,7 +79,8 @@ function holdingsByDate(weights: readonly StoredWeight[]) {
 
 export function buildDisparityChart(input: DisparityChartInput): DisparityChartResult {
   const { ratio } = input;
-  if (ratio === null || input.bars.length === 0) {
+  const lastStored = input.bars.at(-1);
+  if (ratio === null || lastStored === undefined) {
     return { bars: [], rareLevels: [], currentTail: null, provisional: false };
   }
   const disparityByDate = new Map(input.disparities.map((d) => [d.tradeDate, d]));
@@ -101,7 +102,6 @@ export function buildDisparityChart(input: DisparityChartInput): DisparityChartR
   });
 
   // 오늘 잠정 봉: 저장된 마지막 봉 뒤 거래일의 스냅숏. 이평선·이격도는 직전 유효 종가로 그 자리에서 만든다
-  const lastStored = input.bars[input.bars.length - 1];
   const { snapshot } = input;
   const provisional =
     snapshot !== null && snapshot.last !== null && snapshot.tradeDate > lastStored.tradeDate;
@@ -129,7 +129,8 @@ export function buildDisparityChart(input: DisparityChartInput): DisparityChartR
     });
   }
 
-  const current = bars[bars.length - 1];
+  // input.bars가 비어 있지 않아 봉이 하나 이상이다
+  const current = bars.at(-1)!;
   const sorted = input.sortedValues;
   const rareLevels: RareLevelLine[] =
     sorted === null || sorted.length === 0

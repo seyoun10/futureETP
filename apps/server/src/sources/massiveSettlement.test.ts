@@ -111,10 +111,10 @@ describe('Massive 정산 소스', () => {
         lastTradeDate: '2029-12-19',
       },
     ]);
-    expect(calls[0].path).toBe(
+    expect(calls[0]!.path).toBe(
       '/futures/v1/contracts?product_code=CL&date=2026-10-27&type=single&limit=1000',
     );
-    expect(calls[0].auth).toBe('Bearer test-key');
+    expect(calls[0]!.auth).toBe('Bearer test-key');
   });
 
   it('그날 정산가가 있는 봉만 일봉으로 주고, 거래 없는 월물·반영 전 봉은 뺀다', async () => {
@@ -143,7 +143,7 @@ describe('Massive 정산 소스', () => {
       '/futures/v1/aggs/CLF7',
       '/futures/v1/aggs/CLF30',
     ]);
-    expect(calls[1].path).toBe('/futures/v1/aggs/CLZ6?resolution=1session&limit=10');
+    expect(calls[1]!.path).toBe('/futures/v1/aggs/CLZ6?resolution=1session&limit=10');
   });
 
   it('정산 전이면 빈 결과다', async () => {
@@ -161,7 +161,7 @@ describe('Massive 정산 소스', () => {
       '/futures/v1/aggs/CLF7': json({ results: [bar('2026-10-27', 99.5)] }),
     });
     await source.fetchDailyBars('CL', ['CLZ26', 'CLF27'], '2026-10-27');
-    const gaps = calls.slice(1).map((c, i) => c.at - calls[i].at);
+    const gaps = calls.slice(1).map((c, i) => c.at - calls[i]!.at);
     expect(gaps).toEqual([MIN_CALL_INTERVAL_MS, MIN_CALL_INTERVAL_MS]);
   });
 
@@ -368,7 +368,7 @@ describe('Massive 정산 소스', () => {
       }),
     });
     const [only] = await source.fetchDailyBars('CL', ['CLZ26'], '2026-10-27');
-    expect(only.volume).toBe(0);
+    expect(only!.volume).toBe(0);
   });
 
   it('월물 정의는 따라잡기 날짜마다 다시 받지 않고, 오래되면 다시 받는다', async () => {
@@ -392,6 +392,6 @@ describe('Massive 정산 소스', () => {
       sleep: () => Promise.resolve(),
     });
     await source.listContracts('CL', '2026-10-27');
-    expect(fetchFn.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
+    expect(fetchFn.mock.calls[0]![1]?.signal).toBeInstanceOf(AbortSignal);
   });
 });

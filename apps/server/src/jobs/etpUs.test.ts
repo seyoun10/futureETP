@@ -36,7 +36,7 @@ function setup(listings: UsListing[], known: KnownUsEtp[] = []) {
     store,
     log,
     run: () => syncUsEtps({ nasdaq, yahoo, store, now: NOW, log }),
-    sync: () => store.applyUsSync.mock.calls[0][0],
+    sync: () => store.applyUsSync.mock.calls[0]![0],
   };
 }
 
@@ -57,7 +57,7 @@ describe('syncUsEtps', () => {
 
     await run();
 
-    expect(store.applyUsSync.mock.calls[0][1]).toEqual({
+    expect(store.applyUsSync.mock.calls[0]![1]).toEqual({
       baseDate: '2026-10-28',
       collectedAt: NOW,
     });
@@ -90,7 +90,7 @@ describe('syncUsEtps', () => {
 
     await run();
 
-    expect(sync().upserts[0].attributes).toEqual({
+    expect(sync().upserts[0]!.attributes).toEqual({
       aum: 1_000_000,
       expenseRatio: 0.95,
       avgTradingValue: 5,
@@ -109,8 +109,8 @@ describe('syncUsEtps', () => {
     await run();
 
     const [uco, sco] = sync().upserts;
-    expect(uco.attributes).toEqual({ listedDate: '2008-11-25' });
-    expect(sco.attributes).toEqual({ expenseRatio: 0.95 });
+    expect(uco!.attributes).toEqual({ listedDate: '2008-11-25' });
+    expect(sco!.attributes).toEqual({ expenseRatio: 0.95 });
     expect(log).toHaveBeenCalledWith('[etp Nasdaq] UCO: Nasdaq UCO: HTTP 500');
     expect(log).toHaveBeenCalledWith('[etp Yahoo] SCO: Yahoo SCO: HTTP 429');
     expect(log).toHaveBeenLastCalledWith(expect.stringContaining('2 source failures'));

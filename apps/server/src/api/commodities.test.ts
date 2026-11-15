@@ -182,7 +182,7 @@ describe('GET /v1/commodities', () => {
     // 만기된 CLX26·비활성 GCF27은 빠진다
     expect(symbols(data, 'CL')).toEqual(['CLZ26', 'CLF27', 'CLG27', 'CLH27', 'CLJ27']);
     expect(symbols(data, 'GC')).toEqual(['GCZ26']);
-    const cl = data.commodities[1].contracts;
+    const cl = data.commodities[1]!.contracts;
     expect(cl[0]).toEqual({
       symbol: 'CLZ26',
       contractMonth: '2026-12',
@@ -193,7 +193,7 @@ describe('GET /v1/commodities', () => {
       isFront: true,
     });
     expect(cl[1]).toMatchObject({ price: 79, change: null, noTrade: true, isFront: false });
-    expect(data.commodities[0].contracts[0]).toMatchObject({ price: null, noTrade: true });
+    expect(data.commodities[0]!.contracts[0]).toMatchObject({ price: null, noTrade: true });
   });
 
   it('직전 거래일에도 봉이 없는 월물은 그 전 마지막 정산가를 거래 없음으로 준다', async () => {
@@ -203,7 +203,7 @@ describe('GET /v1/commodities', () => {
       bars: [bar('CLZ26', '2026-10-22', 80), bar('CLG27', '2026-10-21', 77)],
     });
     expect(res.status).toBe(200);
-    const cl = (await parse(res)).commodities[1].contracts;
+    const cl = (await parse(res)).commodities[1]!.contracts;
     expect(cl.find((c) => c.symbol === 'CLG27')).toMatchObject({
       price: 77,
       change: null,
@@ -234,7 +234,7 @@ describe('GET /v1/commodities', () => {
       marketState: 'CLOSED',
       nextUpdateAt: '2026-10-25T22:01:00.000Z',
     });
-    const cl = data.commodities[1].contracts;
+    const cl = data.commodities[1]!.contracts;
     expect(cl[0]).toMatchObject({ symbol: 'CLZ26', price: 78, change: -2, isFront: false });
     expect(cl.find((c) => c.isFront)?.symbol).toBe('CLF27');
   });

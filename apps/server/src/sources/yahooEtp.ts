@@ -13,27 +13,23 @@ const nullableNumbers = z.array(z.number().nullable());
 
 const chartSchema = z.object({
   chart: z.object({
-    result: z
-      .array(
-        z.object({
-          meta: z.object({
-            firstTradeDate: z.number().nullish(),
-            exchangeTimezoneName: z.string(),
-          }),
-          timestamp: z.array(z.number()).default([]),
-          indicators: z.object({
-            quote: z
-              .array(
-                z.object({
-                  close: nullableNumbers.default([]),
-                  volume: nullableNumbers.default([]),
-                }),
-              )
-              .length(1),
-          }),
+    result: z.tuple([
+      z.object({
+        meta: z.object({
+          firstTradeDate: z.number().nullish(),
+          exchangeTimezoneName: z.string(),
         }),
-      )
-      .length(1),
+        timestamp: z.array(z.number()).default([]),
+        indicators: z.object({
+          quote: z.tuple([
+            z.object({
+              close: nullableNumbers.default([]),
+              volume: nullableNumbers.default([]),
+            }),
+          ]),
+        }),
+      }),
+    ]),
   }),
 });
 

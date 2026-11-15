@@ -55,7 +55,7 @@ describe('createNasdaqEtpSource', () => {
       { symbol: 'UCO', name: 'ProShares Ultra Bloomberg Crude Oil' },
       { symbol: 'GDX', name: 'VanEck Gold Miners ETF' },
     ]);
-    expect(fetchFn.mock.calls[0][0]).toBe('https://api.nasdaq.com/api/screener/etf?download=true');
+    expect(fetchFn.mock.calls[0]![0]).toBe('https://api.nasdaq.com/api/screener/etf?download=true');
   });
 
   it('summary 순자산은 천 달러 단위를 달러로, 없는 심볼은 null', async () => {
@@ -69,7 +69,7 @@ describe('createNasdaqEtpSource', () => {
     expect(await source.summary('USO')).toEqual({ aum: 1_848_478_000, expenseRatio: 0.81 });
     expect(await source.summary('ZZZZQ')).toBeNull();
     expect(await source.summary('DGZ')).toEqual({ aum: null, expenseRatio: null });
-    expect(fetchFn.mock.calls[0][0]).toBe(
+    expect(fetchFn.mock.calls[0]![0]).toBe(
       'https://api.nasdaq.com/api/quote/USO/summary?assetclass=etf',
     );
   });

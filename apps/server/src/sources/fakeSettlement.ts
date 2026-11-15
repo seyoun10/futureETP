@@ -16,7 +16,8 @@ const DECIMALS: Record<CommodityCode, number> = { GC: 1, SI: 3, CL: 2, NG: 3 };
 const LISTED_MONTHS = 24;
 
 const monthOffset = (contractMonth: string, months: number) => {
-  const [y, m] = contractMonth.split('-').map(Number);
+  const y = Number(contractMonth.slice(0, 4));
+  const m = Number(contractMonth.slice(5, 7));
   const total = y * 12 + (m - 1) + months;
   return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
 };

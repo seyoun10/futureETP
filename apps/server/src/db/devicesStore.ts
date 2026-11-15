@@ -3,6 +3,7 @@ import type { DevicesStore } from '../api/devices.ts';
 import type { PushDeviceStore } from '../push/broadcast.ts';
 import type { db as Db } from './client.ts';
 import { device } from './schema.ts';
+import { oneRow } from './oneRow.ts';
 
 export function createDevicesStore(db: typeof Db): DevicesStore {
   return {
@@ -16,12 +17,12 @@ export function createDevicesStore(db: typeof Db): DevicesStore {
             .where(and(eq(device.pushToken, pushToken), ne(device.id, id)));
         }
         const set = { pushToken, platform, appVersion, updatedAt: new Date() };
-        const [row] = await tx
+        const rows = await tx
           .insert(device)
           .values({ id, ...set })
           .onConflictDoUpdate({ target: device.id, set })
           .returning({ id: device.id });
-        return row;
+        return oneRow(rows);
       }),
   };
 }

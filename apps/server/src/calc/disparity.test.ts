@@ -31,8 +31,8 @@ describe('buildDisparitySeries', () => {
     expect(rows.map((r) => r.tradeDate)).toEqual(['2026-01-02', '2026-01-05', '2026-01-06']);
     expect(rows[0]).toEqual({ tradeDate: '2026-01-02', ma: null, disparity: null });
     expect(rows[1]).toEqual({ tradeDate: '2026-01-05', ma: null, disparity: null });
-    expect(rows[2].ma).toBeCloseTo(20);
-    expect(rows[2].disparity).toBeCloseTo(50);
+    expect(rows[2]!.ma).toBeCloseTo(20);
+    expect(rows[2]!.disparity).toBeCloseTo(50);
   });
 
   it('이격도 = (종가 / 이평선 − 1) × 100', () => {
@@ -40,8 +40,8 @@ describe('buildDisparitySeries', () => {
       [cb('2026-01-02', 100), cb('2026-01-05', 100), cb('2026-01-06', 70)],
       3,
     );
-    expect(rows[2].ma).toBeCloseTo(90);
-    expect(rows[2].disparity).toBeCloseTo((70 / 90 - 1) * 100);
+    expect(rows[2]!.ma).toBeCloseTo(90);
+    expect(rows[2]!.disparity).toBeCloseTo((70 / 90 - 1) * 100);
   });
 
   it('산출 불가일은 행을 내지 않고, 이평선 창은 유효 종가만 이어서 K개를 쓴다', () => {
@@ -62,11 +62,11 @@ describe('buildDisparitySeries', () => {
       '2026-01-08',
     ]);
     // 01-07: (10 + 20 + 30) / 3 — 산출 불가일 뒤에 초기 기간을 다시 두지 않는다
-    expect(rows[2].ma).toBeCloseTo(20);
-    expect(rows[2].disparity).toBeCloseTo(50);
+    expect(rows[2]!.ma).toBeCloseTo(20);
+    expect(rows[2]!.disparity).toBeCloseTo(50);
     // 01-08: (20 + 30 + 40) / 3
-    expect(rows[3].ma).toBeCloseTo(30);
-    expect(rows[3].disparity).toBeCloseTo((40 / 30 - 1) * 100);
+    expect(rows[3]!.ma).toBeCloseTo(30);
+    expect(rows[3]!.disparity).toBeCloseTo((40 / 30 - 1) * 100);
   });
 
   it('맨 앞의 산출 불가일은 초기 K−1개에 세지 않는다', () => {
@@ -76,15 +76,15 @@ describe('buildDisparitySeries', () => {
     );
     expect(rows.map((r) => r.tradeDate)).toEqual(['2026-01-05', '2026-01-06']);
     expect(rows[0]).toEqual({ tradeDate: '2026-01-05', ma: null, disparity: null });
-    expect(rows[1].ma).toBeCloseTo(15);
-    expect(rows[1].disparity).toBeCloseTo((20 / 15 - 1) * 100);
+    expect(rows[1]!.ma).toBeCloseTo(15);
+    expect(rows[1]!.disparity).toBeCloseTo((20 / 15 - 1) * 100);
   });
 
   it('K=1이면 첫 유효일부터 이평선 = 종가, 이격도 0', () => {
     const rows = buildDisparitySeries([cb('2026-01-02', 50)], 1);
     expect(rows).toHaveLength(1);
-    expect(rows[0].ma).toBeCloseTo(50);
-    expect(rows[0].disparity).toBeCloseTo(0);
+    expect(rows[0]!.ma).toBeCloseTo(50);
+    expect(rows[0]!.disparity).toBeCloseTo(0);
   });
 });
 
@@ -183,6 +183,10 @@ describe('percentile (numpy linear)', () => {
     expect(percentile([7], 37.5)).toBeCloseTo(7);
     expect(percentile([7], 100)).toBeCloseTo(7);
   });
+
+  it('표본이 없으면 NaN 대신 오류를 던진다', () => {
+    expect(() => percentile([], 50)).toThrow(RangeError);
+  });
 });
 
 describe('rareLevelDisparity / rareLevelPrice', () => {
@@ -234,6 +238,10 @@ describe('percentileRank', () => {
 
   it('표본 1개면 50', () => {
     expect(percentileRank([7], 7)).toBeCloseTo(50);
+  });
+
+  it('표본이 없으면 오류를 던진다', () => {
+    expect(() => percentileRank([], 1)).toThrow(RangeError);
   });
 });
 

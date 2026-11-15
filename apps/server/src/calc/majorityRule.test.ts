@@ -44,7 +44,7 @@ describe('majorityRules', () => {
 
   it('하한과 같으면 센다', () => {
     const [gc] = majorityRules([us('BCOM', MIN_MAJORITY_AUM.US), us('DBIQ_OY', 1)]);
-    expect(gc.ruleId).toBe('BCOM');
+    expect(gc!.ruleId).toBe('BCOM');
   });
 
   it('동률이면 순자산 합계가 큰 규칙이다', () => {
@@ -54,7 +54,7 @@ describe('majorityRules', () => {
       us('USO', 150_000_000),
       us('USO', 20_000_000),
     ]);
-    expect(gc.ruleId).toBe('USO');
+    expect(gc!.ruleId).toBe('USO');
   });
 
   it('원자재·시장마다 따로 판정하고, 셀 상품이 없으면 null', () => {

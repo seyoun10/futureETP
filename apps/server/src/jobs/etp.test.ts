@@ -79,13 +79,13 @@ describe('ETP 작업(국내)', () => {
     await run();
 
     expect(fetchDay).toHaveBeenCalledWith('2026-10-28');
-    const [plan, at] = store.applyKrxPlan.mock.calls[0];
+    const [plan, at] = store.applyKrxPlan.mock.calls[0]!;
     expect(at).toEqual({ baseDate: '2026-10-28', collectedAt: NOW });
     expect(plan.newProducts.map((p) => p.listings.map((l) => l.ticker))).toEqual([
       ['261220'],
       ['530031', '530133'],
     ]);
-    expect(plan.newProducts[1].listings[1]).toMatchObject({
+    expect(plan.newProducts[1]!.listings[1]).toMatchObject({
       series: 'B',
       name: '삼성 레버리지 WTI원유 선물 ETN B',
     });
@@ -106,7 +106,7 @@ describe('ETP 작업(국내)', () => {
       '2026-10-24',
       '2026-10-23',
     ]);
-    expect(store.applyKrxPlan.mock.calls[0][1].baseDate).toBe('2026-10-23');
+    expect(store.applyKrxPlan.mock.calls[0]![1].baseDate).toBe('2026-10-23');
   });
 
   it(`${KRX_LOOKBACK_DAYS}일 동안 목록이 없으면 실패하고 아무것도 반영하지 않는다`, async () => {
@@ -161,7 +161,7 @@ describe('ETP 작업(국내)', () => {
 
     await run();
 
-    const [plan] = store.applyKrxPlan.mock.calls[0];
+    const [plan] = store.applyKrxPlan.mock.calls[0]!;
     expect(plan.delistTickers).toEqual(['261222', '261223']);
     expect(plan.deactivateProductIds).toEqual(['c', 'd']);
   });
@@ -202,7 +202,7 @@ describe('ETP 작업(국내)', () => {
         NOW,
       );
       expect(store.setMetrics.mock.invocationCallOrder[0]).toBeGreaterThan(
-        store.applyKrxPlan.mock.invocationCallOrder[0],
+        store.applyKrxPlan.mock.invocationCallOrder[0]!,
       );
     });
 
@@ -229,7 +229,7 @@ describe('ETP 작업(국내)', () => {
       await run();
 
       expect(fetchDay).toHaveBeenCalledTimes(1 + TRADING_VALUE_LOOKBACK_DAYS);
-      expect(store.setMetrics.mock.calls[0][0]).toEqual([
+      expect(store.setMetrics.mock.calls[0]![0]).toEqual([
         { productId: 'etn', aum: null, avgTradingValue: 10 },
       ]);
     });
@@ -292,7 +292,7 @@ describe('ETP 작업(국내)', () => {
 
       await run();
 
-      expect(store.setDetails.mock.calls[0][0]).toEqual([
+      expect(store.setDetails.mock.calls[0]![0]).toEqual([
         { productId: 'etf', issuerUrl: 'https://www.samsungfund.com/etf/main.do' },
         { productId: 'etn', issuerUrl: 'https://www.samsungpop.com/' },
         { productId: 'new-brand', issuerUrl: null },

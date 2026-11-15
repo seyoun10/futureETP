@@ -19,6 +19,8 @@ import {
   parseDefinition,
   type ContractInfo,
   type CsvRow,
+  DEFINITION_COLUMNS,
+  STATISTICS_COLUMNS,
   type LoadedBar,
 } from './databentoBars.ts';
 
@@ -36,7 +38,11 @@ async function files(data: string, schema: string, code: CommodityCode): Promise
   return names.map((n) => join(dir, n)).filter((p) => statSync(p).size > 0);
 }
 
-async function eachRow(paths: readonly string[], onRow: (row: CsvRow) => void): Promise<void> {
+async function eachRow<K extends string>(
+  paths: readonly string[],
+  columns: readonly K[],
+  onRow: (row: CsvRow<K>) => void,
+): Promise<void> {
   for (const path of paths) {
     const lines = createInterface({
       input: createReadStream(path).pipe(createZstdDecompress()),
@@ -47,12 +53,16 @@ async function eachRow(paths: readonly string[], onRow: (row: CsvRow) => void): 
       if (line === '') continue;
       const values = line.split(',');
       if (header === null) {
+        const missing = columns.filter((c) => !values.includes(c));
+        if (missing.length > 0) throw new Error(`${path}: missing columns ${missing.join(', ')}`);
         header = values;
         continue;
       }
       const row: Record<string, string> = {};
-      for (let i = 0; i < header.length; i++) row[header[i]] = values[i] ?? '';
-      onRow(row);
+      header.forEach((name, i) => {
+        row[name] = values[i] ?? '';
+      });
+      onRow(row as CsvRow<K>);
     }
   }
 }
@@ -66,7 +76,7 @@ type Loaded = {
 async function loadCommodity(data: string, code: CommodityCode): Promise<Loaded> {
   // 같은 instrument_id가 다른 월물로 다시 쓰이면 매핑이 틀어지므로 멈춘다
   const byId = new Map<string, ContractInfo>();
-  await eachRow(await files(data, 'definition', code), (row) => {
+  await eachRow(await files(data, 'definition', code), DEFINITION_COLUMNS, (row) => {
     const info = parseDefinition(row);
     if (!info) return;
     const known = byId.get(info.instrumentId);
@@ -79,8 +89,8 @@ async function loadCommodity(data: string, code: CommodityCode): Promise<Loaded>
 
   const stats = await files(data, 'statistics', code);
   const builder = createBarBuilder();
-  await eachRow(stats, builder.addSettlement);
-  await eachRow(stats, builder.addSessionStat);
+  await eachRow(stats, STATISTICS_COLUMNS, builder.addSettlement);
+  await eachRow(stats, STATISTICS_COLUMNS, builder.addSessionStat);
   const { bars, stats: barStats } = builder.bars();
 
   const unknown = new Set<string>();
@@ -206,7 +216,7 @@ async function saveTradingDays(dates: ReadonlySet<string>, dryRun: boolean): Pro
   const last = sorted.at(-1) ?? '';
   const calendarInRange = new Set(calendar.filter((d) => d <= last));
   const onlyData = sorted.filter(
-    (d) => calendar.length > 0 && d >= calendar[0] && !calendarInRange.has(d),
+    (d) => calendar[0] !== undefined && d >= calendar[0] && !calendarInRange.has(d),
   );
   const onlyCalendar = [...calendarInRange].filter((d) => !dates.has(d));
   const weekend = sorted.filter((d) => [0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay()));

@@ -70,19 +70,19 @@ describe('buildIndexBars: 월물 하나, 롤 없음', () => {
   it('지수 수익률이 정산가 수익률과 정확히 같다', () => {
     const rows = buildIndexBars(days);
     expect(rows).toHaveLength(3);
-    expect(rows[1].close).toBeCloseTo(55, 10);
-    expect(rows[2].close).toBeCloseTo(44, 10);
-    expect(rows[2].close! / rows[1].close!).toBeCloseTo(44 / 55, 12);
+    expect(rows[1]!.close).toBeCloseTo(55, 10);
+    expect(rows[2]!.close).toBeCloseTo(44, 10);
+    expect(rows[2]!.close! / rows[1]!.close!).toBeCloseTo(44 / 55, 12);
   });
 
   it('다음 날들의 시가·고가·저가도 같은 배율로 이어진다', () => {
     const rows = buildIndexBars(days);
-    expect(rows[1].open).toBeCloseTo(51, 10);
-    expect(rows[1].high).toBeCloseTo(56, 10);
-    expect(rows[1].low).toBeCloseTo(50, 10);
-    expect(rows[2].open).toBeCloseTo(54, 10);
-    expect(rows[2].high).toBeCloseTo(55, 10);
-    expect(rows[2].low).toBeCloseTo(43, 10);
+    expect(rows[1]!.open).toBeCloseTo(51, 10);
+    expect(rows[1]!.high).toBeCloseTo(56, 10);
+    expect(rows[1]!.low).toBeCloseTo(50, 10);
+    expect(rows[2]!.open).toBeCloseTo(54, 10);
+    expect(rows[2]!.high).toBeCloseTo(55, 10);
+    expect(rows[2]!.low).toBeCloseTo(43, 10);
     expect(rows.every((r) => r.isValid)).toBe(true);
   });
 });
@@ -95,12 +95,12 @@ describe('buildIndexBars: 두 월물 롤', () => {
       day('2026-01-06', { A: bar(50), B: bar(60) }, { B: 1 }),
       day('2026-01-07', { A: bar(51), B: bar(66) }, { B: 1 }),
     ]);
-    expect(rows[0].close).toBeCloseTo(50, 10);
-    expect(rows[1].close).toBeCloseTo(50, 10);
-    expect(rows[1].blendedPrice).toBeCloseTo(60, 10);
+    expect(rows[0]!.close).toBeCloseTo(50, 10);
+    expect(rows[1]!.close).toBeCloseTo(50, 10);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(60, 10);
     // 50 × 66 / 60
-    expect(rows[2].close).toBeCloseTo(55, 10);
-    expect(rows[2].blendedPrice).toBeCloseTo(66, 10);
+    expect(rows[2]!.close).toBeCloseTo(55, 10);
+    expect(rows[2]!.blendedPrice).toBeCloseTo(66, 10);
   });
 
   it('부분 롤: 분자·분모에 같은 w(t-1)을 쓴다', () => {
@@ -115,17 +115,17 @@ describe('buildIndexBars: 두 월물 롤', () => {
       day('2026-01-07', { A: bar(55, 54, 56, 53), B: bar(66, 64, 67, 63) }, { B: 1 }, true),
       day('2026-01-08', { A: bar(50), B: bar(72) }, { B: 1 }),
     ]);
-    expect(rows[1].close).toBeCloseTo(50, 10);
-    expect(rows[1].blendedPrice).toBeCloseTo(55, 10);
+    expect(rows[1]!.close).toBeCloseTo(50, 10);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(55, 10);
     // N = 0.5·55 + 0.5·66 = 60.5, close = 50 × 60.5 / 55
-    expect(rows[2].close).toBeCloseTo(55, 10);
+    expect(rows[2]!.close).toBeCloseTo(55, 10);
     // 시가 = 50 × (0.5·54 + 0.5·64) / 55
-    expect(rows[2].open).toBeCloseTo((50 * 59) / 55, 10);
-    expect(rows[2].high).toBeCloseTo((50 * 61.5) / 55, 10);
-    expect(rows[2].low).toBeCloseTo((50 * 58) / 55, 10);
-    expect(rows[2].blendedPrice).toBeCloseTo(66, 10);
+    expect(rows[2]!.open).toBeCloseTo((50 * 59) / 55, 10);
+    expect(rows[2]!.high).toBeCloseTo((50 * 61.5) / 55, 10);
+    expect(rows[2]!.low).toBeCloseTo((50 * 58) / 55, 10);
+    expect(rows[2]!.blendedPrice).toBeCloseTo(66, 10);
     // 55 × 72 / 66
-    expect(rows[3].close).toBeCloseTo(60, 10);
+    expect(rows[3]!.close).toBeCloseTo(60, 10);
   });
 
   it('blendedPrice는 그날 종가 뒤 비중 w(t)로 Σ w·settle', () => {
@@ -133,12 +133,12 @@ describe('buildIndexBars: 두 월물 롤', () => {
       day('2026-01-05', { A: bar(40), B: bar(80) }, { A: 0.25, B: 0.75 }),
       day('2026-01-06', { A: bar(44), B: bar(90) }, { A: 0.5, B: 0.5 }),
     ]);
-    expect(rows[0].blendedPrice).toBeCloseTo(70, 10);
-    expect(rows[0].close).toBeCloseTo(70, 10);
+    expect(rows[0]!.blendedPrice).toBeCloseTo(70, 10);
+    expect(rows[0]!.close).toBeCloseTo(70, 10);
     // 그날 비중 0.5/0.5로 저장
-    expect(rows[1].blendedPrice).toBeCloseTo(67, 10);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(67, 10);
     // N = 0.25·44 + 0.75·90 = 78.5 → 70 × 78.5 / 70
-    expect(rows[1].close).toBeCloseTo(78.5, 10);
+    expect(rows[1]!.close).toBeCloseTo(78.5, 10);
   });
 });
 
@@ -148,11 +148,11 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
       day('2020-04-17', { A: bar(20), B: bar(30) }, { A: 0.5, B: 0.5 }),
       day('2020-04-20', { A: bar(-10), B: bar(40) }, { A: 0.5, B: 0.5 }),
     ]);
-    expect(rows[0].close).toBeCloseTo(25, 10);
-    expect(rows[1].isValid).toBe(true);
-    expect(rows[1].blendedPrice).toBeCloseTo(15, 10);
+    expect(rows[0]!.close).toBeCloseTo(25, 10);
+    expect(rows[1]!.isValid).toBe(true);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(15, 10);
     // 25 × 15 / 25
-    expect(rows[1].close).toBeCloseTo(15, 10);
+    expect(rows[1]!.close).toBeCloseTo(15, 10);
   });
 
   it('N ≤ 0이면 무효: OHLC null, blendedPrice는 저장, 다음 유효일은 직전 유효일 기준', () => {
@@ -168,10 +168,10 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
       close: null,
       isValid: false,
     });
-    expect(rows[1].blendedPrice).toBeCloseTo(-37.63, 10);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(-37.63, 10);
     // v = 04-17: 20 × 10 / 20
-    expect(rows[2].isValid).toBe(true);
-    expect(rows[2].close).toBeCloseTo(10, 10);
+    expect(rows[2]!.isValid).toBe(true);
+    expect(rows[2]!.close).toBeCloseTo(10, 10);
   });
 
   it('무효일 다음 N은 v가 아니라 바로 전 입력 행(무효일)의 비중을 쓴다', () => {
@@ -181,10 +181,10 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
       day('2020-04-20', { A: bar(-37.63), B: bar(25) }, { B: 1 }),
       day('2020-04-21', { A: bar(15), B: bar(30) }, { B: 1 }),
     ]);
-    expect(rows[1].isValid).toBe(false);
-    expect(rows[1].blendedPrice).toBeCloseTo(25, 10);
+    expect(rows[1]!.isValid).toBe(false);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(25, 10);
     // N = w(04-20)=B → 30, close = 20 × 30 / B(v)=20 (v 비중 A로 하면 15)
-    expect(rows[2].close).toBeCloseTo(30, 10);
+    expect(rows[2]!.close).toBeCloseTo(30, 10);
   });
 
   it('N > 0이어도 B(t) ≤ 0이면 무효', () => {
@@ -201,9 +201,9 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
       close: null,
       isValid: false,
     });
-    expect(rows[1].blendedPrice).toBeCloseTo(-5, 10);
+    expect(rows[1]!.blendedPrice).toBeCloseTo(-5, 10);
     // v = 01-05: 20 × 8 / 20
-    expect(rows[2].close).toBeCloseTo(8, 10);
+    expect(rows[2]!.close).toBeCloseTo(8, 10);
   });
 
   it('첫날 B ≤ 0이면 무효, B > 0인 다음 날이 시작(close = B)', () => {
@@ -219,15 +219,15 @@ describe('buildIndexBars: 음수 가격과 무효일', () => {
       low: null,
       isValid: false,
     });
-    expect(rows[0].blendedPrice).toBeCloseTo(-5, 10);
-    expect(rows[1].isValid).toBe(true);
-    expect(rows[1].close).toBeCloseTo(16, 10);
+    expect(rows[0]!.blendedPrice).toBeCloseTo(-5, 10);
+    expect(rows[1]!.isValid).toBe(true);
+    expect(rows[1]!.close).toBeCloseTo(16, 10);
     // 시작일 시가 = Σ w(t)·O, B는 settle로 대신
-    expect(rows[1].open).toBeCloseTo(15.5, 10);
-    expect(rows[1].high).toBeCloseTo(16.5, 10);
-    expect(rows[1].low).toBeCloseTo(15, 10);
+    expect(rows[1]!.open).toBeCloseTo(15.5, 10);
+    expect(rows[1]!.high).toBeCloseTo(16.5, 10);
+    expect(rows[1]!.low).toBeCloseTo(15, 10);
     // 16 × 18 / 16
-    expect(rows[2].close).toBeCloseTo(18, 10);
+    expect(rows[2]!.close).toBeCloseTo(18, 10);
   });
 });
 
@@ -239,10 +239,10 @@ describe('buildIndexBars: 시가·고가·저가', () => {
     ]);
     expect(rows[0]).toMatchObject({ open: 54, high: 56, low: 53.5, close: 55 });
     // N = 56.5, 배율 55/55
-    expect(rows[1].close).toBeCloseTo(56.5, 10);
-    expect(rows[1].open).toBeCloseTo(56, 10);
-    expect(rows[1].high).toBeCloseTo(57.5, 10);
-    expect(rows[1].low).toBeCloseTo(55.5, 10);
+    expect(rows[1]!.close).toBeCloseTo(56.5, 10);
+    expect(rows[1]!.open).toBeCloseTo(56, 10);
+    expect(rows[1]!.high).toBeCloseTo(57.5, 10);
+    expect(rows[1]!.low).toBeCloseTo(55.5, 10);
   });
 
   it('유효일의 혼합 저가가 0 이하이면 low만 null', () => {
@@ -250,11 +250,11 @@ describe('buildIndexBars: 시가·고가·저가', () => {
       day('2026-01-05', { A: bar(5, 5, 6, 4) }, { A: 1 }),
       day('2026-01-06', { A: bar(2, 3, 4, -1) }, { A: 1 }),
     ]);
-    expect(rows[1].isValid).toBe(true);
-    expect(rows[1].low).toBeNull();
-    expect(rows[1].open).toBeCloseTo(3, 10);
-    expect(rows[1].high).toBeCloseTo(4, 10);
-    expect(rows[1].close).toBeCloseTo(2, 10);
+    expect(rows[1]!.isValid).toBe(true);
+    expect(rows[1]!.low).toBeNull();
+    expect(rows[1]!.open).toBeCloseTo(3, 10);
+    expect(rows[1]!.high).toBeCloseTo(4, 10);
+    expect(rows[1]!.close).toBeCloseTo(2, 10);
   });
 
   it('첫날 혼합 저가가 0 이하여도 low만 null', () => {
@@ -312,7 +312,7 @@ describe('chainIndex', () => {
         { symbol: 'A', weight: 0.5 },
         { symbol: 'B', weight: 0.5 },
       ],
-      (s) => prices[s],
+      (s) => prices[s]!,
     );
     // 100 × 55 / 50
     expect(value).toBeCloseTo(110, 10);
@@ -347,6 +347,6 @@ describe('indexScaleRatio', () => {
     expect(ratio).not.toBeNull();
     // 마지막 유효 = 01-07: close 55, blended 66
     expect(ratio!).toBeCloseTo(66 / 55, 12);
-    expect(rows[2].close! * ratio!).toBeCloseTo(rows[2].blendedPrice, 10);
+    expect(rows[2]!.close! * ratio!).toBeCloseTo(rows[2]!.blendedPrice, 10);
   });
 });

@@ -96,7 +96,7 @@ function nextUpdateAt(
       from = Math.max(from, settled, t + 1);
     }
     let slot = ceilSlot(from);
-    const day = days[s.index];
+    const day = days[s.index]!;
     if (inHalt(day, slot)) slot = ceilSlot(day.haltEndAt!.getTime());
     if (slot < s.closeAt.getTime()) return new Date(slot + INTRADAY_EXPECTED_MS);
   }
@@ -118,7 +118,7 @@ export function marketStatus(
   const pending = unsettledPrevious(days, current.index, lastSettledTradeDate);
   if (pending !== null)
     return { state: 'SETTLEMENT_PENDING', tradeDate: pending, nextUpdateAt: next };
-  return inHalt(days[current.index], t)
+  return inHalt(days[current.index]!, t)
     ? { state: 'CLOSED', tradeDate: current.tradeDate, nextUpdateAt: next }
     : { state: 'OPEN', tradeDate: current.tradeDate, nextUpdateAt: next };
 }

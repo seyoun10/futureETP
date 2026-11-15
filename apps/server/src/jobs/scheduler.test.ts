@@ -140,7 +140,7 @@ describe('createTriggerRunner', () => {
       'BACKUP start',
       'BACKUP fail',
     ]);
-    const [[, , etpStart], [, , etpEnd], [, , backupStart]] = healthcheck.mock.calls;
+    const [etpStart, etpEnd, backupStart] = healthcheck.mock.calls.map((call) => call[2]);
     expect(etpEnd).toBe(etpStart);
     expect(backupStart).not.toBe(etpStart);
   });

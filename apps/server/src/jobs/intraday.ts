@@ -109,7 +109,7 @@ export function createIntradayHandler({
     // OPEN이면 세션 행과 정산된 직전 거래일 행이 있다
     const index = days.findIndex((d) => d.tradeDate === tradeDate);
     const sessionOpenAt = days[index]?.sessionOpenAt;
-    const previous = index > 0 ? days[index - 1].tradeDate : undefined;
+    const previous = days[index - 1]?.tradeDate;
     if (sessionOpenAt == null || previous === undefined) {
       throw new Error(`${tradeDate}: trading calendar has no session or previous day`);
     }
@@ -149,9 +149,10 @@ export function createIntradayHandler({
           // 직전 거래일 정산·재계산 결과에 이어 붙인다. 날짜가 어긋나면 지수가 틀린다
           const history = await store.indexHistory(code, basis, tradeDate, INDEX_HISTORY_ROWS);
           const barDate = history[history.length - 1]?.tradeDate ?? null;
-          if (rows[0].tradeDate !== previous || barDate !== previous) {
+          const weightDate = rows[0]?.tradeDate;
+          if (weightDate !== previous || barDate !== previous) {
             throw new Error(
-              `expected ${previous}, roll_weight ${rows[0].tradeDate}, index_bar ${barDate}`,
+              `expected ${previous}, roll_weight ${weightDate}, index_bar ${barDate}`,
             );
           }
           const anchor = indexAnchor(history);

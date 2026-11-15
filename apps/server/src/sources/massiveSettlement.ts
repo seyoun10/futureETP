@@ -59,8 +59,10 @@ export function parseMassiveTicker(
   lastTradeDate: string,
 ): string {
   const match = new RegExp(`^${code}([${MONTH_CODES.join('')}])(\\d{1,2})$`).exec(ticker);
-  if (!match) throw new Error(`Massive: unexpected ${code} ticker ${ticker}`);
-  const [, monthCode, digits] = match;
+  const [, monthCode, digits] = match ?? [];
+  if (monthCode === undefined || digits === undefined) {
+    throw new Error(`Massive: unexpected ${code} ticker ${ticker}`);
+  }
   const month = MONTH_CODES.indexOf(monthCode as (typeof MONTH_CODES)[number]) + 1;
   const ltdYear = Number(lastTradeDate.slice(0, 4));
   const ltdMonth = Number(lastTradeDate.slice(5, 7));

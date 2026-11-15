@@ -132,16 +132,16 @@ describe('GET /v1/commodities/:code/contracts', () => {
       'CLJ27',
       'CLK27',
     ]);
-    expect(body.contracts[0].prices).toEqual([70, 71]);
+    expect(body.contracts[0]!.prices).toEqual([70, 71]);
     // 롤 수익률용 최종 거래일, 대표월물 표식
-    expect(body.contracts[1].lastTradeDate).toBe('2026-12-18');
+    expect(body.contracts[1]!.lastTradeDate).toBe('2026-12-18');
     expect(body.contracts.map((c) => c.isFront)).toEqual([true, false, false, false, false]);
   });
 
   it('before를 주면 그 날짜보다 이른 날짜와 가격만 준다', async () => {
     const body = await parse(await setup('/v1/commodities/CL/contracts?before=2026-10-21'));
     expect(body).toMatchObject({ dates: ['2026-10-20'], hasMore: false });
-    expect(body.contracts[0].prices).toEqual([70]);
+    expect(body.contracts[0]!.prices).toEqual([70]);
     expect((await setup('/v1/commodities/CL/contracts?before=x')).status).toBe(400);
   });
 
@@ -150,8 +150,8 @@ describe('GET /v1/commodities/:code/contracts', () => {
     expect(body.dates.at(-1)).toBe('2026-10-22');
     expect(body.provisional).toBe(true);
     expect(body.freshness).toMatchObject({ delayed: true, asOf: '2026-10-22T14:45:00.000Z' });
-    expect(body.contracts[0].prices).toEqual([70, 71, 77]);
-    expect(body.contracts[1].prices).toEqual([71, 72, null]);
+    expect(body.contracts[0]!.prices).toEqual([70, 71, 77]);
+    expect(body.contracts[1]!.prices).toEqual([71, 72, null]);
   });
 
   it('일봉이 없으면 404 NOT_FOUND, 모르는 원자재도 404다', async () => {

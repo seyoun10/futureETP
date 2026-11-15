@@ -4,6 +4,7 @@
     "noImplicitOverride": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
     "target": "ESNext",
     "module": "nodenext",
     "moduleResolution": "nodenext",

@@ -25,26 +25,24 @@ const nullableNumbers = z.array(z.number().nullable());
 
 const chartSchema = z.object({
   chart: z.object({
-    result: z
-      .array(
-        z.object({
-          meta: z.object({
-            symbol: z.string(),
-            regularMarketPrice: z.number(),
-            regularMarketTime: z.number(),
-            regularMarketDayHigh: z.number().nullish(),
-            regularMarketDayLow: z.number().nullish(),
-            regularMarketVolume: z.number().nullish(),
-            priceHint: z.number().int().min(0).max(8).optional(),
-          }),
-          // 봉이 없으면 timestamp·quote 값이 빠진다
-          timestamp: z.array(z.number()).default([]),
-          indicators: z.object({
-            quote: z.array(z.object({ open: nullableNumbers.default([]) })),
-          }),
+    result: z.tuple([
+      z.object({
+        meta: z.object({
+          symbol: z.string(),
+          regularMarketPrice: z.number(),
+          regularMarketTime: z.number(),
+          regularMarketDayHigh: z.number().nullish(),
+          regularMarketDayLow: z.number().nullish(),
+          regularMarketVolume: z.number().nullish(),
+          priceHint: z.number().int().min(0).max(8).optional(),
         }),
-      )
-      .length(1),
+        // 봉이 없으면 timestamp·quote 값이 빠진다
+        timestamp: z.array(z.number()).default([]),
+        indicators: z.object({
+          quote: z.array(z.object({ open: nullableNumbers.default([]) })),
+        }),
+      }),
+    ]),
   }),
 });
 

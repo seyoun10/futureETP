@@ -62,7 +62,7 @@ function weekdays(n: number, start = '2026-01-01'): string[] {
 // YYYY-MM을 i개월 뒤로
 function addMonths(contractMonth: string, i: number): string {
   const [y, m] = contractMonth.split('-').map(Number);
-  const idx = y * 12 + (m - 1) + i;
+  const idx = y! * 12 + (m! - 1) + i;
   return `${Math.floor(idx / 12)}-${String((idx % 12) + 1).padStart(2, '0')}`;
 }
 
@@ -89,7 +89,7 @@ describe('volumeWindow', () => {
   const days = weekdays(30);
 
   it('정산이 있으면 커브 날짜를 포함한 마지막 20거래일이다', () => {
-    const curveDate = days[24];
+    const curveDate = days[24]!;
     const window = volumeWindow(days, curveDate, true);
     expect(window).toEqual(days.slice(5, 25));
     expect(window).toHaveLength(20);
@@ -97,24 +97,24 @@ describe('volumeWindow', () => {
   });
 
   it('정산이 없으면(장중) 커브 날짜를 빼고 전일까지 20거래일이다', () => {
-    const curveDate = days[24];
+    const curveDate = days[24]!;
     const window = volumeWindow(days, curveDate, false);
     expect(window).toEqual(days.slice(4, 24));
     expect(window).not.toContain(curveDate);
   });
 
   it('커브 날짜 뒤의 거래일은 넣지 않는다', () => {
-    const window = volumeWindow(days, days[10], true);
-    expect(window.every((d) => d <= days[10])).toBe(true);
+    const window = volumeWindow(days, days[10]!, true);
+    expect(window.every((d) => d <= days[10]!)).toBe(true);
   });
 
   it('커브 날짜까지 거래일이 20일보다 적으면 있는 날만 쓴다', () => {
-    expect(volumeWindow(days, days[4], true)).toEqual(days.slice(0, 5));
-    expect(volumeWindow(days, days[4], false)).toEqual(days.slice(0, 4));
+    expect(volumeWindow(days, days[4]!, true)).toEqual(days.slice(0, 5));
+    expect(volumeWindow(days, days[4]!, false)).toEqual(days.slice(0, 4));
   });
 
   it('첫 거래일에 정산이 없으면 빈 창이다', () => {
-    expect(volumeWindow(days, days[0], false)).toEqual([]);
+    expect(volumeWindow(days, days[0]!, false)).toEqual([]);
   });
 });
 
@@ -123,37 +123,37 @@ describe('averageVolume', () => {
 
   it('창 안의 일봉 거래량을 평균한다', () => {
     const bars = days.map((tradeDate, i) => ({ tradeDate, volume: (i + 1) * 100 }));
-    expect(averageVolume(bars, days, days[0])).toBeCloseTo(300);
+    expect(averageVolume(bars, days, days[0]!)).toBeCloseTo(300);
   });
 
   it('창 밖의 일봉은 무시한다', () => {
     const bars = [
       { tradeDate: '2025-12-31', volume: 100000 },
-      { tradeDate: days[0], volume: 100 },
-      { tradeDate: days[1], volume: 300 },
+      { tradeDate: days[0]!, volume: 100 },
+      { tradeDate: days[1]!, volume: 300 },
     ];
     expect(averageVolume(bars, days.slice(0, 2), '2025-12-31')).toBeCloseTo(200);
   });
 
   it('상장 후 일수가 모자라면 첫 일봉 날짜 이후 거래일만으로 평균한다', () => {
     const bars = [
-      { tradeDate: days[3], volume: 50 },
-      { tradeDate: days[4], volume: 150 },
+      { tradeDate: days[3]!, volume: 50 },
+      { tradeDate: days[4]!, volume: 150 },
     ];
-    expect(averageVolume(bars, days, days[3])).toBeCloseTo(100);
+    expect(averageVolume(bars, days, days[3]!)).toBeCloseTo(100);
   });
 
   it('거래량 0인 날도 일봉이 있으면 평균에 넣는다', () => {
     const bars = [
-      { tradeDate: days[0], volume: 0 },
-      { tradeDate: days[1], volume: 200 },
+      { tradeDate: days[0]!, volume: 0 },
+      { tradeDate: days[1]!, volume: 200 },
     ];
-    expect(averageVolume(bars, days.slice(0, 2), days[0])).toBeCloseTo(100);
+    expect(averageVolume(bars, days.slice(0, 2), days[0]!)).toBeCloseTo(100);
   });
 
   it('첫 일봉 뒤 일봉이 없는 날은 거래량 0으로 센다(소스가 거래 없는 날 봉을 주지 않는다)', () => {
     // 창 5일 중 하루만 150계약: 봉이 있는 날로만 나누면 150이라 100계약 기준을 통과한다
-    const bars = [{ tradeDate: days[2], volume: 150 }];
+    const bars = [{ tradeDate: days[2]!, volume: 150 }];
     expect(averageVolume(bars, days, '2025-06-02')).toBeCloseTo(30);
   });
 
@@ -277,7 +277,7 @@ describe('selectCurve', () => {
       '2026-12',
       Array.from({ length: 30 }, (_, i) => (i < 2 ? 0 : 5000)),
     );
-    const front = candidates[2].symbol;
+    const front = candidates[2]!.symbol;
     const curve = selectCurve(candidates, curveDate, front);
     expect(curve.contracts).toHaveLength(CURVE_MAX_CONTRACTS);
     expect(symbols(curve.contracts)).toEqual(symbols(candidates.slice(0, 12)));
@@ -339,7 +339,7 @@ describe('selectCurve', () => {
     const curve = selectCurve(candidates, curveDate, 'CLZ26');
     expect(curve.contracts.map((c) => c.id)).toEqual([1, 2]);
     expect(curve.m1?.id).toBe(1);
-    expect(curve.contracts[0].price).toBe(70);
+    expect(curve.contracts[0]!.price).toBe(70);
   });
 });
 
@@ -355,8 +355,8 @@ describe('compareCurves', () => {
       basePrice: 3.152,
       currentPrice: 3.12,
     });
-    expect(row.changePct).toBeCloseTo((3.12 / 3.152 - 1) * 100);
-    expect(row.changePct).toBeCloseTo(-1.015, 3);
+    expect(row!.changePct).toBeCloseTo((3.12 / 3.152 - 1) * 100);
+    expect(row!.changePct).toBeCloseTo(-1.015, 3);
   });
 
   it('기준일에만 있는 월물(그 사이 만기)은 현재 가격과 변화율이 null이다', () => {
@@ -418,8 +418,8 @@ describe('compareCurves', () => {
     ];
     const rows = compareCurves(base, current);
     expect(rows.map((r) => r.changePct)).toEqual([null, null]);
-    expect(rows[0].basePrice).toBe(0);
-    expect(rows[0].currentPrice).toBe(70);
+    expect(rows[0]!.basePrice).toBe(0);
+    expect(rows[0]!.currentPrice).toBe(70);
   });
 
   it('두 커브가 비면 빈 배열이다', () => {
@@ -544,7 +544,7 @@ describe('buildCurve', () => {
     contractMonth: month,
     lastTradeDate,
     isTarget: true,
-    firstBarDate: DAYS[0],
+    firstBarDate: DAYS[0]!,
   });
   // DEC26(M1)·JAN27(M2)·FEB27, 매일 거래량 1000
   const CONTRACTS = [
@@ -586,7 +586,7 @@ describe('buildCurve', () => {
       ['2027-01', 71, 71],
       ['2027-02', 72, 72],
     ]);
-    expect(r.points[0].changePct).toBeCloseTo(10);
+    expect(r.points[0]!.changePct).toBeCloseTo(10);
     expect(r.delayed).toBe(false);
     expect(r.asOf).toEqual(at(`${D}T23:40:00Z`));
     expect(r.base).toMatchObject({

@@ -30,7 +30,7 @@ describe('createYahooEtpSource', () => {
       listedDate: '2008-11-25',
       tradingValues: [64_000, 195_000],
     });
-    expect(fetchFn.mock.calls[0][0]).toBe(
+    expect(fetchFn.mock.calls[0]![0]).toBe(
       'https://query1.finance.yahoo.com/v8/finance/chart/UCO?range=2mo&interval=1d',
     );
   });
@@ -42,7 +42,7 @@ describe('createYahooEtpSource', () => {
         result: [
           {
             ...result,
-            meta: { ...result.meta, firstTradeDate: null },
+            meta: { ...result!.meta, firstTradeDate: null },
             timestamp: undefined,
             indicators: { quote: [{}] },
           },

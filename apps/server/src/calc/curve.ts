@@ -70,7 +70,8 @@ export function selectCurve<T extends CurveCandidate>(
   const hasPrice = (c: T): c is CurvePoint<T> => c.price !== null;
   const sorted = liveTargets(candidates, curveDate);
   const frontIndex = sorted.findIndex((c) => c.symbol === frontSymbol);
-  const m1Index = frontIndex >= 0 && hasPrice(sorted[frontIndex]) ? frontIndex : -1;
+  const front = sorted[frontIndex];
+  const m1Index = front !== undefined && hasPrice(front) ? frontIndex : -1;
 
   const contracts: CurvePoint<T>[] = [];
   let m1: CurvePoint<T> | null = null;
@@ -188,7 +189,7 @@ export function resolveBaseDate(
     range.findLastIndex((d) => d <= target),
     0,
   );
-  const baseDate = range[index];
+  const baseDate = range[index] ?? maxBaseDate;
   return {
     baseDate,
     baseOffset: tradeDates.filter((d) => d > baseDate && d <= currentDate).length,

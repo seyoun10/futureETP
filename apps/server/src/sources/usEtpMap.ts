@@ -125,7 +125,7 @@ export type UsEtpClassification = {
 export function classifyUsListings(listings: readonly UsListing[]): UsEtpClassification {
   const result: UsEtpClassification = { mapped: [], candidates: [] };
   for (const listing of listings) {
-    const mapping = US_ETP_MAP[listing.symbol] as UsEtpMapping | undefined;
+    const mapping = US_ETP_MAP[listing.symbol];
     if (mapping) {
       result.mapped.push({ ...listing, mapping });
     } else if (

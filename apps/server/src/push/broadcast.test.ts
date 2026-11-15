@@ -56,7 +56,7 @@ describe('broadcast', () => {
     expect(result).toEqual({ devices: 2, sent: 2, cleared: 0, failures: [] });
     expect(delivered(result)).toBe(true);
     expect(sent.map((s) => s.target.pushToken)).toEqual(['token-a', 'token-b']);
-    expect(sent[0].message).toBe(message);
+    expect(sent[0]!.message).toBe(message);
   });
 
   it('무효 토큰이면 그 기기의 토큰을 비우고 나머지는 보낸다', async () => {

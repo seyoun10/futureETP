@@ -48,11 +48,11 @@ export const rollRuleParamsSchema = z
   })
   .refine((p) => p.rollDays.length === p.oldShares.length, '롤 영업일과 비중 개수가 다르다')
   .refine(
-    (p) => p.rollDays.every((d, i) => i === 0 || d > p.rollDays[i - 1]),
+    (p) => p.rollDays.every((d, i) => i === 0 || d > p.rollDays[i - 1]!),
     '롤 영업일은 오름차순이다',
   )
   .refine(
-    (p) => p.oldShares.every((s, i) => i === 0 || s <= p.oldShares[i - 1]),
+    (p) => p.oldShares.every((s, i) => i === 0 || s <= p.oldShares[i - 1]!),
     '이전 월물 비중은 줄어들기만 한다',
   )
   .refine(
@@ -60,7 +60,7 @@ export const rollRuleParamsSchema = z
     '마지막 롤 영업일에 이전 월물 비중은 0이다',
   )
   .refine(
-    (p) => p.rebalance === null || p.rebalance.businessDay < p.rollDays[0],
+    (p) => p.rebalance === null || p.rebalance.businessDay < p.rollDays[0]!,
     '재조정일은 첫 롤 영업일보다 앞이다',
   );
 
@@ -164,7 +164,7 @@ function weekdaysBefore(date: string): number {
 function oldShareAt(params: RollRuleParams, businessDay: number): number {
   let share = 1;
   params.rollDays.forEach((d, i) => {
-    if (d <= businessDay) share = params.oldShares[i];
+    if (d <= businessDay) share = params.oldShares[i]!;
   });
   return share;
 }
@@ -181,8 +181,8 @@ function monthLegs(commodityCode: CommodityCode, params: RollRuleParams, tradeDa
   const mon = Number(tradeDate.slice(5, 7));
   const rebalanceMonth = params.rebalance?.months.includes(mon) ?? false;
   return params.legs.map((leg) => {
-    const lead = heldSymbol(commodityCode, leg.hold[mon - 1], year);
-    const next = heldSymbol(commodityCode, leg.hold[mon % 12], mon === 12 ? year + 1 : year);
+    const lead = heldSymbol(commodityCode, leg.hold[mon - 1]!, year);
+    const next = heldSymbol(commodityCode, leg.hold[mon % 12]!, mon === 12 ? year + 1 : year);
     return { lead, next, rolling: lead !== next || rebalanceMonth };
   });
 }
@@ -238,7 +238,7 @@ export function expandRollWeights(
       // 첫날 종가 뒤 보유 기준 leg 가치가 weight 비율이 되게 한다
       qOld = params.legs.map((leg, i) => {
         if (!multiLeg) return 1;
-        const { lead, next, rolling } = legs[i];
+        const { lead, next, rolling } = legs[i]!;
         const s = shareOf(rolling);
         // 비중이 0인 월물은 가격을 찾지 않는다(롤을 마친 날 이전 월물 등)
         const unit =
@@ -254,8 +254,8 @@ export function expandRollWeights(
       isBusinessDay &&
       businessDay === params.rebalance?.businessDay
     ) {
-      const value = legs.reduce((sum, l, i) => sum + qOld[i] * priceOf(day, l.next), 0);
-      qNew = params.legs.map((leg, i) => (leg.weight * value) / priceOf(day, legs[i].next));
+      const value = legs.reduce((sum, l, i) => sum + qOld[i]! * priceOf(day, l.next), 0);
+      qNew = params.legs.map((leg, i) => (leg.weight * value) / priceOf(day, legs[i]!.next));
     }
 
     const bySymbol = new Map<string, number>();
@@ -264,8 +264,8 @@ export function expandRollWeights(
     };
     legs.forEach(({ lead, next, rolling }, i) => {
       const s = shareOf(rolling);
-      add(lead, s * qOld[i]);
-      add(next, (1 - s) * qNew[i]);
+      add(lead, s * qOld[i]!);
+      add(next, (1 - s) * qNew[i]!);
     });
     const total = [...bySymbol.values()].reduce((a, b) => a + b, 0);
     const weights = [...bySymbol]

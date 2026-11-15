@@ -68,7 +68,7 @@ const byDate = (result: RollWeightDay[]) => new Map(result.map((d) => [d.tradeDa
 function expectWeights(day: RollWeightDay | undefined, expected: [string, number][]) {
   expect(day).toBeDefined();
   expect(day!.weights.map((w) => w.symbol)).toEqual(expected.map(([s]) => s));
-  day!.weights.forEach((w, i) => expect(w.weight).toBeCloseTo(expected[i][1], 10));
+  day!.weights.forEach((w, i) => expect(w.weight).toBeCloseTo(expected[i]![1], 10));
 }
 
 // 수량 → 합 1 비중
@@ -231,7 +231,7 @@ describe('expandRollWeights: leg 하나(GSCI·BCOM)', () => {
   it('적재 첫 달: 첫 거래일 앞 같은 달 평일을 영업일로 센다(2010-06-07 = 5영업일)', () => {
     const result = expandRollWeights('CL', GSCI_CL, noPrices(weekdays('2010-06-07', '2010-06-30')));
     const d = byDate(result);
-    expect(result[0].tradeDate).toBe('2010-06-07');
+    expect(result[0]!.tradeDate).toBe('2010-06-07');
     expectWeights(d.get('2010-06-07'), [
       ['CLN10', 0.8],
       ['CLQ10', 0.2],
@@ -472,11 +472,11 @@ describe('ROLL_RULE_SEEDS', () => {
   });
 
   it('보유 월물 일정이 리서치 표와 같다', () => {
-    expect(seed('GC', 'KR').params.legs[0].hold).toEqual(GC_HOLD);
-    expect(seed('GC', 'US').params.legs[0].hold).toEqual(GC_HOLD);
-    expect(seed('SI', 'US').params.legs[0].hold).toEqual(seed('SI', 'KR').params.legs[0].hold);
-    expect(seed('CL', 'KR').params.legs[0].hold).toEqual(GSCI_CL.legs[0].hold);
-    expect(seed('NG', 'US').params.legs[0].hold).toEqual(BCOM_NG.legs[0].hold);
+    expect(seed('GC', 'KR').params.legs[0]!.hold).toEqual(GC_HOLD);
+    expect(seed('GC', 'US').params.legs[0]!.hold).toEqual(GC_HOLD);
+    expect(seed('SI', 'US').params.legs[0]!.hold).toEqual(seed('SI', 'KR').params.legs[0]!.hold);
+    expect(seed('CL', 'KR').params.legs[0]!.hold).toEqual(GSCI_CL.legs[0]!.hold);
+    expect(seed('NG', 'US').params.legs[0]!.hold).toEqual(BCOM_NG.legs[0]!.hold);
   });
 
   it('미국형은 CL만 BCBCLI(3 leg, NYMEX, 3·9월 재조정)이고 나머지는 BCOM이다', () => {

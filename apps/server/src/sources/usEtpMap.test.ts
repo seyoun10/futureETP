@@ -6,7 +6,7 @@ describe('US_ETP_MAP', () => {
     const symbols = Object.keys(US_ETP_MAP);
     expect(symbols).toHaveLength(17);
     for (const symbol of symbols) {
-      expect(US_ISSUER_URLS[US_ETP_MAP[symbol].issuer]).toMatch(/^https:\/\//);
+      expect(US_ISSUER_URLS[US_ETP_MAP[symbol]!.issuer]).toMatch(/^https:\/\//);
       expect(US_ETP_EXCLUDED.has(symbol)).toBe(false);
     }
   });

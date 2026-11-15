@@ -26,7 +26,8 @@ export type KnownEtpProduct = {
 // 목록 항목에 붙은 다른 필드(이름 등)는 그대로 계획에 실어 보낸다
 export type EtpSeriesPlan<L extends KrxEtpListing = KrxEtpListing> = {
   // 묶을 기존 상품이 없는 종목. ETN은 같은 키끼리 한 상품으로 모은다
-  newProducts: { groupingKey: string | null; listings: L[] }[];
+  // 새 상품마다 시리즈가 하나 이상이다
+  newProducts: { groupingKey: string | null; listings: [L, ...L[]] }[];
   // 기존 상품에 붙는 새 시리즈
   addSeries: { productId: string; listing: L }[];
   delistTickers: string[];
@@ -95,7 +96,7 @@ export function planKrxEtpSeries<L extends KrxEtpListing>(
     const group = newByKey.get(key);
     if (group) group.push(listing);
     else {
-      const created = [listing];
+      const created: [L, ...L[]] = [listing];
       newByKey.set(key, created);
       plan.newProducts.push({ groupingKey: key, listings: created });
     }

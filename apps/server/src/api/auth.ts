@@ -62,7 +62,8 @@ export function bearerAuth(options: {
       throw new ApiException('RATE_LIMITED', 'Too many failed authentication attempts');
     }
     const match = /^Bearer (.+)$/.exec(c.req.header('Authorization') ?? '');
-    if (!match || !tokenMatches(match[1], options.token)) {
+    const token = match?.[1];
+    if (token === undefined || !tokenMatches(token, options.token)) {
       options.limiter.recordFailure(ip);
       throw new ApiException('UNAUTHORIZED', 'Missing or invalid bearer token');
     }

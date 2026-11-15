@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { SettingsStore } from '../api/settings.ts';
 import type { db as Db } from './client.ts';
 import { device } from './schema.ts';
+import { oneRow } from './oneRow.ts';
 
 type Row = typeof device.$inferSelect;
 
@@ -41,12 +42,12 @@ export function createSettingsStore(db: typeof Db): SettingsStore {
         }),
         updatedAt: new Date(),
       };
-      const [row] = await db
+      const rows = await db
         .insert(device)
         .values({ id: deviceId, ...set })
         .onConflictDoUpdate({ target: device.id, set })
         .returning();
-      return toSettings(row);
+      return toSettings(oneRow(rows));
     },
   };
 }

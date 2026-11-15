@@ -207,7 +207,7 @@ describe('rare 레벨 알림 판정', () => {
 
     await judge([index('FRONT', 99.5, null)]);
     expect(sent).toHaveLength(2);
-    expect(sent[1].message.text.title).toBe('원유(대표월물) 이격도 상위 1% 도달');
+    expect(sent[1]!.message.text.title).toBe('원유(대표월물) 이격도 상위 1% 도달');
     expect(statuses(records).filter((r) => r[2] === 'SENT')).toEqual([
       ['UP', 1, 'SENT'],
       ['UP', 5, 'SENT'],
@@ -312,7 +312,7 @@ describe('RETRY 재발송', () => {
     const { retry, records, sent } = setup({ rows: [retryRow(5), retryRow(1, 'SENT')] });
     await retry({ before: SLOT, now: NOW });
     expect(sent).toHaveLength(0);
-    expect(records[0].status).toBe('SUPPRESSED');
+    expect(records[0]!.status).toBe('SUPPRESSED');
   });
 
   it('거부 시간이면 RETRY로 두고 기다린다', async () => {
@@ -322,14 +322,14 @@ describe('RETRY 재발송', () => {
     });
     await retry({ before: SLOT, now: NOW });
     expect(sent).toHaveLength(0);
-    expect(records[0].status).toBe('RETRY');
+    expect(records[0]!.status).toBe('RETRY');
   });
 
   it('지금 슬롯에서 첫 발송 중인 기록은 건드리지 않는다', async () => {
     const { retry, records, sent } = setup({ rows: [{ ...retryRow(5), detectedAt: SLOT }] });
     await retry({ before: SLOT, now: NOW });
     expect(sent).toHaveLength(0);
-    expect(records[0].status).toBe('RETRY');
+    expect(records[0]!.status).toBe('RETRY');
   });
 });
 
@@ -399,7 +399,7 @@ describe('HELD 지연 발송', () => {
     // 06:30 KST
     await deferred({ now: new Date('2026-10-27T21:30:00Z') });
     expect(sent).toHaveLength(0);
-    expect(records[0].status).toBe('HELD');
+    expect(records[0]!.status).toBe('HELD');
   });
 
   it('모든 기기에 실패하면 첫 발송처럼 RETRY로 남긴다', async () => {
@@ -419,7 +419,7 @@ describe('HELD 지연 발송', () => {
       rows: [heldRow('u5', { direction: 'UP', rareLevel: 5, detectedAt: AT_2330 })],
     });
     await deferred({ now: NOW });
-    expect(records[0].status).toBe('SENT');
+    expect(records[0]!.status).toBe('SENT');
   });
 });
 
@@ -445,10 +445,10 @@ describe('기기별 판정·발송(D-120)', () => {
       ['d2', 10],
     ]);
     expect(sent.map((s) => s.target.pushToken)).toEqual(['tok-d1', 'tok-d2']);
-    expect(sent[0].message.text.title).toBe('원유(대표월물) 이격도 상위 5% 도달');
+    expect(sent[0]!.message.text.title).toBe('원유(대표월물) 이격도 상위 5% 도달');
     // d2는 영어 문구
-    expect(sent[1].message.text.title).toMatch(/^[\x20-\x7e]+$/);
-    expect(sent[1].message.text.title).toContain('10%');
+    expect(sent[1]!.message.text.title).toMatch(/^[\x20-\x7e]+$/);
+    expect(sent[1]!.message.text.title).toContain('10%');
     // 같은 분포는 한 번만 읽는다
     expect(distributionOf).toHaveBeenCalledTimes(1);
   });

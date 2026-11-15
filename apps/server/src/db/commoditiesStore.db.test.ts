@@ -19,13 +19,15 @@ const bar = (contractSymbol: string, tradeDate: string, settle: number) => ({
 beforeEach(async () => {
   await resetDb(db);
   await db.insert(contract).values(
-    [
-      ['CLZ26', 'CL'],
-      ['CLF27', 'CL'],
-      ['GCZ26', 'GC'],
-    ].map(([symbol, commodityCode]) => ({
+    (
+      [
+        ['CLZ26', 'CL'],
+        ['CLF27', 'CL'],
+        ['GCZ26', 'GC'],
+      ] as const
+    ).map(([symbol, commodityCode]) => ({
       symbol,
-      commodityCode: commodityCode as 'CL' | 'GC',
+      commodityCode: commodityCode,
       contractMonth: '2026-12',
       lastTradeDate: '2026-12-29',
       isTarget: true,

@@ -57,10 +57,11 @@ type Day = { tradeDate: string; bars: Map<string, DayBar>; volumes: Map<string, 
 
 // 일봉을 거래일별로 묶는다. 거래일 달력에 없는 날의 일봉은 달력 누락이라 오류다
 function groupByDay(tradeDates: readonly string[], bars: readonly SourceBar[]): Day[] {
-  if (bars.length === 0) return [];
+  const firstBar = bars[0];
+  if (firstBar === undefined) return [];
   const known = new Set(tradeDates);
   const byDate = new Map<string, Day>();
-  let first = bars[0].tradeDate;
+  let first = firstBar.tradeDate;
   let last = first;
   for (const { contractSymbol, tradeDate, volume, ...bar } of bars) {
     if (!known.has(tradeDate)) throw new Error(`${tradeDate} 일봉이 있는데 거래일이 아니다`);
@@ -111,7 +112,7 @@ export function recomputeBasis(input: RecomputeInput): RecomputeResult {
       : ruleWeights(input.commodityCode, input.rule, days);
 
   const indexBars = buildIndexBars(
-    days.map((day, i) => ({ tradeDate: day.tradeDate, bars: day.bars, ...weightDays[i] })),
+    days.map((day, i) => ({ tradeDate: day.tradeDate, bars: day.bars, ...weightDays[i]! })),
   );
   const closes = indexBars.map(({ tradeDate, close }) => ({ tradeDate, close }));
   const disparities = MA_PERIODS.map((maPeriod) => ({
@@ -132,7 +133,7 @@ export function recomputeBasis(input: RecomputeInput): RecomputeResult {
 
   return {
     rollWeights: days.flatMap(({ tradeDate }, i) =>
-      weightDays[i].weights.map(({ symbol, weight }) => ({
+      weightDays[i]!.weights.map(({ symbol, weight }) => ({
         tradeDate,
         contractSymbol: symbol,
         weight,

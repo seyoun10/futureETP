@@ -76,7 +76,7 @@ export async function loadCommodities(
   let delayed = false;
   const summaries = commodities.map(({ code, priceDecimals }, i) => {
     const result = buildQuotes({
-      ...lists[i],
+      ...lists[i]!,
       tradeDate,
       prevTradeDate,
       bars,

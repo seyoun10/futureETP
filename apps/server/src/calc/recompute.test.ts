@@ -83,7 +83,7 @@ describe('recomputeBasis: 이격도와 분포', () => {
     expect(ma20.slice(0, 19).every((r) => r.disparity === null)).toBe(true);
     // 50..69의 평균 59.5
     expect(ma20[19]).toMatchObject({ tradeDate: tradeDates[19], ma: 59.5 });
-    expect(ma20[19].disparity).toBeCloseTo((69 / 59.5 - 1) * 100, 12);
+    expect(ma20[19]!.disparity).toBeCloseTo((69 / 59.5 - 1) * 100, 12);
   });
 
   it('분포는 마지막 거래일 기준, 표본이 있는 MA20만 N 4종', () => {
@@ -110,14 +110,14 @@ describe('recomputeBasis: 한국형(GSCI)', () => {
 
   it('5~9영업일에 이전 월물 비중을 0.2씩 옮기고 그날을 롤 구간으로 둔다', () => {
     const on = (date: string) => result.rollWeights.filter((w) => w.tradeDate === date);
-    expect(on(tradeDates[3])).toEqual([
+    expect(on(tradeDates[3]!)).toEqual([
       { tradeDate: tradeDates[3], contractSymbol: Z26.symbol, weight: 1 },
     ]);
-    expect(on(tradeDates[4]).map((w) => [w.contractSymbol, w.weight])).toEqual([
+    expect(on(tradeDates[4]!).map((w) => [w.contractSymbol, w.weight])).toEqual([
       [Z26.symbol, 0.8],
       [F27.symbol, expect.closeTo(0.2, 12)],
     ]);
-    expect(on(tradeDates[9])).toEqual([
+    expect(on(tradeDates[9]!)).toEqual([
       { tradeDate: tradeDates[9], contractSymbol: F27.symbol, weight: 1 },
     ]);
     expect(result.indexBars.map((b) => b.inRollPeriod)).toEqual([

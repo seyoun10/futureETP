@@ -3,15 +3,16 @@ import type { db as Db } from '../db/client.ts';
 import { batchRun } from '../db/schema.ts';
 import type { OpsAlertStore } from './opsAlert.ts';
 import type { BatchRunStore } from './runner.ts';
+import { oneRow } from '../db/oneRow.ts';
 
 export function createBatchRunStore(db: typeof Db): BatchRunStore {
   return {
     async start(run) {
-      const [row] = await db
+      const rows = await db
         .insert(batchRun)
         .values({ ...run, status: 'RUNNING' })
         .returning({ id: batchRun.id });
-      return row.id;
+      return oneRow(rows).id;
     },
     async finish(id, result) {
       await db.update(batchRun).set(result).where(eq(batchRun.id, id));

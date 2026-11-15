@@ -77,9 +77,9 @@ describe('fetchSessionQuotes', () => {
         sourceTime: new Date((T0 + 3600) * 1000),
       },
     ]);
-    expect(urls[0].pathname).toBe('/v8/finance/chart/CLZ26.NYM');
-    expect(urls[0].searchParams.get('period1')).toBe(String(T0));
-    expect(urls[0].searchParams.get('interval')).toBe('5m');
+    expect(urls[0]!.pathname).toBe('/v8/finance/chart/CLZ26.NYM');
+    expect(urls[0]!.searchParams.get('period1')).toBe(String(T0));
+    expect(urls[0]!.searchParams.get('interval')).toBe('5m');
   });
 
   it('세션에 아직 체결이 없으면 현재가만 쓴다(meta 고가·저가는 지난 세션 값)', async () => {
@@ -100,7 +100,7 @@ describe('fetchSessionQuotes', () => {
     );
     const [quote] = await source.fetchSessionQuotes(['CLF30'], SESSION_OPEN);
     expect(quote).toMatchObject({ last: 90, dayOpen: null, dayHigh: null, dayLow: null });
-    expect(quote.volume).toBeNull();
+    expect(quote!.volume).toBeNull();
   });
 
   it('404(만기) 월물은 빠지고, 호출 사이를 띄운다', async () => {

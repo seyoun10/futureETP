@@ -104,8 +104,7 @@ export function buildIndexBars(days: readonly IndexInputDay[]): IndexBarRow[] {
 
 // 가격 수준 맞춤 비율: 마지막 유효일의 혼합 가격 / 원래 지수. 마지막 날이 무효면 그 앞 유효일 비율을 그대로 쓴다
 export function indexScaleRatio(bars: readonly IndexBarRow[]): number | null {
-  for (let i = bars.length - 1; i >= 0; i--) {
-    const { isValid, close, blendedPrice } = bars[i];
+  for (const { isValid, close, blendedPrice } of bars.toReversed()) {
     if (isValid && close !== null) return blendedPrice / close;
   }
   return null;

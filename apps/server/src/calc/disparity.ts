@@ -75,7 +75,7 @@ export function buildDistribution(
   return {
     asOfTradeDate,
     // 시계열이 거래일 오름차순이라 첫 표본이 실제 시작일이다
-    actualStartDate: samples[0].tradeDate,
+    actualStartDate: samples[0]!.tradeDate,
     sampleCount: samples.length,
     sortedValues: samples.map((r) => r.disparity).sort((a, b) => a - b),
   };
@@ -83,10 +83,13 @@ export function buildDistribution(
 
 // q번째 백분위(0~100). numpy 기본 linear(= Excel PERCENTILE.INC) 보간
 export function percentile(sorted: readonly number[], q: number): number {
+  const last = sorted.at(-1);
+  if (last === undefined) throw new RangeError('percentile of an empty distribution');
   const h = (q / 100) * (sorted.length - 1);
   const lo = Math.floor(h);
-  if (lo >= sorted.length - 1) return sorted[sorted.length - 1];
-  return sorted[lo] + (h - lo) * (sorted[lo + 1] - sorted[lo]);
+  if (lo >= sorted.length - 1) return last;
+  const a = sorted[lo]!;
+  return a + (h - lo) * (sorted[lo + 1]! - a);
 }
 
 // rare 레벨 p%의 이격도. 위 방향은 넘은 날이 p%인 지점, 아래 방향은 낮은 날이 p%인 지점
@@ -106,6 +109,7 @@ export function rareLevelPrice(ma: number, levelDisparity: number): number {
 // percentile의 역함수(0~100). 같은 값이 여러 개면 그 순위 구간의 가운데, 범위 밖은 0·100으로 자른다
 export function percentileRank(sorted: readonly number[], x: number): number {
   const n = sorted.length;
+  if (n === 0) throw new RangeError('percentileRank of an empty distribution');
   if (n === 1) return 50;
   const below = sorted.filter((v) => v < x).length;
   const atOrBelow = sorted.filter((v) => v <= x).length;
@@ -113,7 +117,10 @@ export function percentileRank(sorted: readonly number[], x: number): number {
   if (atOrBelow > below) h = (below + atOrBelow - 1) / 2;
   else if (below === 0) return 0;
   else if (below === n) return 100;
-  else h = below - 1 + (x - sorted[below - 1]) / (sorted[below] - sorted[below - 1]);
+  else {
+    const a = sorted[below - 1]!;
+    h = below - 1 + (x - a) / (sorted[below]! - a);
+  }
   return (h / (n - 1)) * 100;
 }
 

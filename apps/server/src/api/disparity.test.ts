@@ -53,7 +53,7 @@ function setup(path: string, data: Data = {}) {
     priceDecimals: () => Promise.resolve(2),
     rollRule: (_code, basis) =>
       Promise.resolve(
-        (data.rules ?? ['KR', 'US']).includes(basis) ? ROLL_RULE_SEEDS[0].params : null,
+        (data.rules ?? ['KR', 'US']).includes(basis) ? ROLL_RULE_SEEDS[0]!.params : null,
       ),
     indexBars: (_code, basis) =>
       Promise.resolve(

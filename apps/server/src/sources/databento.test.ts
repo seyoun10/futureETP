@@ -24,7 +24,7 @@ describe('createDatabentoClient', () => {
     const client = createDatabentoClient('db-key', fetchFn);
     expect(await client.cost(request)).toBe(6.79);
 
-    const [url, init] = fetchFn.mock.calls[0];
+    const [url, init] = fetchFn.mock.calls[0]!;
     expect(url).toBe('https://hist.databento.com/v0/metadata.get_cost');
     expect(init?.method).toBe('POST');
     expect((init?.headers as Record<string, string>).authorization).toBe(

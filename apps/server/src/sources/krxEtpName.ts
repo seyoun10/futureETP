@@ -40,7 +40,7 @@ export function parseKrxEtpName(name: string): KrxEtpName | null {
     commodityCode,
     leverage: parseLeverage(trimmed),
     fxHedge: HEDGED.test(trimmed) ? 'HEDGED' : 'UNHEDGED',
-    issuer: trimmed.split(/\s+/)[0],
+    issuer: trimmed.split(/\s+/)[0] ?? trimmed,
     series: SERIES.exec(trimmed)?.[1] ?? null,
   };
 }

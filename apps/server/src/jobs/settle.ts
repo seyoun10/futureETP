@@ -202,7 +202,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       .slice(-SKIP_LOOKBACK_DAYS);
     const recent =
       lookback.length === SKIP_LOOKBACK_DAYS
-        ? await store.sourceBarDates(code, source.name, lookback[0], lookback.at(-1) ?? tradeDate)
+        ? await store.sourceBarDates(code, source.name, lookback[0]!, lookback.at(-1) ?? tradeDate)
         : [];
     const canSkip = new Set(recent.map((b) => b.tradeDate)).size === SKIP_LOOKBACK_DAYS;
     const traded = new Set(recent.map((b) => b.contractSymbol));
@@ -380,13 +380,13 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       }
       const symbols = [
         ...new Set([
-          ...[...missing].map((key) => key.split('|')[0]),
+          ...[...missing].map((key) => key.slice(0, key.indexOf('|'))),
           ...[...sourceBars.values()].flat().map((b) => b.contractSymbol),
         ]),
       ];
       if (symbols.length === 0) return;
 
-      const fetched = await source.fetchRecentBars(code, symbols, dates[0]);
+      const fetched = await source.fetchRecentBars(code, symbols, dates[0]!);
       // 저장된 봉이 있는데 그중 하나도 다시 받지 못하면 비교한 것이 아니다(빈 칸의 봉만 온 경우 포함)
       const storedKeys = new Set(
         [...sourceBars].flatMap(([date, bars]) => bars.map((b) => `${b.contractSymbol}|${date}`)),

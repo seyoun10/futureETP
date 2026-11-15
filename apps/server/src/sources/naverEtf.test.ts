@@ -18,7 +18,9 @@ describe('createNaverEtfSource', () => {
 
     expect(await source.expenseRatio('261220')).toBe(0.35);
     expect(await source.expenseRatio('530031')).toBeNull();
-    expect(fetchFn.mock.calls[0][0]).toBe('https://m.stock.naver.com/api/stock/261220/integration');
+    expect(fetchFn.mock.calls[0]![0]).toBe(
+      'https://m.stock.naver.com/api/stock/261220/integration',
+    );
   });
 
   it('HTTP 오류나 형식이 다르면 실패한다', async () => {

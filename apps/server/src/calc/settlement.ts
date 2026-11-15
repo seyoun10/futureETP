@@ -23,7 +23,8 @@ export function planSettle(
   if (tradeDate === null) throw new Error(`No closed trading day before ${now.toISOString()}`);
   if (lastSettledTradeDate === null) return { tradeDate, dates: [tradeDate] };
   if (lastSettledTradeDate >= tradeDate) return { tradeDate, dates: [] };
-  if (days.length === 0 || lastSettledTradeDate < days[0].tradeDate) {
+  const firstDay = days[0];
+  if (firstDay === undefined || lastSettledTradeDate < firstDay.tradeDate) {
     throw new Error(`Trading days before ${lastSettledTradeDate} are not loaded`);
   }
 
@@ -43,7 +44,7 @@ export function planSettle(
 export function revisionTradeDate(now: Date, days: readonly TradingDaySession[]): string | null {
   const tradeDate = lastClosedTradeDate(now, days);
   const index = days.findIndex((d) => d.tradeDate === tradeDate);
-  return index > 0 ? days[index - 1].tradeDate : null;
+  return days[index - 1]?.tradeDate ?? null;
 }
 
 export type BarValues = {

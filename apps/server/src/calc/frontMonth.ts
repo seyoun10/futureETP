@@ -84,9 +84,10 @@ export function buildFrontAfterClose(
   const held = buildFrontSeries(contracts, days);
   return held.map(({ tradeDate, symbol: current }, i) => {
     let symbol: string | null;
-    if (i + 1 < held.length) symbol = held[i + 1].symbol;
+    const after = held[i + 1];
+    if (after !== undefined) symbol = after.symbol;
     else if (current === null) symbol = null;
-    else symbol = nextFrontSymbol(contracts, tradeDate, days[i].volumes, current);
+    else symbol = nextFrontSymbol(contracts, tradeDate, days[i]!.volumes, current);
     return {
       tradeDate,
       symbol,

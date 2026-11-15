@@ -41,8 +41,8 @@ describe('createFcmSender', () => {
   it('본문이 없으면 notification.body를 넣지 않는다', async () => {
     const { sender, sent } = setup();
     await sender.send(ANDROID, { text: { title: '정산 실패', body: null }, channel: 'ops' });
-    expect(sent[0].notification).toEqual({ title: '정산 실패' });
-    expect(sent[0].android?.notification?.channelId).toBe('ops');
+    expect(sent[0]!.notification).toEqual({ title: '정산 실패' });
+    expect(sent[0]!.android?.notification?.channelId).toBe('ops');
   });
 
   it('UNREGISTERED는 INVALID_TOKEN이다', async () => {

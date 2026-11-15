@@ -100,7 +100,7 @@ const PRICES: Record<string, number> = { CLZ26: 110, CLF27: 100, CLG27: 99 };
 function fakeSource(missing: string[] = []) {
   const respond = (symbols: readonly string[], session: boolean) =>
     Promise.resolve(
-      symbols.filter((s) => !missing.includes(s)).map((s) => quote(s, PRICES[s], session)),
+      symbols.filter((s) => !missing.includes(s)).map((s) => quote(s, PRICES[s]!, session)),
     );
   const source = {
     name: 'YAHOO',
@@ -135,16 +135,16 @@ describe('INTRADAY', () => {
       ['CLG27', null],
     ]);
     expect(saved.quotes.every((q) => q.capturedAt.getTime() === SLOT.getTime())).toBe(true);
-    expect(saved.quotes[0].tradeDate).toBe('2026-10-28');
+    expect(saved.quotes[0]!.tradeDate).toBe('2026-10-28');
 
     // 기준값마다 잠정 지수(US는 roll_weight가 없어 빠진다)
     expect(saved.indexes.map((i) => i.basis)).toEqual(['FRONT', 'KR']);
     const [front, kr] = saved.indexes;
     expect(front).toMatchObject({ commodityCode: 'CL', capturedAt: SLOT, tradeDate: '2026-10-28' });
-    expect(front.last).toBeCloseTo(0.5 * 110);
-    expect(front.high).toBeCloseTo(0.5 * 112);
-    expect(kr.last).toBeCloseTo(0.5 * (0.6 * 110 + 0.4 * 100));
-    expect(kr.disparityByMa['200'].last).toBeCloseTo((53 / ((199 * 50 + 53) / 200) - 1) * 100);
+    expect(front!.last).toBeCloseTo(0.5 * 110);
+    expect(front!.high).toBeCloseTo(0.5 * 112);
+    expect(kr!.last).toBeCloseTo(0.5 * (0.6 * 110 + 0.4 * 100));
+    expect(kr!.disparityByMa['200'].last).toBeCloseTo((53 / ((199 * 50 + 53) / 200) - 1) * 100);
   });
 
   it.each([
@@ -196,7 +196,7 @@ describe('INTRADAY', () => {
     const { store, saved } = memoryStore({ history: stale });
     const handler = createIntradayHandler({ store, source: fakeSource(), log: () => {} });
     await expect(run(handler)).rejects.toThrow(
-      `FRONT expected 2026-10-27, roll_weight 2026-10-27, index_bar ${stale[stale.length - 1].tradeDate}`,
+      `FRONT expected 2026-10-27, roll_weight 2026-10-27, index_bar ${stale[stale.length - 1]!.tradeDate}`,
     );
     expect(saved.indexes).toHaveLength(0);
     expect(saved.quotes).toHaveLength(3);

@@ -310,7 +310,7 @@ describe('DAILY_SETTLE', () => {
     const { handlers, source } = setup({ DAILY_SETTLE: '2026-11-20' });
     // 11-23(월): CLZ26 최종 거래일(11-20) 지남
     await handlers.DAILY_SETTLE(ctx(ct('2026-11-23', '18:30')));
-    expect(source.fetchDailyBars.mock.calls[0][1]).toEqual(['GCF27']);
+    expect(source.fetchDailyBars.mock.calls[0]![1]).toEqual(['GCF27']);
   });
 
   it('밀린 거래일을 모두 받고 재계산은 원자재마다 한 번이다', async () => {
@@ -410,10 +410,10 @@ describe('DAILY_SETTLE', () => {
     const { handlers, source } = setup({ DAILY_SETTLE: '2026-10-26' }, manyContractsSource());
     await handlers.DAILY_SETTLE(ctx());
 
-    const symbols = source.fetchDailyBars.mock.calls[0][1];
+    const symbols = source.fetchDailyBars.mock.calls[0]![1];
     expect(symbols).toHaveLength(MAX_SETTLE_CONTRACTS);
     expect(symbols[0]).toBe('GCX26');
-    expect(symbols.at(-1)).toBe(toContractSymbol('GC', MONTHS[MAX_SETTLE_CONTRACTS - 1]));
+    expect(symbols.at(-1)).toBe(toContractSymbol('GC', MONTHS[MAX_SETTLE_CONTRACTS - 1]!));
   });
 
   describe('드문 월물 건너뛰기', () => {
@@ -421,7 +421,7 @@ describe('DAILY_SETTLE', () => {
       .filter((d) => d < '2026-10-27')
       .slice(-SKIP_LOOKBACK_DAYS);
     const symbolsOf = (code: CommodityCode, ranks: readonly number[]) =>
-      ranks.map((i) => toContractSymbol(code, MONTHS[i]));
+      ranks.map((i) => toContractSymbol(code, MONTHS[i]!));
 
     // 직전 거래일들에 ranks 순위 월물 봉이 source로 저장된 상태
     async function withHistory(
@@ -506,12 +506,14 @@ describe('SETTLE_REVISION', () => {
   async function seeded(settle: (symbol: string, tradeDate: string) => number | null) {
     const env = setup({ DAILY_SETTLE: '2026-10-27' }, testSource(settle));
     await env.store.insertContracts(
-      [
-        ['CLZ26', '2026-12', '2026-11-20'],
-        ['CLF27', '2027-01', '2026-12-18'],
-        ['CLQ27', '2027-08', '2027-07-21'],
-        ['NGZ26', '2026-12', '2026-11-25'],
-      ].map(([symbol, contractMonth, lastTradeDate]) => ({
+      (
+        [
+          ['CLZ26', '2026-12', '2026-11-20'],
+          ['CLF27', '2027-01', '2026-12-18'],
+          ['CLQ27', '2027-08', '2027-07-21'],
+          ['NGZ26', '2026-12', '2026-11-25'],
+        ] as const
+      ).map(([symbol, contractMonth, lastTradeDate]) => ({
         symbol,
         commodityCode: symbol.startsWith('CL') ? 'CL' : 'NG',
         contractMonth,

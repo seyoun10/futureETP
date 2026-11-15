@@ -54,7 +54,7 @@ describe('buildDisparityChart', () => {
     // 산출 불가일
     expect(bars[1]).toMatchObject({ close: null, ma: null, disparity: null });
     expect(bars[2]).toMatchObject({ close: 220, ma: 210, disparity: 4.76, inRoll: true });
-    expect(bars[2].holdings).toEqual([{ contractMonth: '2026-12', weight: 1 }]);
+    expect(bars[2]!.holdings).toEqual([{ contractMonth: '2026-12', weight: 1 }]);
   });
 
   it('rare 레벨은 위 방향 오름차순 → 아래 방향 오름차순이고, 가격은 마지막 봉 이평선의 밴드다', () => {
@@ -67,9 +67,9 @@ describe('buildDisparityChart', () => {
       ['DOWN', 10],
     ]);
     // 95번째 백분위 = 9.5, 이평선 210 × 1.095
-    expect(rareLevels[0].disparity).toBeCloseTo(9.5);
-    expect(rareLevels[0].price).toBeCloseTo(229.95);
-    expect(rareLevels[3].disparity).toBeCloseTo(1);
+    expect(rareLevels[0]!.disparity).toBeCloseTo(9.5);
+    expect(rareLevels[0]!.price).toBeCloseTo(229.95);
+    expect(rareLevels[3]!.disparity).toBeCloseTo(1);
     // 4.76은 순위 47.6 → 하위
     expect(currentTail?.side).toBe('DOWN');
     expect(currentTail?.pct).toBeCloseTo(47.6);
@@ -92,10 +92,10 @@ describe('buildDisparityChart', () => {
     const today = bars[bars.length - 1];
     // 이평선 (110 + 120) / 2 = 115, 이격도 (120 / 115 − 1) × 100
     expect(today).toMatchObject({ tradeDate: '2026-10-22', open: 222, close: 240, ma: 230 });
-    expect(today.disparity).toBeCloseTo(4.3478);
+    expect(today!.disparity).toBeCloseTo(4.3478);
     // 대표월물(규칙 없음)은 장중에 전환을 모르므로 롤 구간이 아니다. 보유 월물은 10/21 종가 뒤 비중
-    expect(today.inRoll).toBe(false);
-    expect(today.holdings).toEqual([
+    expect(today!.inRoll).toBe(false);
+    expect(today!.holdings).toEqual([
       { contractMonth: '2026-12', weight: 0.8 },
       { contractMonth: '2027-01', weight: 0.2 },
     ]);

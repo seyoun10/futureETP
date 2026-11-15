@@ -98,10 +98,10 @@ export function planDetections(input: {
   ];
   for (const [direction, disparity] of sides) {
     const touched = touchedLevels(sorted, levels, direction, disparity);
-    if (touched.length === 0 || disparity === null) continue;
+    const rarest = touched[0];
+    if (rarest === undefined || disparity === null) continue;
     const recorded = (p: number) =>
       existing.some((r) => r.direction === direction && r.rareLevel === p);
-    const rarest = touched[0];
     const sendRarest = !recorded(rarest) && !isCovered(existing, direction, rarest);
     for (const p of touched) {
       if (recorded(p)) continue;
