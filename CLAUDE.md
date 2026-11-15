@@ -40,7 +40,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 상세는 `docs/architecture.md`, 스택·버전은 `docs/tech-stack.md`.
 
 - npm workspaces: `apps/mobile`(Expo), `apps/server`(API + 배치 한 프로세스), `packages/shared`. 의존은 앱·서버 → shared만 (D-040, D-051)
-- TypeScript ~6.0 strict를 Expo SDK 고정 버전에 맞춰 서버·shared도 같이 쓴다 (D-028, D-050, D-051)
+- TypeScript ~6.0 strict를 Expo SDK 고정 버전에 맞춰 서버·shared도 같이 쓴다. 세 workspace 모두 `noUncheckedIndexedAccess` 등을 켜고, 서버·shared는 `exactOptionalPropertyTypes`도 켠다 (D-028, D-050, D-051, D-127)
 - 환경: dev는 로컬 Mac(스케줄러 꺼짐, 작업은 CLI 1회 실행), prod는 VM(Docker Compose + Caddy). 앱은 `APP_VARIANT`로 dev(`.dev` ID)·prod 두 변형이고, `development`가 아니면 모두 prod (D-034, D-043, D-052)
 - API 응답은 항상 `{ success: true, data } | { success: false, error: { code, message } }` + 맞는 HTTP 상태. 앱은 shared zod 스키마로 응답을 검증하고, 사용자 문구는 에러 `code`의 i18n 키로 만든다 (D-042)
 
@@ -61,7 +61,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 모두 저장소 루트에서 실행한다. workspace 하나만 돌릴 때는 `-w apps/mobile`·`-w apps/server`·`-w packages/shared`. 영역별 명령은 각 rules 파일, 운영·배포·기기 확인 명령은 `docs/ops.md`.
 
-- `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트
+- `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트(`test:gate`: 서버·shared는 커버리지 하한 포함, D-127)
 - `npm run lint` / `npm run format`(파일 수정, 확인만은 `npm run format:check`) / `npm run typecheck` / `npm test`
-- 커버리지 측정(추세 확인용, 임계치 없음): `npm run test:coverage`
+- 커버리지 측정: `npm run test:coverage`(서버·shared 하한은 각 `vitest.config.ts`, 앱은 추세만)
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`

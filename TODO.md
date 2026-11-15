@@ -357,3 +357,13 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] 2026-11-03: prod 변형 Release를 Personal Team으로 iPhone 14 Pro·16 Pro Max에 설치·실행(푸시 권한 빼고, 7일 만료). 다른 세션과 겹치지 않게 별도 git worktree에서 prebuild·빌드. 16 Pro Max는 `-allowProvisioningDeviceRegistration`으로 팀에 등록 (D-039 보충)
     - [x] 두 기기에서 접근 키 QR 등록 (2026-11-03)
     - [ ] 두 기기에서 운영 데이터 표시·카메라 권한 문구 확인
+
+### 5-11. 검증 강화 (D-127)
+- [x] 현재 체계 측정과 강화안 승인 (2026-11-15): typed lint는 이미 적용, 서버 calc 줄 커버리지 100%
+- [x] TS `noImplicitOverride`·`noImplicitReturns`·`noFallthroughCasesInSwitch` + lint `switch-exhaustiveness-check` (위반 0) (2026-11-15)
+- [x] `noUncheckedIndexedAccess`: 서버·shared, 앱(fingerprint 해시 변화 없음 확인) (2026-11-15)
+- [x] 서버·shared 커버리지 하한을 `npm run check`(`test:gate`)에 연결, calc 하한이 실제로 실패시키는지 확인 (2026-11-15)
+- [x] `exactOptionalPropertyTypes`(서버·shared), `jobs/recompute.ts`·`sources/databento.ts` 테스트 보강 (2026-11-15)
+- [x] calc mutation 테스트 1회(점수 91.5%) → 의미 있는 경계만 테스트 보강 (2026-11-15)
+- [ ] push 뒤 GitHub Actions `check`가 커버리지 하한 포함으로 통과하는지 확인
+- [ ] (후속) Gesture Handler 구 API(`Gesture.Tap` 등) 이전 후 `@typescript-eslint/no-deprecated` 켜기

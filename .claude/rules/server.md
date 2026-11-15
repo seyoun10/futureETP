@@ -22,6 +22,8 @@ paths:
 
 - ESM + Node 타입 스트리핑: 상대 import에 `.ts` 확장자, 타입만은 `import type`, TS `enum`·`namespace`·생성자 매개변수 속성 금지(enum 대신 shared 상수 문자열), tsconfig `paths` 별칭 금지(필요하면 `package.json` `imports`의 `#/`) (D-051)
 - 라우트는 `ok(c, data)`로 응답하고 실패는 `ApiException(code, message)`을 던진다(`onError`가 봉투로 바꿈, D-059)
+- 인덱스 접근은 `T | undefined`다(`noUncheckedIndexedAccess`). 범위가 보장될 때만 `!`, 빈 배열일 수 있으면 가드하거나 던진다. 한 행이 꼭 오는 `returning()`은 `db/oneRow.ts`. 선택 값을 그대로 넘기는 옵션 타입은 `?: T | undefined`로 쓴다(`exactOptionalPropertyTypes`) (D-127)
+- 커버리지 하한(`vitest.config.ts`): 전체 80, `src/calc/**` lines·functions 100. 떨어지면 `npm run check`가 실패한다 (D-127)
 - 배치 작업은 `JobHandler(ctx)`로 만들어 `jobs/handlers.ts`의 `JOB_HANDLERS`에 등록한다. 시각은 `ctx.now`만 쓰고, 처리한 CME 거래일은 `ctx.tradeDate`에 채운다 (D-060)
 
 ## Commands

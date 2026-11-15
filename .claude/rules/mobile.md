@@ -24,6 +24,7 @@ paths:
 - 사용자에게 보이는 문구는 i18n 키로만 쓴다 (D-033)
 - 서버 접근 키는 SecureStore에만 둔다. 앱 번들·app config·저장소에 넣지 않는다. 예외는 dev 변형의 `DEV_API_TOKEN`뿐 (D-043, D-044)
 - 테스트는 RNTL 14라 `await render(...)`로 쓴다 (D-054)
+- 인덱스 접근은 `T | undefined`다(`noUncheckedIndexedAccess`). 범위가 보장될 때만 `!`, 빈 배열일 수 있으면 가드한다. 앱 커버리지는 하한 없이 추세만 본다 (D-127)
 
 ## Conventions
 
