@@ -377,3 +377,5 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - iOS: worktree에서 prod Release(Personal Team, `IOS_PERSONAL_TEAM=1`) 빌드 → 14 Pro·16 Pro Max 설치(7일 만료). 한 기기만 대상으로 빌드하면 프로필에 그 기기만 들어가 다른 기기는 `0xe8008012` → 두 번째 기기를 `-destination`·`-allowProvisioningDeviceRegistration`으로 다시 빌드. 재설치 뒤 기기마다 개발자 신뢰를 다시 허용해야 실행됨
   - 14 Pro 미러링 확인: A 목록·C-a(십자선)·C-b·C-c 표시, 기존 접근 키·설정 유지, 등락 색 저장 → 재시작 뒤 복원
   - 백그라운드 셸에서 `pod install`이 `Unicode Normalization ... ASCII-8BIT`로 실패하면 `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`
+- [x] 코드 리뷰 수정·중복 정리 배포 (2026-11-15, `f6219e5`): 서버 `npm run deploy`(마이그레이션 변경 없음, health 200), 앱 OTA `update:prod`(iOS runtime `0721e7a`, Android `ac494f9`). 네이티브 변경이 없어 재빌드는 하지 않음
+  - [ ] 기기에서 앱 재시작 두 번 뒤 C 화면 세 탭·설정 왕복(설정을 열었다 돌아와도 기준일·줌 유지) 확인
