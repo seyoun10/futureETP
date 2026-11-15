@@ -2,29 +2,20 @@
 import { and, eq, isNotNull, lt, type SQL } from 'drizzle-orm';
 import type { AlertDevice, RareAlertStore } from '../jobs/rareAlert.ts';
 import type { db as Db } from './client.ts';
-import { alertRecord, device, disparityDistribution } from './schema.ts';
+import { createDisparityStore } from './disparityStore.ts';
+import { alertRecord, device } from './schema.ts';
 import { isAlertJudgmentSuspended } from './settle.ts';
 import { toSettings } from './settingsStore.ts';
 
 export function createRareAlertStore(db: typeof Db): RareAlertStore {
+  const { distribution: distributionRow } = createDisparityStore(db);
   return {
     alertDevices: (code) => alertDevices(eq(device.alertCommodity, code)),
     device: async (id) => (await alertDevices(eq(device.id, id)))[0] ?? null,
     isSuspended: () => isAlertJudgmentSuspended(db),
-    async distribution(code, basis, maPeriod, window) {
-      const [row] = await db
-        .select({ sortedValues: disparityDistribution.sortedValues })
-        .from(disparityDistribution)
-        .where(
-          and(
-            eq(disparityDistribution.commodityCode, code),
-            eq(disparityDistribution.basis, basis),
-            eq(disparityDistribution.maPeriod, maPeriod),
-            eq(disparityDistribution.window, window),
-          ),
-        );
-      return row?.sortedValues ?? null;
-    },
+    // C-a 조회와 같은 분포 행(disparityStore)에서 정렬된 값만 쓴다
+    distribution: async (code, basis, maPeriod, window) =>
+      (await distributionRow(code, basis, maPeriod, window))?.sortedValues ?? null,
     records: ({ deviceId, commodityCode, basis, maPeriod, window, tradeDate }) =>
       db
         .select({

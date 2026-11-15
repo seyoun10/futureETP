@@ -10,6 +10,7 @@ import type {
   SettlementSource,
   SourceBar,
 } from './settlement.ts';
+import { errorMessage } from '../errorMessage.ts';
 
 const BASE_URL = 'https://api.massive.com';
 export const MIN_CALL_INTERVAL_MS = 13_000;
@@ -142,9 +143,7 @@ export function createMassiveSettlementSource({
           contractMonth = parseMassiveTicker(code, c.ticker, c.last_trade_date);
         } catch (error) {
           // 쓰지 않는 만기·먼 월물 하나 때문에 원자재 전체가 실패하지 않게 건너뛴다. 필요한 월물이면 fetchDailyBars에서 빠진다
-          log(
-            `[massive ${code}] skip contract: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          log(`[massive ${code}] skip contract: ${errorMessage(error)}`);
           continue;
         }
         const symbol = toContractSymbol(code, contractMonth);

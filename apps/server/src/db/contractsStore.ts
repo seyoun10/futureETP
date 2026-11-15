@@ -1,10 +1,10 @@
-import { and, asc, eq, gte, inArray, lte } from 'drizzle-orm';
+import { and, asc, inArray, lte } from 'drizzle-orm';
 import type { ContractsStore } from '../api/contracts.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
 import { createDisparityStore } from './disparityStore.ts';
-import { settleColumns } from './queries.ts';
-import { contract, dailyBar } from './schema.ts';
+import { contractsFrom, settleColumns } from './queries.ts';
+import { dailyBar } from './schema.ts';
 
 // GET /v1/commodities/:code/contracts 조회(D-092). 조립은 api/contracts.ts·calc가 한다.
 export function createContractsStore(db: typeof Db): ContractsStore {
@@ -17,16 +17,7 @@ export function createContractsStore(db: typeof Db): ContractsStore {
     frontSymbols,
     latestSnapshots,
     priceDecimals,
-    contracts: (code, tradeDate) =>
-      db
-        .select({
-          symbol: contract.symbol,
-          contractMonth: contract.contractMonth,
-          lastTradeDate: contract.lastTradeDate,
-          isTarget: contract.isTarget,
-        })
-        .from(contract)
-        .where(and(eq(contract.commodityCode, code), gte(contract.lastTradeDate, tradeDate))),
+    contracts: (code, tradeDate) => contractsFrom(db, code, tradeDate),
     async settleHistory(symbols, tradeDate) {
       if (symbols.length === 0) return [];
       return db

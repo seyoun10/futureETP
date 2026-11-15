@@ -3,7 +3,7 @@ import { and, between, desc, eq, inArray, isNotNull, max, sql } from 'drizzle-or
 import type { JobName } from '../constants.ts';
 import type { SettleStore } from '../jobs/settle.ts';
 import type { db as Db } from './client.ts';
-import { tradingDaysBetween } from './queries.ts';
+import { excluded, tradingDaysBetween } from './queries.ts';
 import { activeMonthRule, batchRun, commodity, contract, dailyBar, rollWeight } from './schema.ts';
 
 async function lastSuccessTradeDate(db: typeof Db, job: JobName): Promise<string | null> {
@@ -123,7 +123,6 @@ export function createSettleStore(db: typeof Db): SettleStore {
     },
     async upsertDailyBars(rows) {
       if (rows.length === 0) return;
-      const excluded = (column: string) => sql.raw(`excluded.${column}`);
       await db
         .insert(dailyBar)
         .values([...rows])

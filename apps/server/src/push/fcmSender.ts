@@ -3,6 +3,7 @@
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getMessaging, type Message, type Messaging } from 'firebase-admin/messaging';
 import type { PushSender } from './sender.ts';
+import { errorMessage } from '../errorMessage.ts';
 
 // D-023: 이 코드만 무효 토큰으로 보고 기기를 지운다(FCM UNREGISTERED)
 const UNREGISTERED = 'messaging/registration-token-not-registered';
@@ -31,7 +32,7 @@ export function createFcmSender(messaging: FcmMessaging): PushSender {
       } catch (error) {
         const code = (error as { code?: unknown }).code;
         if (code === UNREGISTERED) return { status: 'INVALID_TOKEN' };
-        const reason = error instanceof Error ? error.message : String(error);
+        const reason = errorMessage(error);
         return {
           status: 'FAILED',
           error: typeof code === 'string' ? `${code}: ${reason}` : reason,

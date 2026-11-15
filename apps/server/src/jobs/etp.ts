@@ -23,6 +23,7 @@ import type { EtpCandidateAlert } from './etpCandidateAlert.ts';
 import type { MajorityAlert } from './majorityAlert.ts';
 import { syncUsEtps, type UsEtpStore } from './etpUs.ts';
 import type { JobHandler } from './runner.ts';
+import { errorMessage } from '../errorMessage.ts';
 
 // 연휴에도 마지막 거래일에 닿도록 거슬러 볼 날 수
 export const KRX_LOOKBACK_DAYS = 10;
@@ -104,9 +105,7 @@ async function krxDetails(
           fees++;
         }
       } catch (error) {
-        log(
-          `[etp Naver] ${listing.ticker}: ${error instanceof Error ? error.message : String(error)}`,
-        );
+        log(`[etp Naver] ${listing.ticker}: ${errorMessage(error)}`);
       }
     }
     details.push(detail);
@@ -186,24 +185,24 @@ export function createEtpHandler({
     try {
       await syncKrxEtps({ source, naver, store, now, log });
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(errorMessage(error));
     }
     try {
       await syncUsEtps({ nasdaq, yahoo, store, now, log });
     } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(errorMessage(error));
     }
     // 미국 동기화가 실패해도 앞서 넣고 아직 알리지 못한 후보는 보낸다
     try {
       await candidateAlert(now);
     } catch (error) {
-      errors.push(`US candidates: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(`US candidates: ${errorMessage(error)}`);
     }
     // 한 시장이 실패해도 저장된 상품(직전 값)으로 판정한다
     try {
       await majorityAlert(now);
     } catch (error) {
-      errors.push(`majority: ${error instanceof Error ? error.message : String(error)}`);
+      errors.push(`majority: ${errorMessage(error)}`);
     }
     if (errors.length > 0) throw new Error(errors.join('; '));
   };

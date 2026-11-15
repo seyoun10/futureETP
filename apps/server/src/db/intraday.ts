@@ -4,10 +4,8 @@ import { and, desc, eq, lt, max, sql } from 'drizzle-orm';
 import type { IntradayStore } from '../jobs/intraday.ts';
 import type { db as Db } from './client.ts';
 import { createCommoditiesStore } from './commoditiesStore.ts';
-import { contractsFrom } from './queries.ts';
+import { contractsFrom, excluded } from './queries.ts';
 import { indexBar, indexSnapshot, intradaySnapshot, rollWeight } from './schema.ts';
-
-const excluded = (column: string) => sql.raw(`excluded.${column}`);
 
 export function createIntradayStore(db: typeof Db): IntradayStore {
   const { tradingDays, lastSettledTradeDate } = createCommoditiesStore(db);

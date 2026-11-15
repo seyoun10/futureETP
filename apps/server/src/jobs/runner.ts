@@ -1,6 +1,9 @@
 // 작업 1회 실행 + batch_run 기록 + 실패 시 재시도(D-060). 스케줄러와 CLI가 같이 쓴다.
 import { COMMODITY_CODES, type CommodityCode } from '@futureetp/shared';
 import type { JobName } from '../constants.ts';
+import { errorMessage } from '../errorMessage.ts';
+
+export { errorMessage };
 
 export type JobContext = {
   // 작업이 기준으로 삼는 시각. CLI에서 기준 시각을 주면 그 값이다.
@@ -47,10 +50,6 @@ export type RunOptions = {
 export type RunResult = { status: FinishedStatus; runId: string; attempt: number };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 // 항목마다 따로 처리한다. 하나가 실패해도 나머지는 끝내고, 실패를 모아 마지막에 던진다
 export async function forEachIsolated<T>(

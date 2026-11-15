@@ -2,6 +2,7 @@
 // 무효 토큰이면 그 기기의 토큰을 비운다(설정은 남김, D-120).
 import type { Locale } from '@futureetp/shared';
 import type { PushMessage, PushSender, PushTarget, SendResult } from './sender.ts';
+import { errorMessage } from '../errorMessage.ts';
 
 export type PushDevice = PushTarget & { id: string; locale: Locale };
 
@@ -35,7 +36,7 @@ export async function sendToDevice(
   try {
     result = await deps.sender.send(device, message);
   } catch (error) {
-    result = { status: 'FAILED', error: error instanceof Error ? error.message : String(error) };
+    result = { status: 'FAILED', error: errorMessage(error) };
   }
   if (result.status === 'INVALID_TOKEN') await deps.store.clearToken(device.id);
   return result;

@@ -5,6 +5,7 @@ import { dateInZone, US_EQUITY_TIME_ZONE } from '../calc/tradingCalendar.ts';
 import { classifyUsListings, US_ETP_MAP, type UsEtpMapping } from '../sources/usEtpMap.ts';
 import type { NasdaqEtpSource, UsListing } from '../sources/nasdaqEtp.ts';
 import type { YahooEtpSource } from '../sources/yahooEtp.ts';
+import { errorMessage } from '../errorMessage.ts';
 
 // 매핑표 상품이 이 비율보다 적게 오면 응답 이상으로 보고 아무것도 반영하지 않는다(대량 폐지 방지)
 export const MIN_US_MAPPED_RATIO = 0.5;
@@ -43,8 +44,6 @@ export interface UsEtpStore {
   applyUsSync(sync: UsEtpSync, at: { baseDate: string; collectedAt: Date }): Promise<void>;
 }
 
-const message = (error: unknown) => (error instanceof Error ? error.message : String(error));
-
 async function fetchAttributes(
   symbol: string,
   nasdaq: NasdaqEtpSource,
@@ -59,7 +58,7 @@ async function fetchAttributes(
     if (summary?.expenseRatio != null) attributes.expenseRatio = summary.expenseRatio;
   } catch (error) {
     failed++;
-    log(`[etp Nasdaq] ${symbol}: ${message(error)}`);
+    log(`[etp Nasdaq] ${symbol}: ${errorMessage(error)}`);
   }
   try {
     const { listedDate, tradingValues } = await yahoo.daily(symbol);
@@ -72,7 +71,7 @@ async function fetchAttributes(
     }
   } catch (error) {
     failed++;
-    log(`[etp Yahoo] ${symbol}: ${message(error)}`);
+    log(`[etp Yahoo] ${symbol}: ${errorMessage(error)}`);
   }
   return { attributes, failed };
 }

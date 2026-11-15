@@ -1,6 +1,6 @@
 // 여러 store가 같이 쓰는 조회
 import type { CommodityCode } from '@futureetp/shared';
-import { and, asc, between, eq, gte } from 'drizzle-orm';
+import { and, asc, between, eq, gte, sql } from 'drizzle-orm';
 import type { db as Db } from './client.ts';
 import { contract, dailyBar, tradingDay } from './schema.ts';
 
@@ -38,3 +38,6 @@ export const settleColumns = {
   collectedAt: dailyBar.collectedAt,
   revisedAt: dailyBar.revisedAt,
 };
+
+// upsert의 충돌 시 갱신 값: 넣으려던 행의 열(snake_case 열 이름)
+export const excluded = (column: string) => sql.raw(`excluded.${column}`);
