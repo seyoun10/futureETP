@@ -11,6 +11,20 @@ const env = {
 
 export default defineConfig({
   test: {
+    // `--coverage`로 돌 때(npm run check, D-127)만 적용된다. 하한은 측정값 내림이고, 떨어지면 check가 실패한다
+    coverage: {
+      include: ['src/**/*.ts'],
+      reporter: ['text-summary'],
+      exclude: ['src/**/*.test.ts', 'src/db/testDb.globalSetup.ts'],
+      thresholds: {
+        lines: 80,
+        statements: 80,
+        functions: 80,
+        branches: 80,
+        // 계산 정의(D-041)는 전부 테스트로 고정한다
+        'src/calc/**': { lines: 100, functions: 100, statements: 95, branches: 90 },
+      },
+    },
     projects: [
       {
         test: {
