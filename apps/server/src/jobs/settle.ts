@@ -355,7 +355,7 @@ export function createSettleHandlers({ store, source, recompute, log = console.l
       log('[backfill] no settled trading day');
       return;
     }
-    const lastDate = dates[dates.length - 1];
+    const lastDate = dates[dates.length - 1]!;
     ctx.tradeDate = lastDate;
 
     await forEachCommodity('Backfill', backfillCommodity);

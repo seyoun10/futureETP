@@ -38,7 +38,11 @@ function setup() {
     update: (deviceId, patch) => {
       deviceIds.push(deviceId);
       patches.push(patch);
-      current = { ...current, ...patch };
+      // 실제 store처럼 값이 없는 필드는 바꾸지 않는다
+      current = {
+        ...current,
+        ...Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)),
+      };
       return Promise.resolve(current);
     },
   };
@@ -61,7 +65,7 @@ function setup() {
         'Content-Type': 'application/json',
         ...(deviceId !== null && { 'X-Device-Id': deviceId }),
       },
-      body,
+      ...(body === undefined ? {} : { body }),
     });
   return { request, deviceIds, patches };
 }

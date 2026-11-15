@@ -51,11 +51,11 @@ type SchedulerDeps = {
   handlers: JobHandlers;
   store: BatchRunStore;
   // 재시도까지 실패하면 부른다(D-045). 발송기가 없으면 비운다.
-  opsAlert?: OpsAlert;
+  opsAlert?: OpsAlert | undefined;
   // 실행 앞뒤 Healthchecks.io 신호(D-045). 키가 없으면(dev) 비운다.
-  healthcheck?: Healthcheck;
-  now?: () => Date;
-  sleep?: (ms: number) => Promise<void>;
+  healthcheck?: Healthcheck | undefined;
+  now?: (() => Date) | undefined;
+  sleep?: ((ms: number) => Promise<void>) | undefined;
 };
 
 // 같은 작업이 아직 실행 중이면(재시도 대기 포함) 이번 차례는 건너뛴다(신호도 보내지 않음).

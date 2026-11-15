@@ -23,7 +23,7 @@ export function createFcmSender(messaging: FcmMessaging): PushSender {
       const message: Message = {
         token: target.pushToken,
         notification: { title: text.title, ...(text.body === null ? {} : { body: text.body }) },
-        data,
+        ...(data === undefined ? {} : { data }),
         android: { priority: 'high', notification: { channelId: channel } },
       };
       try {

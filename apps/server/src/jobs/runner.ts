@@ -41,10 +41,11 @@ export type RunOptions = {
   store: BatchRunStore;
   maxAttempts: number;
   retryDelayMs: number;
-  scheduledAt?: Date;
-  asOf?: Date;
-  now?: () => Date;
-  sleep?: (ms: number) => Promise<void>;
+  // 호출부가 받은 선택 값을 그대로 넘기므로 undefined도 받는다
+  scheduledAt?: Date | undefined;
+  asOf?: Date | undefined;
+  now?: (() => Date) | undefined;
+  sleep?: ((ms: number) => Promise<void>) | undefined;
 };
 
 export type RunResult = { status: FinishedStatus; runId: string; attempt: number };

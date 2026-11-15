@@ -3,11 +3,11 @@ import { createBarBuilder, ctClock, parseDefinition, sessionDate } from './datab
 
 type Stat = {
   recv: string;
-  event?: string;
-  ref?: string;
+  event?: string | undefined;
+  ref?: string | undefined;
   type: string;
-  price?: string;
-  qty?: string;
+  price?: string | undefined;
+  qty?: string | undefined;
 };
 
 const stat = (s: Stat, id = '100') => ({

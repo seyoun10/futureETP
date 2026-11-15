@@ -5,6 +5,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
     "target": "ESNext",
     "module": "nodenext",
     "moduleResolution": "nodenext",

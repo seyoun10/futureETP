@@ -48,7 +48,7 @@ export type DisparityQuery = {
   // 오름차순 5개
   levels: number[];
   // 이 날짜보다 이른 봉만(이전 3년 더 받기). 없으면 최근 3년
-  before?: string;
+  before?: string | undefined;
 };
 
 // 앱은 설정 값을 query로 보낸다(query key에 그대로 들어가 설정을 바꾸면 다시 조회된다, D-086)
