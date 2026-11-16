@@ -1977,5 +1977,5 @@
   - 마이그레이션은 앞으로만 간다(D-053). 스키마가 바뀐 배포를 코드만 되돌리면 옛 코드가 새 스키마에서 돌아 조용히 틀릴 수 있어, 자동 되돌리기는 스키마가 같을 때로 한정했다.
   - 기록의 기준을 VM 파일 하나와 health 응답으로 두었다. 로컬 git tag는 다른 경로(VM에서 직접 실행)로 바뀐 상태를 모른다.
   - health는 인증이 없으므로 커밋 해시가 외부에 보인다. 저장소가 private이고 해시만으로 얻을 정보가 없어 받아들였다.
-- 검증: 서버 health 테스트(커밋 있음·없음). 가짜 `docker`로 배포 5회 → 태그 3개만 남음, 되돌리기 기본 직전·같은 커밋 거부·지운 이미지 거부·마이그레이션 다름 거부·다시 앞으로. 가짜 `ssh`·`curl`로 `deploy:rollback` 성공·잘못된 인자·VM 거부. 실제 prod `deploy:status`는 D-132 이전 배포본이라 `unknown`. 실제 VM 실행은 다음 배포 때.
+- 검증: 서버 health 테스트(커밋 있음·없음). 가짜 `docker`로 배포 5회 → 태그 3개만 남음, 되돌리기 기본 직전·같은 커밋 거부·지운 이미지 거부·마이그레이션 다름 거부·다시 앞으로. 가짜 `ssh`·`curl`로 `deploy:rollback` 성공·잘못된 인자·VM 거부. 실제 prod 배포(2026-11-16, `1608450`): release-guard 통과 → ⑥ 커밋 태그·`deploys.log` 기록 → 외부 health가 `1608450` 응답, 이미지 label 일치, `deploy:status` 변경 없음, `deploy:rollback`은 이전 기록이 없어 거부(정상). 실제 되돌리기는 커밋 태그 배포가 둘 쌓인 뒤 가능하다.
 - 영향: `apps/server`(config·app·main·Dockerfile), `infra/`(compose·deploy-remote·rollback-remote·image-lib), `scripts/`(deploy·rollback·deploy-status·public-health), 루트 `package.json`, `docs/ops.md`, `docs/architecture.md`, `.claude/skills/release/SKILL.md`.
