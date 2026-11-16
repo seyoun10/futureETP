@@ -386,5 +386,5 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] calc 속성 기반 테스트(fast-check) 6개 파일, numRuns 5000 반례 없음, 결함 주입 시 실패 확인, `calc-reviewer` 지적 반영 (2026-11-16)
 - [x] knip 미사용 파일·export·의존성 검사를 `check`에 연결(위반 0) (2026-11-16)
 - [x] GitHub Actions `audit` job(push·PR·매주) (2026-11-16)
-- [ ] push 뒤 Actions `check`·`audit` 통과 확인
+- [x] push 뒤 Actions `check`·`audit` 통과 확인(run 43865544324) (2026-11-16)
 - [x] 장 상태 속성 테스트 달력을 실제 형태로: `buildTradingDays`로 만든 2026·2027 실제 달력 + 고정 시드 무작위 예외 달력 8개에서 구간을 잘라 씀(주말 공백, 공휴일 정지, 조기 마감, 서머타임 전환). 시각은 세션·정지 경계 근처를 함께 뽑음. 결함 3종 주입 시 모두 실패, numRuns 5000 반례 없음 (2026-11-16)
