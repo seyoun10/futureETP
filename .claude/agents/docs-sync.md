@@ -9,8 +9,8 @@ model: sonnet
 
 1. 변경 범위 파악: 요청에 범위가 없으면 `git diff HEAD`와 `git log -5 --stat`을 본다.
 2. 영향받는 문서만 골라 읽는다.
-   - `TODO.md`: 완료 체크, 다음 단계
-   - `docs/decisions.md`: 새 결정 또는 바뀐 결정(D-xxx 번호는 마지막 번호 다음으로)
+   - `TODO.md`: 완료 체크, 다음 단계. 최상위 항목이 하위까지 모두 끝나면 블록째 `docs/history.md`의 같은 절 끝으로 옮긴다
+   - `docs/decisions.md`: 새 결정 또는 바뀐 결정(D-xxx 번호는 마지막 번호 다음으로, `grep -n '^## D-' docs/decisions.md | tail -1`). 통째로 읽지 말고 관련 D-xxx만 찾아 읽는다
    - `docs/architecture.md`, `docs/data-model.md`, `docs/tech-stack.md`, `docs/product.md`, `docs/ops.md`(명령 추가·변경)
    - 코딩 규칙·명령이 바뀌면 규칙 요약: 앱은 `.claude/rules/mobile.md`, 서버·shared는 `.claude/rules/server.md`, 공통은 루트 `CLAUDE.md`. `docs/architecture.md`와 내용이 어긋나지 않게 짝으로 맞춘다
    - 진행 상황은 `TODO.md`에만 쓴다(`CLAUDE.md`에 진행 상황을 넣지 않는다)

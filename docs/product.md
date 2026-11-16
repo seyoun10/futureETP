@@ -1,8 +1,8 @@
 # 서비스 기획
 
-> TODO.md 1단계 산출물. 기술 결정(tech-stack.md)의 입력이 된다.
+> 1단계(기획) 산출물(완료 기록은 `history.md`). 기술 결정(tech-stack.md)의 입력이 된다.
 > 결정 근거는 `decisions.md`, 화면 와이어프레임은 [`wireframes/screens.md`](wireframes/screens.md).
-> 문서의 "Step 2"는 TODO 1단계의 리서치·데이터 모델·외부 연동 작업을 가리킨다.
+> 문서의 "Step 2"는 1단계의 리서치·데이터 모델·외부 연동 작업을 가리킨다.
 
 ## 서비스 개요
 - 목적: 원자재 선물 기반 ETP에 투자할 때 필요한데 기존 시세 서비스에는 없는 정보를 제공한다.

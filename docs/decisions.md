@@ -2014,3 +2014,13 @@
   - `.properties`에 키 비밀번호가 평문으로 있으므로 파일을 그대로 복사하면 안 된다. macOS 기본 `hdiutil` 암호화 이미지는 설치할 것이 없고 Finder에서 바로 열린다.
   - 만든 뒤 열어서 대조하므로 "백업은 있는데 열리지 않는" 경우를 만들 때 바로 잡는다.
 - 영향: `scripts/secrets-backup.sh`, `package.json`, `docs/ops.md`, `TODO.md`.
+
+## D-136: TODO.md는 남은 항목만, 끝난 항목은 docs/history.md로
+- 날짜: 2026-11-17
+- 상태: 확정 (사용자 요청)
+- 맥락: `TODO.md`가 396줄 중 완료 항목이 대부분(최상위 107개 중 101개)이었고, 커밋의 절반 이상이 이 파일을 고쳤다. 작업 때마다 끝난 기록까지 읽어 컨텍스트를 썼다.
+- 결정: 최상위 항목 블록이 하위까지 모두 끝나면 블록째 `docs/history.md`의 같은 절 끝으로 옮긴다. 줄 내용은 바꾸지 않는다. `TODO.md`에는 열린 블록과 그 절 제목만 둔다(첫 정리: 91줄, history 315줄). `decisions.md`는 나누지 않고, 통째로 읽지 말고 `grep -n '^## D-'` 목록에서 필요한 항목만 읽도록 CLAUDE.md·docs-sync에 적는다.
+- 근거
+  - 결정 기록은 대체된 항목이 1건뿐이라 "지난 결정"으로 떼어 낼 기준이 없다. 번호 범위로 나누면 `docs/decisions.md`에서 D 번호를 찾는 기존 참조(CLAUDE.md, agent, 코드 주석)만 흩어진다. 비용은 파일 크기가 아니라 통째로 읽는 데서 나오므로 읽는 방법을 정한다.
+  - 완료 기록은 날짜·검증·커밋이 담긴 이력이라 지우지 않고 옮긴다.
+- 영향: `TODO.md`, `docs/history.md`(신규), `CLAUDE.md`, `.claude/agents/docs-sync.md`, `docs/product.md`·`tech-stack.md`·`architecture.md` 머리말, `scripts/secrets-backup.sh`(복원 안내에 지문을 직접 적음).

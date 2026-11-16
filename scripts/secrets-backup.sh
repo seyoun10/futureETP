@@ -74,8 +74,9 @@ cat >"$STAGE/RESTORE.txt" <<'EOF'
 복원: 이미지를 열고 각 경로를 홈 폴더 기준 같은 위치로 복사한다(예: .config/futureetp → ~/.config/futureetp).
 권한: chmod 700 ~/.config/futureetp; chmod 600 ~/.config/futureetp/* ~/.ssh/futureetp_oci
 확인: 이미지 안에서 shasum -a 256 -c MANIFEST.sha256
-서명 키 지문: keytool -list -v -keystore ~/.config/futureetp/android-release.jks (TODO.md의 SHA-256과 비교)
+서명 키 지문: keytool -list -v -keystore ~/.config/futureetp/android-release.jks 의 SHA256 줄이 아래 값과 같아야 한다
 EOF
+echo "백업 때 지문: ${fingerprint:-(서명 키 없음)}" >>"$STAGE/RESTORE.txt"
 count="$(wc -l <"$STAGE/MANIFEST.sha256" | tr -d ' ')"
 
 printf '%s' "$PASS" | hdiutil create -quiet -encryption AES-256 -stdinpass -fs APFS \

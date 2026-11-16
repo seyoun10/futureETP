@@ -1,6 +1,6 @@
 # Tech Stack
 
-> TODO.md 2단계 산출물. product.md의 기능 요구사항 기준으로 결정한다.
+> 2단계 산출물(완료 기록은 `history.md`). product.md의 기능 요구사항 기준으로 결정한다.
 > 결정 근거는 decisions.md에 기록하고 여기에는 결과만 적는다.
 
 | 영역 | 선택 | 결정 기록 |

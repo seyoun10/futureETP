@@ -17,13 +17,13 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 작업 전 관련 문서만 골라 읽는다 (항상 로드하지 않도록 `@` import 대신 경로로만 참조). 결정이 바뀌면 해당 문서도 함께 갱신한다.
 
-- `TODO.md`: 단계별 진행 체크리스트
+- `TODO.md`: 남은 항목 체크리스트. 끝난 블록은 `docs/history.md`(완료 기록, 평소 읽지 않음)로 옮긴다
 - `docs/product.md`: 서비스 기획 (개요, MVP 범위, 용어, 계산 정의, 사용자 흐름, 외부 연동)
 - `docs/data-model.md`: 서버 DB 논리 모델 (Mermaid erDiagram)
 - `docs/wireframes/screens.md`: 화면 와이어프레임(ASCII)과 화면별 세부 동작
 - `docs/tech-stack.md`: 확정된 기술 스택과 버전 (결과만)
 - `docs/architecture.md`: 디렉터리 구조, 레이어, API/에러 규약, 환경 분리
-- `docs/decisions.md`: 결정 기록과 근거 (D-xxx)
+- `docs/decisions.md`: 결정 기록과 근거 (D-xxx, 2천 줄). 통째로 읽지 말고 `grep -n '^## D-' docs/decisions.md`로 목록을 본 뒤 필요한 항목만 읽는다
 - `docs/ops.md`: 운영·기기 확인 명령 (배포, 백업, OTA, Android 배포, 접근 키, 성능 측정, 미러링)
 - `docs/research/`: Step 2 리서치 결과 (소스 비교, 비용, 출처)
 
