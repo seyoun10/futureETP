@@ -347,8 +347,8 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - [x] Expo 계정 `jungseyoon`·`eas init`(프로젝트 `@jungseyoon/futureetp`, projectId는 `app.config.ts`)·expo-updates `~58.0.20`: `updates.url`·`runtimeVersion` fingerprint·`expo-channel-name: production` 헤더, dev 변형은 업데이트 끔. EAS `production` 채널·브랜치 생성, `eas.json`은 CLI 버전만. prebuild로 AndroidManifest 값 확인 (2026-11-02)
   - [ ] OTA 첫 확인: release APK 설치 뒤 JS만 바꿔 `npm run update:prod -w apps/mobile` → 앱 재시작 두 번 만에 반영되는지
     - iOS 확인(2026-11-03): Personal Team prod 빌드(iPhone 14 Pro)에 `--platform ios` update(`8f7d280`, runtime `c2bef25c…`) → 재시작 두 번 만에 반영. Android는 기기 확인 보류(iOS 우선)
-  - [ ] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
-    - 도구(2026-11-16, D-135): `npm run secrets:backup -- <Mac 밖 폴더>`가 암호화 `.dmg`를 만들고 열어서 대조한다. 실행 전 지문 확인 통과(`79:42:11:C6…AE:B1:51`). 남은 것: 실제 보관 위치에 만들고 암호를 비밀번호 관리자에 저장
+  - [x] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
+    - 도구(2026-11-16, D-135): `npm run secrets:backup -- <Mac 밖 폴더>`가 암호화 `.dmg`를 만들고 열어서 대조한다. 실행 전 지문 확인 통과(`79:42:11:C6…AE:B1:51`). iCloud Drive에 `futureetp-secrets-20261117.dmg`(파일 12개, 152K) 생성·대조 통과, 암호는 비밀번호 관리자에 저장 (2026-11-17)
   - [ ] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
     - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
 - [x] 테스트 앱 배포(Firebase App Distribution): 기존 Firebase 프로젝트(FCM, D-037)의 prod Android 앱에 release APK 업로드, 테스터 그룹 `owner`(본인)에 배포. `npm run build:android:release -w apps/mobile` → `npm run distribute:android -- [노트]`(루트, 노트 기본은 `apps/mobile`·`packages/shared`를 마지막으로 바꾼 커밋, 그 커밋보다 오래된 APK는 거부). 첫 배포 1.0.0 (1) (2026-11-02, D-039 보충)
