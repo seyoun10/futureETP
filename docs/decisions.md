@@ -1977,7 +1977,7 @@
   - 마이그레이션은 앞으로만 간다(D-053). 스키마가 바뀐 배포를 코드만 되돌리면 옛 코드가 새 스키마에서 돌아 조용히 틀릴 수 있어, 자동 되돌리기는 스키마가 같을 때로 한정했다.
   - 기록의 기준을 VM 파일 하나와 health 응답으로 두었다. 로컬 git tag는 다른 경로(VM에서 직접 실행)로 바뀐 상태를 모른다.
   - health는 인증이 없으므로 커밋 해시가 외부에 보인다. 저장소가 public이라 코드는 이미 공개돼 있고, 해시는 어느 커밋이 도는지만 더 알려 준다. 개인용 서버라 이 정도는 받아들였다(처음엔 private으로 잘못 적었다가 D-133에서 바로잡음).
-- 검증: 서버 health 테스트(커밋 있음·없음). 가짜 `docker`로 배포 5회 → 태그 3개만 남음, 되돌리기 기본 직전·같은 커밋 거부·지운 이미지 거부·마이그레이션 다름 거부·다시 앞으로. 가짜 `ssh`·`curl`로 `deploy:rollback` 성공·잘못된 인자·VM 거부. 실제 prod 배포(2026-11-16, `1608450`): release-guard 통과 → ⑥ 커밋 태그·`deploys.log` 기록 → 외부 health가 `1608450` 응답, 이미지 label 일치, `deploy:status` 변경 없음, `deploy:rollback`은 이전 기록이 없어 거부(정상). 실제 되돌리기는 커밋 태그 배포가 둘 쌓인 뒤 가능하다.
+- 검증: 서버 health 테스트(커밋 있음·없음). 가짜 `docker`로 배포 5회 → 태그 3개만 남음, 되돌리기 기본 직전·같은 커밋 거부·지운 이미지 거부·마이그레이션 다름 거부·다시 앞으로. 가짜 `ssh`·`curl`로 `deploy:rollback` 성공·잘못된 인자·VM 거부. 실제 prod 배포(2026-11-16, `1608450`): release-guard 통과 → ⑥ 커밋 태그·`deploys.log` 기록 → 외부 health가 `1608450` 응답, 이미지 label 일치, `deploy:status` 변경 없음, `deploy:rollback`은 이전 기록이 없어 거부(정상). 두 번째 배포 `f3c4230` 뒤 실제 되돌리기: 기본값으로 `1608450`, 커밋 지정으로 다시 `f3c4230`, 둘 다 외부 health 일치·`deploys.log`에 rollback 두 줄·서버 로그 오류 없음, 서버 교체 시간 약 30초.
 - 영향: `apps/server`(config·app·main·Dockerfile), `infra/`(compose·deploy-remote·rollback-remote·image-lib), `scripts/`(deploy·rollback·deploy-status·public-health), 루트 `package.json`, `docs/ops.md`, `docs/architecture.md`, `.claude/skills/release/SKILL.md`.
 
 ## D-133: CI에서 서버 운영 이미지 smoke(arm64)
@@ -1992,7 +1992,7 @@
   - 처음엔 서버 경로가 바뀔 때만 돌리자고 제안했지만 전부 돌리기로 바꿨다. 저장소가 public이라 표준 러너(arm 포함) 시간이 무료이고, `check`와 병렬이라 기다림이 늘지 않는다. 경로 조건은 연속 push로 앞 실행이 cancel되면 서버 변경 커밋을 건너뛸 수 있어 오히려 빈틈이 생긴다.
   - VM과 같은 arm64에서 빌드해야 네이티브 의존성·Alpine 패키지 차이까지 본다. amd64 러너 + QEMU는 느리다.
   - 스크립트로 두어 Docker가 있는 Mac(colima 등)에서도 같은 확인을 할 수 있다.
-- 검증: 로컬 colima(aarch64)에서 통과(27초, 커밋 `8f46ca9`). 실패 경로: API_TOKEN이 짧으면 migrate 단계에서 exit 1, 서버가 바로 종료하면 "서버 컨테이너가 종료됐습니다"와 서버 로그 출력 후 exit 1, 두 경우 모두 컨테이너·네트워크가 남지 않음.
+- 검증: 로컬 colima(aarch64)에서 통과(27초, 커밋 `8f46ca9`). CI `ubuntu-24.04-arm`에서 첫 실행 통과(32초, `4e099a1`). 실패 경로: API_TOKEN이 짧으면 migrate 단계에서 exit 1, 서버가 바로 종료하면 "서버 컨테이너가 종료됐습니다"와 서버 로그 출력 후 exit 1, 두 경우 모두 컨테이너·네트워크가 남지 않음.
 - 영향: `.github/workflows/check.yml`, `scripts/server-image-smoke.sh`, `docs/ops.md`, `TODO.md`. D-132 근거의 저장소 공개 여부 오기를 바로잡았다.
 
 ## D-134: dependabot은 GitHub Actions 버전만
