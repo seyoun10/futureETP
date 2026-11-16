@@ -1345,7 +1345,7 @@
 - 맥락: TODO 5-6 B 셋째 단계. D-048은 "앱 실행 때 시간대가 바뀌었으면 `PATCH /v1/settings`"만 정했고, 비교 대상·시점·실패 처리는 정하지 않았다.
 - 선택지: 비교 대상 — 서버 설정 값 / 기기에 저장한 마지막 전송 값. 시점 — 실행 1회 / 설정을 받을 때마다(앱 복귀 포함)
 - 결정:
-  - 루트 레이아웃이 접근 키가 있을 때만 `features/settings/TimezoneSync`(화면 없음)를 띄운다. 설정 query(`useSettings`)를 받을 때마다 기기 시간대(`expo-localization` `getCalendars()[0].timeZone`)를 서버 값과 비교해, 다르면 `PATCH { timezone }`(D-082의 낙관적 갱신·scope)한다.
+  - 루트 레이아웃이 접근 키가 있을 때만 `features/settings/TimezoneSync`(화면 없음, D-137에서 `DeviceSettingsSync`로 바꾸고 언어도 맞춤)를 띄운다. 설정 query(`useSettings`)를 받을 때마다 기기 시간대(`expo-localization` `getCalendars()[0].timeZone`)를 서버 값과 비교해, 다르면 `PATCH { timezone }`(D-082의 낙관적 갱신·scope)한다.
   - 같은 시간대는 프로세스당 한 번만 보낸다. 실패해도 오류 줄 없이 다음 실행에서 다시 시도한다. 시간대를 읽지 못하거나 shared 스키마(IANA)를 통과하지 못하면 보내지 않는다.
   - 설정 query는 앱 복귀 때 다시 조회되므로(D-030), 앱을 켜 둔 채 이동해도 복귀 때 갱신된다.
   - Jest는 기기 시간대를 Asia/Seoul로 고정한다(`jest.setup.ts`, jest-expo 기본은 America/New_York).
@@ -2024,3 +2024,11 @@
   - 결정 기록은 대체된 항목이 1건뿐이라 "지난 결정"으로 떼어 낼 기준이 없다. 번호 범위로 나누면 `docs/decisions.md`에서 D 번호를 찾는 기존 참조(CLAUDE.md, agent, 코드 주석)만 흩어진다. 비용은 파일 크기가 아니라 통째로 읽는 데서 나오므로 읽는 방법을 정한다.
   - 완료 기록은 날짜·검증·커밋이 담긴 이력이라 지우지 않고 옮긴다.
 - 영향: `TODO.md`, `docs/history.md`(신규), `CLAUDE.md`, `.claude/agents/docs-sync.md`, `docs/product.md`·`tech-stack.md`·`architecture.md` 머리말, `scripts/secrets-backup.sh`(복원 안내에 지문을 직접 적음).
+
+## D-137: 앱 언어도 서버 기기 설정에 맞춘다(DeviceSettingsSync)
+- 날짜: 2026-11-17
+- 상태: 확정
+- 맥락: 에뮬레이터(기기 언어 en)에 prod release를 새로 설치하자 prod `device` 행의 locale이 기본값 `ko`로 남았다. 서버 언어는 설정 화면에서 언어를 바꿀 때만 보내므로(D-082), 기기별 설정(D-120) 뒤 새 기기는 앱 화면이 영어여도 푸시를 한국어로 받는다.
+- 결정: `TimezoneSync`를 `DeviceSettingsSync`로 바꾸고, 설정을 받을 때마다 시간대와 함께 앱 표시 언어(`useDisplaySettings.language`)를 서버 `locale`과 비교해 다르면 한 번의 PATCH로 보낸다. 같은 값은 프로세스당 한 번만 보낸다(시간대와 같은 규칙).
+- 근거: 서버 언어는 푸시 문구용 사본이라(D-082) 앱 언어가 원본이다. 등록 요청(`PUT /v1/devices`)에 locale을 넣으면 shared 스키마와 서버를 함께 바꿔야 하지만, 이미 있는 설정 PATCH 경로를 쓰면 앱 JS만 바뀌어 OTA로 고칠 수 있다.
+- 영향: `apps/mobile/src/features/settings/DeviceSettingsSync.tsx`(이름 변경)·테스트, `src/app/_layout.tsx`.

@@ -7,6 +7,7 @@ import { AppError } from '@/api/AppError';
 import { queryClient } from '@/api/queryClient';
 import { queryKeys } from '@/api/queryKeys';
 import { getSettings, patchSettings } from '@/api/settings';
+import { useDisplaySettings } from '@/stores/displaySettings';
 
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 const mockGet = jest.mocked(getSettings);
@@ -29,6 +30,7 @@ const setDeviceTimezone = (timeZone: string | null) =>
 
 beforeEach(() => {
   useAccessKeyStore.setState({ key: 'key', rejected: false });
+  useDisplaySettings.setState({ language: 'ko' });
   queryClient.clear();
   mockGet.mockReset().mockResolvedValue(SETTINGS);
   mockPatch.mockReset().mockImplementation((patch) => Promise.resolve({ ...SETTINGS, ...patch }));
@@ -109,5 +111,45 @@ describe('앱 실행 때 시간대 PATCH', () => {
     setDeviceTimezone('America/Chicago');
     await act(() => queryClient.refetchQueries({ queryKey: queryKeys.settings }));
     await waitFor(() => expect(mockPatch).toHaveBeenCalledWith({ timezone: 'America/Chicago' }));
+  });
+});
+
+// 새 기기 행은 서버 기본 언어(ko)로 시작해, 앱 언어가 영어면 푸시만 한국어로 오던 것(D-137)
+describe('앱 실행 때 언어 PATCH', () => {
+  it('앱 언어가 서버 값과 다르면 언어만 보낸다', async () => {
+    useDisplaySettings.setState({ language: 'en' });
+    await renderApp();
+
+    await waitFor(() => expect(mockPatch).toHaveBeenCalledWith({ locale: 'en' }));
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('시간대와 언어가 모두 다르면 한 번에 보낸다', async () => {
+    setDeviceTimezone('Europe/London');
+    useDisplaySettings.setState({ language: 'en' });
+    await renderApp();
+
+    await waitFor(() =>
+      expect(mockPatch).toHaveBeenCalledWith({ timezone: 'Europe/London', locale: 'en' }),
+    );
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+  });
+
+  it('같으면 보내지 않는다', async () => {
+    await renderApp();
+    await settle();
+
+    expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('보내기에 실패해도 같은 언어를 되풀이해 보내지 않는다', async () => {
+    useDisplaySettings.setState({ language: 'en' });
+    mockPatch.mockRejectedValue(new AppError('NETWORK'));
+    await renderApp();
+
+    await waitFor(() => expect(mockPatch).toHaveBeenCalledTimes(1));
+    await act(() => queryClient.refetchQueries({ queryKey: queryKeys.settings }));
+    await settle();
+    expect(mockPatch).toHaveBeenCalledTimes(1);
   });
 });
