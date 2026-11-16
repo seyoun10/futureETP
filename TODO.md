@@ -6,10 +6,6 @@
 ## 5. 개발
 
 ### 5-5. 앱 공통 기반 (5-4와 병행 가능)
-- [x] 라우트 골격: A, C 하단 탭(C-a~C-d)·`etp/[id]`, B·B-a·B-b·데이터 출처, 가로 전환 (D-047)
-  - [x] 라우트·placeholder 화면·C title-bar·하단 탭·이동 테스트 (2026-10-27, D-074)
-  - [x] [⟲] 가로 전환(C-a~C-c, ETP 탭에서 세로 복귀, 가로에서 title-bar·tab-bar 높이 줄임) (2026-10-27, D-076)
-    - [ ] 재빌드 후 Android 기기에서 전환·세로 복귀·가로 높이 확인
 - [ ] 접근 키 B-b: QR(`futureetp-key:v1:`)·붙여넣기, `GET /v1/settings`로 확인 후 SecureStore, `UNAUTHORIZED` 시 B-b 이동, `scripts/` 키 생성·QR (D-044)
   - [x] SecureStore 저장·붙여넣기 입력·첫 실행 B-b(키 없으면 스택 대신)·B 목록 `설정됨` (2026-10-27, D-077)
     - [x] 키 확인 응답을 설정 스키마로 (2026-10-27, D-081)
@@ -64,6 +60,7 @@
   - [x] 알림: `alert_record.device_id`(중복 방지 키, 기기 삭제 시 함께 삭제, `0007_alert_record_device`에서 기존 기록 삭제), 알림 원자재가 같은 기기마다 판정·기록·그 기기로만 발송, 재시도·지연 발송은 기록의 기기 설정(거부 시간)·언어, 운영·ETP 후보·다수 판정 알림은 기기별 언어 문구. dev DB 적용·저장소 동작 확인 (2026-11-04)
   - [x] 서버 배포(`5f5eef7`, `0006`·`0007` 적용으로 prod 기기·설정·알림 기록 초기화) + 앱 OTA(iOS·Android). iPhone 14 Pro·16 Pro Max에 prod Release(Personal Team) 새로 설치 → prod `device`에 두 행, 기준·알림 원자재가 기기마다 따로 저장됨 확인 (2026-11-04)
   - [ ] 기기별 알림 수신 확인(푸시 토큰 등록 기기 필요: Android 실기기 또는 Apple 가입 뒤 iOS)
+    - 2026-11-17 에뮬레이터(Google Play 이미지)에 prod release 설치 → 알림 허용 뒤 prod `device`에 ANDROID 행·FCM 토큰 등록 확인. 새 기기 행 locale이 앱 언어(en)와 달리 `ko`로 남던 것은 D-137로 수정(`5212503`, OTA 전). 알림 수신은 알림 원자재 지정 후 rare 레벨 도달 때
 
 ### 5-10. 운영과 첫 배포
 - [ ] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
@@ -73,8 +70,9 @@
     - iOS 확인(2026-11-03): Personal Team prod 빌드(iPhone 14 Pro)에 `--platform ios` update(`8f7d280`, runtime `c2bef25c…`) → 재시작 두 번 만에 반영. Android는 기기 확인 보류(iOS 우선)
   - [x] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
     - 도구(2026-11-16, D-135): `npm run secrets:backup -- <Mac 밖 폴더>`가 암호화 `.dmg`를 만들고 열어서 대조한다. 실행 전 지문 확인 통과(`79:42:11:C6…AE:B1:51`). iCloud Drive에 `futureetp-secrets-20261117.dmg`(파일 12개, 152K) 생성·대조 통과, 암호는 비밀번호 관리자에 저장 (2026-11-17)
-  - [ ] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
+  - [x] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
     - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
+    - 2026-11-17 에뮬레이터(prod release APK `dc6ec27`): 언어 English→한국어·등락 색 US→Korean 저장 → 강제 종료 뒤 재실행에 둘 다 복원. 접근 키 저장·prod 데이터 표시·알림 권한 요청도 정상
 - [x] 테스트 앱 배포(Firebase App Distribution): 기존 Firebase 프로젝트(FCM, D-037)의 prod Android 앱에 release APK 업로드, 테스터 그룹 `owner`(본인)에 배포. `npm run build:android:release -w apps/mobile` → `npm run distribute:android -- [노트]`(루트, 노트 기본은 `apps/mobile`·`packages/shared`를 마지막으로 바꾼 커밋, 그 커밋보다 오래된 APK는 거부). 첫 배포 1.0.0 (1) (2026-11-02, D-039 보충)
   - 재배포 2026-11-03: `31c47b4`(C 차트 십자선·등락 색 수정분), 같은 1.0.0 (1)·서명 지문 일치. 빌드 중 작업 트리가 바뀌면 미커밋 코드가 번들에 들어가므로 깨끗한 상태에서 빌드한다
   - 2026-11-03: versionCode를 커밋 수(`git rev-list --count HEAD`)로 자동 지정, 배포 스크립트를 루트 `scripts/distribute-android.sh`로 옮김(fingerprint 변화 없음 확인). `apps/mobile` `distribute:android`는 지우면 fingerprint가 바뀌어 남겨 둠: 다음 네이티브 변경 때 함께 삭제
