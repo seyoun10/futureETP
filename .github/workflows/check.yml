@@ -1,10 +1,14 @@
 # 커밋 전 검사(D-038)를 push·PR마다 다시 돌린다. 앱 빌드는 하지 않는다(D-039).
+# 의존성 취약점(audit)은 advisory DB에 따라 결과가 바뀌어 로컬 check에 넣지 않고 여기서만 본다(D-129).
 name: check
 
 on:
   push:
     branches: [main]
   pull_request:
+  # 코드가 바뀌지 않아도 새 취약점 공개를 알도록 매주 월요일 audit만 돈다
+  schedule:
+    - cron: '0 0 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,6 +16,7 @@ concurrency:
 
 jobs:
   check:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # 서버 DB 통합 테스트(*.db.test.ts)용. 운영과 같은 메이저 버전을 쓴다(D-126)
@@ -37,3 +42,14 @@ jobs:
       - run: npm run check
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/futureetp_test
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      # lockfile만 보므로 설치는 하지 않는다. 앱·서버 런타임 의존성의 high 이상만 실패로 본다
+      - run: npm audit --omit=dev --audit-level=high
