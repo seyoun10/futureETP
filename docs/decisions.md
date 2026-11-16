@@ -1994,3 +1994,13 @@
   - 스크립트로 두어 Docker가 있는 Mac(colima 등)에서도 같은 확인을 할 수 있다.
 - 검증: 로컬 colima(aarch64)에서 통과(27초, 커밋 `8f46ca9`). 실패 경로: API_TOKEN이 짧으면 migrate 단계에서 exit 1, 서버가 바로 종료하면 "서버 컨테이너가 종료됐습니다"와 서버 로그 출력 후 exit 1, 두 경우 모두 컨테이너·네트워크가 남지 않음.
 - 영향: `.github/workflows/check.yml`, `scripts/server-image-smoke.sh`, `docs/ops.md`, `TODO.md`. D-132 근거의 저장소 공개 여부 오기를 바로잡았다.
+
+## D-134: dependabot은 GitHub Actions 버전만
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 승인)
+- 맥락: D-133 후속. workflow의 `actions/checkout`·`actions/setup-node` 메이저 버전은 사람이 기억해서 올려야 했다. npm 의존성은 Expo SDK가 버전을 고정하고(D-028), 미뤄 둔 업그레이드는 deps-watch가 조건으로 본다(D-130).
+- 결정: `.github/dependabot.yml`에 `github-actions` 생태계만 둔다. 매월 확인하고, 한 달치 업데이트를 PR 하나로 묶으며(`groups`), 커밋 접두사는 `ci`. PR은 CI(check·server-image)가 통과하면 사람이 merge한다.
+- 근거
+  - npm까지 켜면 Expo SDK가 맞춰 둔 버전과 어긋나는 PR이 쏟아지고, 그 판단은 이미 deps-watch·SDK 업그레이드 절차가 맡는다.
+  - action은 저장소에 영향이 CI뿐이고, 같은 PR에서 CI가 바로 검증한다.
+- 영향: `.github/dependabot.yml`, `docs/ops.md`.

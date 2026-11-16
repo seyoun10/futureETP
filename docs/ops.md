@@ -28,6 +28,7 @@
 
 - push한 커밋의 CI 결과 기다리기: `npm run ci:wait -- [커밋(기본 HEAD)]`. 성공 0, 실패 1과 실패 표시 줄. 전체 로그는 출력된 `gh run view <id> --log-failed`
 - 미뤄 둔 업그레이드 조건 확인: `npm run deps:watch [-- --strict]`. 항목은 READY(조건 충족)·WAIT·UNKNOWN(확인 실패)이고, `--strict`는 WAIT가 아닌 항목이 있으면 exit 1. CI 주간 job(`deps-watch`)은 GitHub Actions에서 `workflow_dispatch`로도 돌릴 수 있다
+- GitHub Actions 버전: dependabot이 매월 action 업데이트를 PR 하나로 묶어 연다(D-134). CI가 통과하면 merge한다
 - 서버 이미지 smoke(D-133): CI `server-image` job(arm64)이 push·PR마다 운영 이미지를 빌드해 빈 DB에 migrate하고 서버를 띄워 health·인증 요청을 확인한다. Docker가 있으면 로컬에서도 `bash scripts/server-image-smoke.sh`(Mac은 `colima start` 뒤)
 - 배포 전 확인(D-131): `deploy`·`update:prod`·`distribute:android`는 먼저 `scripts/release-guard.sh`로 미커밋 변경 없음, HEAD가 `origin/main`에 있음, 그 커밋의 CI 성공을 확인한다. 급할 때만 `SKIP_CI_CHECK=1 npm run deploy`처럼 push·CI 확인을 건너뛴다
 - 항목을 풀거나 새 대기 조건을 정하면 `scripts/deps-watch.mjs`의 `WATCHES`와 해당 D-xxx를 함께 고친다

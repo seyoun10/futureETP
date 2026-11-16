@@ -1,0 +1,13 @@
+# GitHub Actions 버전만 자동으로 올린다(D-134). npm 의존성은 Expo SDK 고정과 deps-watch(D-130)로 직접 관리한다.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # 한 달치 action 업데이트를 PR 하나로 묶는다
+    groups:
+      actions:
+        patterns: ['*']
+    commit-message:
+      prefix: ci
