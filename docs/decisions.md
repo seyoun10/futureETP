@@ -1915,7 +1915,7 @@
   - C-a·C-c 차트 제스처(`useChartViewport`)는 builder API를 그대로 두고, 그 블록만 `eslint-disable`/`eslint-enable`로 예외를 둔다. victory-native가 hook API로 옮기면 이전한다. C-b(`CurveChart`)는 이미 hook API다.
 - 근거
   - victory-native 42.0.1은 `customGestures`를 내부에서 legacy `Gesture.Race`로 자기 제스처(길게 누르기·변환)와 합친다. RNGH 3의 legacy 합성은 legacy 제스처 클래스만 다루고, hook 제스처는 다른 형식이라 넘길 수 없다.
-  - victory-native 43은 Skia 패키지를 `react-native-skia`로 바꾸고(네이티브 재빌드) Gesture Handler를 2.x로 제한해 지금 RNGH 3.3과 맞지 않는다.
+  - victory-native 43은 Skia 패키지를 `react-native-skia`로 바꾸고(네이티브 재빌드) Gesture Handler를 2.x로 제한해 지금 RNGH 3.3과 맞지 않는다. (2026-11-16 재확인: 43.0.1은 RNGH `<4`를 허용하지만 `customGestures`는 여전히 legacy `Gesture.Race`로 합쳐 이전 조건이 안 된다. 보류)
   - customGestures를 버리고 차트 바깥 hook detector로 다시 짜면 victory-native 내부 길게 누르기와의 우선순위가 바뀔 수 있어 실기기 검증 비용이 크다. 줄 단위 예외면 동작 변화가 없다.
 
 ## D-129: 검증 강화 2차 — calc 속성 기반 테스트, 마이그레이션 drift·미사용 코드 검사, CI audit
