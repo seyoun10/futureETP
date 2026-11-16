@@ -1,0 +1,17 @@
+// 미사용 파일·export·의존성 검사(D-129). `npm run check`에서 돈다.
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // 같은 파일 안에서 쓰는 상수·타입의 export(테스트용 노출 등)는 문제로 보지 않는다
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+    },
+    "apps/mobile": {
+      // victory-native가 노출하는 d3 스케일 타입용. import 없이 타입으로만 쓰인다(D-056)
+      "ignoreDependencies": ["@types/d3-scale"],
+    },
+    "apps/server": {},
+    "packages/shared": {},
+  },
+}

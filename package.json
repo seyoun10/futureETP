@@ -12,7 +12,7 @@
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
     "test:gate": "npm run test -w apps/server -- --coverage && npm run test -w packages/shared -- --coverage && npm run test -w apps/mobile",
-    "check": "npm run typecheck && npm run lint && npm run check:migrations && npm run format:check && npm run test:gate",
+    "check": "npm run typecheck && npm run lint && npm run knip && npm run check:migrations && npm run format:check && npm run test:gate",
     "test:coverage": "bash scripts/test-coverage.sh",
     "prepare": "husky",
     "access-key": "node scripts/access-key.mjs",
@@ -25,7 +25,8 @@
     "batch:result": "bash scripts/batch-result.sh",
     "dev:restore": "bash scripts/dev-restore.sh",
     "prod:seed": "bash scripts/prod-seed.sh",
-    "check:migrations": "bash scripts/check-migrations.sh"
+    "check:migrations": "bash scripts/check-migrations.sh",
+    "knip": "knip"
   },
   "overrides": {
     "react": "19.3.0",
