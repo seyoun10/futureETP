@@ -370,6 +370,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [ ] (후속) victory-native가 Gesture Handler hook API를 받으면 `useChartViewport` 제스처 이전, 예외 주석 삭제 (D-128)
   - 2026-11-16: victory-native 43.0.1은 RNGH `>=2 <4`를 허용한다. Skia 패키지 `react-native-skia` 전환(네이티브 재빌드)과 `customGestures`가 hook 제스처를 받는지 확인이 남음
   - 2026-11-16 확인: 43.0.1도 `CartesianChart`가 `customGestures`를 legacy `Gesture.Race`로 합쳐 hook 제스처를 받지 않는다. 이전 불가라 보류(43만 올리는 건 이득 없이 재빌드 비용뿐). 다음 victory-native 릴리스에서 다시 본다
+  - 자동 확인: `npm run deps:watch`가 아래 (2)를 하고, CI가 매주 돌린다(D-130)
   - 확인 방법: (1) `npm view victory-native version peerDependencies`로 버전과 RNGH 허용 범위 확인 (2) `npm pack victory-native@<버전>` 압축을 풀어 `src/cartesian/CartesianChart.tsx`에서 `customGestures`를 아직 `Gesture.Race`로 합치는지 확인. 그대로면 이전 불가
 
 ### 5-12. 의존성 패치 업데이트

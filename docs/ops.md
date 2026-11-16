@@ -22,6 +22,12 @@
 - 첫 배포 뒤 빈 prod DB에 dev DB 넣기: `npm run prod:seed -- [--yes]`(D-100)
 - 접근 키(D-080): 새 키·QR `npm run access-key`, 기존 키 QR `npm run access-key -- --show < 키 파일`
 
+## CI·의존성 (D-130)
+
+- push한 커밋의 CI 결과 기다리기: `npm run ci:wait -- [커밋(기본 HEAD)]`. 성공 0, 실패 1과 실패 표시 줄. 전체 로그는 출력된 `gh run view <id> --log-failed`
+- 미뤄 둔 업그레이드 조건 확인: `npm run deps:watch [-- --strict]`. 항목은 READY(조건 충족)·WAIT·UNKNOWN(확인 실패)이고, `--strict`는 WAIT가 아닌 항목이 있으면 exit 1. CI 주간 job(`deps-watch`)은 GitHub Actions에서 `workflow_dispatch`로도 돌릴 수 있다
+- 항목을 풀거나 새 대기 조건을 정하면 `scripts/deps-watch.mjs`의 `WATCHES`와 해당 D-xxx를 함께 고친다
+
 ## 기기 확인
 
 - 성능 측정(dev 변형 iOS 기기): `npm run perf:collect -- [파일]`(포트 8099) 켜고 앱을 운영 번들로 실행 `xcrun devicectl device process launch --device <기기> --terminate-existing <dev 번들 ID> -- -RCT_enableDev NO -RCT_enableMinification YES`. 차트 진입·과거 데이터 로딩·제스처 프레임이 `[perf]` 줄로 들어온다(`src/lib/perfLog.ts`)

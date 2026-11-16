@@ -65,3 +65,5 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 - `npm run lint` / `npm run format`(파일 수정, 확인만은 `npm run format:check`) / `npm run typecheck` / `npm test`
 - 커버리지 측정: `npm run test:coverage`(서버·shared 하한은 각 `vitest.config.ts`, 앱은 추세만)
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
+- push 뒤 CI 확인: `npm run ci:wait`(HEAD의 check workflow가 끝날 때까지 대기, 실패하면 실패 줄 출력). 수 분 걸리므로 백그라운드로 돌리고 결과를 보고한다 (D-130)
+- 미뤄 둔 업그레이드 조건 확인: `npm run deps:watch`(조건 목록은 `scripts/deps-watch.mjs`). CI가 매주 `--strict`로 돌려 충족되면 실패 알림이 온다 (D-130)

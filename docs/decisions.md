@@ -1934,3 +1934,16 @@
   - knip이 처음 보고한 미사용 export 63건은 모두 같은 파일에서 쓰는 상수·타입이라 코드 정리 효과보다 소음이 컸다.
   - 남은 약점: 장 상태 속성 테스트의 달력은 24시간 간격 연속 행이라 주말 공백·공휴일 정지 행·조기 마감·서머타임을 만들지 않는다(후속).
 - 영향: `CLAUDE.md` Commands, `.claude/rules/server.md`, `docs/tech-stack.md`, `.github/workflows/check.yml`.
+
+## D-130: 반복 확인 자동화 — 미뤄 둔 업그레이드 조건(deps-watch), push 뒤 CI 대기(ci:wait)
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 승인)
+- 맥락: 조건이 걸려 미룬 업그레이드(D-054 ESLint 10, D-128 victory-native 제스처, D-051 TypeScript 7, D-060 croner 11, D-053 drizzle 1.0)를 매번 `npm view`·`npm pack`으로 손으로 확인했고, push 뒤 CI 결과도 `gh run list`로 직접 봤다.
+- 결정
+  - `scripts/deps-watch.mjs`(`npm run deps:watch`): 항목마다 조건을 레지스트리로 확인해 READY·WAIT·UNKNOWN을 출력한다. 조건은 ESLint 10 = `eslint-plugin-react`·`eslint-plugin-import` 최신판 peer가 10을 받음, victory-native = 최신판 `CartesianChart.tsx`가 `customGestures ?? Gesture.Race(`로 합치지 않음(peer·Skia 패키지 전환은 READY 뒤 사람이 확인), TypeScript 7 = `expo-template-default@latest`의 typescript가 7.x, croner 11 = 11.x 첫 판 출시 30일 경과(D-060의 "안정되면"을 이 기준으로 정함), drizzle = `drizzle-orm` latest가 1.x. 의존성 설치 없이 npm CLI만 쓴다.
+  - CI `check.yml`에 `deps-watch` job: 주간 schedule·`workflow_dispatch`에서만 `--strict`로 돌아, 충족·확인 불가면 실패해 GitHub 알림이 온다. push·PR은 막지 않는다.
+  - `scripts/ci-wait.sh`(`npm run ci:wait`): 커밋(기본 HEAD)의 check 실행을 최대 2분 찾은 뒤 `gh run watch --exit-status`로 기다린다. 실패하면 로그에서 실패 표시 줄(FAIL·●·error TS·[error] 등)만 추린다(로그 끝에 Postgres 서비스 로그가 붙어 끝부분은 쓸모없음). push 뒤 백그라운드로 돌리고, `/release`는 push한 배포 커밋이면 통과를 확인한다.
+- 근거
+  - 주간 audit과 같은 자리라 알림 경로를 새로 만들 필요가 없다. 조건 충족은 코드 변경 없이 바뀌므로 로컬 check·push CI에 넣으면 같은 커밋 결과가 달라진다(D-129 audit과 같은 이유).
+  - 범위 판정은 semver 패키지 대신 `||` 항목별 하한·상한 major만 보는 작은 함수로 한다. 루트 의존성을 늘리지 않고, 판정 대상이 major 하나라 충분하다.
+- 영향: `package.json` scripts, `.github/workflows/check.yml`, `CLAUDE.md` Commands, `docs/ops.md`, `.claude/skills/release/SKILL.md`, `TODO.md` D-128 후속.
