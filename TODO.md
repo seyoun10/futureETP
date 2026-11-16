@@ -368,6 +368,7 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] push 뒤 GitHub Actions `check` 통과(커버리지 하한 포함, 2m55s) (2026-11-15)
 - [x] `@typescript-eslint/no-deprecated` 켜기: TanStack Query 3곳은 `query()`·`infiniteQuery()`로 이전, C-a·C-c 차트 제스처는 victory-native 42 제약으로 builder API 유지 + 블록 예외 (2026-11-15, D-128)
 - [ ] (후속) victory-native가 Gesture Handler hook API를 받으면 `useChartViewport` 제스처 이전, 예외 주석 삭제 (D-128)
+  - 2026-11-16: victory-native 43.0.1은 RNGH `>=2 <4`를 허용한다. Skia 패키지 `react-native-skia` 전환(네이티브 재빌드)과 `customGestures`가 hook 제스처를 받는지 확인이 남음
 
 ### 5-12. 의존성 패치 업데이트
 - [x] Expo SDK 58 패치(`expo` 58.0.19 → 58.0.25, `expo-*`·`jest-expo` 함께)와 RN 0.88.1(루트 `overrides` 포함), `react-native-safe-area-context` 5.11.1·`react-native-screens` 4.30.1. `@expo/cli` 58.1.20으로 high 취약점(≤58.1.19) 해결, `expo install --check`·`expo-doctor` 통과 (2026-11-15, `dc6ec27`)
@@ -379,3 +380,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
   - 백그라운드 셸에서 `pod install`이 `Unicode Normalization ... ASCII-8BIT`로 실패하면 `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8`
 - [x] 코드 리뷰 수정·중복 정리 배포 (2026-11-15, `f6219e5`): 서버 `npm run deploy`(마이그레이션 변경 없음, health 200), 앱 OTA `update:prod`(iOS runtime `0721e7a`, Android `ac494f9`). 네이티브 변경이 없어 재빌드는 하지 않음
   - [x] iPhone 14 Pro: 재시작 두 번 뒤 OTA 적용(설정 하단 `업데이트 11/15 21:13 (01a1df20)`), 금 C-a·C-b·C-c 표시, C-b 기준일 11/11·C-a 2M이 설정 왕복 뒤 유지 (2026-11-15)
+
+### 5-13. 검증 강화 2차 (D-129)
+- [x] 마이그레이션 drift 검사 `check:migrations`(임시 컬럼으로 실패 확인) (2026-11-16)
+- [x] calc 속성 기반 테스트(fast-check) 6개 파일, numRuns 5000 반례 없음, 결함 주입 시 실패 확인, `calc-reviewer` 지적 반영 (2026-11-16)
+- [x] knip 미사용 파일·export·의존성 검사를 `check`에 연결(위반 0) (2026-11-16)
+- [x] GitHub Actions `audit` job(push·PR·매주) (2026-11-16)
+- [ ] push 뒤 Actions `check`·`audit` 통과 확인
+- [ ] (후속) 장 상태 속성 테스트 달력을 실제 형태로: 주말 공백, 공휴일 정지(다음 거래일 행의 정지 구간), 조기 마감, 서머타임 전환

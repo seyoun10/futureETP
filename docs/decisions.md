@@ -1918,3 +1918,19 @@
   - victory-native 43은 Skia 패키지를 `react-native-skia`로 바꾸고(네이티브 재빌드) Gesture Handler를 2.x로 제한해 지금 RNGH 3.3과 맞지 않는다.
   - customGestures를 버리고 차트 바깥 hook detector로 다시 짜면 victory-native 내부 길게 누르기와의 우선순위가 바뀔 수 있어 실기기 검증 비용이 크다. 줄 단위 예외면 동작 변화가 없다.
 
+## D-129: 검증 강화 2차 — calc 속성 기반 테스트, 마이그레이션 drift·미사용 코드 검사, CI audit
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 승인)
+- 맥락: D-127 후속. 남은 빈틈은 (1) calc 테스트가 예시 기반뿐이라 테스트 데이터가 만들지 않는 경계(mutation 생존 165개)를 못 잡음, (2) `schema.ts`를 바꾸고 `db:generate`를 빠뜨려도 검사가 모름, (3) 미사용 파일·export·의존성 검사 없음, (4) 의존성 취약점은 수동 `npm audit`뿐이었다.
+- 결정
+  - 속성 기반 테스트: fast-check 4.10.2(루트 devDependencies). calc 옆 `*.property.test.ts`(unit project, 기본 100회). 대상은 `percentile`·`percentileRank`(범위·단조·역함수), rare 레벨 ↔ 꼬리 백분위, 이격도 시계열 ↔ 잠정 이격도, 지수 연결(산출 불가일 건너뛰기를 명세대로 다시 계산해 비교·가격 배율 불변), 롤 비중(합 1·오름차순·롤 기간에만 변경, 월·연도 경계와 NYSE만 쉰 날 포함), 장 상태·다음 갱신 시각, 월물 심볼 왕복, 거부 시간 경계.
+  - 마이그레이션 drift: `scripts/check-migrations.sh`(`npm run check:migrations`)가 `drizzle-kit generate` 전후 `apps/server/drizzle` 파일 해시를 비교하고 `drizzle-kit check`를 돌린다. 커밋 전 새 마이그레이션이 있어도 스키마와 맞으면 통과한다. DB 접속 없음.
+  - 미사용 코드: knip 6.45.1(`knip.jsonc`, `npm run knip`). 같은 파일 안에서 쓰는 export는 제외(`ignoreExportsUsedInFile`), 앱 `@types/d3-scale`은 타입 전용이라 예외(D-056). 도입 시 위반은 이것 하나뿐이었다.
+  - `npm run check` 순서: typecheck → lint → knip → check:migrations → format:check → test:gate.
+  - audit: GitHub Actions `audit` job이 `npm audit --omit=dev --audit-level=high`(lockfile만, 설치 없음)를 push·PR과 매주 월요일 00:00 UTC에 돈다. schedule에서는 `check` job을 건너뛴다. 로컬 `check`에는 넣지 않는다.
+- 근거
+  - 속성 테스트를 numRuns 5000으로 돌려도 반례가 없었고, calc에 결함(거부 시간 종료 분 포함, 지수 연결에 당일 비중 사용)을 일부러 넣으면 실패했다. `calc-reviewer` 검토로 무효일·월 경계·정지 구간을 생성기에 넣었다.
+  - audit 결과는 advisory DB 공개에 따라 코드 변경 없이 바뀐다. 로컬 check에 넣으면 같은 커밋의 재현성이 깨진다. moderate까지 막으면 지금도 개발 도구·Expo 간접 의존(TODO 5-12) 때문에 실패한다.
+  - knip이 처음 보고한 미사용 export 63건은 모두 같은 파일에서 쓰는 상수·타입이라 코드 정리 효과보다 소음이 컸다.
+  - 남은 약점: 장 상태 속성 테스트의 달력은 24시간 간격 연속 행이라 주말 공백·공휴일 정지 행·조기 마감·서머타임을 만들지 않는다(후속).
+- 영향: `CLAUDE.md` Commands, `.claude/rules/server.md`, `docs/tech-stack.md`, `.github/workflows/check.yml`.

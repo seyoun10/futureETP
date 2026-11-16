@@ -24,6 +24,8 @@ paths:
 - 라우트는 `ok(c, data)`로 응답하고 실패는 `ApiException(code, message)`을 던진다(`onError`가 봉투로 바꿈, D-059)
 - 인덱스 접근은 `T | undefined`다(`noUncheckedIndexedAccess`). 범위가 보장될 때만 `!`, 빈 배열일 수 있으면 가드하거나 던진다. 한 행이 꼭 오는 `returning()`은 `db/oneRow.ts`. 선택 값을 그대로 넘기는 옵션 타입은 `?: T | undefined`로 쓴다(`exactOptionalPropertyTypes`) (D-127)
 - 커버리지 하한(`vitest.config.ts`): 전체 80, `src/calc/**` lines·functions 100. 떨어지면 `npm run check`가 실패한다 (D-127)
+- calc 불변식은 옆 `*.property.test.ts`에 fast-check로 둔다(범위·단조·역함수·명세 재계산). 반례는 출력된 `seed`·`path`로 재현한다 (D-129)
+- `schema.ts`를 바꾸면 `db:generate` 결과를 함께 커밋한다. 빠뜨리면 `npm run check:migrations`(check에 포함)가 실패한다 (D-129)
 - 배치 작업은 `JobHandler(ctx)`로 만들어 `jobs/handlers.ts`의 `JOB_HANDLERS`에 등록한다. 시각은 `ctx.now`만 쓰고, 처리한 CME 거래일은 `ctx.tradeDate`에 채운다 (D-060)
 
 ## Commands

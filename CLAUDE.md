@@ -61,7 +61,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 
 모두 저장소 루트에서 실행한다. workspace 하나만 돌릴 때는 `-w apps/mobile`·`-w apps/server`·`-w packages/shared`. 영역별 명령은 각 rules 파일, 운영·배포·기기 확인 명령은 `docs/ops.md`.
 
-- `npm run check`: 타입 검사 → lint → 포맷 확인 → 전체 테스트(`test:gate`: 서버·shared는 커버리지 하한 포함, D-127)
+- `npm run check`: 타입 검사 → lint → knip(미사용 코드) → 마이그레이션 drift → 포맷 확인 → 전체 테스트(`test:gate`: 서버·shared는 커버리지 하한 포함) (D-127, D-129). 의존성 audit은 CI에서만
 - `npm run lint` / `npm run format`(파일 수정, 확인만은 `npm run format:check`) / `npm run typecheck` / `npm test`
 - 커버리지 측정: `npm run test:coverage`(서버·shared 하한은 각 `vitest.config.ts`, 앱은 추세만)
 - pre-commit hook(husky + lint-staged)은 스테이징된 파일만 `eslint --fix` → `prettier --write`
