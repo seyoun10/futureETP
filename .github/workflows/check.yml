@@ -1,4 +1,5 @@
 # 커밋 전 검사(D-038)를 push·PR마다 다시 돌린다. 앱 빌드는 하지 않는다(D-039).
+# 서버 운영 이미지는 빌드·migrate·시작까지 smoke로 본다(D-133).
 # 의존성 취약점(audit)은 advisory DB에 따라 결과가 바뀌어 로컬 check에 넣지 않고 여기서만 본다(D-129).
 # 미뤄 둔 업그레이드의 조건 충족(deps-watch)은 주간 실행에서만 본다(D-130).
 name: check
@@ -44,6 +45,15 @@ jobs:
       - run: npm run check
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/futureetp_test
+
+  # 운영 이미지가 빌드·migrate·시작되는지 본다(D-133). VM(Oracle Ampere)과 같은 arm64 러너를 쓴다
+  server-image:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: bash scripts/server-image-smoke.sh
 
   audit:
     runs-on: ubuntu-latest
