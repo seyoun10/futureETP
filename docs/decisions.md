@@ -2004,3 +2004,13 @@
   - npm까지 켜면 Expo SDK가 맞춰 둔 버전과 어긋나는 PR이 쏟아지고, 그 판단은 이미 deps-watch·SDK 업그레이드 절차가 맡는다.
   - action은 저장소에 영향이 CI뿐이고, 같은 PR에서 CI가 바로 검증한다.
 - 영향: `.github/dependabot.yml`, `docs/ops.md`.
+
+## D-135: 저장소 밖 비밀 파일은 암호화 이미지로 Mac 밖에 백업
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 요청)
+- 맥락: Android release 서명 키(`~/.config/futureetp/android-release.jks`, D-039)는 Mac 한 곳에만 있었고 Time Machine도 없다. 잃으면 같은 앱 ID로 업데이트를 설치할 수 없어 앱을 지우고 다시 깔아야 한다. 같은 폴더의 운영 비밀(FCM 서비스 계정, API 토큰, Healthchecks 키)과 VM ssh 키는 다시 발급할 수 있지만 복구에 시간이 든다.
+- 결정: `scripts/secrets-backup.sh`(`npm run secrets:backup -- <폴더>`)가 `~/.config/futureetp`와 `~/.ssh/futureetp_oci{,.pub}`를 AES-256 암호화 `.dmg` 하나로 묶는다. 서명 키가 비밀번호 파일로 열리는지와 인증서 지문을 먼저 확인하고, 만든 이미지를 읽기 전용으로 열어 모든 파일의 SHA-256과 원본을 대조한다. 보관 위치는 Mac 밖(외장 디스크·클라우드 드라이브), 암호는 비밀번호 관리자에 따로 둔다. 저장소 안이나 같은 이름 파일 덮어쓰기는 거부한다.
+- 근거
+  - `.properties`에 키 비밀번호가 평문으로 있으므로 파일을 그대로 복사하면 안 된다. macOS 기본 `hdiutil` 암호화 이미지는 설치할 것이 없고 Finder에서 바로 열린다.
+  - 만든 뒤 열어서 대조하므로 "백업은 있는데 열리지 않는" 경우를 만들 때 바로 잡는다.
+- 영향: `scripts/secrets-backup.sh`, `package.json`, `docs/ops.md`, `TODO.md`.
