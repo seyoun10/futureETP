@@ -27,6 +27,7 @@ const app = createApp({
   contracts: createContractsStore(db),
   devices: createDevicesStore(db),
   etps: createEtpsStore(db),
+  commit: config.GIT_COMMIT,
 });
 
 serve({ fetch: app.fetch, port: config.PORT }, (info) => {

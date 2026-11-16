@@ -13,7 +13,7 @@ disable-model-invocation: true
 
 1. `git status`가 깨끗해야 한다. 배포본은 push된 커밋 하나다.
 2. 배포 커밋을 push하고 `npm run ci:wait`로 CI 통과를 확인한다(D-130). 세 배포 명령은 `scripts/release-guard.sh`로 미커밋 변경·push·CI 성공을 다시 확인하고 아니면 거부한다(D-131). `SKIP_CI_CHECK=1`은 사용자가 요청할 때만 쓴다.
-3. 대상을 정한다. 인자가 없으면 마지막 배포 이후 바뀐 경로로 고른다.
+3. 대상을 정한다. 인자가 없으면 마지막 배포 이후 바뀐 경로로 고른다. 서버는 `npm run deploy:status`가 서빙 중 커밋과 그 뒤 서버 경로 변경을 보여 준다(D-132).
    - `apps/server`·`packages/shared`·`infra`·`scripts/calendar` → server
    - `apps/mobile`·`packages/shared` → ota 또는 android (아래 4번으로 판단)
    - `packages/shared`가 바뀌면 server와 앱 둘 다
@@ -24,8 +24,9 @@ disable-model-invocation: true
 ## server
 
 1. `npm run deploy`. 설정은 `~/.config/futureetp/ops.env`의 `DEPLOY_HOST`.
-2. VM에서 ② 이미지 빌드 → ③ pg_dump → ④ migrate → ⑤ 서버 교체가 돈다. ④가 실패하면 이전 서버가 그대로 돈다. 실패하면 출력의 단계 번호와 오류를 보고하고 멈춘다(VM에서 임의로 고치지 않는다).
-3. 끝나면 남긴 출력의 `deploy: ① <커밋> →` 줄이 배포한 커밋 해시와 맞는지 확인한다.
+2. VM에서 ② 이미지 빌드 → ③ pg_dump → ④ migrate → ⑤ 서버 교체 → ⑥ 커밋 태그·배포 기록이 돌고, Mac에서 외부 health가 그 커밋을 보낼 때까지 기다린다. ④가 실패하면 이전 서버가 그대로 돈다. 실패하면 출력의 단계 번호와 오류를 보고하고 멈춘다(VM에서 임의로 고치지 않는다).
+3. 끝나면 남긴 출력의 `health: ... 서빙 중 <커밋>` 줄이 배포한 커밋과 맞는지 확인한다.
+4. 배포 뒤 문제가 보이면 `npm run deploy:rollback`을 제안한다(사용자 확인 후). 마이그레이션이 바뀐 배포면 VM이 거부하므로 그때는 멈추고 보고한다.
 
 ## ota
 

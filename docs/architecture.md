@@ -42,7 +42,7 @@ futureETP/
 │        └─ db/                    Drizzle 스키마, 마이그레이션, 조회
 ├─ packages/
 │  └─ shared/                      API 계약: zod 스키마, 공용 타입·enum, 푸시 문구 리소스
-├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`, VM 배포 단계(`deploy-remote.sh`)
+├─ infra/                          docker-compose.yml(db·server·caddy), Caddyfile, `.env.example`, VM 배포 단계(`deploy-remote.sh`)·되돌리기(`rollback-remote.sh`, 공통 `image-lib.sh`)
 ├─ scripts/                        달력 입력 파일(`calendar/<연도>.json`, D-061), 접근 키 생성·QR 표시(D-080),
 │                                  배포(`deploy.sh`, D-048), 백업 내려받기(`backup-pull.sh`)·dev 복원(`dev-restore.sh`, D-045),
 │                                  prod 초기 데이터(`prod-seed.sh`, D-100), dev DB 접속 확인(`dev-db.sh`, 복원·seed 공유),
@@ -184,7 +184,7 @@ type Freshness = {
 
 | 메서드·경로 | 화면 | 내용 |
 |---|---|---|
-| `GET /v1/health` | — | 인증 없음, 배포 확인용. DB `select 1`(3초 제한) 실패 시 500 `INTERNAL`(D-059) |
+| `GET /v1/health` | — | 인증 없음, 배포 확인용. `{ status: 'ok', commit }`(배포 커밋, dev는 `null`, D-132). DB `select 1`(3초 제한) 실패 시 500 `INTERNAL`(D-059) |
 | `GET /v1/commodities` | A | 원자재별 월물 5개 시세, 대표월물, 알림 표시(헤더 기기의 설정, D-120), freshness. 스키마는 shared `commodities.ts`, 표시 값 규칙은 `calc/quotes.ts`(D-085) |
 | `GET /v1/commodities/:code/disparity?basis&ma&window&levels` | C-a | 지수 일봉(맞춤 비율 곱함)·이평선·보유 월물·롤 구간, 오늘 잠정 봉, rare 레벨 10개, 꼬리 백분위, 대체 여부, freshness. 스키마는 shared `disparity.ts`, 조립은 `calc/disparityChart.ts`(D-086) |
 | `GET /v1/commodities/:code/curve?baseDate` | C-b | 기준일(서버가 거래일로 맞춤, 이전·다음 기준일·범위)·비교일(기준일 다음 거래일, D-114) 커브, 월물별 변화율, M1→M2 스프레드·롤 수익률, freshness. 스키마는 shared `curve.ts`, 조립은 `calc/curve.ts`(D-090) |

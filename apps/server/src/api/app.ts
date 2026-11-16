@@ -33,6 +33,8 @@ export type AppOptions = {
   devices: DevicesStore;
   etps: EtpsStore;
   dbCheckTimeoutMs?: number;
+  // 이미지에 넣은 배포 커밋(GIT_COMMIT, D-132). health로 지금 도는 배포본을 확인한다
+  commit?: string | undefined;
   authFailureLimit?: AuthFailureLimit;
   // 인증 실패 제한·조회 기준 시각(ms)
   now?: () => number;
@@ -84,7 +86,7 @@ export function createApp(options: AppOptions) {
     } finally {
       clearTimeout(timer);
     }
-    return ok(c, { status: 'ok' });
+    return ok(c, { status: 'ok', commit: options.commit ?? null });
   });
   v1.use(
     '*',

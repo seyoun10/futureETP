@@ -22,6 +22,11 @@ COPY apps/server/drizzle apps/server/drizzle
 # calendar:import가 읽는 거래일 달력(D-061). 새 연도는 배포 뒤 컨테이너에서 입력한다
 COPY scripts/calendar scripts/calendar
 
+# 배포 커밋(D-132). health 응답과 이미지 label로 지금 도는 배포본을 안다. 소스 층 뒤에 두어 캐시를 덜 깬다
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=$GIT_COMMIT
+LABEL futureetp.commit=$GIT_COMMIT
+
 USER node
 WORKDIR /app/apps/server
 EXPOSE 3000

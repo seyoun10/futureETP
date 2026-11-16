@@ -30,6 +30,10 @@ services:
     build:
       context: ..
       dockerfile: apps/server/Dockerfile
+      # deploy-remote.sh가 넘기는 배포 커밋(D-132)
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    # latest가 지금 도는 배포본. 배포마다 커밋 태그도 붙여 최근 몇 개를 되돌리기용으로 남긴다(D-132)
     image: futureetp-server:latest
     restart: unless-stopped
     # SIGTERM을 Node에 전달해 docker stop이 바로 끝나게 한다(중단된 실행은 다음 시작 때 정리, D-060)

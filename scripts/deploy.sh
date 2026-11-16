@@ -8,6 +8,7 @@
 set -euo pipefail
 
 source "$(dirname "$0")/ops-env.sh"
+source "$(dirname "$0")/public-health.sh"
 
 : "${DEPLOY_HOST:?DEPLOY_HOST를 지정하세요(예: ubuntu@203.0.113.10)}"
 DEPLOY_DIR="${DEPLOY_DIR:-futureetp}"
@@ -26,6 +27,9 @@ git archive HEAD package.json package-lock.json .dockerignore apps/server packag
 echo "deploy: ① $commit → $DEPLOY_HOST:$DEPLOY_DIR"
 rsync -az --delete \
   --exclude /infra/.env --exclude /infra/secrets/ --exclude /infra/backups/ --exclude /infra/predeploy/ \
+  --exclude /infra/deploys.log \
   "$snapshot/" "$DEPLOY_HOST:$DEPLOY_DIR/"
 
-ssh "$DEPLOY_HOST" "bash $DEPLOY_DIR/infra/deploy-remote.sh"
+ssh "$DEPLOY_HOST" "bash $DEPLOY_DIR/infra/deploy-remote.sh $commit"
+
+wait_public_health "$commit"

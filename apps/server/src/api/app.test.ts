@@ -15,7 +15,7 @@ const auth = { Authorization: `Bearer ${TOKEN}` };
 
 function setup(checkDb: () => Promise<void> = async () => {}) {
   let time = 0;
-  const app = createApp({
+  const options: Parameters<typeof createApp>[0] = {
     token: TOKEN,
     checkDb,
     settings: {
@@ -31,17 +31,24 @@ function setup(checkDb: () => Promise<void> = async () => {}) {
     dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,
-  });
+  };
+  const app = createApp(options);
   const request = (path: string, headers: Record<string, string> = {}, ip = '203.0.113.1') =>
     app.request(path, { headers: { 'X-Forwarded-For': ip, ...headers } });
-  return { app, request, advance: (ms: number) => (time += ms) };
+  return { app, options, request, advance: (ms: number) => (time += ms) };
 }
 
 describe('GET /v1/health', () => {
   it('인증 없이 성공 봉투를 보낸다', async () => {
     const res = await setup().request('/v1/health');
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true, data: { status: 'ok' } });
+    expect(await res.json()).toEqual({ success: true, data: { status: 'ok', commit: null } });
+  });
+
+  it('배포 커밋을 주면 함께 보낸다', async () => {
+    const app = createApp({ ...setup().options, commit: 'abc1234' });
+    const res = await app.request('/v1/health');
+    expect(await res.json()).toEqual({ success: true, data: { status: 'ok', commit: 'abc1234' } });
   });
 
   it('DB 확인이 실패하거나 시간을 넘기면 500 INTERNAL', async () => {

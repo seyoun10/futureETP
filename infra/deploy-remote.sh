@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# VM에서 실행하는 배포 단계(D-048). scripts/deploy.sh가 rsync 뒤 ssh로 부른다.
-# ② 이미지 빌드 → ③ pg_dump 덤프 → ④ 새 이미지의 일회성 컨테이너로 migrate → ⑤ 서버 교체.
+# VM에서 실행하는 배포 단계(D-048). scripts/deploy.sh가 rsync 뒤 ssh로 부른다: deploy-remote.sh <커밋>
+# ② 이미지 빌드 → ③ pg_dump 덤프 → ④ 새 이미지의 일회성 컨테이너로 migrate → ⑤ 서버 교체 → ⑥ 배포 기록.
 # ④가 실패하면 ⑤를 하지 않아 이전 서버가 그대로 돈다(set -e).
 set -euo pipefail
 
 cd "$(dirname "$0")"
+source ./image-lib.sh
 
+COMMIT="${1:?배포 커밋을 인자로 주세요}"
 PREDEPLOY_DIR=predeploy
 PREDEPLOY_KEEP=3
 APP_UID=1000
@@ -27,8 +29,8 @@ for path in backups secrets/fcm-service-account.json; do
   fi
 done
 
-echo "deploy: ② 이미지 빌드"
-docker compose build server
+echo "deploy: ② 이미지 빌드 ($COMMIT)"
+GIT_COMMIT="$COMMIT" docker compose build server
 
 echo "deploy: ③ 배포 전 덤프"
 docker compose up -d --wait db
@@ -48,6 +50,11 @@ docker compose run --rm --no-deps server node src/db/migrate.ts
 
 echo "deploy: ⑤ 서버 교체"
 docker compose up -d --wait
+
+echo "deploy: ⑥ 배포 기록"
+docker tag "$IMAGE:latest" "$IMAGE:$COMMIT"
+record_deploy deploy "$COMMIT"
+prune_commit_images
 docker image prune -f >/dev/null
 docker compose ps
-echo "deploy: 완료"
+echo "deploy: 완료 ($COMMIT, 남은 되돌리기 이미지: $(kept_commits | tr '\n' ' '))"

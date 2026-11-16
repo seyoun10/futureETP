@@ -15,7 +15,9 @@
 
 ## 서버 운영 (Mac, 설정은 `~/.config/futureetp/ops.env`)
 
-- prod 배포: `npm run deploy`(D-048)
+- prod 배포: `npm run deploy`(D-048). 끝에 외부 `/v1/health`가 배포 커밋을 보내는지 확인한다(D-132)
+- 서빙 중 커밋과 배포 안 된 서버 변경: `npm run deploy:status`(D-132)
+- 되돌리기: `npm run deploy:rollback -- [커밋]`(기본 직전 배포본, VM에 남은 최근 3개만, 마이그레이션 개수가 같을 때만). VM 배포 기록은 `infra/deploys.log`(D-132)
 - 배치 결과 보기(읽기 전용): `npm run batch:result -- [작업 이름(기본 SETTLE_BACKFILL)] [기록 개수(기본 5)]` — prod `batch_run` 최근 기록과 마지막 실행 동안의 그 작업 로그 줄(재시도 포함)
 - VM 백업 내려받기: `npm run backup:pull`
 - dev DB에 덤프 복원: `npm run dev:restore -- [덤프 파일] [--yes]`(D-045)

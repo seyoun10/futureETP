@@ -22,6 +22,8 @@ const envSchema = z.object({
   // Healthchecks.io 프로젝트 ping key. check slug는 작업 이름과 같다(D-045). 비우면 신호를 보내지 않는다.
   HEALTHCHECKS_PING_KEY: optionalString,
   BACKUP_DIR: optionalString,
+  // 배포 커밋. 이미지 빌드 인자로 들어온다(Dockerfile, D-132). dev는 비어 있다
+  GIT_COMMIT: optionalString,
 });
 
 export type Config = z.infer<typeof envSchema>;

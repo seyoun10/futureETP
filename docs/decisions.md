@@ -1962,3 +1962,20 @@
   - 연속 push로 cancel-in-progress에 취소된 옛 커밋은 cancelled라 거부된다. 그 커밋으로 되돌려야 하면 `gh run rerun`으로 다시 돌린다.
 - 검증: 임시 worktree와 가짜 `gh`로 미커밋·push 안 함·진행 중·실패·실행 없음·gh 오류(모두 exit 1), 통과·SKIP·main 옛 커밋(exit 0)을 확인했다.
 - 영향: `scripts/deploy.sh`·`scripts/distribute-android.sh`, 루트 `package.json`의 `update:prod`, `docs/ops.md`, `.claude/skills/release/SKILL.md`.
+
+## D-132: 서버 배포 기록·되돌리기·외부 health 확인
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 승인)
+- 맥락: D-131 후속. VM 이미지는 `futureetp-server:latest` 하나였고 `docker image prune -f`로 이전 이미지가 사라져, 되돌리려면 옛 커밋을 VM에서 다시 빌드해야 했다. 지금 도는 배포 커밋을 기록하는 곳이 없어 `/release`의 "마지막 배포 이후 바뀐 경로"를 기계적으로 알 수 없었다. `up -d --wait`는 컨테이너 안 health만 보고 Caddy·TLS·도메인 경로는 확인하지 않았다.
+- 결정
+  - 배포 커밋: `deploy.sh`가 짧은 해시를 `deploy-remote.sh <커밋>`에 넘기고, 빌드 인자 `GIT_COMMIT` → 이미지 `ENV`·`LABEL futureetp.commit` → `config.GIT_COMMIT` → `GET /v1/health`의 `data.commit`(없으면 `null`). dev는 `null`이다.
+  - VM 기록: 교체가 끝나면 ⑥ `futureetp-server:<커밋>` 태그를 붙이고 `infra/deploys.log`에 `<UTC> deploy|rollback <커밋>`을 남긴다. 최근에 돈 커밋 3개(`IMAGE_KEEP`)의 태그만 남기고 나머지는 지운다. `deploys.log`는 rsync에서 제외(VM 전용). 공통 함수는 `infra/image-lib.sh`.
+  - 되돌리기: `npm run deploy:rollback -- [커밋]`(기본 직전 배포본) → VM `infra/rollback-remote.sh`가 이미지 안 drizzle journal 항목 수를 지금 이미지와 비교해 같을 때만 태그를 바꾸고 `up -d --wait server`. 다르면 거부하고 옛 커밋 재배포나 predeploy 덤프 수동 복구를 안내한다. DB는 건드리지 않는다.
+  - 외부 확인: `deploy`·`deploy:rollback` 끝에 Mac에서 `DEPLOY_URL`(기본 `https://futureetp-api.duckdns.org`, 앱 `PROD_API_URL`과 같은 값)의 `/v1/health`가 기대 커밋을 보낼 때까지 최대 60초 기다린다. 실패하면 exit 1.
+  - `npm run deploy:status`: 서빙 중 커밋과 그 뒤 HEAD까지 서버 배포 대상 경로(`deploy.sh`의 `git archive` 경로)의 커밋을 보여 준다(읽기 전용).
+- 근거
+  - 마이그레이션은 앞으로만 간다(D-053). 스키마가 바뀐 배포를 코드만 되돌리면 옛 코드가 새 스키마에서 돌아 조용히 틀릴 수 있어, 자동 되돌리기는 스키마가 같을 때로 한정했다.
+  - 기록의 기준을 VM 파일 하나와 health 응답으로 두었다. 로컬 git tag는 다른 경로(VM에서 직접 실행)로 바뀐 상태를 모른다.
+  - health는 인증이 없으므로 커밋 해시가 외부에 보인다. 저장소가 private이고 해시만으로 얻을 정보가 없어 받아들였다.
+- 검증: 서버 health 테스트(커밋 있음·없음). 가짜 `docker`로 배포 5회 → 태그 3개만 남음, 되돌리기 기본 직전·같은 커밋 거부·지운 이미지 거부·마이그레이션 다름 거부·다시 앞으로. 가짜 `ssh`·`curl`로 `deploy:rollback` 성공·잘못된 인자·VM 거부. 실제 prod `deploy:status`는 D-132 이전 배포본이라 `unknown`. 실제 VM 실행은 다음 배포 때.
+- 영향: `apps/server`(config·app·main·Dockerfile), `infra/`(compose·deploy-remote·rollback-remote·image-lib), `scripts/`(deploy·rollback·deploy-status·public-health), 루트 `package.json`, `docs/ops.md`, `docs/architecture.md`, `.claude/skills/release/SKILL.md`.
