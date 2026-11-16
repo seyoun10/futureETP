@@ -289,6 +289,17 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - 시드는 `batch_run`을 빼므로 prod 첫 `DAILY_SETTLE`은 dev 마지막 일봉 다음 거래일부터 따라잡는다(최대 5거래일). 배포가 늦어지면 dev를 다시 정산한 뒤 시드한다
 - [x] 첫 서버 배포 때 `app.config.ts`의 `PROD_API_URL`(`futureetp.invalid`)을 실제 도메인으로 교체: `https://futureetp-api.duckdns.org` (2026-10-31, D-052)
 - [x] 원격 저장소 생성 및 연결 (GitHub, private): `seyoun10/futureETP`에 `main` push, GitHub Actions `check` workflow(`npm ci` → `npm run check`, Node는 `.nvmrc`) 첫 실행 성공 2m40s (2026-11-02, D-039 보충)
+- [x] release APK 첫 빌드 때: 서명 키(keystore) 생성과 저장소 밖 백업 (D-039), Expo 계정·`eas init`·expo-updates 설치(`updates.url`·`runtimeVersion` fingerprint·채널 헤더) (D-052)
+  - [x] 서명 키: `~/.config/futureetp/android-release.jks`(PKCS12, RSA 4096, 별칭 `futureetp`, 인증서 SHA-256 `79:42:11:C6…AE:B1:51`)와 비밀번호 파일 `android-release.properties`(권한 600). `app.config.ts`의 `withReleaseSigning`이 release를 이 키로 서명하고, 파일이 없으면 release 빌드를 멈춘다. `assembleRelease` 성공(R8 포함, 11분 29초). 네이티브 라이브러리는 `withArm64Only`로 `arm64-v8a`만 넣어 APK 180MB → 58MB·`apksigner`로 서명 지문 확인 (2026-11-02)
+  - [x] Expo 계정 `jungseyoon`·`eas init`(프로젝트 `@jungseyoon/futureetp`, projectId는 `app.config.ts`)·expo-updates `~58.0.20`: `updates.url`·`runtimeVersion` fingerprint·`expo-channel-name: production` 헤더, dev 변형은 업데이트 끔. EAS `production` 채널·브랜치 생성, `eas.json`은 CLI 버전만. prebuild로 AndroidManifest 값 확인 (2026-11-02)
+  - [x] OTA 첫 확인: release APK 설치 뒤 JS만 바꿔 `npm run update:prod -w apps/mobile` → 앱 재시작 두 번 만에 반영되는지
+    - iOS 확인(2026-11-03): Personal Team prod 빌드(iPhone 14 Pro)에 `--platform ios` update(`8f7d280`, runtime `c2bef25c…`) → 재시작 두 번 만에 반영. Android는 기기 확인 보류(iOS 우선)
+    - Android 확인(2026-11-17, 에뮬레이터 Pixel_API_36 prod release APK `dc6ec27`, runtime `ac494f95…`): `npm run update:prod -- --platform android`(`a2d8ead`, update `01a1e511`) → 재시작 두 번 만에 설정 화면 앱 번들 줄이 `업데이트 11/17 00:54 (01a1e511)`로 바뀜. 새 번들의 D-137 동작도 확인(prod 기기 행 locale을 `en`으로 바꿔 두자 앱 언어 `ko`로 다시 PATCH)
+  - [x] 서명 키 백업: `.jks`와 `.properties`를 저장소·Mac 밖(비밀번호 관리자·외장 디스크 등)에 보관. 잃으면 같은 앱으로 업데이트할 수 없어 지우고 다시 깔아야 한다(접근 키 다시 입력)
+    - 도구(2026-11-16, D-135): `npm run secrets:backup -- <Mac 밖 폴더>`가 암호화 `.dmg`를 만들고 열어서 대조한다. 실행 전 지문 확인 통과(`79:42:11:C6…AE:B1:51`). iCloud Drive에 `futureetp-secrets-20261117.dmg`(파일 12개, 152K) 생성·대조 통과, 암호는 비밀번호 관리자에 저장 (2026-11-17)
+  - [x] R8 축소 확인: dev 실행 logcat에 `ExpoModulesV2` 경고 — `expo.modules.sqlite.SQLAction`이 `Enumerable`을 구현하지 않아 release 빌드가 실패하거나 enum 이름이 JS로 넘어갈 수 있음. 빌드 성공과 표시 설정 저장·복원 동작 확인, 문제면 expo-sqlite 업데이트 또는 ProGuard keep 규칙 (D-073)
+    - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
+    - 2026-11-17 에뮬레이터(prod release APK `dc6ec27`): 언어 English→한국어·등락 색 US→Korean 저장 → 강제 종료 뒤 재실행에 둘 다 복원. 접근 키 저장·prod 데이터 표시·알림 권한 요청도 정상
 
 ### 5-11. 검증 강화 (D-127)
 - [x] 현재 체계 측정과 강화안 승인 (2026-11-15): typed lint는 이미 적용, 서버 calc 줄 커버리지 100%
