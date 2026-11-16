@@ -19,6 +19,9 @@ fail() {
   exit 1
 }
 
+# 미커밋 변경 거부, push·CI 통과 확인(D-131)
+bash scripts/release-guard.sh
+
 [[ -f "$APK" ]] || fail "APK가 없습니다: $APK (npm run build:android:release -w apps/mobile)"
 
 # 마지막 앱 커밋보다 오래된 APK면 그 커밋이 빠진 빌드다

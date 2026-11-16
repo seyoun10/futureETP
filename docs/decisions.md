@@ -1947,3 +1947,18 @@
   - 주간 audit과 같은 자리라 알림 경로를 새로 만들 필요가 없다. 조건 충족은 코드 변경 없이 바뀌므로 로컬 check·push CI에 넣으면 같은 커밋 결과가 달라진다(D-129 audit과 같은 이유).
   - 범위 판정은 semver 패키지 대신 `||` 항목별 하한·상한 major만 보는 작은 함수로 한다. 루트 의존성을 늘리지 않고, 판정 대상이 major 하나라 충분하다.
 - 영향: `package.json` scripts, `.github/workflows/check.yml`, `CLAUDE.md` Commands, `docs/ops.md`, `.claude/skills/release/SKILL.md`, `TODO.md` D-128 후속.
+
+## D-131: 배포 전 push·CI 통과 확인(release-guard)
+- 날짜: 2026-11-16
+- 상태: 확정 (사용자 승인)
+- 맥락: D-130 후속. CI 통과 확인은 `/release` skill 안내에만 있어, `npm run deploy`·`update:prod`·`distribute:android`를 직접 부르면 push하지 않았거나 CI가 실패·진행 중인 커밋도 배포됐다. `deploy.sh`는 추적 중인 파일의 미커밋 변경만 막았고, OTA는 작업 트리를 그대로 번들로 올렸다.
+- 결정
+  - `scripts/release-guard.sh`를 세 배포 명령이 먼저 실행한다. ① `git status --porcelain`이 비어 있음(추적하지 않는 파일 포함), ② `git fetch origin main` 뒤 HEAD가 `origin/main`의 조상(main의 옛 커밋으로 되돌리는 배포도 통과), ③ 그 커밋의 check workflow 중 schedule이 아닌 가장 최근 실행이 `completed`·`success`.
+  - `SKIP_CI_CHECK=1`이면 ②·③만 경고와 함께 건너뛴다(GitHub 장애 등). ①은 건너뛸 수 없다.
+  - 실패 문구는 원인별로 다음 행동을 준다(진행 중 → `ci:wait`, 실패·취소 → `gh run view <id>`, push 안 됨 → push 후 `ci:wait`).
+- 근거
+  - 배포본 = push된 커밋 하나 = CI가 검증한 커밋으로 맞추면 VM·기기에서 도는 코드를 저장소에서 그대로 찾을 수 있다.
+  - CI를 기다리지 않고 실패만 하는 쪽을 택했다. 대기는 `ci:wait`가 하고, 배포 명령은 결과가 정해진 상태에서만 돈다.
+  - 연속 push로 cancel-in-progress에 취소된 옛 커밋은 cancelled라 거부된다. 그 커밋으로 되돌려야 하면 `gh run rerun`으로 다시 돌린다.
+- 검증: 임시 worktree와 가짜 `gh`로 미커밋·push 안 함·진행 중·실패·실행 없음·gh 오류(모두 exit 1), 통과·SKIP·main 옛 커밋(exit 0)을 확인했다.
+- 영향: `scripts/deploy.sh`·`scripts/distribute-android.sh`, 루트 `package.json`의 `update:prod`, `docs/ops.md`, `.claude/skills/release/SKILL.md`.

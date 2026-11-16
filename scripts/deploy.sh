@@ -14,11 +14,8 @@ DEPLOY_DIR="${DEPLOY_DIR:-futureetp}"
 
 cd "$(git rev-parse --show-toplevel)"
 
-# 커밋되지 않은 변경은 배포하지 않는다(배포본 = 커밋 하나)
-if ! git diff --quiet HEAD --; then
-  echo "deploy: 커밋되지 않은 변경이 있습니다. 커밋한 뒤 배포하세요" >&2
-  exit 1
-fi
+# 미커밋 변경 거부, push·CI 통과 확인(D-131)
+bash scripts/release-guard.sh
 commit="$(git rev-parse --short HEAD)"
 
 snapshot="$(mktemp -d)"

@@ -11,8 +11,8 @@ disable-model-invocation: true
 
 ## 0. 공통 사전 확인
 
-1. `git status`가 깨끗해야 한다. 배포본은 커밋 하나다(`deploy.sh`도 미커밋 변경이 있으면 거부).
-2. `npm run check` 통과. 배포 커밋을 push했으면 `npm run ci:wait`로 CI 통과도 확인한다(D-130).
+1. `git status`가 깨끗해야 한다. 배포본은 push된 커밋 하나다.
+2. 배포 커밋을 push하고 `npm run ci:wait`로 CI 통과를 확인한다(D-130). 세 배포 명령은 `scripts/release-guard.sh`로 미커밋 변경·push·CI 성공을 다시 확인하고 아니면 거부한다(D-131). `SKIP_CI_CHECK=1`은 사용자가 요청할 때만 쓴다.
 3. 대상을 정한다. 인자가 없으면 마지막 배포 이후 바뀐 경로로 고른다.
    - `apps/server`·`packages/shared`·`infra`·`scripts/calendar` → server
    - `apps/mobile`·`packages/shared` → ota 또는 android (아래 4번으로 판단)
