@@ -28,7 +28,8 @@ export const en: Translation = {
   commodityList: {
     alert: 'Alert target',
     noTrade: 'No trade',
-    refreshFailed: "Couldn't finish refreshing. Pull down again in a moment.",
+    refreshFailedTitle: "Couldn't finish refreshing",
+    refreshFailedMessage: 'Pull down again in a moment.',
   },
   commodity: {
     rotate: 'Rotate screen',

@@ -9,10 +9,13 @@ import { getCommodities } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { queryKeys } from '@/api/queryKeys';
 import { getSettings, patchSettings } from '@/api/settings';
+import { showFailedAlert } from '@/lib/failedAlert';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import { UP_DOWN_PALETTES } from '@/theme/upDownColor';
 
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn() }));
+jest.mock('@/lib/failedAlert', () => ({ showFailedAlert: jest.fn() }));
+const mockAlert = jest.mocked(showFailedAlert);
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   selectionAsync: jest.fn(),
@@ -75,6 +78,17 @@ const DATA: Commodities = {
   ],
 };
 
+// 늦은 응답이 목록을 바꿨는지 보려고 금 최근월물 가격만 바꾼 데이터
+const LATE_DATA: Commodities = {
+  ...DATA,
+  commodities: DATA.commodities.map((c) =>
+    c.code === 'GC'
+      ? { ...c, contracts: c.contracts.map((q) => (q.isFront ? { ...q, price: 2500.5 } : q)) }
+      : c,
+  ),
+};
+const LATE_PRICE = /2,?500\.5/;
+
 const SETTINGS: Settings = {
   locale: 'ko',
   timezone: 'Asia/Seoul',
@@ -92,6 +106,7 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.mocked(Haptics.impactAsync).mockClear();
+  mockAlert.mockClear();
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
@@ -214,7 +229,12 @@ describe('A 원자재 목록', () => {
     ).refreshControl;
   const pull = () => act(async () => refreshControl().props.onRefresh?.());
 
-  const FAILED_TEXT = '새로고침을 마치지 못했습니다. 잠시 뒤 다시 당겨 주세요.';
+  const expectFailedAlert = () =>
+    expect(mockAlert).toHaveBeenCalledWith(
+      '새로고침을 마치지 못했습니다',
+      '잠시 뒤 다시 당겨 주세요.',
+      '확인',
+    );
 
   // 응답을 테스트가 직접 끝내는 조회
   const deferGet = () => {
@@ -251,10 +271,10 @@ describe('A 원자재 목록', () => {
     expect(
       screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
     ).not.toBeOnTheScreen();
-    expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen();
+    expect(mockAlert).not.toHaveBeenCalled();
   });
 
-  it('5초 안에 끝나지 않으면 인디케이터를 거두고 안내를 띄우며, [확인]은 다시 조회하지 않고 안내만 닫는다', async () => {
+  it('5초 안에 끝나지 않으면 인디케이터와 차단을 거두고 실패 Alert를 띄운다', async () => {
     await renderList();
     await screen.findByText('금\n(GC)');
     jest.useFakeTimers();
@@ -263,35 +283,32 @@ describe('A 원자재 목록', () => {
 
     await act(() => jest.advanceTimersByTimeAsync(4999));
     expect(refreshControl().props.refreshing).toBe(true);
+    expect(mockAlert).not.toHaveBeenCalled();
     await act(() => jest.advanceTimersByTimeAsync(1));
     expect(refreshControl().props.refreshing).toBe(false);
     expect(
       screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
     ).not.toBeOnTheScreen();
-    expect(screen.getByText(FAILED_TEXT)).toBeOnTheScreen();
-
-    await fireEvent.press(screen.getByRole('button', { name: '확인' }));
-    expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen();
+    expectFailedAlert();
     expect(mockGet).toHaveBeenCalledTimes(2);
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
-    expect(refreshControl().props.refreshing).toBe(false);
   });
 
-  it('시간 초과 뒤 늦은 응답이 데이터를 바꾸면 안내를 거둔다', async () => {
+  it('시간 초과 뒤 늦은 응답은 목록을 바꾸고, 인디케이터·Alert를 다시 건드리지 않는다', async () => {
     await renderList();
     await screen.findByText('금\n(GC)');
     jest.useFakeTimers();
     const pending = deferGet();
     await pull();
     await act(() => jest.advanceTimersByTimeAsync(5000));
-    expect(screen.getByText(FAILED_TEXT)).toBeOnTheScreen();
+    expect(mockAlert).toHaveBeenCalledTimes(1);
 
     await act(() => {
-      pending.resolve(DATA);
+      pending.resolve(LATE_DATA);
       return Promise.resolve();
     });
-    await waitFor(() => expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen());
+    expect(await screen.findByText(LATE_PRICE)).toBeOnTheScreen();
     expect(refreshControl().props.refreshing).toBe(false);
+    expect(mockAlert).toHaveBeenCalledTimes(1);
   });
 
   it('새로고침이 실패하면 목록은 두고 안내를 띄운다', async () => {
@@ -301,7 +318,7 @@ describe('A 원자재 목록', () => {
     mockGet.mockRejectedValueOnce(new AppError('SCHEMA_MISMATCH'));
     await pull();
 
-    expect(await screen.findByText(FAILED_TEXT)).toBeOnTheScreen();
+    await waitFor(() => expectFailedAlert());
     expect(refreshControl().props.refreshing).toBe(false);
     expect(screen.getByText('금\n(GC)')).toBeOnTheScreen();
   });

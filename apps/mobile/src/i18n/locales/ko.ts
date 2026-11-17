@@ -32,7 +32,8 @@ export const ko = {
   commodityList: {
     alert: '알림 대상',
     noTrade: '거래 없음',
-    refreshFailed: '새로고침을 마치지 못했습니다. 잠시 뒤 다시 당겨 주세요.',
+    refreshFailedTitle: '새로고침을 마치지 못했습니다',
+    refreshFailedMessage: '잠시 뒤 다시 당겨 주세요.',
   },
   commodity: {
     rotate: '가로/세로 전환',

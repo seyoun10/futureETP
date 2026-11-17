@@ -17,8 +17,9 @@ import {
 } from '@/lib/formatNumber';
 import { changePairColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
-import { colors, fontSize, size, spacing } from '@/theme/tokens';
+import { colors, fontSize, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
+import { showFailedAlert } from '@/lib/failedAlert';
 import { refreshHaptic, tapHaptic } from '@/lib/haptics';
 import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
 import { useCommodities } from './useCommodities';
@@ -27,7 +28,7 @@ import { useCommodities } from './useCommodities';
 export function CommodityListScreen() {
   const query = useCommodities();
   const palette = useUpDownPalette();
-  const { refreshing, failed, onRefresh, dismissFailed } = usePullRefresh(query);
+  const { refreshing, onRefresh } = usePullRefresh(query);
   useAutoRefresh(query);
 
   return (
@@ -36,7 +37,6 @@ export function CommodityListScreen() {
       <QueryStateView query={query}>
         {(data) => (
           <>
-            {failed && <RefreshFailedLine onDismiss={dismissFailed} />}
             <FlatList
               testID="commodity-list"
               data={data.commodities}
@@ -71,52 +71,39 @@ export function CommodityListScreen() {
 const REFRESH_TIMEOUT_MS = 5000;
 
 // 당겨서 새로고침 상태. 자동 새로고침·복귀 재조회는 인디케이터 없이 조용히 한다.
-// 걸리는 순간 햅틱, 조회가 끝날 때까지 인디케이터 유지, 시간 초과·실패면 안내를 띄운다.
-// 안내는 [확인]으로 닫기만 하고, 다시 하려면 사용자가 다시 당긴다.
-// 늦게 끝난 조회가 데이터를 바꾸면(자동 새로고침 포함) 안내를 거둔다.
+// 걸리는 순간 햅틱, 조회가 끝날 때까지 인디케이터 유지, 시간 초과·실패면 공통 실패 Alert를 띄운다.
+// Alert는 [확인]으로 닫기만 하고, 다시 하려면 사용자가 다시 당긴다. 늦게 끝난 조회는 계속 두어 데이터를 바꾼다
 function usePullRefresh(query: ReturnType<typeof useCommodities>) {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
-  const [failed, setFailed] = useState(false);
   // 시간 초과로 거둔 회차의 늦은 응답이 상태를 다시 바꾸지 않게 회차를 센다
   const run = useRef(0);
-  const [seenUpdatedAt, setSeenUpdatedAt] = useState(query.dataUpdatedAt);
-  if (query.dataUpdatedAt !== seenUpdatedAt) {
-    setSeenUpdatedAt(query.dataUpdatedAt);
-    setFailed(false);
-  }
+
+  const fail = () =>
+    showFailedAlert(
+      t('commodityList.refreshFailedTitle'),
+      t('commodityList.refreshFailedMessage'),
+      t('common.confirm'),
+    );
 
   const onRefresh = async () => {
     const id = ++run.current;
     refreshHaptic();
-    setFailed(false);
     setRefreshing(true);
     const timer = setTimeout(() => {
       if (run.current !== id) return;
       run.current++;
       setRefreshing(false);
-      setFailed(true);
+      fail();
     }, REFRESH_TIMEOUT_MS);
     const result = await query.refetch();
     clearTimeout(timer);
     if (run.current !== id) return;
     setRefreshing(false);
-    if (result.isError) setFailed(true);
+    if (result.isError) fail();
   };
 
-  return { refreshing, failed, onRefresh, dismissFailed: () => setFailed(false) };
-}
-
-function RefreshFailedLine({ onDismiss }: { onDismiss: () => void }) {
-  const { t } = useTranslation();
-
-  return (
-    <View style={styles.failedLine}>
-      <Text style={styles.failedText}>{t('commodityList.refreshFailed')}</Text>
-      <Pressable accessibilityRole="button" onPress={onDismiss} style={styles.failedButton}>
-        <Text style={styles.failedText}>{t('common.confirm')}</Text>
-      </Pressable>
-    </View>
-  );
+  return { refreshing, onRefresh };
 }
 
 function CommodityRow({
@@ -203,27 +190,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  failedLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
-  },
-  failedText: {
-    color: colors.error,
-    fontSize: fontSize.caption,
-  },
-  failedButton: {
-    minHeight: size.touchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-    borderRadius: spacing.sm,
-    backgroundColor: colors.surface,
   },
   row: {
     flexDirection: 'row',
