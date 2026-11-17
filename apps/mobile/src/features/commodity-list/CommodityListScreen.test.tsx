@@ -214,6 +214,8 @@ describe('A 원자재 목록', () => {
     ).refreshControl;
   const pull = () => act(async () => refreshControl().props.onRefresh?.());
 
+  const FAILED_TEXT = '새로고침을 마치지 못했습니다. 잠시 뒤 다시 당겨 주세요.';
+
   // 응답을 테스트가 직접 끝내는 조회
   const deferGet = () => {
     let resolve: (data: Commodities) => void = () => {};
@@ -249,10 +251,10 @@ describe('A 원자재 목록', () => {
     expect(
       screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
     ).not.toBeOnTheScreen();
-    expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen();
+    expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen();
   });
 
-  it('5초 안에 끝나지 않으면 인디케이터를 거두고 다시 시도 안내를 띄우고, 다시 시도하면 조회한다', async () => {
+  it('5초 안에 끝나지 않으면 인디케이터를 거두고 안내를 띄우며, [확인]은 다시 조회하지 않고 안내만 닫는다', async () => {
     await renderList();
     await screen.findByText('금\n(GC)');
     jest.useFakeTimers();
@@ -266,12 +268,13 @@ describe('A 원자재 목록', () => {
     expect(
       screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
     ).not.toBeOnTheScreen();
-    expect(screen.getByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+    expect(screen.getByText(FAILED_TEXT)).toBeOnTheScreen();
 
-    await fireEvent.press(screen.getByRole('button', { name: '다시 시도' }));
-    expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen();
-    expect(Haptics.impactAsync).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(refreshControl().props.refreshing).toBe(false));
+    await fireEvent.press(screen.getByRole('button', { name: '확인' }));
+    expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen();
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(refreshControl().props.refreshing).toBe(false);
   });
 
   it('시간 초과 뒤 늦은 응답이 데이터를 바꾸면 안내를 거둔다', async () => {
@@ -281,26 +284,24 @@ describe('A 원자재 목록', () => {
     const pending = deferGet();
     await pull();
     await act(() => jest.advanceTimersByTimeAsync(5000));
-    expect(screen.getByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+    expect(screen.getByText(FAILED_TEXT)).toBeOnTheScreen();
 
     await act(() => {
       pending.resolve(DATA);
       return Promise.resolve();
     });
-    await waitFor(() =>
-      expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen(),
-    );
+    await waitFor(() => expect(screen.queryByText(FAILED_TEXT)).not.toBeOnTheScreen());
     expect(refreshControl().props.refreshing).toBe(false);
   });
 
-  it('새로고침이 실패하면 목록은 두고 다시 시도 안내를 띄운다', async () => {
+  it('새로고침이 실패하면 목록은 두고 안내를 띄운다', async () => {
     await renderList();
     await screen.findByText('금\n(GC)');
     // 재시도하지 않는 오류
     mockGet.mockRejectedValueOnce(new AppError('SCHEMA_MISMATCH'));
     await pull();
 
-    expect(await screen.findByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+    expect(await screen.findByText(FAILED_TEXT)).toBeOnTheScreen();
     expect(refreshControl().props.refreshing).toBe(false);
     expect(screen.getByText('금\n(GC)')).toBeOnTheScreen();
   });

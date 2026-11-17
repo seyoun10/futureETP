@@ -27,7 +27,7 @@ import { useCommodities } from './useCommodities';
 export function CommodityListScreen() {
   const query = useCommodities();
   const palette = useUpDownPalette();
-  const { refreshing, failed, onRefresh } = usePullRefresh(query);
+  const { refreshing, failed, onRefresh, dismissFailed } = usePullRefresh(query);
   useAutoRefresh(query);
 
   return (
@@ -36,7 +36,7 @@ export function CommodityListScreen() {
       <QueryStateView query={query}>
         {(data) => (
           <>
-            {failed && <RefreshFailedLine onRetry={() => void onRefresh()} />}
+            {failed && <RefreshFailedLine onDismiss={dismissFailed} />}
             <FlatList
               testID="commodity-list"
               data={data.commodities}
@@ -67,11 +67,12 @@ export function CommodityListScreen() {
   );
 }
 
-// 당겨서 새로고침이 이 시간 안에 끝나지 않으면 인디케이터를 거두고 다시 시도 안내를 띄운다
+// 당겨서 새로고침이 이 시간 안에 끝나지 않으면 인디케이터를 거두고 안내를 띄운다
 const REFRESH_TIMEOUT_MS = 5000;
 
 // 당겨서 새로고침 상태. 자동 새로고침·복귀 재조회는 인디케이터 없이 조용히 한다.
 // 걸리는 순간 햅틱, 조회가 끝날 때까지 인디케이터 유지, 시간 초과·실패면 안내를 띄운다.
+// 안내는 [확인]으로 닫기만 하고, 다시 하려면 사용자가 다시 당긴다.
 // 늦게 끝난 조회가 데이터를 바꾸면(자동 새로고침 포함) 안내를 거둔다.
 function usePullRefresh(query: ReturnType<typeof useCommodities>) {
   const [refreshing, setRefreshing] = useState(false);
@@ -102,17 +103,17 @@ function usePullRefresh(query: ReturnType<typeof useCommodities>) {
     if (result.isError) setFailed(true);
   };
 
-  return { refreshing, failed, onRefresh };
+  return { refreshing, failed, onRefresh, dismissFailed: () => setFailed(false) };
 }
 
-function RefreshFailedLine({ onRetry }: { onRetry: () => void }) {
+function RefreshFailedLine({ onDismiss }: { onDismiss: () => void }) {
   const { t } = useTranslation();
 
   return (
     <View style={styles.failedLine}>
       <Text style={styles.failedText}>{t('commodityList.refreshFailed')}</Text>
-      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.failedRetry}>
-        <Text style={styles.failedText}>{t('common.retry')}</Text>
+      <Pressable accessibilityRole="button" onPress={onDismiss} style={styles.failedButton}>
+        <Text style={styles.failedText}>{t('common.confirm')}</Text>
       </Pressable>
     </View>
   );
@@ -217,7 +218,7 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: fontSize.caption,
   },
-  failedRetry: {
+  failedButton: {
     minHeight: size.touchTarget,
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
