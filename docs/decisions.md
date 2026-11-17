@@ -1707,7 +1707,7 @@
 
 ## D-108: 과거 데이터를 받는 동안 햅틱을 주고 차트 터치를 막는다
 - 날짜: 2026-10-31
-- 상태: 확정 (사용자 요청, iPhone 14 Pro 실기기 확인 뒤)
+- 상태: 확정 (사용자 요청, iPhone 14 Pro 실기기 확인 뒤). 차단 범위·끝나는 조건은 D-139로 대체
 - 맥락: 이전 3년을 받는 동안(D-104, 실측 0.3~0.5초) 차트 왼쪽 가운데에 로딩 표시만 떴다. 손가락이 차트에 있어 표시를 놓치기 쉽고, 받는 동안 계속 끌면 봉이 붙는 순간과 겹친다.
 - 결정
   - 로딩 표시(`OlderDataIndicator`)가 뜰 때 `Haptics.impactAsync(Light)`를 한 번 준다. 십자선 봉 맞춤의 `selectionAsync`와 촉감을 구분한다.
@@ -2043,3 +2043,14 @@
   - 5초 안에 끝나지 않거나 조회가 실패하면 인디케이터와 차단을 거두고 공통 실패 Alert(`lib/failedAlert.ts`의 `showFailedAlert`, 제목 + "잠시 뒤 다시 당겨 주세요." + [확인])를 띄운다. 처음엔 목록 위 안내 줄이었으나 사용자 요청으로 Alert로 바꿨고, 차트 추가 로딩(D-139)도 같은 모듈을 쓴다. 다시 시도 버튼은 두지 않고, 재시도는 사용자가 다시 당겨서 한다. 떠 있는 동안 또 실패해도 겹쳐 띄우지 않는다. 늦게 끝난 조회는 계속 두어 데이터를 바꾸고(Alert는 코드로 닫을 수 없어 그대로 둔다), 시간 초과로 거둔 회차의 늦은 응답은 인디케이터 상태나 Alert를 건드리지 않는다.
 - 근거: 차단을 무기한 두면 느린 망에서 앱이 멈춘 것처럼 보이므로 시간 상한이 필요하다. 재시도 동작을 당겨서 새로고침 하나로 두면 햅틱·인디케이터·차단이 늘 같은 경로로 동작한다(버튼 재시도는 목록이 스크롤되지 않아 iOS에서 인디케이터가 안 보인다). 안내는 데이터가 있는 상태라 오류 화면(QueryStateView) 대신 목록을 그대로 두고 Alert로만 알린다.
 - 영향: `apps/mobile/src/features/commodity-list/CommodityListScreen.tsx`·테스트, `src/lib/haptics.ts`·`failedAlert.ts`, i18n `commodityList.refreshFailedTitle`·`refreshFailedMessage`.
+
+## D-139: 차트 이전 3년 받기 — C 화면 전체 터치 차단, 5초 시간 초과, 공통 실패 Alert
+- 날짜: 2026-11-17
+- 상태: 확정 (사용자 요청)
+- 맥락: D-108은 받는 동안 차트 안 터치만 막아 기간 칩·탭·title-bar가 끼어들 수 있었다. 잠금이 `isFetchingNextPage`에 묶여 있어 fetch 시간 초과 15초(D-072)와 재시도까지 길게 멈출 수 있었고, 실패해도 안내가 없었다. A 당겨서 새로고침(D-138)과 규칙을 맞춘다.
+- 결정:
+  - `useOlderPages`가 회차를 갖는다. 받기 시작에 `impactAsync(Light)`(`OlderDataIndicator`에서 옮김)를 주고, 이번 회차가 끝나거나 5초(`OLDER_TIMEOUT_MS`)가 지날 때까지 `loading`이다. 차트 `locked`·로딩 표시는 이 값을 따른다.
+  - 받는 동안 `ChartBusyProvider`(`CommodityTabsLayout`이 탭 그룹 전체를 감쌈)가 투명 덮개로 title-bar·tab-bar·기간 칩까지 막는다. 탭 화면은 `useReportChartBusy(loading)`로 알린다. 차트 안 제스처는 D-108의 `locked`가 계속 멈춘다. Android 시스템 뒤로 버튼은 OS 동작이라 막지 않는다.
+  - 실패·시간 초과면 공통 실패 Alert(`showFailedAlert`, D-138과 같은 모듈)로 "잠시 뒤 차트를 다시 끌어 주세요." + [확인]. 다시 시도 버튼은 두지 않고, 다시 끌거나 축소해 첫 봉이 보이면(D-104) 다시 받는다. 이때 시간 초과로 남은 요청은 `fetchNextPage` 기본값(`cancelRefetch`)이 버리고 새로 받는다. 시간 초과 뒤 늦은 응답은 데이터만 붙이고 상태·Alert는 건드리지 않는다.
+- 근거: 받는 동안 다른 동작을 허용하면 탭 이동·기간 변경과 봉 붙이기가 겹친다. 차단은 시간 상한이 있어야 느린 망에서 멈춘 것처럼 보이지 않는다. 재시도 경로를 받기 트리거 하나로 두면 햅틱·로딩·차단이 늘 같은 경로로 동작한다(D-138과 같은 이유).
+- 영향: `charts/useOlderPages.ts`·테스트, `charts/OlderDataIndicator.tsx`, `features/commodity/ChartBusy.tsx`·`CommodityTabsLayout.tsx`, `DisparityChartScreen`·`ContractChartScreen`, i18n `chart.olderFailedTitle`·`olderFailedMessage`, screens.md C-a.

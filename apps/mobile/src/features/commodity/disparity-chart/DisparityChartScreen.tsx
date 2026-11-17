@@ -20,6 +20,7 @@ import {
 import { perfMark, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { changeColor, changePairColor, useUpDownPalette } from '@/theme/upDownColor';
+import { useReportChartBusy } from '../ChartBusy';
 import { ChartTabMessage, ChartTabQuery, ChartTabScreen, useChartTabPerf } from '../ChartTab';
 import { useChartPeriodView } from '../useChartPeriodView';
 import {
@@ -86,7 +87,8 @@ function DisparityChartView({
   useEffect(() => perfMark('view committed'), []);
   const { range, chartProps, chipProps } = useChartPeriodView('disparity', model.bars.length);
 
-  useOlderPages(range?.[0] ?? null, older);
+  const { loading: loadingOlder } = useOlderPages(range?.[0] ?? null, older);
+  useReportChartBusy(loadingOlder);
   // y축 라벨·점선은 보이는 마지막 봉 값. 새로 조회해 봉이 줄었을 수 있어 봉 안으로 자른다
   const labelIndex = Math.min(range?.[1] ?? Infinity, model.bars.length - 1);
   const priceLabels = useMemo(() => priceLabelsAt(model, labelIndex), [model, labelIndex]);
@@ -122,9 +124,9 @@ function DisparityChartView({
               <StatsLine data={data} bars={model.bars} range={range} />
             </>
           }
-          locked={older.isFetchingNextPage}
+          locked={loadingOlder}
         />
-        <OlderDataIndicator visible={older.isFetchingNextPage} />
+        <OlderDataIndicator visible={loadingOlder} />
       </View>
       <PeriodChips {...chipProps} />
     </>

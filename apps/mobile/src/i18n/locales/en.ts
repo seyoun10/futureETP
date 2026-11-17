@@ -67,6 +67,8 @@ export const en: Translation = {
     },
     periodsLabel: 'Period',
     resetView: 'Back to the latest selected period',
+    olderFailedTitle: "Couldn't load older data",
+    olderFailedMessage: 'Drag the chart again in a moment.',
   },
   disparity: {
     basisFallback: '{{basis}}*',

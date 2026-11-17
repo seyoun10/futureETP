@@ -72,6 +72,8 @@ export const ko = {
     } satisfies Record<ChartPeriod, string>,
     periodsLabel: '기간',
     resetView: '선택한 기간의 최근 위치로',
+    olderFailedTitle: '과거 데이터를 불러오지 못했습니다',
+    olderFailedMessage: '잠시 뒤 차트를 다시 끌어 주세요.',
   },
   // C-a 이격도차트 차트 밖 줄과 십자선 상세(screens.md C-a)
   disparity: {

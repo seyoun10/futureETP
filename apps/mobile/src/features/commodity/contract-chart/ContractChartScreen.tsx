@@ -14,6 +14,7 @@ import { useTabFreshness } from '@/components/FreshnessLine';
 import { formatChangePct, formatContractMonth, formatPrice } from '@/lib/formatNumber';
 import { perfMark, perfTime } from '@/lib/perfLog';
 import { colors, fontSize, spacing } from '@/theme/tokens';
+import { useReportChartBusy } from '../ChartBusy';
 import { ChartTabMessage, ChartTabQuery, ChartTabScreen, useChartTabPerf } from '../ChartTab';
 import { useChartPeriodView } from '../useChartPeriodView';
 import {
@@ -55,7 +56,8 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   useEffect(() => perfMark('view committed'), []);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
   const { range, chartProps, chipProps } = useChartPeriodView('contract', data.dates.length);
-  useOlderPages(range?.[0] ?? null, older);
+  const { loading: loadingOlder } = useOlderPages(range?.[0] ?? null, older);
+  useReportChartBusy(loadingOlder);
   // 끝값 라벨은 보이는 범위의 마지막 날 값이다(D-093). 범위를 받기 전에는 전체 범위
   const endLabels = useMemo(
     () => visibleEndLabels(data, range?.[0] ?? 0, range?.[1] ?? data.dates.length - 1),
@@ -88,9 +90,9 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
           {...chartProps}
           renderDetail={renderDetail}
           overlayTop={<Legend model={model} />}
-          locked={older.isFetchingNextPage}
+          locked={loadingOlder}
         />
-        <OlderDataIndicator visible={older.isFetchingNextPage} />
+        <OlderDataIndicator visible={loadingOlder} />
       </View>
       <PeriodChips {...chipProps} />
     </>

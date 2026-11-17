@@ -8,6 +8,7 @@ import { getCommodities, getDisparityChart } from '@/api/commodities';
 import { queryClient } from '@/api/queryClient';
 import { getSettings } from '@/api/settings';
 import { CandleChart } from '@/charts/CandleChart';
+import { showFailedAlert } from '@/lib/failedAlert';
 import { useIsLandscape } from '@/lib/orientation';
 import { useDisplaySettings } from '@/stores/displaySettings';
 import { colors } from '@/theme/tokens';
@@ -21,6 +22,7 @@ jest.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light' },
 }));
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
+jest.mock('@/lib/failedAlert', () => ({ showFailedAlert: jest.fn() }));
 jest.mock('@/lib/orientation', () => ({
   ...jest.requireActual<object>('@/lib/orientation'),
   useIsLandscape: jest.fn(() => false),
@@ -108,7 +110,7 @@ beforeEach(() => {
 const renderScreen = () => renderRouter('src/app', { initialUrl: '/commodity/GC' });
 
 describe('C-a 이격도차트', () => {
-  it('가장 과거 봉이 보이면 그 날짜 이전 3년을 받아 앞에 붙이고, 받는 동안 로딩 표시·햅틱을 주고 차트를 잠근다', async () => {
+  it('가장 과거 봉이 보이면 그 날짜 이전 3년을 받아 앞에 붙이고, 받는 동안 로딩 표시·햅틱을 주고 차트와 C 화면 전체 터치를 막는다', async () => {
     let resolveOlder: (data: DisparityChart) => void = () => {};
     mockGet
       .mockResolvedValueOnce({ ...DATA, hasMore: true })
@@ -131,13 +133,46 @@ describe('C-a 이격도차트', () => {
     expect(await screen.findByRole('progressbar', { name: '불러오는 중' })).toBeOnTheScreen();
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
     expect(lastChartProps().locked).toBe(true);
+    expect(
+      screen.getByTestId('chart-busy-blocker', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
 
     await act(() => resolveOlder({ ...DATA, bars: [bar('2026-10-19', 88)] }));
     await waitFor(() => expect(lastChartProps().bars).toHaveLength(latestCount + 1));
     expect(lastChartProps().bars[0]!.tradeDate).toBe('2026-10-19');
     expect(screen.queryByRole('progressbar', { name: '불러오는 중' })).toBeNull();
     expect(lastChartProps().locked).toBe(false);
+    expect(
+      screen.queryByTestId('chart-busy-blocker', { includeHiddenElements: true }),
+    ).not.toBeOnTheScreen();
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('이전 3년 받기가 5초 안에 끝나지 않으면 로딩 표시·차단을 거두고 실패 Alert를 띄운다', async () => {
+    mockGet
+      .mockResolvedValueOnce({ ...DATA, hasMore: true })
+      .mockReturnValueOnce(new Promise(() => {}));
+    await renderScreen();
+    await screen.findByTestId('disparity-stats');
+    jest.useFakeTimers();
+    try {
+      await act(() => lastChartProps().onVisibleRangeChange?.(0, 2));
+      expect(lastChartProps().locked).toBe(true);
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(lastChartProps().locked).toBe(false);
+      expect(screen.queryByRole('progressbar', { name: '불러오는 중' })).toBeNull();
+      expect(
+        screen.queryByTestId('chart-busy-blocker', { includeHiddenElements: true }),
+      ).not.toBeOnTheScreen();
+      expect(jest.mocked(showFailedAlert)).toHaveBeenCalledWith(
+        '과거 데이터를 불러오지 못했습니다',
+        '잠시 뒤 차트를 다시 끌어 주세요.',
+        '확인',
+      );
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('가로 모드에서는 기간 칩·tab-bar·기준 시각 줄을 숨기고 차트만 남긴다', async () => {
