@@ -42,6 +42,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # 앱 Jest transform 캐시(D-140). 없으면 화면 테스트 파일의 첫 renderRouter가 route·차트 모듈을
+      # 처음 변환하느라 5초 제한을 넘겨 그 파일이 연쇄로 실패한다. Jest 기본 위치는 /tmp/jest_<uid>다.
+      # 캐시 항목 키는 파일 내용 기준이라 오래된 캐시를 받아도 틀린 결과는 없고, 바뀐 파일만 다시 변환한다
+      - uses: actions/cache@v6
+        with:
+          path: /tmp/jest_*
+          key: jest-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            jest-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            jest-${{ runner.os }}-
       - run: npm run check
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/futureetp_test

@@ -2054,3 +2054,11 @@
   - 실패·시간 초과면 공통 실패 Alert(`showFailedAlert`, D-138과 같은 모듈)로 "잠시 뒤 차트를 다시 끌어 주세요." + [확인]. 다시 시도 버튼은 두지 않고, 다시 끌거나 축소해 첫 봉이 보이면(D-104) 다시 받는다. 이때 시간 초과로 남은 요청은 `fetchNextPage` 기본값(`cancelRefetch`)이 버리고 새로 받는다. 시간 초과 뒤 늦은 응답은 데이터만 붙이고 상태·Alert는 건드리지 않는다.
 - 근거: 받는 동안 다른 동작을 허용하면 탭 이동·기간 변경과 봉 붙이기가 겹친다. 차단은 시간 상한이 있어야 느린 망에서 멈춘 것처럼 보이지 않는다. 재시도 경로를 받기 트리거 하나로 두면 햅틱·로딩·차단이 늘 같은 경로로 동작한다(D-138과 같은 이유).
 - 영향: `charts/useOlderPages.ts`·테스트, `charts/OlderDataIndicator.tsx`, `features/commodity/ChartBusy.tsx`·`CommodityTabsLayout.tsx`, `DisparityChartScreen`·`ContractChartScreen`, i18n `chart.olderFailedTitle`·`olderFailedMessage`, screens.md C-a.
+
+## D-140: CI에서 앱 Jest transform 캐시를 보존한다
+- 날짜: 2026-11-17
+- 상태: 확정
+- 맥락: CI check가 가끔 `DisparityChartScreen`·`SettingsScreen`·`CurveScreen` 테스트 파일에서 첫 테스트 5초 시간 초과로 실패하고, 그 뒤 같은 파일의 테스트가 연쇄로 실패했다(재실행하면 통과). 로컬 측정에서 transform 캐시가 없으면 각 파일 첫 테스트가 약 2.6초, 있으면 약 0.5초였다. 첫 `renderRouter`가 route·차트 모듈을 늦게 require하면서 babel 변환이 그 테스트 시간 안에 들어간다. CI 러너는 매번 캐시 없이 시작하고 더 느려 5초를 넘긴다.
+- 결정: `check` job에서 `npm ci` 뒤 `actions/cache`로 Jest 기본 캐시 위치(`/tmp/jest_*`)를 보존한다. 키는 lockfile 해시 + 커밋 SHA로 매번 저장하고, 같은 lockfile → 아무 이전 캐시 순으로 복원한다.
+- 근거: 느린 원인(변환)을 없애는 쪽이 시간 제한을 늘리는 것보다 낫다(진짜로 멈춘 테스트는 그대로 5초에 잡힌다). Jest 캐시 항목은 파일 내용·설정 기준 키라 오래된 캐시를 받아도 결과가 틀리지 않는다. `apps/mobile/package.json`의 `jest` 설정을 바꾸지 않아 앱 fingerprint(OTA)에 영향이 없다. 캐시는 약 100MB로 GitHub 저장 한도(10GB, 오래된 것부터 제거) 안이다.
+- 영향: `.github/workflows/check.yml`.
