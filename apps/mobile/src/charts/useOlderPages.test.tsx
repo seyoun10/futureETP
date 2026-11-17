@@ -24,9 +24,13 @@ const deferredQuery = () => {
   return { query: { hasNextPage: true, fetchNextPage }, pending };
 };
 
-const render = (query: ReturnType<typeof deferredQuery>['query'], first: number | null = 3) =>
-  renderHook(({ first }: { first: number | null }) => useOlderPages(first, query), {
-    initialProps: { first },
+type Range = readonly [number, number] | null;
+// 차트가 알리는 보이는 범위. 알릴 때마다 새 배열이다
+const at = (first: number): Range => [first, first + 50];
+
+const render = (query: ReturnType<typeof deferredQuery>['query'], range: Range = at(3)) =>
+  renderHook(({ range }: { range: Range }) => useOlderPages(range, query), {
+    initialProps: { range },
   });
 
 beforeEach(() => {
@@ -42,7 +46,7 @@ describe('useOlderPages', () => {
     const hook = await render(query);
     expect(query.fetchNextPage).not.toHaveBeenCalled();
 
-    await hook.rerender({ first: 0 });
+    await hook.rerender({ range: at(0) });
     expect(query.fetchNextPage).toHaveBeenCalledTimes(1);
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
     expect(hook.result.current.loading).toBe(true);
@@ -57,14 +61,14 @@ describe('useOlderPages', () => {
 
   it('받을 게 없으면 받지 않는다', async () => {
     const { query } = deferredQuery();
-    const hook = await renderHook(() => useOlderPages(0, { ...query, hasNextPage: false }));
+    const hook = await renderHook(() => useOlderPages(at(0), { ...query, hasNextPage: false }));
     expect(query.fetchNextPage).not.toHaveBeenCalled();
     expect(hook.result.current.loading).toBe(false);
   });
 
   it('5초 안에 끝나지 않으면 loading을 거두고 실패 Alert를 띄운다. 늦은 응답은 상태·Alert를 바꾸지 않는다', async () => {
     const { query, pending } = deferredQuery();
-    const hook = await render(query, 0);
+    const hook = await render(query, at(0));
 
     await act(() => jest.advanceTimersByTimeAsync(OLDER_TIMEOUT_MS - 1));
     expect(hook.result.current.loading).toBe(true);
@@ -86,7 +90,7 @@ describe('useOlderPages', () => {
 
   it('받기가 실패하면 loading을 거두고 실패 Alert를 띄운다', async () => {
     const { query, pending } = deferredQuery();
-    const hook = await render(query, 0);
+    const hook = await render(query, at(0));
 
     await act(() => {
       pending[0]!({ isError: true });
@@ -101,27 +105,44 @@ describe('useOlderPages', () => {
 
   it('시간 초과 뒤 차트를 다시 끌어 첫 봉이 보이면 다시 받는다', async () => {
     const { query } = deferredQuery();
-    const hook = await render(query, 0);
+    const hook = await render(query, at(0));
     await act(() => jest.advanceTimersByTimeAsync(OLDER_TIMEOUT_MS));
 
-    await hook.rerender({ first: 2 });
-    await hook.rerender({ first: 0 });
+    await hook.rerender({ range: at(2) });
+    await hook.rerender({ range: at(0) });
     expect(query.fetchNextPage).toHaveBeenCalledTimes(2);
     expect(Haptics.impactAsync).toHaveBeenCalledTimes(2);
     expect(hook.result.current.loading).toBe(true);
   });
 
+  it('실패 뒤 가장 과거 끝에서 범위가 그대로인 채 다시 끌어도 다시 받는다', async () => {
+    const { query, pending } = deferredQuery();
+    const edge = at(0);
+    const hook = await render(query, edge);
+    await act(() => {
+      pending[0]!({ isError: true });
+      return Promise.resolve();
+    });
+    // 다시 그려지기만 하면(같은 범위 배열) 받지 않는다
+    await hook.rerender({ range: edge });
+    expect(query.fetchNextPage).toHaveBeenCalledTimes(1);
+    // 제스처가 끝나 같은 범위를 새로 알리면 다시 받는다
+    await hook.rerender({ range: at(0) });
+    expect(query.fetchNextPage).toHaveBeenCalledTimes(2);
+    expect(hook.result.current.loading).toBe(true);
+  });
+
   it('받는 중에는 첫 봉이 다시 보여도 겹쳐 받지 않는다', async () => {
     const { query } = deferredQuery();
-    const hook = await render(query, 0);
-    await hook.rerender({ first: 1 });
-    await hook.rerender({ first: 0 });
+    const hook = await render(query, at(0));
+    await hook.rerender({ range: at(1) });
+    await hook.rerender({ range: at(0) });
     expect(query.fetchNextPage).toHaveBeenCalledTimes(1);
   });
 
   it('화면이 사라지면 타이머를 지워 Alert를 띄우지 않는다', async () => {
     const { query } = deferredQuery();
-    const hook = await render(query, 0);
+    const hook = await render(query, at(0));
     await hook.unmount();
     await act(() => jest.advanceTimersByTimeAsync(OLDER_TIMEOUT_MS));
     expect(mockAlert).not.toHaveBeenCalled();

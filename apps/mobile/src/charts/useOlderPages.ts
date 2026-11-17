@@ -12,11 +12,12 @@ export type OlderPagesQuery = {
 // 이전 3년 받기가 이 시간 안에 끝나지 않으면 로딩·차단을 거두고 실패 Alert를 띄운다(D-139)
 export const OLDER_TIMEOUT_MS = 5000;
 
-// 가장 과거 봉(순번 0)이 화면에 보이면 이전 3년을 더 받는다(D-104). 보이는 범위가 바뀔 때만 확인해,
-// 받기가 실패해도 같은 자리에서 반복 요청하지 않는다(다시 끌거나 축소하면 다시 시도한다).
+// 가장 과거 봉(순번 0)이 화면에 보이면 이전 3년을 더 받는다(D-104). 보이는 범위를 알릴 때만 확인해,
+// 받기가 실패해도 같은 자리에서 반복 요청하지 않는다. 차트는 핀치·드래그가 끝날 때 범위가 그대로여도
+// 새 배열로 다시 알리므로, 가장 과거 끝에서 다시 끌거나 축소하면 다시 시도한다(D-139).
 // 받기 시작에 햅틱을 주고, 이번 회차가 끝나거나 5초가 지날 때까지 loading이다(D-108, D-139).
 // 실패·시간 초과면 공통 실패 Alert. 시간 초과로 거둔 회차의 늦은 응답은 데이터만 붙이고 상태는 바꾸지 않는다
-export function useOlderPages(firstVisible: number | null, query: OlderPagesQuery) {
+export function useOlderPages(range: readonly [number, number] | null, query: OlderPagesQuery) {
   const { t } = useTranslation();
   const { hasNextPage } = query;
   const [loading, setLoading] = useState(false);
@@ -56,8 +57,8 @@ export function useOlderPages(firstVisible: number | null, query: OlderPagesQuer
   });
 
   useEffect(() => {
-    if (firstVisible === 0 && hasNextPage) void fetchOlder();
-  }, [firstVisible, hasNextPage]);
+    if (range?.[0] === 0 && hasNextPage) void fetchOlder();
+  }, [range, hasNextPage]);
 
   useEffect(
     () => () => {

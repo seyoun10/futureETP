@@ -264,6 +264,16 @@ export function useChartViewport({
   // RNGH 3의 legacy 합성은 hook 제스처를 다루지 못한다. victory-native가 hook API로 옮기면 이전한다(D-128)
   /* eslint-disable @typescript-eslint/no-deprecated */
   const gestures = useMemo(() => {
+    // 핀치·드래그가 끝나면 범위가 그대로여도 다시 알린다. 가장 과거 끝에서 더 끌면 범위가 그대로라
+    // 실패·시간 초과 뒤 다시 끌어도 이전 3년을 다시 받지 않았다(D-139)
+    const reportRange = () => {
+      'worklet';
+      const g = geom.get();
+      if (!g || !fitted.get()) return;
+      const c = getTransformComponents(transform.matrix.get());
+      const [i0, i1] = visibleRange(g, c.scaleX, c.translateX);
+      scheduleOnRN(rangeChanged, i0, i1);
+    };
     const hideCrosshair = Gesture.Tap()
       .enabled(!locked)
       .onEnd(() => {
@@ -283,6 +293,7 @@ export function useChartViewport({
         if (!g) return;
         applyTransform(transform, pinchTransform(g, pinchStart.get(), e.scale, e.focalX));
       })
+      .onEnd(reportRange)
       .onFinalize(() => transform.zoomActive.set(false));
     // 드래그: '전체'에서는 막는다(이동이 x를 바꾸고 보정이 되돌리는 쓰기 충돌, D-056). 핀치 중에는 핀치가 이동까지 맡는다
     const pan = Gesture.Pan()
@@ -294,9 +305,20 @@ export function useChartViewport({
         const c = getTransformComponents(transform.matrix.get());
         applyTransform(transform, fitTransform(g, c.scaleX, c.translateX + e.changeX));
       })
+      .onEnd(reportRange)
       .onFinalize(() => transform.panActive.set(false));
     return Gesture.Race(hideCrosshair, Gesture.Simultaneous(pinch, pan));
-  }, [crosshairVisible, crosshairShown, geom, locked, pinchStart, transform, zoomed]);
+  }, [
+    crosshairVisible,
+    crosshairShown,
+    fitted,
+    geom,
+    locked,
+    pinchStart,
+    rangeChanged,
+    transform,
+    zoomed,
+  ]);
   /* eslint-enable @typescript-eslint/no-deprecated */
 
   // 봉에 붙을 때마다 햅틱 + 상세 박스 갱신

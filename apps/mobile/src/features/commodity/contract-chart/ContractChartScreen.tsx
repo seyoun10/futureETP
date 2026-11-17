@@ -56,7 +56,7 @@ function ContractChartView({ data, older }: { data: ContractsChart; older: Older
   useEffect(() => perfMark('view committed'), []);
   // 기간 선택은 C-a와 따로 기억한다(screens.md C-c)
   const { range, chartProps, chipProps } = useChartPeriodView('contract', data.dates.length);
-  const { loading: loadingOlder } = useOlderPages(range?.[0] ?? null, older);
+  const { loading: loadingOlder } = useOlderPages(range, older);
   useReportChartBusy(loadingOlder);
   // 끝값 라벨은 보이는 범위의 마지막 날 값이다(D-093). 범위를 받기 전에는 전체 범위
   const endLabels = useMemo(

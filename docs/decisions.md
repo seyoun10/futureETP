@@ -2051,7 +2051,7 @@
 - 결정:
   - `useOlderPages`가 회차를 갖는다. 받기 시작에 `impactAsync(Light)`(`OlderDataIndicator`에서 옮김)를 주고, 이번 회차가 끝나거나 5초(`OLDER_TIMEOUT_MS`)가 지날 때까지 `loading`이다. 차트 `locked`·로딩 표시는 이 값을 따른다.
   - 받는 동안 `ChartBusyProvider`(`CommodityTabsLayout`이 탭 그룹 전체를 감쌈)가 투명 덮개로 title-bar·tab-bar·기간 칩까지 막는다. 탭 화면은 `useReportChartBusy(loading)`로 알린다. 차트 안 제스처는 D-108의 `locked`가 계속 멈춘다. Android 시스템 뒤로 버튼은 OS 동작이라 막지 않는다.
-  - 실패·시간 초과면 공통 실패 Alert(`showFailedAlert`, D-138과 같은 모듈)로 "잠시 뒤 차트를 다시 끌어 주세요." + [확인]. 다시 시도 버튼은 두지 않고, 다시 끌거나 축소해 첫 봉이 보이면(D-104) 다시 받는다. 이때 시간 초과로 남은 요청은 `fetchNextPage` 기본값(`cancelRefetch`)이 버리고 새로 받는다. 시간 초과 뒤 늦은 응답은 데이터만 붙이고 상태·Alert는 건드리지 않는다.
+  - 실패·시간 초과면 공통 실패 Alert(`showFailedAlert`, D-138과 같은 모듈)로 "잠시 뒤 차트를 다시 끌어 주세요." + [확인]. 다시 시도 버튼은 두지 않고, 다시 끌거나 축소해 첫 봉이 보이면(D-104) 다시 받는다. 가장 과거 끝에서 더 끌면 보이는 범위가 그대로라 다시 받지 않던 문제가 있어, 차트는 핀치·드래그가 끝날 때 범위가 그대로여도 새로 알리고 `useOlderPages`는 알릴 때마다(범위 배열이 바뀔 때마다) 확인한다. 이때 시간 초과로 남은 요청은 `fetchNextPage` 기본값(`cancelRefetch`)이 버리고 새로 받는다. 시간 초과 뒤 늦은 응답은 데이터만 붙이고 상태·Alert는 건드리지 않는다.
 - 근거: 받는 동안 다른 동작을 허용하면 탭 이동·기간 변경과 봉 붙이기가 겹친다. 차단은 시간 상한이 있어야 느린 망에서 멈춘 것처럼 보이지 않는다. 재시도 경로를 받기 트리거 하나로 두면 햅틱·로딩·차단이 늘 같은 경로로 동작한다(D-138과 같은 이유).
 - 영향: `charts/useOlderPages.ts`·테스트, `charts/OlderDataIndicator.tsx`, `features/commodity/ChartBusy.tsx`·`CommodityTabsLayout.tsx`, `DisparityChartScreen`·`ContractChartScreen`, i18n `chart.olderFailedTitle`·`olderFailedMessage`, screens.md C-a.
 
