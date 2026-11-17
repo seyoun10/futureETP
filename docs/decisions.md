@@ -2032,3 +2032,14 @@
 - 결정: `TimezoneSync`를 `DeviceSettingsSync`로 바꾸고, 설정을 받을 때마다 시간대와 함께 앱 표시 언어(`useDisplaySettings.language`)를 서버 `locale`과 비교해 다르면 한 번의 PATCH로 보낸다. 같은 값은 프로세스당 한 번만 보낸다(시간대와 같은 규칙).
 - 근거: 서버 언어는 푸시 문구용 사본이라(D-082) 앱 언어가 원본이다. 등록 요청(`PUT /v1/devices`)에 locale을 넣으면 shared 스키마와 서버를 함께 바꿔야 하지만, 이미 있는 설정 PATCH 경로를 쓰면 앱 JS만 바뀌어 OTA로 고칠 수 있다.
 - 영향: `apps/mobile/src/features/settings/DeviceSettingsSync.tsx`(이름 변경)·테스트, `src/app/_layout.tsx`.
+
+## D-138: A 당겨서 새로고침 — 햅틱, 진행 중 터치 차단, 5초 시간 초과 안내
+- 날짜: 2026-11-17
+- 상태: 확정
+- 맥락: A 원자재 목록의 당겨서 새로고침은 조회가 끝나면 인디케이터를 거두기만 했다. 걸렸는지 손으로 알 수 없고, 진행 중에 행을 눌러 C로 넘어갈 수 있었으며, 응답이 늦거나 실패해도 아무 안내가 없었다(조회 재시도 때문에 실패는 더 늦게 드러난다).
+- 결정:
+  - 새로고침이 걸리는 순간 `refreshHaptic()`(가벼운 impact, D-109의 선택 햅틱보다 또렷하게)을 울린다.
+  - 인디케이터는 이번 회차의 조회가 끝날 때까지 유지하고, 그동안 화면 전체를 덮는 투명 View로 다른 터치(행, [⚙])를 막는다.
+  - 5초 안에 끝나지 않거나 조회가 실패하면 인디케이터와 차단을 거두고 목록 위에 다시 시도 줄을 띄운다. 늦게 끝난 조회는 계속 두고, 데이터가 바뀌면(`dataUpdatedAt`) 줄을 거둔다. 시간 초과로 거둔 회차의 늦은 응답은 인디케이터 상태를 바꾸지 않는다.
+- 근거: 차단을 무기한 두면 느린 망에서 앱이 멈춘 것처럼 보이므로 시간 상한이 필요하다. 다시 시도 줄은 데이터가 있는 상태라 오류 화면(QueryStateView) 대신 목록을 그대로 두고 위에만 띄운다.
+- 영향: `apps/mobile/src/features/commodity-list/CommodityListScreen.tsx`·테스트, `src/lib/haptics.ts`, i18n `commodityList.refreshFailed`.

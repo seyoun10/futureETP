@@ -1,4 +1,5 @@
 import type { Commodities, ContractQuote, Settings } from '@futureetp/shared';
+import * as Haptics from 'expo-haptics';
 import type { ReactElement } from 'react';
 import type { RefreshControlProps } from 'react-native';
 import { act, fireEvent, renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
@@ -12,6 +13,11 @@ import { useDisplaySettings } from '@/stores/displaySettings';
 import { UP_DOWN_PALETTES } from '@/theme/upDownColor';
 
 jest.mock('@/api/commodities', () => ({ getCommodities: jest.fn() }));
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  selectionAsync: jest.fn(),
+  ImpactFeedbackStyle: { Light: 'light' },
+}));
 // 루트 레이아웃의 시간대 동기화가 설정을 조회한다
 jest.mock('@/api/settings', () => ({ getSettings: jest.fn(), patchSettings: jest.fn() }));
 const mockGet = jest.mocked(getCommodities);
@@ -80,7 +86,12 @@ const SETTINGS: Settings = {
   quietTime: null,
 };
 
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 beforeEach(() => {
+  jest.mocked(Haptics.impactAsync).mockClear();
   useDisplaySettings.setState({ language: 'ko', upDownStyle: 'KR' });
   useAccessKeyStore.setState({ key: 'key', rejected: false });
   queryClient.clear();
@@ -194,15 +205,103 @@ describe('A 원자재 목록', () => {
     expect(await screen.findByText('금\n(GC)')).toBeOnTheScreen();
   });
 
-  it('당겨서 새로고침하면 다시 조회한다', async () => {
+  // 목록 호스트 요소가 refreshControl 요소를 그대로 받는다
+  const refreshControl = () =>
+    (
+      screen.getByTestId('commodity-list').props as {
+        refreshControl: ReactElement<RefreshControlProps>;
+      }
+    ).refreshControl;
+  const pull = () => act(async () => refreshControl().props.onRefresh?.());
+
+  // 응답을 테스트가 직접 끝내는 조회
+  const deferGet = () => {
+    let resolve: (data: Commodities) => void = () => {};
+    let reject: (error: unknown) => void = () => {};
+    mockGet.mockImplementationOnce(
+      () =>
+        new Promise((res, rej) => {
+          resolve = res;
+          reject = rej;
+        }),
+    );
+    return { resolve: (data: Commodities) => resolve(data), reject: (e: unknown) => reject(e) };
+  };
+
+  it('당겨서 새로고침하면 햅틱 뒤 다시 조회하고, 끝날 때까지 인디케이터를 두고 터치를 막는다', async () => {
     await renderList();
     await screen.findByText('금\n(GC)');
-    // 목록 호스트 요소가 refreshControl 요소를 그대로 받는다
-    const { refreshControl } = screen.getByTestId('commodity-list').props as {
-      refreshControl: ReactElement<RefreshControlProps>;
-    };
-    await act(async () => refreshControl.props.onRefresh?.());
+    const pending = deferGet();
+    await pull();
 
-    await waitFor(() => expect(mockGet).toHaveBeenCalledTimes(2));
+    expect(Haptics.impactAsync).toHaveBeenCalledTimes(1);
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(refreshControl().props.refreshing).toBe(true);
+    expect(
+      screen.getByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+
+    await act(() => {
+      pending.resolve(DATA);
+      return Promise.resolve();
+    });
+    await waitFor(() => expect(refreshControl().props.refreshing).toBe(false));
+    expect(
+      screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen();
+  });
+
+  it('5초 안에 끝나지 않으면 인디케이터를 거두고 다시 시도 안내를 띄우고, 다시 시도하면 조회한다', async () => {
+    await renderList();
+    await screen.findByText('금\n(GC)');
+    jest.useFakeTimers();
+    deferGet();
+    await pull();
+
+    await act(() => jest.advanceTimersByTimeAsync(4999));
+    expect(refreshControl().props.refreshing).toBe(true);
+    await act(() => jest.advanceTimersByTimeAsync(1));
+    expect(refreshControl().props.refreshing).toBe(false);
+    expect(
+      screen.queryByTestId('refresh-touch-blocker', { includeHiddenElements: true }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByRole('button', { name: '다시 시도' }));
+    expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen();
+    expect(Haptics.impactAsync).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(refreshControl().props.refreshing).toBe(false));
+  });
+
+  it('시간 초과 뒤 늦은 응답이 데이터를 바꾸면 안내를 거둔다', async () => {
+    await renderList();
+    await screen.findByText('금\n(GC)');
+    jest.useFakeTimers();
+    const pending = deferGet();
+    await pull();
+    await act(() => jest.advanceTimersByTimeAsync(5000));
+    expect(screen.getByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+
+    await act(() => {
+      pending.resolve(DATA);
+      return Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('새로고침을 마치지 못했습니다.')).not.toBeOnTheScreen(),
+    );
+    expect(refreshControl().props.refreshing).toBe(false);
+  });
+
+  it('새로고침이 실패하면 목록은 두고 다시 시도 안내를 띄운다', async () => {
+    await renderList();
+    await screen.findByText('금\n(GC)');
+    // 재시도하지 않는 오류
+    mockGet.mockRejectedValueOnce(new AppError('SCHEMA_MISMATCH'));
+    await pull();
+
+    expect(await screen.findByText('새로고침을 마치지 못했습니다.')).toBeOnTheScreen();
+    expect(refreshControl().props.refreshing).toBe(false);
+    expect(screen.getByText('금\n(GC)')).toBeOnTheScreen();
   });
 });

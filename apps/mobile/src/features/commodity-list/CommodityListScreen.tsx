@@ -1,7 +1,7 @@
 import type { CommoditySummary, ContractQuote } from '@futureetp/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
@@ -17,9 +17,9 @@ import {
 } from '@/lib/formatNumber';
 import { changePairColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
-import { colors, fontSize, spacing } from '@/theme/tokens';
+import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
-import { tapHaptic } from '@/lib/haptics';
+import { refreshHaptic, tapHaptic } from '@/lib/haptics';
 import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
 import { useCommodities } from './useCommodities';
 
@@ -27,15 +27,8 @@ import { useCommodities } from './useCommodities';
 export function CommodityListScreen() {
   const query = useCommodities();
   const palette = useUpDownPalette();
-  // 당겨서 새로고침만 스피너를 띄운다(자동 새로고침·복귀 재조회는 조용히)
-  const [refreshing, setRefreshing] = useState(false);
+  const { refreshing, failed, onRefresh } = usePullRefresh(query);
   useAutoRefresh(query);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await query.refetch();
-    setRefreshing(false);
-  };
 
   return (
     <View style={styles.container}>
@@ -43,6 +36,7 @@ export function CommodityListScreen() {
       <QueryStateView query={query}>
         {(data) => (
           <>
+            {failed && <RefreshFailedLine onRetry={() => void onRefresh()} />}
             <FlatList
               testID="commodity-list"
               data={data.commodities}
@@ -60,6 +54,66 @@ export function CommodityListScreen() {
           </>
         )}
       </QueryStateView>
+      {/* 새로고침 중에는 헤더까지 덮어 다른 터치를 막는다. 투명이라 목록 위 인디케이터는 보인다 */}
+      {refreshing && (
+        <View
+          testID="refresh-touch-blocker"
+          style={StyleSheet.absoluteFill}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      )}
+    </View>
+  );
+}
+
+// 당겨서 새로고침이 이 시간 안에 끝나지 않으면 인디케이터를 거두고 다시 시도 안내를 띄운다
+const REFRESH_TIMEOUT_MS = 5000;
+
+// 당겨서 새로고침 상태. 자동 새로고침·복귀 재조회는 인디케이터 없이 조용히 한다.
+// 걸리는 순간 햅틱, 조회가 끝날 때까지 인디케이터 유지, 시간 초과·실패면 안내를 띄운다.
+// 늦게 끝난 조회가 데이터를 바꾸면(자동 새로고침 포함) 안내를 거둔다.
+function usePullRefresh(query: ReturnType<typeof useCommodities>) {
+  const [refreshing, setRefreshing] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // 시간 초과로 거둔 회차의 늦은 응답이 상태를 다시 바꾸지 않게 회차를 센다
+  const run = useRef(0);
+  const [seenUpdatedAt, setSeenUpdatedAt] = useState(query.dataUpdatedAt);
+  if (query.dataUpdatedAt !== seenUpdatedAt) {
+    setSeenUpdatedAt(query.dataUpdatedAt);
+    setFailed(false);
+  }
+
+  const onRefresh = async () => {
+    const id = ++run.current;
+    refreshHaptic();
+    setFailed(false);
+    setRefreshing(true);
+    const timer = setTimeout(() => {
+      if (run.current !== id) return;
+      run.current++;
+      setRefreshing(false);
+      setFailed(true);
+    }, REFRESH_TIMEOUT_MS);
+    const result = await query.refetch();
+    clearTimeout(timer);
+    if (run.current !== id) return;
+    setRefreshing(false);
+    if (result.isError) setFailed(true);
+  };
+
+  return { refreshing, failed, onRefresh };
+}
+
+function RefreshFailedLine({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.failedLine}>
+      <Text style={styles.failedText}>{t('commodityList.refreshFailed')}</Text>
+      <Pressable accessibilityRole="button" onPress={onRetry} style={styles.failedRetry}>
+        <Text style={styles.failedText}>{t('common.retry')}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -148,6 +202,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  failedLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
+  failedText: {
+    color: colors.error,
+    fontSize: fontSize.caption,
+  },
+  failedRetry: {
+    minHeight: size.touchTarget,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    borderRadius: spacing.sm,
+    backgroundColor: colors.surface,
   },
   row: {
     flexDirection: 'row',
