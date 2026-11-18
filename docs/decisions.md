@@ -2062,3 +2062,15 @@
 - 결정: `check` job에서 `npm ci` 뒤 `actions/cache`로 Jest 기본 캐시 위치(`/tmp/jest_*`)를 보존한다. 키는 lockfile 해시 + 커밋 SHA로 매번 저장하고, 같은 lockfile → 아무 이전 캐시 순으로 복원한다.
 - 근거: 느린 원인(변환)을 없애는 쪽이 시간 제한을 늘리는 것보다 낫다(진짜로 멈춘 테스트는 그대로 5초에 잡힌다). Jest 캐시 항목은 파일 내용·설정 기준 키라 오래된 캐시를 받아도 결과가 틀리지 않는다. `apps/mobile/package.json`의 `jest` 설정을 바꾸지 않아 앱 fingerprint(OTA)에 영향이 없다. 캐시는 약 100MB로 GitHub 저장 한도(10GB, 오래된 것부터 제거) 안이다.
 - 영향: `.github/workflows/check.yml`.
+
+## D-141: 클라이언트 4종 병행 — 서버·문서 원본은 futureETP, 앱 ID 공유
+- 날짜: 2026-11-18
+- 상태: 확정 (사용자 요청)
+- 맥락: 같은 서버로 RN 앱 말고도 Flutter(`futureETP_FL`)·Swift/SwiftUI(`futureETP_IOS`)·Kotlin(`futureETP_AOS`) 앱을 만든다. 세 앱 모두 RN과 기능을 똑같이 맞춘다. 제품·화면·API 문서와 계약 스키마를 어디에 둘지, 앱 ID를 나눌지 정해야 했다.
+- 선택지: 문서 — (a) futureETP 원본 + 상대경로 참조 (b) 저장소마다 복사 (c) 상위 공통 폴더로 이동. 앱 ID — (a) 앱마다 다른 ID(동시 설치, 서버 FCM·APNs 설정을 여러 앱으로 확장) (b) RN과 같은 ID.
+- 결정:
+  - 문서는 (a). 형제 저장소는 디렉터리마다 별도 git 저장소이고, `CLAUDE.md`·`TODO.md`·`docs/tech-stack.md`·`architecture.md`·`decisions.md`(접두사 `FL-`·`IOS-`·`AOS-`)만 갖는다.
+  - 앱 ID는 (b). 클라이언트 구분은 `appVersion` 접두사(`fl-`·`ios-`·`aos-`)로 한다.
+  - 계약은 당분간 `packages/shared/src/*.ts`를 읽고 각 언어 모델을 손으로 맞추고, JSON Schema 내보내기를 TODO로 둔다.
+- 근거: 문서를 복사하면 제품 결정이 바뀔 때 네 곳을 고쳐야 해 어긋난다. 상위 폴더 이동은 기존 경로를 모두 바꿔야 한다. 같은 ID면 서버(`push/`·`config.ts`)와 Firebase·APNs 설정을 바꾸지 않아도 된다. 대가로 한 기기에 한 앱만 설치할 수 있다.
+- 영향: `CLAUDE.md` "다른 클라이언트", `docs/architecture.md` "다른 클라이언트", `TODO.md` 5-12.

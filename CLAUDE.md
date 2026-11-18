@@ -35,6 +35,12 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 - 화면: A 원자재 목록 → C 원자재 화면의 탭 C-a 이격도차트(기준값 지수·이평선·rare 레벨), C-b 월물커브(기준일 대비 비교일 커브·롤 수익률), C-c 월물차트(월물 5개 비교). 그 밖에 ETP 목록·상세, rare 레벨 도달 푸시 알림
 - 장 상태는 장중/휴장/정산 대기. 정산 대기는 거래일이 바뀐 뒤 직전 거래일 정산 배치가 끝나기 전까지 (D-022)
 
+## 다른 클라이언트 (D-141)
+
+- 같은 서버를 쓰는 앱을 형제 저장소 `../futureETP_FL`(Flutter)·`../futureETP_IOS`(Swift/SwiftUI)·`../futureETP_AOS`(Kotlin)로 따로 만든다. 기능은 RN 앱과 같고, 앱 ID도 같다(한 기기에 한 앱만)
+- 이 저장소가 제품·화면·API 계약 문서와 `packages/shared` 스키마의 원본이다. 형제 저장소는 상대경로로 읽기만 한다
+- API·shared 스키마·에러 코드·화면 동작을 바꾸면 세 형제 저장소의 `TODO.md`에 따라갈 항목을 한 줄씩 적는다
+
 ## Architecture
 
 상세는 `docs/architecture.md`, 스택·버전은 `docs/tech-stack.md`.

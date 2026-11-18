@@ -86,3 +86,7 @@
   - 2026-11-16 확인: 43.0.1도 `CartesianChart`가 `customGestures`를 legacy `Gesture.Race`로 합쳐 hook 제스처를 받지 않는다. 이전 불가라 보류(43만 올리는 건 이득 없이 재빌드 비용뿐). 다음 victory-native 릴리스에서 다시 본다
   - 자동 확인: `npm run deps:watch`가 아래 (2)를 하고, CI가 매주 돌린다(D-130)
   - 확인 방법: (1) `npm view victory-native version peerDependencies`로 버전과 RNGH 허용 범위 확인 (2) `npm pack victory-native@<버전>` 압축을 풀어 `src/cartesian/CartesianChart.tsx`에서 `customGestures`를 아직 `Gesture.Race`로 합치는지 확인. 그대로면 이전 불가
+
+### 5-12. 다른 클라이언트 지원 (D-141)
+- [ ] shared 스키마를 JSON Schema로 내보내기(`npm run contract:export`, zod 4 `z.toJSONSchema`, 결과 파일 커밋). 형제 저장소(`futureETP_FL`·`_IOS`·`_AOS`) 계약 테스트가 이 파일을 읽는다
+  - `check`에 내보낸 파일과 스키마가 어긋나지 않는지(drift) 검사 추가

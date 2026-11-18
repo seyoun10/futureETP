@@ -194,6 +194,22 @@ type Freshness = {
 | `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 헤더 기기의 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용, D-120). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |
 | `PUT /v1/devices` | 앱 실행 | 헤더 기기의 푸시 토큰(없으면 null)·플랫폼·앱 버전 upsert(`X-Device-Id` 기준, 다른 기기 행의 같은 토큰은 비움, D-120). 빈 토큰이면 토큰 null로 부르고, 토큰 조회가 실패하면(Apple 가입 전 iOS 등) 부르지 않는다(설정 API가 기본값 행을 만듦). 스키마는 shared `devices.ts`(모르는 필드 거절, `appVersion`은 모르면 null) |
 
+## 다른 클라이언트 (D-141)
+
+같은 서버를 쓰는 앱을 형제 저장소 세 곳에서 따로 만든다. 기능은 RN 앱(`apps/mobile`)과 같다.
+
+| 저장소 | 앱 |
+|---|---|
+| `../futureETP_FL` | Flutter |
+| `../futureETP_IOS` | Swift / SwiftUI (iOS만) |
+| `../futureETP_AOS` | Kotlin / Jetpack Compose (Android만) |
+
+- 원본: 제품(`product.md`)·화면(`wireframes/screens.md`)·API 규약(이 문서의 "API 통신 및 에러 처리 규약")·결정(`decisions.md`)·`packages/shared` zod 스키마는 이 저장소에만 둔다. 형제 저장소는 `../futureETP/...`로 읽고 자기 플랫폼 결정만 직접 기록한다(접두사 `FL-`·`IOS-`·`AOS-`).
+- 계약 공유: 네이티브 앱은 TS 스키마를 import할 수 없다. 지금은 `packages/shared/src/*.ts`를 읽고 각 언어 모델을 손으로 맞춘다. 다음 단계로 zod 4 `z.toJSONSchema`로 스키마를 JSON Schema 파일로 내보내 커밋하고, 형제 저장소의 계약 테스트가 그 파일로 응답 예시를 검증한다(TODO).
+- 앱 ID: 네 앱 모두 `io.github.seyoon.futureetp`(dev `.dev`)다. FCM `google-services.json`과 APNs topic을 그대로 함께 쓰므로 서버 푸시 설정은 바꾸지 않는다. 한 기기에는 한 앱만 설치할 수 있고, 앱을 바꿔 설치하면 새 `X-Device-Id`로 새 기기 행이 생긴다(설정은 기기별이라 다시 맞춰야 함, D-120).
+- 클라이언트 구분: `PUT /v1/devices`의 `appVersion`에 접두사를 붙인다(`fl-1.0.0`·`ios-1.0.0`·`aos-1.0.0`, RN은 접두사 없음). 64자 문자열이라 스키마 변경이 없다.
+- 변경 전파: API·shared 스키마·에러 코드·화면 동작을 바꾸면 세 형제 저장소의 `TODO.md`에 따라갈 항목을 적는다.
+
 ## 환경 설정 분리 (dev / prod)
 
 D-043. dev는 로컬 Mac, prod는 Oracle VM 하나다. 별도 staging은 두지 않는다.
