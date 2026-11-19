@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { AppError } from '@/api/AppError';
+import { errorText } from '@/api/AppError';
 import { colors, fontSize, size, spacing } from '@/theme/tokens';
 
 // 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
@@ -51,11 +51,10 @@ type ErrorViewProps = {
 // 안내 문구 + [다시 시도]. 문구는 에러 code로 고르고, AppError가 아니면 INTERNAL 문구다(D-042).
 export function ErrorView({ error, onRetry }: ErrorViewProps) {
   const { t } = useTranslation();
-  const code = error instanceof AppError ? error.code : 'INTERNAL';
 
   return (
     <View style={[styles.container, styles.center]}>
-      <Text style={styles.message}>{t(`errors.${code}`)}</Text>
+      <Text style={styles.message}>{errorText(t, error)}</Text>
       <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
         <Text style={styles.retryText}>{t('common.retry')}</Text>
       </Pressable>

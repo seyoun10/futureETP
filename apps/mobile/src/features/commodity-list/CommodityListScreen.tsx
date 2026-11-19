@@ -21,7 +21,7 @@ import { colors, fontSize, spacing } from '@/theme/tokens';
 import { prefetchDisparityChart } from '@/api/useDisparityChart';
 import { showFailedAlert } from '@/lib/failedAlert';
 import { refreshHaptic, tapHaptic } from '@/lib/haptics';
-import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
+import { SettingsHeaderButton } from '@/components/SettingsHeaderButton';
 import { useCommodities } from './useCommodities';
 
 // A 원자재 목록(screens.md A, D-085). 원자재와 월물 줄은 서버가 준 순서대로 그린다.

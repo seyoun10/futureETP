@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertBell } from '@/components/AlertBell';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
+import { SettingsHeaderButton } from '@/components/SettingsHeaderButton';
 import { useSettings } from '@/api/useSettings';
 import { lockLandscape, lockPortrait, useIsLandscape } from '@/lib/orientation';
 import { useCommodityCode } from './useCommodityCode';

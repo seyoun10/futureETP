@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fontSize, spacing } from '@/theme/tokens';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 
 // 줄 순서는 screens.md 데이터 출처 그대로다. 소스가 바뀌면 문구(i18n dataSources)도 바꾼다.
 const SECTIONS = [

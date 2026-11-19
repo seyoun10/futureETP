@@ -1,4 +1,5 @@
 import { API_ERROR_CODES } from '@futureetp/shared';
+import type { useTranslation } from 'react-i18next';
 
 // 서버 코드 + 앱 전용 코드(D-042). 화면은 `code`만 보고 `errors.<code>` 문구를 고른다.
 export const APP_ERROR_CODES = [
@@ -29,3 +30,7 @@ export class AppError extends Error {
 // TanStack Query 재시도 대상(D-042). 4xx·SCHEMA_MISMATCH·AppError가 아닌 오류는 재시도하지 않는다.
 export const isRetryable = (error: unknown) =>
   error instanceof AppError && RETRYABLE_CODES.includes(error.code);
+
+// 화면에 보일 에러 문구. AppError가 아니면 INTERNAL 문구다(D-042).
+export const errorText = (t: ReturnType<typeof useTranslation>['t'], error: unknown) =>
+  t(`errors.${error instanceof AppError ? error.code : 'INTERNAL'}`);

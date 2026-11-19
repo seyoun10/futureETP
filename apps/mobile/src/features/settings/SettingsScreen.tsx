@@ -16,7 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as Updates from 'expo-updates';
 import { useHasAccessKey } from '@/api/accessToken';
-import { AppError } from '@/api/AppError';
+import { errorText } from '@/api/AppError';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { FooterLine, FooterText } from '@/components/FooterLine';
 import { ErrorView } from '@/components/QueryStateView';
@@ -34,7 +34,7 @@ import { colors, fontSize, size, spacing } from '@/theme/tokens';
 import { formatLocalDateTime } from '@/lib/formatDateTime';
 import { tapHaptic } from '@/lib/haptics';
 import { RareLevelsInput } from './RareLevelsInput';
-import { SectionHeader } from './SectionHeader';
+import { SectionHeader } from '@/components/SectionHeader';
 import { useSettings, useUpdateSettings } from '@/api/useSettings';
 
 // B 설정(screens.md B). 표시 설정은 기기에, 이격도차트·알림 설정은 서버에 한 벌 저장한다(D-011, D-047).
@@ -111,9 +111,6 @@ export function SettingsScreen() {
     </View>
   );
 }
-
-export const errorText = (t: ReturnType<typeof useTranslation>['t'], error: unknown) =>
-  t(`errors.${error instanceof AppError ? error.code : 'INTERNAL'}`);
 
 // 언어·등락 색은 기기 설정이다. 언어는 푸시 문구에 쓰므로 서버에도 보낸다(마지막으로 바꾼 기기의 값).
 function DisplaySection({
