@@ -12,6 +12,15 @@ export function commodityCodeParam(raw: string | undefined): CommodityCode {
   return code.data;
 }
 
+const etpIdSchema = z.uuid();
+
+// 경로의 ETP :id. uuid가 아니면 없는 상품과 같이 404다
+export function etpIdParam(raw: string | undefined): string {
+  const id = etpIdSchema.safeParse(raw);
+  if (!id.success) throw new ApiException('NOT_FOUND', `Unknown ETP ${raw}`);
+  return id.data;
+}
+
 // query·body 검증. 실패하면 400 VALIDATION_FAILED에 zod 오류 문구를 담는다
 export function parseInput<S extends z.ZodType>(schema: S, value: unknown): z.output<S> {
   const parsed = schema.safeParse(value);
