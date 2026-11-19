@@ -10,11 +10,9 @@ import { disparityChartSchema } from './disparity.ts';
 import { COMMODITY_CODES } from './domain.ts';
 import { API_ERROR_CODES, errorSchema } from './envelope.ts';
 import { etpDetailSchema, etpListSchema } from './etps.ts';
+import { healthSchema } from './health.ts';
 import { contractsQuerySchema, curveQuerySchema, disparityQuerySchema } from './queries.ts';
 import { settingsPatchSchema, settingsSchema } from './settings.ts';
-
-// 서버 app.ts의 health 응답. shared 스키마가 없어 여기서만 정의한다
-const healthSchema = z.object({ status: z.literal('ok'), commit: z.string().nullable() });
 
 // 응답 data·요청 본문·쿼리 스키마. 이름이 파일 이름(`schemas/<이름>.json`)이 된다
 const SCHEMAS = {

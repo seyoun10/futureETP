@@ -1,3 +1,4 @@
+import type { Health } from '@futureetp/shared';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -86,7 +87,8 @@ export function createApp(options: AppOptions) {
     } finally {
       clearTimeout(timer);
     }
-    return ok(c, { status: 'ok', commit: options.commit ?? null });
+    const health: Health = { status: 'ok', commit: options.commit ?? null };
+    return ok(c, health);
   });
   v1.use(
     '*',
