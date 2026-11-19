@@ -138,6 +138,8 @@ export function useChartViewport({
     if (rawGeom.current) applyGeom(rawGeom.current.g, insets.current, 0);
   }, [applyGeom, insetTop, insetBottom]);
   const fittedStyle = useAnimatedStyle(() => ({ opacity: fitted.get() ? 1 : 0 }));
+  // 감춘 동안 차트 자리 가운데에 스피너를 띄운다(fittedStyle의 반대)
+  const fittingStyle = useAnimatedStyle(() => ({ opacity: fitted.get() ? 0 : 1 }));
   // UI 스레드에서 읽는다. JS 스레드의 set은 UI에 비동기로 반영돼, 바로 뒤 JS의 get이 이전 값(null)을 읽고
   // 기간 맞춤을 건너뛸 수 있다(봉이 많아 UI 스레드가 바쁠 때). 같은 큐라 onGeom의 set 뒤에 실행된다
   useEffect(() => {
@@ -352,6 +354,7 @@ export function useChartViewport({
     gestures,
     pressConfig,
     fittedStyle,
+    fittingStyle,
   };
 }
 

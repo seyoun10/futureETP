@@ -16,6 +16,7 @@ import { X_LABEL_HEIGHT, Y_LABEL_PAD } from './chartLayout';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { ChartResetButton } from './ChartResetButton';
+import { FittingSpinner } from './FittingSpinner';
 import { useChartViewport, useReportGeom } from './useChartViewport';
 import { ScaleReporter, useDetailPlacement } from './useDetailPlacement';
 import type { ChartGesture, DateSpan } from './useChartViewport';
@@ -88,6 +89,7 @@ export const LinesChart = memo(function LinesChart({
     gestures,
     pressConfig,
     fittedStyle,
+    fittingStyle,
   } = useChartViewport({
     press,
     periodBars,
@@ -126,96 +128,102 @@ export const LinesChart = memo(function LinesChart({
   if (dates.length === 0) return null;
 
   return (
-    <Animated.View style={[styles.container, fittedStyle]} pointerEvents={locked ? 'none' : 'auto'}>
-      <CartesianChart
-        data={data}
-        xKey="i"
-        yKeys={Y_KEYS}
-        axisOptions={axisOptions}
-        transformState={transform}
-        transformConfig={TRANSFORM_CONFIG}
-        chartPressState={press}
-        chartPressConfig={pressConfig}
-        // CandleChart와 같은 이유로 legacy Gesture.Race를 넘긴다(D-056).
-        customGestures={gestures as unknown as ComposedGesture}
-        xAxis={X_AXIS}
-        yAxis={Y_AXES}
-        padding={padding}
-        renderOutside={({ points, chartBounds, canvasSize, xScale, yScale }) => {
-          const x0 = points.hi[0]?.x ?? 0;
-          const dx = (points.hi[1]?.x ?? 0) - x0;
-          return (
-            <>
-              <ScaleReporter
-                xScale={xScale}
-                yScale={yScale}
-                chartBounds={chartBounds}
-                onScales={setScales}
-              />
-              <XAxisLayer
-                dates={dates}
-                chartBounds={chartBounds}
-                x0={x0}
-                dx={dx}
-                crosshair={crosshair}
-              />
-              <YAxisLayer
-                yScale={yScale}
-                chartBounds={chartBounds}
-                priceDecimals={priceDecimals}
-                labels={endLabels}
-                guides={NO_GUIDES}
-                crosshair={crosshair}
-              />
-              <LineLayer
-                lines={lines}
-                xScale={xScale}
-                yScale={yScale}
-                chartBounds={chartBounds}
-                transform={transform}
-              />
-              <CrosshairLayer
-                press={press}
-                crosshair={crosshair}
-                chartBounds={chartBounds}
-                canvasWidth={canvasSize.width}
-                dates={dates}
-                priceDecimals={priceDecimals}
-                font={numberFont}
-              />
-            </>
-          );
-        }}
+    <View style={styles.container}>
+      <Animated.View
+        style={[styles.container, fittedStyle]}
+        pointerEvents={locked ? 'none' : 'auto'}
       >
-        {({ points, chartBounds }) => (
-          <GeomReporter points={points} chartBounds={chartBounds} dates={dates} onGeom={onGeom} />
-        )}
-      </CartesianChart>
-      <ChartOverlay
-        top={overlayTop}
-        bottomOffset={X_LABEL_HEIGHT}
-        floating={
-          onResetView ? (
-            <ChartResetButton
-              onPress={() => {
-                hideCrosshair();
-                onResetView();
-              }}
-            />
-          ) : undefined
-        }
-        onInsets={setOverlay}
-      />
-      {detail !== null && dates[detail.index] && (
-        <View
-          pointerEvents="none"
-          onLayout={boxProps.onLayout}
-          style={[styles.detail, boxProps.style]}
+        <CartesianChart
+          data={data}
+          xKey="i"
+          yKeys={Y_KEYS}
+          axisOptions={axisOptions}
+          transformState={transform}
+          transformConfig={TRANSFORM_CONFIG}
+          chartPressState={press}
+          chartPressConfig={pressConfig}
+          // CandleChart와 같은 이유로 legacy Gesture.Race를 넘긴다(D-056).
+          customGestures={gestures as unknown as ComposedGesture}
+          xAxis={X_AXIS}
+          yAxis={Y_AXES}
+          padding={padding}
+          renderOutside={({ points, chartBounds, canvasSize, xScale, yScale }) => {
+            const x0 = points.hi[0]?.x ?? 0;
+            const dx = (points.hi[1]?.x ?? 0) - x0;
+            return (
+              <>
+                <ScaleReporter
+                  xScale={xScale}
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  onScales={setScales}
+                />
+                <XAxisLayer
+                  dates={dates}
+                  chartBounds={chartBounds}
+                  x0={x0}
+                  dx={dx}
+                  crosshair={crosshair}
+                />
+                <YAxisLayer
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  priceDecimals={priceDecimals}
+                  labels={endLabels}
+                  guides={NO_GUIDES}
+                  crosshair={crosshair}
+                />
+                <LineLayer
+                  lines={lines}
+                  xScale={xScale}
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  transform={transform}
+                />
+                <CrosshairLayer
+                  press={press}
+                  crosshair={crosshair}
+                  chartBounds={chartBounds}
+                  canvasWidth={canvasSize.width}
+                  dates={dates}
+                  priceDecimals={priceDecimals}
+                  font={numberFont}
+                />
+              </>
+            );
+          }}
         >
-          {renderDetail(detail.index)}
-        </View>
-      )}
-    </Animated.View>
+          {({ points, chartBounds }) => (
+            <GeomReporter points={points} chartBounds={chartBounds} dates={dates} onGeom={onGeom} />
+          )}
+        </CartesianChart>
+        <ChartOverlay
+          top={overlayTop}
+          bottomOffset={X_LABEL_HEIGHT}
+          floating={
+            onResetView ? (
+              <ChartResetButton
+                onPress={() => {
+                  hideCrosshair();
+                  onResetView();
+                }}
+              />
+            ) : undefined
+          }
+          onInsets={setOverlay}
+        />
+        {detail !== null && dates[detail.index] && (
+          <View
+            pointerEvents="none"
+            onLayout={boxProps.onLayout}
+            style={[styles.detail, boxProps.style]}
+          >
+            {renderDetail(detail.index)}
+          </View>
+        )}
+      </Animated.View>
+      <FittingSpinner style={fittingStyle} />
+    </View>
   );
 });
 

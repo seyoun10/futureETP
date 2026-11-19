@@ -12,6 +12,7 @@ import { useUpDownPalette } from '@/theme/upDownColor';
 import { ChartOverlay } from './ChartOverlay';
 import type { OverlayInsets } from './ChartOverlay';
 import { ChartResetButton } from './ChartResetButton';
+import { FittingSpinner } from './FittingSpinner';
 import { numberFont } from './chartText';
 import { CrosshairLayer } from './CrosshairLayer';
 import { ExtremeTagsLayer } from './ExtremeTagsLayer';
@@ -115,6 +116,7 @@ export const CandleChart = memo(function CandleChart({
     gestures,
     pressConfig,
     fittedStyle,
+    fittingStyle,
   } = useChartViewport({
     press,
     periodBars,
@@ -154,113 +156,125 @@ export const CandleChart = memo(function CandleChart({
   if (!current) return null;
 
   return (
-    <Animated.View style={[styles.container, fittedStyle]} pointerEvents={locked ? 'none' : 'auto'}>
-      <CartesianChart
-        data={data}
-        xKey="i"
-        yKeys={Y_KEYS}
-        axisOptions={AXIS_OPTIONS}
-        transformState={transform}
-        transformConfig={TRANSFORM_CONFIG}
-        chartPressState={press}
-        chartPressConfig={pressConfig}
-        // victory-native 42 타입은 RNGH 3의 새 ComposedGesture를 가리키지만, 런타임은 legacy Gesture.Race로 합친다(D-056).
-        customGestures={gestures as unknown as ComposedGesture}
-        xAxis={X_AXIS}
-        yAxis={Y_AXES}
-        padding={padding}
-        renderOutside={({ points, chartBounds, canvasSize, xScale, yScale }) => {
-          const x0 = points.high[0]?.x ?? 0;
-          const dx = (points.high[1]?.x ?? 0) - x0;
-          return (
-            <>
-              <ScaleReporter
-                xScale={xScale}
-                yScale={yScale}
-                chartBounds={chartBounds}
-                onScales={setScales}
-              />
-              <RollLayer {...roll} count={dates.length} chartBounds={chartBounds} x0={x0} dx={dx} />
-              <XAxisLayer
-                dates={dates}
-                chartBounds={chartBounds}
-                x0={x0}
-                dx={dx}
-                crosshair={crosshair}
-              />
-              <YAxisLayer
-                yScale={yScale}
-                chartBounds={chartBounds}
-                priceDecimals={priceDecimals}
-                labels={priceLabels}
-                guides={guides}
-                crosshair={crosshair}
-              />
-              <LineLayer
-                lines={lines}
-                xScale={xScale}
-                yScale={yScale}
-                chartBounds={chartBounds}
-                transform={transform}
-              />
-              <ExtremeTagsLayer
-                bars={bars}
-                currentPrice={current.close}
-                guidePrice={guidePrice}
-                priceDecimals={priceDecimals}
-                yScale={yScale}
-                chartBounds={chartBounds}
-                x0={x0}
-                dx={dx}
-              />
-              <CrosshairLayer
-                press={press}
-                crosshair={crosshair}
-                chartBounds={chartBounds}
-                canvasWidth={canvasSize.width}
-                dates={dates}
-                priceDecimals={priceDecimals}
-                font={numberFont}
-              />
-            </>
-          );
-        }}
+    <View style={styles.container}>
+      <Animated.View
+        style={[styles.container, fittedStyle]}
+        pointerEvents={locked ? 'none' : 'auto'}
       >
-        {({ points, chartBounds }) => (
-          <CandleLayer
-            points={points}
-            chartBounds={chartBounds}
-            dates={dates}
-            onGeom={onGeom}
-            colors={{ positive: palette.up, negative: palette.down }}
-          />
-        )}
-      </CartesianChart>
-      <ChartOverlay
-        top={overlayTop}
-        bottomOffset={X_LABEL_HEIGHT}
-        floating={
-          onResetView ? (
-            <ChartResetButton
-              onPress={() => {
-                hideCrosshair();
-                onResetView();
-              }}
-            />
-          ) : undefined
-        }
-        onInsets={setOverlay}
-      />
-      {detail !== null && bars[detail.index] && (
-        <View
-          pointerEvents="none"
-          onLayout={boxProps.onLayout}
-          style={[styles.detail, boxProps.style]}
+        <CartesianChart
+          data={data}
+          xKey="i"
+          yKeys={Y_KEYS}
+          axisOptions={AXIS_OPTIONS}
+          transformState={transform}
+          transformConfig={TRANSFORM_CONFIG}
+          chartPressState={press}
+          chartPressConfig={pressConfig}
+          // victory-native 42 타입은 RNGH 3의 새 ComposedGesture를 가리키지만, 런타임은 legacy Gesture.Race로 합친다(D-056).
+          customGestures={gestures as unknown as ComposedGesture}
+          xAxis={X_AXIS}
+          yAxis={Y_AXES}
+          padding={padding}
+          renderOutside={({ points, chartBounds, canvasSize, xScale, yScale }) => {
+            const x0 = points.high[0]?.x ?? 0;
+            const dx = (points.high[1]?.x ?? 0) - x0;
+            return (
+              <>
+                <ScaleReporter
+                  xScale={xScale}
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  onScales={setScales}
+                />
+                <RollLayer
+                  {...roll}
+                  count={dates.length}
+                  chartBounds={chartBounds}
+                  x0={x0}
+                  dx={dx}
+                />
+                <XAxisLayer
+                  dates={dates}
+                  chartBounds={chartBounds}
+                  x0={x0}
+                  dx={dx}
+                  crosshair={crosshair}
+                />
+                <YAxisLayer
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  priceDecimals={priceDecimals}
+                  labels={priceLabels}
+                  guides={guides}
+                  crosshair={crosshair}
+                />
+                <LineLayer
+                  lines={lines}
+                  xScale={xScale}
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  transform={transform}
+                />
+                <ExtremeTagsLayer
+                  bars={bars}
+                  currentPrice={current.close}
+                  guidePrice={guidePrice}
+                  priceDecimals={priceDecimals}
+                  yScale={yScale}
+                  chartBounds={chartBounds}
+                  x0={x0}
+                  dx={dx}
+                />
+                <CrosshairLayer
+                  press={press}
+                  crosshair={crosshair}
+                  chartBounds={chartBounds}
+                  canvasWidth={canvasSize.width}
+                  dates={dates}
+                  priceDecimals={priceDecimals}
+                  font={numberFont}
+                />
+              </>
+            );
+          }}
         >
-          {renderDetail(detail.index)}
-        </View>
-      )}
-    </Animated.View>
+          {({ points, chartBounds }) => (
+            <CandleLayer
+              points={points}
+              chartBounds={chartBounds}
+              dates={dates}
+              onGeom={onGeom}
+              colors={{ positive: palette.up, negative: palette.down }}
+            />
+          )}
+        </CartesianChart>
+        <ChartOverlay
+          top={overlayTop}
+          bottomOffset={X_LABEL_HEIGHT}
+          floating={
+            onResetView ? (
+              <ChartResetButton
+                onPress={() => {
+                  hideCrosshair();
+                  onResetView();
+                }}
+              />
+            ) : undefined
+          }
+          onInsets={setOverlay}
+        />
+        {detail !== null && bars[detail.index] && (
+          <View
+            pointerEvents="none"
+            onLayout={boxProps.onLayout}
+            style={[styles.detail, boxProps.style]}
+          >
+            {renderDetail(detail.index)}
+          </View>
+        )}
+      </Animated.View>
+      <FittingSpinner style={fittingStyle} />
+    </View>
   );
 });
 
