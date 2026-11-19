@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { errorText } from '@/api/AppError';
 import { colors, fontSize, size, spacing } from '@/theme/tokens';
+import { CenterSpinner } from './CenterSpinner';
 
 // 일반·무한 조회 결과 모두 받는다(refetch 반환 타입만 다르다)
 export type StateQuery<T> = Pick<UseQueryResult<T>, 'data' | 'error' | 'isError' | 'isFetching'> & {
@@ -39,6 +40,7 @@ export function LoadingView() {
       {[0.9, 0.6, 0.75].map((width) => (
         <View key={width} style={[styles.bar, { width: `${width * 100}%` }]} />
       ))}
+      <CenterSpinner />
     </View>
   );
 }

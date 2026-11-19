@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { CenterSpinner } from '@/components/CenterSpinner';
 import { useIsLandscape } from '@/lib/orientation';
 import { colors, size, spacing } from '@/theme/tokens';
 import { PERIOD_CHIPS_HEIGHT } from './PeriodChips';
@@ -13,7 +14,7 @@ const GRID_LINES = 5;
 const STEP_SIZE = size.touchTarget;
 
 // 차트 탭 첫 조회 중 화면(QueryStateView skeleton). 공용 막대 대신 차트 격자와 아래 줄 자리를 그려
-// 차트가 들어설 자리와 모양을 맞춘다. 캐시가 있으면 보이지 않는다
+// 차트가 들어설 자리와 모양을 맞추고, 차트 자리 가운데에 스피너를 겹친다. 캐시가 있으면 보이지 않는다
 export function ChartSkeleton({ footer }: Props) {
   const { t } = useTranslation();
   // 가로 모드는 아래 줄을 숨긴다(D-103)
@@ -29,6 +30,7 @@ export function ChartSkeleton({ footer }: Props) {
         {Array.from({ length: GRID_LINES }, (_, i) => (
           <View key={i} style={styles.grid} />
         ))}
+        <CenterSpinner />
       </View>
       {isLandscape ? null : footer === 'periods' ? (
         <View style={[styles.footer, { height: PERIOD_CHIPS_HEIGHT }]}>

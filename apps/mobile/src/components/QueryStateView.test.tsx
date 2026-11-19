@@ -27,9 +27,10 @@ describe('QueryStateView', () => {
     useDisplaySettings.getState().setLanguage('ko');
   });
 
-  it('처음 로딩 중에는 스켈레톤을 보여 준다', async () => {
+  it('처음 로딩 중에는 스켈레톤과 가운데 스피너를 보여 준다', async () => {
     await renderView({ isFetching: true });
     expect(screen.getByLabelText('불러오는 중')).toBeOnTheScreen();
+    expect(screen.getByTestId('center-spinner')).toBeOnTheScreen();
   });
 
   it('처음 로딩이 실패하면 code 문구와 [다시 시도]를 보여 주고, 누르면 다시 조회한다', async () => {
