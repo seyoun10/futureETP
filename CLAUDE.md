@@ -60,6 +60,7 @@ React Native 기반 Android/iOS 개인용 앱(사용자 본인 1명, 스토어 �
 ## Claude Code 설정
 
 - Stop hook(`.claude/hooks/typecheck-changed.sh`)이 응답을 마칠 때 변경된 workspace만 타입 검사하고 실패하면 되돌려 준다(D-057). 중간 확인용 typecheck는 따로 돌리지 않아도 된다
+- PostToolUse hook(`.claude/hooks/sibling-sync-reminder.sh`)이 `git commit` 직후 그 커밋이 계약·화면 동작·공통 규칙 파일을 바꿨으면 형제 저장소 `TODO.md` 반영을 알린다(D-141)
 - 프로젝트 agent: 코드 탐색 `code-searcher`, 검사 실행 `test-runner`, calc 검토 `calc-reviewer`, 문서 갱신 초안 `docs-sync`
 - 프로젝트 skill: 배포 절차 `/release`(사용자가 부를 때만), 실기기 화면·성능 확인 `device-check`
 
