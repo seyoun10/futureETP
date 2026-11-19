@@ -36,5 +36,6 @@
 
 ## 기기 확인
 
+- dev 변형 iOS 실기기 설치: `LANG=en_US.UTF-8 IOS_PERSONAL_TEAM=1 npm run ios:dev -w apps/mobile -- --device <UDID> --no-bundler`(Metro는 따로 `npm run start -w apps/mobile`). UTF-8 locale이 아니면 `pod install`이 멈추고, 무료 Apple ID(Personal Team)는 Push 권한을 서명하지 못해 `IOS_PERSONAL_TEAM=1`로 뺀다(D-039). Xcode → Settings → Accounts에 Apple ID가 있어야 하고, 처음 설치하면 기기에서 개발자 신뢰·로컬 네트워크 허용이 필요하다. API 주소는 `apps/mobile/.env.local`의 `DEV_API_URL=http://<Mac 이름>.local:3000`(`scutil --get LocalHostName`. dev 빌드 ATS는 `NSAllowsLocalNetworking`이라 `.local` http가 허용된다)이고, 앱 설정이 빌드에 들어가므로 바꾸면 Metro 재시작이 아니라 다시 빌드한다
 - 성능 측정(dev 변형 iOS 기기): `npm run perf:collect -- [파일]`(포트 8099) 켜고 앱을 운영 번들로 실행 `xcrun devicectl device process launch --device <기기> --terminate-existing <dev 번들 ID> -- -RCT_enableDev NO -RCT_enableMinification YES`. 차트 진입·과거 데이터 로딩·제스처 프레임이 `[perf]` 줄로 들어온다(`src/lib/perfLog.ts`)
 - 기기 화면 확인(iPhone 미러링 앱): `npm run mirror -- shot <파일>`(창을 point 크기 PNG로, 이미지 픽셀 = 조작 좌표) · `shot --clean <파일>`(README 스크린샷: 휴대폰만 잘라 폭 480px) · `tap X Y [누름ms]` · `drag X1 Y1 X2 Y2 [단계] [누름ms]` · `type 글자` · `key delete|return|esc`. 핀치·당겨서 새로고침·키패드 위 UI는 미러링으로 못 본다
