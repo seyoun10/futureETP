@@ -12,15 +12,14 @@ import { Icon } from '@/components/Icon';
 import { colors, fontSize, spacing } from '@/theme/tokens';
 import { tapHaptic } from '@/lib/haptics';
 import { useCommodityCode } from '../useCommodityCode';
+import { ETP_SORTS, type EtpSort } from '@/lib/etpSort';
 import {
-  ETP_SORTS,
   filterEtps,
   leverageOptions,
   NO_FILTERS,
   sortEtps,
   sortValue,
   type EtpFilters,
-  type EtpSort,
 } from './etpListModel';
 import { useEtps } from './useEtps';
 

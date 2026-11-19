@@ -1,5 +1,6 @@
 import { ETP_MARKETS } from '@futureetp/shared';
 import type { EtpMarket, EtpSummary, EtpType, FxHedge } from '@futureetp/shared';
+import type { EtpSort } from '@/lib/etpSort';
 
 // C-d 필터. 'ALL'은 거르지 않는다. 선택은 기억하지 않는다(D-017)
 export type EtpFilters = {
@@ -14,9 +15,6 @@ export const NO_FILTERS: EtpFilters = {
   leverage: 'ALL',
   fxHedge: 'ALL',
 };
-
-export const ETP_SORTS = ['DEFAULT', 'AUM', 'TRADING_VALUE'] as const;
-export type EtpSort = (typeof ETP_SORTS)[number];
 
 export const filterEtps = (etps: readonly EtpSummary[], filters: EtpFilters): EtpSummary[] =>
   etps.filter(

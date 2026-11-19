@@ -1,6 +1,6 @@
 import type { CommodityCode, EtpMarket, FxHedge, MarketState } from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
-import type { EtpSort } from '@/features/commodity/etp/etpListModel';
+import type { EtpSort } from '@/lib/etpSort';
 import type { ChartPeriod } from '@/charts/chartPeriods';
 
 // 번역 리소스의 기준 언어. en은 이 구조를 그대로 따라야 한다(키 누락은 타입 오류).

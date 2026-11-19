@@ -1,5 +1,8 @@
-import type { FooterTime } from '@/components/FreshnessLine';
+import type { Freshness } from '@futureetp/shared';
 import { create } from 'zustand';
+
+// ETP 목록처럼 거래일·장 상태가 없는 화면은 기준 시각만 보낸다
+export type FooterTime = Freshness | Pick<Freshness, 'asOf'>;
 
 type FooterFreshnessState = {
   freshness: FooterTime | null;

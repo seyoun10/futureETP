@@ -1,13 +1,9 @@
-import type { Freshness } from '@futureetp/shared';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FooterLine, FooterText } from '@/components/FooterLine';
 import { formatLocalDateTime, formatTradeDate } from '@/lib/formatDateTime';
-import { useFooterFreshness } from '@/stores/footerFreshness';
-
-// ETP 목록처럼 거래일·장 상태가 없는 화면은 기준 시각만 보낸다
-export type FooterTime = Freshness | Pick<Freshness, 'asOf'>;
+import { useFooterFreshness, type FooterTime } from '@/stores/footerFreshness';
 
 type Props = {
   freshness: FooterTime;
