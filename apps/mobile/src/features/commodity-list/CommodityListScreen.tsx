@@ -18,7 +18,7 @@ import {
 import { changePairColor, useUpDownPalette } from '@/theme/upDownColor';
 import type { UpDownPalette } from '@/theme/upDownColor';
 import { colors, fontSize, spacing } from '@/theme/tokens';
-import { prefetchDisparityChart } from '@/features/commodity/disparity-chart/useDisparityChart';
+import { prefetchDisparityChart } from '@/api/useDisparityChart';
 import { showFailedAlert } from '@/lib/failedAlert';
 import { refreshHaptic, tapHaptic } from '@/lib/haptics';
 import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';

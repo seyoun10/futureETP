@@ -32,7 +32,7 @@ import {
 import type { DisparityChartModel, LineLabel } from './disparityChartModel';
 import { visibleStats } from './disparitySeries';
 import type { ChartBar } from './disparitySeries';
-import { useDisparityChart } from './useDisparityChart';
+import { useDisparityChart } from '@/api/useDisparityChart';
 
 // C-a 이격도차트 탭(screens.md C-a, D-086, D-087)
 export function DisparityChartScreen() {

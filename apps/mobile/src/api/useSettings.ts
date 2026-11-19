@@ -1,7 +1,7 @@
 import type { Settings, SettingsPatch } from '@futureetp/shared';
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/api/queryKeys';
-import { getSettings, patchSettings } from '@/api/settings';
+import { queryKeys } from './queryKeys';
+import { getSettings, patchSettings } from './settings';
 
 export const settingsQuery = queryOptions({
   queryKey: queryKeys.settings,

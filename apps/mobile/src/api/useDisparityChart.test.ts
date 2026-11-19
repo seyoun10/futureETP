@@ -1,12 +1,12 @@
 import type { Settings } from '@futureetp/shared';
-import { getDisparityChart } from '@/api/commodities';
-import { createQueryClient } from '@/api/queryClient';
-import { queryKeys } from '@/api/queryKeys';
-import { getSettings } from '@/api/settings';
+import { getDisparityChart } from './commodities';
+import { createQueryClient } from './queryClient';
+import { queryKeys } from './queryKeys';
+import { getSettings } from './settings';
 import { mergeDisparityPages, prefetchDisparityChart } from './useDisparityChart';
 
-jest.mock('@/api/commodities', () => ({ getDisparityChart: jest.fn() }));
-jest.mock('@/api/settings', () => ({ getSettings: jest.fn() }));
+jest.mock('./commodities', () => ({ getDisparityChart: jest.fn() }));
+jest.mock('./settings', () => ({ getSettings: jest.fn() }));
 
 const SETTINGS: Settings = {
   locale: 'ko',

@@ -24,7 +24,8 @@ futureETP/
 │  │     ├─ components/            여러 화면 공용 UI(`ScreenHeader`·`HeaderIconButton`, `FreshnessLine`, `QueryStateView`, D-075),
 │  │     │                         `Icon`, `SegmentedControl`, `KeyboardDoneBar`
 │  │     ├─ charts/                Skia 커스텀 레이어·CandleChart(C-a)·LinesChart(C-c)·CurveChart(C-b), 공용 useChartViewport (D-032, D-087, D-093)
-│  │     ├─ api/                   fetch 래퍼, AppError, query key, `useAutoRefresh` (D-030, D-075)
+│  │     ├─ api/                   fetch 래퍼, AppError, query key, `useAutoRefresh` (D-030, D-075),
+│  │     │                         여러 feature가 쓰는 조회 hook(`useSettings`, C-a `useDisparityChart`·`prefetchDisparityChart`)
 │  │     ├─ stores/                Zustand 표시 설정 (D-030, D-073), C 탭 하단 기준 시각 줄 전달(`footerFreshness`, 비영속)
 │  │     ├─ theme/                 테마 토큰, 등락 색 함수 (D-031, D-073)
 │  │     ├─ i18n/                  i18next 설정(`setupI18n`), ko/en 리소스 (D-033, D-073)
@@ -71,7 +72,7 @@ D-041. 위 계층은 아래 계층만 호출한다(아래에서 위로, 또는 �
 |---|---|---|---|
 | route | `src/app/` | 화면 컴포넌트 재내보내기, 레이아웃(스택·하단 탭, 스와이프 전환 없음, D-047) | 로직, 데이터 조회 |
 | 화면·컴포넌트(UI) | `src/features/*`, `src/components`, `src/charts` | 렌더링, 사용자 입력, 로딩·오류·빈 상태 표시 | `fetch` 직접 호출, 서버 데이터 복사 저장 |
-| 상태 | `src/features/**/use<대상>.ts`(서버 상태, 예: `useCommodities`·`useSettings`·`useSaveAccessKey`), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
+| 상태 | `src/features/**/use<대상>.ts`(서버 상태, 예: `useCommodities`·`useSaveAccessKey`. 여러 feature가 쓰는 `useSettings`·`useDisparityChart`는 `src/api`), `src/stores`(표시 설정) | TanStack Query hook(query key, 새로고침 시점, 뮤테이션 뒤 무효화), Zustand 표시 설정 | HTTP 세부 처리 |
 | 데이터 접근 | `src/api` | 엔드포인트 함수(경로·파라미터·응답 스키마), `fetch` 래퍼(인증 헤더, 타임아웃, 응답 검증, `AppError` 변환) | 캐시, 화면 상태 |
 
 - 서버 데이터는 TanStack Query 캐시에만 둔다. Zustand에는 기기별 UI 설정(언어·등락 색)만 persist로 둔다(D-030, D-047). 예외로 `stores/footerFreshness.ts`는 지금 보는 C 탭 화면이 받은 freshness를 탭 바 아래 기준 시각 줄로 넘기는 비영속 store다. 원본은 Query 캐시이고 화면을 떠나면 비운다. C-a/C-c 기간 선택은 원자재 스택 레이아웃의 화면 상태다(D-107). 서버에 저장하는 설정(이격도차트·알림)도 query·mutation으로 다룬다.

@@ -35,7 +35,7 @@ import { formatLocalDateTime } from '@/lib/formatDateTime';
 import { tapHaptic } from '@/lib/haptics';
 import { RareLevelsInput } from './RareLevelsInput';
 import { SectionHeader } from './SectionHeader';
-import { useSettings, useUpdateSettings } from './useSettings';
+import { useSettings, useUpdateSettings } from '@/api/useSettings';
 
 // B 설정(screens.md B). 표시 설정은 기기에, 이격도차트·알림 설정은 서버에 한 벌 저장한다(D-011, D-047).
 export function SettingsScreen() {

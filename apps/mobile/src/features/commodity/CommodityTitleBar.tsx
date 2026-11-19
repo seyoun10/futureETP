@@ -4,7 +4,7 @@ import { AlertBell } from '@/components/AlertBell';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SettingsHeaderButton } from '@/features/settings/SettingsHeaderButton';
-import { useSettings } from '@/features/settings/useSettings';
+import { useSettings } from '@/api/useSettings';
 import { lockLandscape, lockPortrait, useIsLandscape } from '@/lib/orientation';
 import { useCommodityCode } from './useCommodityCode';
 

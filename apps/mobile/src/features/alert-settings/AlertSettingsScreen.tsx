@@ -7,7 +7,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { SectionHeader } from '@/features/settings/SectionHeader';
 import { errorText } from '@/features/settings/SettingsScreen';
-import { useSettings, useUpdateSettings } from '@/features/settings/useSettings';
+import { useSettings, useUpdateSettings } from '@/api/useSettings';
 import { usePushPermission } from '@/push/usePushPermission';
 import { colors, fontSize, radius, size, spacing } from '@/theme/tokens';
 import { QuietTimeSection } from './QuietTimeSection';

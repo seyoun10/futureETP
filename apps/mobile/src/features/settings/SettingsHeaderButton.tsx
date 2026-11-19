@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { HeaderIconButton } from '@/components/HeaderIconButton';
-import { useSettings } from './useSettings';
+import { useSettings } from '@/api/useSettings';
 
 // A·C title-bar의 [⚙]. 이 기기의 알림 대상 원자재가 없으면(B 알림 행 "끔") 빨간 점을 띄운다.
 // 설정을 받기 전이나 조회가 실패하면 점을 띄우지 않는다.

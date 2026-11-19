@@ -1,11 +1,11 @@
 import type { CommodityCode, DisparityChart, Settings } from '@futureetp/shared';
 import { infiniteQueryOptions, skipToken, useInfiniteQuery } from '@tanstack/react-query';
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
-import { chartCacheOptions } from '@/api/chartCache';
-import { getDisparityChart } from '@/api/commodities';
-import { queryKeys } from '@/api/queryKeys';
-import type { DisparityParams } from '@/api/queryKeys';
-import { settingsQuery, useSettings } from '@/features/settings/useSettings';
+import { chartCacheOptions } from './chartCache';
+import { getDisparityChart } from './commodities';
+import { queryKeys } from './queryKeys';
+import type { DisparityParams } from './queryKeys';
+import { settingsQuery, useSettings } from './useSettings';
 
 const disparityParams = (settings: Settings): DisparityParams => ({
   basis: settings.basis,
