@@ -7,7 +7,13 @@ import prettierConfig from 'eslint-config-prettier/flat';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-const featuresDir = path.join(import.meta.dirname, 'apps/mobile/src/features');
+const mobileSrc = path.join(import.meta.dirname, 'apps/mobile/src');
+const featuresDir = path.join(mobileSrc, 'features');
+// src 바로 아래 폴더 중 route(app)·화면(features)을 뺀 나머지(api·charts·components·lib 등)
+const mobileLowerLayers = fs
+  .readdirSync(mobileSrc, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && !['app', 'features'].includes(entry.name))
+  .map((entry) => entry.name);
 const mobileFeatures = fs
   .readdirSync(featuresDir, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())
@@ -38,12 +44,26 @@ export default defineConfig([
       'import/no-restricted-paths': [
         'error',
         {
-          zones: mobileFeatures.map((feature) => ({
-            target: path.join(featuresDir, feature),
-            from: featuresDir,
-            except: [`./${feature}`],
-            message: '다른 feature를 import하지 않는다. components·api·lib로 옮긴다.',
-          })),
+          zones: [
+            ...mobileFeatures.map((feature) => ({
+              target: path.join(featuresDir, feature),
+              from: featuresDir,
+              except: [`./${feature}`],
+              message: '다른 feature를 import하지 않는다. components·api·lib로 옮긴다.',
+            })),
+            // 의존은 route(app) → 화면(features) → 하위 레이어 한 방향이다(D-041)
+            {
+              target: mobileLowerLayers.map((dir) => path.join(mobileSrc, dir)),
+              from: [featuresDir, path.join(mobileSrc, 'app')],
+              message:
+                '하위 레이어는 features·app을 import하지 않는다. 필요한 것을 이 레이어로 옮긴다.',
+            },
+            {
+              target: featuresDir,
+              from: path.join(mobileSrc, 'app'),
+              message: '화면은 route 파일(app)을 import하지 않는다.',
+            },
+          ],
         },
       ],
     },

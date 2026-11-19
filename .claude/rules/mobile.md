@@ -13,7 +13,7 @@ paths:
 
 ## Architecture
 
-- route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지 (D-041)
+- route → 화면(`src/features/`, named export) → query hook → `src/api`. 컴포넌트에서 `fetch` 직접 호출 금지. 하위 레이어(`api`·`components`·`lib`·`stores` 등)는 `features`·`app`을, 화면은 `app`을 import하지 않는다(lint `import/no-restricted-paths`) (D-041)
 - query hook은 그 화면의 feature에 둔다. 다른 feature도 쓰게 되면 `src/api`로 옮긴다(`useSettings`·`useDisparityChart`). feature끼리는 조회를 import하지 않는다. 컴포넌트·헬퍼도 다른 feature가 쓰게 되면 `src/components`·`src/api`·`src/lib`로 옮기고, feature끼리는 import하지 않는다(lint `import/no-restricted-paths`)
 - `extra`(서버 주소·dev 토큰)는 `src/api/config.ts`에서만 읽는다 (D-043, D-052)
 
