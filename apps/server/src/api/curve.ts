@@ -1,6 +1,6 @@
+import { curveQuerySchema } from '@futureetp/shared';
 import type { CommodityCode, Curve } from '@futureetp/shared';
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { buildCurve, CURVE_VOLUME_DAYS, resolveBaseDate } from '../calc/curve.ts';
 import type { CurveBar, CurveListing } from '../calc/curve.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
@@ -23,8 +23,6 @@ export type CurveStore = ChartMarketStore &
     frontSymbol: (code: CommodityCode, before: string) => Promise<string | null>;
     dailyBars: (symbols: string[], dates: string[]) => Promise<CurveBar[]>;
   };
-
-const querySchema = z.object({ baseDate: z.iso.date().optional() });
 
 // 거래량 창 20거래일과 휴장일로 옮길 직전 거래일을 덮는 달력 일수
 const VOLUME_LOOKBACK_DAYS = 45;
@@ -124,7 +122,7 @@ export function curveRoutes(store: CurveStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/curve', async (c) => {
     const code = commodityCodeParam(c.req.param('code'));
-    const query = parseInput(querySchema, c.req.query());
+    const query = parseInput(curveQuerySchema, c.req.query());
     return ok(c, await loadCurve(store, code, query.baseDate ?? null, now()));
   });
   return routes;

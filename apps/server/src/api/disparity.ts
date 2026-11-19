@@ -1,7 +1,6 @@
-import { BASES, MA_PERIODS, rareLevelsSchema, WINDOWS } from '@futureetp/shared';
+import { disparityQuerySchema } from '@futureetp/shared';
 import type { Basis, CommodityCode, DisparityChart, MaPeriod, Window } from '@futureetp/shared';
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { buildDisparityChart, roundDisparityChart } from '../calc/disparityChart.ts';
 import type {
   StoredDisparity,
@@ -10,7 +9,7 @@ import type {
   StoredWeight,
 } from '../calc/disparityChart.ts';
 import type { RollRuleParams } from '../calc/rollWeight.ts';
-import { beforeSchema, pageRange } from './chartPage.ts';
+import { pageRange } from './chartPage.ts';
 import { freshness, loadChartMarket } from './market.ts';
 import type { ChartMarketStore } from './market.ts';
 import { commodityCodeParam, parseInput } from './params.ts';
@@ -47,18 +46,6 @@ export type DisparityQuery = {
   // 이 날짜보다 이른 봉만(이전 3년 더 받기). 없으면 최근 3년
   before?: string | undefined;
 };
-
-// 앱은 설정 값을 query로 보낸다(query key에 그대로 들어가 설정을 바꾸면 다시 조회된다, D-086)
-const querySchema = z.object({
-  basis: z.enum(BASES),
-  ma: z.coerce.number().pipe(z.literal(MA_PERIODS)),
-  window: z.enum(WINDOWS),
-  levels: z
-    .string()
-    .transform((s) => s.split(',').map(Number))
-    .pipe(rareLevelsSchema),
-  before: beforeSchema,
-});
 
 // GET /v1/commodities/:code/disparity(C-a, D-086)
 export async function loadDisparityChart(
@@ -141,7 +128,7 @@ export function disparityRoutes(store: DisparityStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/disparity', async (c) => {
     const code = commodityCodeParam(c.req.param('code'));
-    const query = parseInput(querySchema, c.req.query());
+    const query = parseInput(disparityQuerySchema, c.req.query());
     return ok(c, await loadDisparityChart(store, code, query, now()));
   });
   return routes;

@@ -66,6 +66,7 @@ export {
   type PushText,
   type RareLevelAlert,
 } from './push.ts';
+export { contractsQuerySchema, curveQuerySchema, disparityQuerySchema } from './queries.ts';
 export {
   DISPARITY_SETTINGS_DEFAULTS,
   QUIET_MAX_MIN,

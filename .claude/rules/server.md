@@ -26,7 +26,7 @@ paths:
 - 커버리지 하한(`vitest.config.ts`): 전체 80, `src/calc/**` lines·functions 100. 떨어지면 `npm run check`가 실패한다 (D-127)
 - calc 불변식은 옆 `*.property.test.ts`에 fast-check로 둔다(범위·단조·역함수·명세 재계산). 반례는 출력된 `seed`·`path`로 재현한다 (D-129)
 - `schema.ts`를 바꾸면 `db:generate` 결과를 함께 커밋한다. 빠뜨리면 `npm run check:migrations`(check에 포함)가 실패한다 (D-129)
-- shared 스키마(`packages/shared/src/*.ts`)나 엔드포인트를 바꾸면 `npm run contract:export` 결과(`packages/shared/contract/`)를 함께 커밋한다. 엔드포인트·query는 `src/contract.ts` 목록도 고친다. 빠뜨리면 `contract.test.ts`가 실패한다 (D-142)
+- shared 스키마(`packages/shared/src/*.ts`)나 엔드포인트를 바꾸면 `npm run contract:export` 결과(`packages/shared/contract/`)를 함께 커밋한다. 엔드포인트를 늘리면 `src/contract.ts` 목록도 고치고, query 스키마는 shared `src/queries.ts`에 두어 서버 라우트와 계약이 함께 쓴다. 빠뜨리면 `contract.test.ts`가 실패한다 (D-142)
 - 배치 작업은 `JobHandler(ctx)`로 만들어 `jobs/handlers.ts`의 `JOB_HANDLERS`에 등록한다. 시각은 `ctx.now`만 쓰고, 처리한 CME 거래일은 `ctx.tradeDate`에 채운다 (D-060)
 
 ## Commands

@@ -7,28 +7,12 @@ import { contractsChartSchema } from './contracts.ts';
 import { curveSchema } from './curve.ts';
 import { DEVICE_ID_HEADER, deviceRegistrationSchema, deviceSchema } from './devices.ts';
 import { disparityChartSchema } from './disparity.ts';
-import { BASES, COMMODITY_CODES, MA_PERIODS, WINDOWS } from './domain.ts';
+import { COMMODITY_CODES } from './domain.ts';
 import { API_ERROR_CODES, errorSchema } from './envelope.ts';
 import { etpDetailSchema, etpListSchema } from './etps.ts';
+import { contractsQuerySchema, curveQuerySchema, disparityQuerySchema } from './queries.ts';
 import { settingsPatchSchema, settingsSchema } from './settings.ts';
 
-// 서버 라우트(apps/server/src/api)의 query 검증과 같은 값. 쿼리는 문자열로 보내므로 문서용이다
-const isoDate = z.iso.date();
-const disparityQuerySchema = z.object({
-  basis: z.enum(BASES),
-  ma: z.enum(MA_PERIODS.map(String)),
-  window: z.enum(WINDOWS),
-  levels: z
-    .string()
-    .describe('rare 레벨 5개를 쉼표로(예: 1,2.5,5,10,20). 설정 rareLevels와 같은 규칙'),
-  before: isoDate.optional().describe('이 거래일보다 이른 봉만(이전 3년 더 받기, D-104)'),
-});
-const contractsQuerySchema = z.object({
-  before: isoDate.optional().describe('이 거래일보다 이른 날짜만(이전 3년 더 받기, D-104)'),
-});
-const curveQuerySchema = z.object({
-  baseDate: isoDate.optional().describe('기준일. 서버가 거래일로 맞춘다(D-090)'),
-});
 // 서버 app.ts의 health 응답. shared 스키마가 없어 여기서만 정의한다
 const healthSchema = z.object({ status: z.literal('ok'), commit: z.string().nullable() });
 

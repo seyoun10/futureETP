@@ -1,3 +1,4 @@
+import { contractsQuerySchema } from '@futureetp/shared';
 import type { CommodityCode, ContractsChart } from '@futureetp/shared';
 import { Hono } from 'hono';
 import { buildContractLines } from '../calc/contractLines.ts';
@@ -5,7 +6,7 @@ import type { ListedContract } from '../calc/monthList.ts';
 import { selectMonthList } from '../calc/monthList.ts';
 import type { QuoteBar } from '../calc/quotes.ts';
 import type { CommoditiesStore } from './commodities.ts';
-import { beforeSchema, pageRange } from './chartPage.ts';
+import { pageRange } from './chartPage.ts';
 import { ApiException } from './errors.ts';
 import { freshness, loadChartMarket } from './market.ts';
 import type { ChartMarketStore } from './market.ts';
@@ -69,7 +70,7 @@ export function contractsRoutes(store: ContractsStore, now: () => Date) {
   const routes = new Hono();
   routes.get('/:code/contracts', async (c) => {
     const code = commodityCodeParam(c.req.param('code'));
-    const before = parseInput(beforeSchema, c.req.query('before'));
+    const { before } = parseInput(contractsQuerySchema, c.req.query());
     return ok(c, await loadContracts(store, code, now(), before));
   });
   return routes;
