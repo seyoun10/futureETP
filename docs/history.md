@@ -329,3 +329,6 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 - [x] GitHub Actions `audit` job(push·PR·매주) (2026-11-16)
 - [x] push 뒤 Actions `check`·`audit` 통과 확인(run 43865544324) (2026-11-16)
 - [x] 장 상태 속성 테스트 달력을 실제 형태로: `buildTradingDays`로 만든 2026·2027 실제 달력 + 고정 시드 무작위 예외 달력 8개에서 구간을 잘라 씀(주말 공백, 공휴일 정지, 조기 마감, 서머타임 전환). 시각은 세션·정지 경계 근처를 함께 뽑음. 결함 3종 주입 시 모두 실패, numRuns 5000 반례 없음 (2026-11-16)
+
+### 5-14. 다른 클라이언트 지원 (D-141)
+- [x] shared 스키마를 JSON Schema로 내보내기(`npm run contract:export`, zod 4 `z.toJSONSchema`, `packages/shared/contract/` 커밋). 커밋된 파일과 생성 결과가 어긋나거나 남은 파일이 있으면 `contract.test.ts`가 실패(check), 파일을 바꿔 실패를 확인 (2026-11-19, D-142)

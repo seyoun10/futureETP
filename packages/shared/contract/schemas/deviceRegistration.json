@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "pushToken": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "IOS",
+        "ANDROID"
+      ]
+    },
+    "appVersion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "pushToken",
+    "platform",
+    "appVersion"
+  ],
+  "additionalProperties": false,
+  "title": "deviceRegistration"
+}

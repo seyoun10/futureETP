@@ -1,0 +1,95 @@
+{
+  "description": "futureETP API 계약(D-141). 생성 파일이니 고치지 말고 `npm run contract:export`로 다시 만든다. 규약 설명은 docs/architecture.md \"API 통신 및 에러 처리 규약\".",
+  "basePath": "/v1",
+  "headers": {
+    "Authorization": "Bearer <접근 키>",
+    "X-Device-Id": "<installation ID, UUID v4>"
+  },
+  "envelope": {
+    "success": "{ \"success\": true, \"data\": <data 스키마> }",
+    "failure": "{ \"success\": false, \"error\": <schemas/error.json> }"
+  },
+  "pathParams": {
+    "code": [
+      "GC",
+      "SI",
+      "CL",
+      "NG"
+    ],
+    "id": "UUID"
+  },
+  "errorCodes": {
+    "UNAUTHORIZED": 401,
+    "RATE_LIMITED": 429,
+    "VALIDATION_FAILED": 400,
+    "NOT_FOUND": 404,
+    "INTERNAL": 500
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "auth": false,
+      "data": "schemas/health.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commodities",
+      "auth": true,
+      "data": "schemas/commodities.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commodities/{code}/disparity",
+      "auth": true,
+      "query": "schemas/disparityQuery.json",
+      "data": "schemas/disparityChart.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commodities/{code}/curve",
+      "auth": true,
+      "query": "schemas/curveQuery.json",
+      "data": "schemas/curve.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commodities/{code}/contracts",
+      "auth": true,
+      "query": "schemas/contractsQuery.json",
+      "data": "schemas/contractsChart.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/commodities/{code}/etps",
+      "auth": true,
+      "data": "schemas/etpList.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/etps/{id}",
+      "auth": true,
+      "data": "schemas/etpDetail.json"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/settings",
+      "auth": true,
+      "data": "schemas/settings.json"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/settings",
+      "auth": true,
+      "body": "schemas/settingsPatch.json",
+      "data": "schemas/settings.json"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/devices",
+      "auth": true,
+      "body": "schemas/deviceRegistration.json",
+      "data": "schemas/device.json"
+    }
+  ]
+}

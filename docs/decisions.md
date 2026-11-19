@@ -2071,6 +2071,15 @@
 - 결정:
   - 문서는 (a). 형제 저장소는 디렉터리마다 별도 git 저장소이고, `CLAUDE.md`·`TODO.md`·`docs/tech-stack.md`·`architecture.md`·`decisions.md`(접두사 `FL-`·`IOS-`·`AOS-`)만 갖는다.
   - 앱 ID는 (b). 클라이언트 구분은 `appVersion` 접두사(`fl-`·`ios-`·`aos-`)로 한다.
-  - 계약은 당분간 `packages/shared/src/*.ts`를 읽고 각 언어 모델을 손으로 맞추고, JSON Schema 내보내기를 TODO로 둔다.
+  - 계약은 당분간 `packages/shared/src/*.ts`를 읽고 각 언어 모델을 손으로 맞추고, JSON Schema 내보내기를 TODO로 둔다. (D-142로 대체)
 - 근거: 문서를 복사하면 제품 결정이 바뀔 때 네 곳을 고쳐야 해 어긋난다. 상위 폴더 이동은 기존 경로를 모두 바꿔야 한다. 같은 ID면 서버(`push/`·`config.ts`)와 Firebase·APNs 설정을 바꾸지 않아도 된다. 대가로 한 기기에 한 앱만 설치할 수 있다.
-- 영향: `CLAUDE.md` "다른 클라이언트", `docs/architecture.md` "다른 클라이언트", `TODO.md` 5-12.
+- 영향: `CLAUDE.md` "다른 클라이언트", `docs/architecture.md` "다른 클라이언트", `TODO.md` 5-14.
+
+## D-142: API 계약을 JSON Schema 파일로 내보내 커밋한다
+- 날짜: 2026-11-19
+- 상태: 확정
+- 맥락: 형제 저장소의 Flutter·Swift·Kotlin 앱(D-141)은 shared zod 스키마를 import할 수 없다. TS 소스를 읽고 손으로 모델을 맞추면 스키마가 바뀔 때 놓친다.
+- 선택지: (a) zod 4 `z.toJSONSchema`로 파일을 만들어 커밋 (b) 서버가 OpenAPI 문서를 런타임에 제공 (c) 손으로 맞춤 유지
+- 결정: (a). `packages/shared/src/contract.ts`의 `buildContract()`가 `contract/api.json`(엔드포인트 목록·헤더·봉투·에러 코드)과 `contract/schemas/<이름>.json`을 만든다. 스키마는 `io: 'input'`(앱이 받는 응답과 보내는 본문 모두 파싱 입력 쪽), 표현할 수 없는 것은 `unrepresentable: 'any'`. 쿼리 스키마와 health 응답은 서버 라우트에만 있어 `contract.ts`에 같은 값으로 따로 적는다. 파일은 `npm run contract:export`로 다시 만들고, `contract.test.ts`가 커밋된 파일과 생성 결과·남은 파일을 비교해 어긋나면 `npm run check`가 실패한다. Prettier는 이 폴더를 건너뛴다(`JSON.stringify` 결과 그대로 비교).
+- 근거: 별도 drift 스크립트 없이 이미 check에 있는 shared 테스트로 막는다. 런타임 OpenAPI(b)는 서버 의존성과 라우트 변경이 필요하고 형제 저장소가 서버를 띄워야 읽을 수 있다. refine 규칙은 빠지지만 앱은 표시만 하므로(계산 없음) 필드·타입·nullable·enum이 맞으면 충분하다.
+- 영향: `packages/shared/src/contract.ts`·`contract.test.ts`·`scripts/exportContract.ts`·`contract/`, 루트 `package.json` `contract:export`, `.prettierignore`, `knip.jsonc`, shared `tsconfig.json`. shared 스키마를 바꾸면 `contract:export` 결과를 함께 커밋한다. D-141의 계약 공유 방식을 대체한다.

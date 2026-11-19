@@ -12,6 +12,9 @@
       "ignoreDependencies": ["@types/d3-scale"],
     },
     "apps/server": {},
-    "packages/shared": {},
+    "packages/shared": {
+      // `npm run contract:export`(D-141)
+      "entry": ["scripts/*.ts"],
+    },
   },
 }

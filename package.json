@@ -29,6 +29,7 @@
     "dev:restore": "bash scripts/dev-restore.sh",
     "prod:seed": "bash scripts/prod-seed.sh",
     "check:migrations": "bash scripts/check-migrations.sh",
+    "contract:export": "node packages/shared/scripts/exportContract.ts",
     "knip": "knip",
     "deps:watch": "node scripts/deps-watch.mjs",
     "ci:wait": "bash scripts/ci-wait.sh"

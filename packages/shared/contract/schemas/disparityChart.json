@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "freshness": {
+      "type": "object",
+      "properties": {
+        "asOf": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+        },
+        "tradeDate": {
+          "type": "string",
+          "format": "date",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+        },
+        "delayed": {
+          "type": "boolean"
+        },
+        "marketState": {
+          "type": "string",
+          "enum": [
+            "OPEN",
+            "CLOSED",
+            "SETTLEMENT_PENDING"
+          ]
+        },
+        "nextUpdateAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "asOf",
+        "tradeDate",
+        "delayed",
+        "marketState",
+        "nextUpdateAt"
+      ]
+    },
+    "priceDecimals": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "basis": {
+      "type": "string",
+      "enum": [
+        "FRONT",
+        "KR",
+        "US"
+      ]
+    },
+    "fallback": {
+      "type": "boolean"
+    },
+    "maPeriod": {
+      "type": "number",
+      "enum": [
+        20,
+        50,
+        100,
+        200
+      ]
+    },
+    "window": {
+      "type": "string",
+      "enum": [
+        "Y3",
+        "Y5",
+        "Y10",
+        "ALL"
+      ]
+    },
+    "distribution": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "actualStartDate": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+            },
+            "sampleCount": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "actualStartDate",
+            "sampleCount"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rareLevels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "UP",
+              "DOWN"
+            ]
+          },
+          "level": {
+            "type": "number"
+          },
+          "disparity": {
+            "type": "number"
+          },
+          "price": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "direction",
+          "level",
+          "disparity",
+          "price"
+        ]
+      }
+    },
+    "currentTail": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "side": {
+              "type": "string",
+              "enum": [
+                "UP",
+                "DOWN"
+              ]
+            },
+            "pct": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "side",
+            "pct"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provisional": {
+      "type": "boolean"
+    },
+    "bars": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tradeDate": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+          },
+          "open": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "high": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "low": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "close": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "ma": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "disparity": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "inRoll": {
+            "type": "boolean"
+          },
+          "holdings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "contractMonth": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}$"
+                },
+                "weight": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "contractMonth",
+                "weight"
+              ]
+            }
+          }
+        },
+        "required": [
+          "tradeDate",
+          "open",
+          "high",
+          "low",
+          "close",
+          "ma",
+          "disparity",
+          "inRoll",
+          "holdings"
+        ]
+      }
+    },
+    "hasMore": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "freshness",
+    "priceDecimals",
+    "basis",
+    "fallback",
+    "maPeriod",
+    "window",
+    "distribution",
+    "rareLevels",
+    "currentTail",
+    "provisional",
+    "bars",
+    "hasMore"
+  ],
+  "title": "disparityChart"
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "locale": {
+      "type": "string",
+      "enum": [
+        "ko",
+        "en"
+      ]
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "basis": {
+      "type": "string",
+      "enum": [
+        "FRONT",
+        "KR",
+        "US"
+      ]
+    },
+    "maPeriod": {
+      "type": "number",
+      "enum": [
+        20,
+        50,
+        100,
+        200
+      ]
+    },
+    "window": {
+      "type": "string",
+      "enum": [
+        "Y3",
+        "Y5",
+        "Y10",
+        "ALL"
+      ]
+    },
+    "rareLevels": {
+      "minItems": 5,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "alertCommodity": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "GC",
+            "SI",
+            "CL",
+            "NG"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "quietTime": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "startMin": {
+              "type": "number"
+            },
+            "endMin": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "startMin",
+            "endMin"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "locale",
+    "timezone",
+    "basis",
+    "maPeriod",
+    "window",
+    "rareLevels",
+    "alertCommodity",
+    "quietTime"
+  ],
+  "title": "settings"
+}
