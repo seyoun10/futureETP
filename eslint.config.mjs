@@ -1,9 +1,17 @@
 // 앱·서버·공유 패키지 공통 lint 설정(D-038, D-054). 저장소 루트에서 `eslint .` 한 번으로 돈다.
+import fs from 'node:fs';
+import path from 'node:path';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import expoConfig from 'eslint-config-expo/flat.js';
 import prettierConfig from 'eslint-config-prettier/flat';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+
+const featuresDir = path.join(import.meta.dirname, 'apps/mobile/src/features');
+const mobileFeatures = fs
+  .readdirSync(featuresDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
 
 export default defineConfig([
   globalIgnores([
@@ -24,6 +32,20 @@ export default defineConfig([
     settings: {
       // 루트에서 실행하므로 앱 tsconfig를 지정해야 `@/` 경로 별칭을 푼다.
       'import/resolver': { typescript: { project: 'apps/mobile/tsconfig.json' } },
+    },
+    rules: {
+      // feature끼리는 import하지 않는다. 함께 쓰게 되면 components·api·lib로 옮긴다(mobile.md)
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: mobileFeatures.map((feature) => ({
+            target: path.join(featuresDir, feature),
+            from: featuresDir,
+            except: [`./${feature}`],
+            message: '다른 feature를 import하지 않는다. components·api·lib로 옮긴다.',
+          })),
+        },
+      ],
     },
   },
 
