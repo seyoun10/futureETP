@@ -1,5 +1,9 @@
 import type { CommodityCode, Freshness } from '@futureetp/shared';
-import { marketStatus } from '../calc/marketState.ts';
+import {
+  CALENDAR_LOOKAHEAD_DAYS,
+  CALENDAR_LOOKBACK_DAYS,
+  marketStatus,
+} from '../calc/marketState.ts';
 import type { MarketStatus, TradingDaySession } from '../calc/marketState.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
@@ -8,7 +12,7 @@ import { ApiException } from './errors.ts';
 export type MarketStore = Pick<CommoditiesStore, 'tradingDays' | 'lastSettledTradeDate'>;
 
 export type Market<T> = {
-  // 오름차순, 오늘 전후 LOOKBACK/LOOKAHEAD 범위
+  // 오름차순, 오늘 전후 CALENDAR_LOOKBACK_DAYS/CALENDAR_LOOKAHEAD_DAYS 범위
   days: TradingDaySession[];
   lastSettled: string | null;
   status: MarketStatus;
@@ -17,10 +21,6 @@ export type Market<T> = {
   // 같이 읽은 라우트별 값
   extra: T;
 };
-
-// 직전 거래일(휴장 연휴)과 다음 개장(nextUpdateAt)을 찾을 만큼 읽는다
-const LOOKBACK_DAYS = 30;
-const LOOKAHEAD_DAYS = 10;
 
 // 조회 API 공통 프롤로그: 거래일 달력·마지막 정산 거래일과 라우트별 값(extra)을 함께 읽어 장 상태를 낸다.
 export function loadMarket<T>(
@@ -40,7 +40,10 @@ async function loadMarketWith<T, U>(
 ): Promise<Market<U>> {
   const today = now.toISOString().slice(0, 10);
   const [days, lastSettled, loaded] = await Promise.all([
-    store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, LOOKAHEAD_DAYS)),
+    store.tradingDays(
+      addDays(today, -CALENDAR_LOOKBACK_DAYS),
+      addDays(today, CALENDAR_LOOKAHEAD_DAYS),
+    ),
     store.lastSettledTradeDate(),
     extra,
   ]);

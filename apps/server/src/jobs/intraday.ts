@@ -10,7 +10,13 @@ import {
   type IndexHistoryRow,
   type IntradayIndex,
 } from '../calc/intraday.ts';
-import { INTRADAY_SLOT_MS, marketStatus, type TradingDaySession } from '../calc/marketState.ts';
+import {
+  CALENDAR_LOOKAHEAD_DAYS,
+  CALENDAR_LOOKBACK_DAYS,
+  INTRADAY_SLOT_MS,
+  marketStatus,
+  type TradingDaySession,
+} from '../calc/marketState.ts';
 import type { ListedContract } from '../calc/monthList.ts';
 import { addDays } from '../calc/tradingCalendar.ts';
 import type { IntradayQuote, IntradaySource } from '../sources/intraday.ts';
@@ -62,8 +68,6 @@ export type IntradayDeps = {
   log?: (message: string) => void;
 };
 
-// 직전 거래일(휴장 연휴)과 그날 세션을 찾을 만큼 읽는다
-const LOOKBACK_DAYS = 30;
 // 이평선 200의 직전 유효 종가 199개 + 무효일 여유
 export const INDEX_HISTORY_ROWS = 260;
 // captured_at은 배치 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수) 시각이다. 재시도해도 같은 행이 된다
@@ -95,8 +99,12 @@ export function createIntradayHandler({
 
   async function judge(ctx: Parameters<JobHandler>[0], capturedAt: Date): Promise<void> {
     const today = ctx.now.toISOString().slice(0, 10);
+    // 조회 API와 같은 범위. 정지일 전날 저녁에 열린 세션의 거래일은 +2일 이상일 수 있다
     const [days, lastSettled] = await Promise.all([
-      store.tradingDays(addDays(today, -LOOKBACK_DAYS), addDays(today, 1)),
+      store.tradingDays(
+        addDays(today, -CALENDAR_LOOKBACK_DAYS),
+        addDays(today, CALENDAR_LOOKAHEAD_DAYS),
+      ),
       store.lastSettledTradeDate(),
     ]);
     const status = marketStatus(ctx.now, days, lastSettled);

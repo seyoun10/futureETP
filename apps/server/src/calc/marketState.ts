@@ -20,6 +20,11 @@ export const SETTLE_STEP1_EXPECTED_MS = 25 * MINUTE_MS;
 export const INTRADAY_EXPECTED_MS = MINUTE_MS;
 // 장중 배치는 CT :00/:15/:30/:45. CT 오프셋이 정시 단위라 UTC 15분 배수와 같다.
 export const INTRADAY_SLOT_MS = 15 * MINUTE_MS;
+// 장 상태 판정에 읽는 거래일 달력 범위(오늘 기준 일수). 뒤로는 직전 거래일(휴장 연휴)을,
+// 앞으로는 다음 개장과 정지일 다음 거래일 세션(정지일 전날 17:00 CT에 열림, +2일 이상일 수 있음)을 찾을 만큼.
+// 조회 API와 장중 배치가 같은 값을 써야 장 상태가 어긋나지 않는다.
+export const CALENDAR_LOOKBACK_DAYS = 30;
+export const CALENDAR_LOOKAHEAD_DAYS = 10;
 
 export type MarketStatus = {
   state: MarketState;

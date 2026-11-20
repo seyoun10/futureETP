@@ -237,4 +237,26 @@ describe('INTRADAY', () => {
     await expect(run(handler)).rejects.toThrow('alert retry db down');
     expect(saved.indexes).toHaveLength(2);
   });
+
+  // 정지일 다음 거래일 세션은 정지일 전날 17:00 CT에 열린다. 달력을 +1일까지만 읽으면 CLOSED로 건너뛰었다
+  it.each([
+    ['추수감사절 전날 저녁', ct('2026-11-25', '17:07'), '2026-11-25', '2026-11-27'],
+    ['Juneteenth 전날 저녁', ct('2026-06-18', '17:07'), '2026-06-18', '2026-06-22'],
+  ])('%s 세션도 OPEN으로 판정해 저장한다', async (_label, now, previous, tradeDate) => {
+    const { store, saved } = memoryStore({
+      lastSettled: previous,
+      held: [weight('FRONT', 'CLZ26', 1)].map((w) => ({ ...w, tradeDate: previous })),
+      history: HISTORY.map((row, i) => (i === 199 ? { ...row, tradeDate: previous } : row)),
+    });
+    const logs: string[] = [];
+    const handler = createIntradayHandler({
+      store,
+      source: fakeSource(),
+      log: (m) => logs.push(m),
+    });
+    const ctx = await run(handler, now);
+    expect(logs.filter((m) => m.includes('skipped'))).toEqual([]);
+    expect(ctx.tradeDate).toBe(tradeDate);
+    expect(saved.indexes.map((i) => i.tradeDate)).toEqual([tradeDate]);
+  });
 });
