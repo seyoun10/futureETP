@@ -26,6 +26,18 @@ describe('tickDecimals', () => {
     expect(tickDecimals([2.905, 2.91], 2)).toBe(2);
     expect(tickDecimals([70], 2)).toBe(2);
   });
+
+  it('간격의 부동소수 오차로 자릿수가 늘지 않는다', () => {
+    // 1.2 - 1.1 = 0.0999…라 보정 없이는 2자리(`1.10`)가 된다
+    expect(tickDecimals([1, 1.1, 1.2], 3)).toBe(1);
+    expect(tickDecimals([2795.8, 2795.9, 2796], 2)).toBe(1);
+    expect(tickDecimals([3.65, 3.66, 3.67], 4)).toBe(2);
+  });
+
+  it('log 눈금처럼 간격이 고르지 않으면 가장 좁은 간격을 따른다', () => {
+    expect(tickDecimals([0.008, 0.009, 0.01, 0.02], 4)).toBe(3);
+    expect(tickDecimals([20, 30, 40, 50, 100], 2)).toBe(0);
+  });
 });
 
 describe('labelStride', () => {

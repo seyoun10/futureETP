@@ -18,10 +18,13 @@ export function niceTicks(min: number, max: number, count: number): number[] {
   return ticks;
 }
 
-// 눈금 간격에 맞춘 소수 자릿수. 가격 자릿수를 넘지 않는다
+// 눈금 간격에 맞춘 소수 자릿수. 가격 자릿수를 넘지 않는다(C-b 커브, C-a·C-c y축 YAxisLayer).
+// log 눈금(0.008, 0.009, 0.01, 0.02)은 간격이 고르지 않아 가장 좁은 간격을 본다.
+// 간격은 부동소수 오차(1.2 - 1.1 = 0.0999…)로 10ⁿ보다 살짝 작을 수 있어 1e-9만큼 올려 잰다(`1.1`이 `1.10`이 되지 않게)
 export function tickDecimals(ticks: readonly number[], max: number): number {
-  const step = ticks.length > 1 ? ticks[1]! - ticks[0]! : 0;
-  if (!(step > 0)) return max;
+  let step = Infinity;
+  for (let i = 1; i < ticks.length; i++) step = Math.min(step, ticks[i]! - ticks[i - 1]!);
+  if (!Number.isFinite(step) || !(step > 0)) return max;
   return Math.min(max, Math.max(0, -Math.floor(Math.log10(step) + 1e-9)));
 }
 

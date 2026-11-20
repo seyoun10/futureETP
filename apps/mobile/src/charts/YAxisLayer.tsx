@@ -8,6 +8,7 @@ import { colors } from '@/theme/tokens';
 import { GUIDE_DASH } from './chartLayout';
 import { numberFont } from './chartText';
 import { crosshairLabelHeight } from './CrosshairLayer';
+import { tickDecimals } from './curveLayout';
 import type { Crosshair } from './CrosshairLayer';
 import { clampLabelY, overlapsAny, stackLabels } from './priceLabels';
 
@@ -28,14 +29,6 @@ type YAxisLayerProps = {
   crosshair: Crosshair;
 };
 
-// 소수 자릿수는 눈금 간격에 맞추되 가격 자릿수를 넘지 않는다.
-function decimalsFor(ticks: number[], max: number): number {
-  let step = Infinity;
-  for (let i = 1; i < ticks.length; i++) step = Math.min(step, ticks[i]! - ticks[i - 1]!);
-  if (!Number.isFinite(step) || step <= 0) return max;
-  return Math.min(max, Math.max(0, -Math.floor(Math.log10(step))));
-}
-
 // 우측 y축을 직접 그린다(D-056). 특수 라벨은 선 색으로 쓰고 서로 겹치지 않게 밀며, 특수 라벨과
 // 겹치는 기본 눈금 텍스트는 숨긴다(격자선은 유지). 십자선 가격 라벨과 겹치는 글자도 숨긴다.
 export function YAxisLayer({
@@ -54,7 +47,7 @@ export function YAxisLayer({
     .copy()
     .domain([priceAt(chartBounds.bottom), priceAt(chartBounds.top)])
     .ticks(TICK_COUNT);
-  const decimals = decimalsFor(ticks, priceDecimals);
+  const decimals = tickDecimals(ticks, priceDecimals);
   const height = crosshairLabelHeight(numberFont);
   const special = stackLabels(
     labels.map((l) => ({ ...l, y: toScreen(l.price) })),
