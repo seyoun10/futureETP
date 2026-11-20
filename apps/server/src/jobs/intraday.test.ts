@@ -225,16 +225,27 @@ describe('INTRADAY', () => {
   it('장 상태와 상관없이 먼저 지난 슬롯의 RETRY를 다시 보낸다', async () => {
     const { store } = memoryStore({ lastSettled: '2026-10-26' });
     const retry = vi.fn(() => Promise.resolve());
-    const now = ct('2026-10-27', '18:07');
+    const now = ct('2026-10-27', '18:22');
     await run(createIntradayHandler({ store, source: fakeSource(), retry, log: () => {} }), now);
-    expect(retry).toHaveBeenCalledWith({ before: new Date(ct('2026-10-27', '18:00')), now });
+    expect(retry).toHaveBeenCalledWith({ before: new Date(ct('2026-10-27', '18:15')), now });
+  });
+
+  // :00/:30에는 DEFERRED_PUSH가 먼저 재발송한다. 그 뒤 실패해 RETRY가 된 지연 발송을 같은 슬롯에서 다시 보내면 안 된다(D-023)
+  it.each(['18:00', '18:30'])('%s 슬롯에는 RETRY 재발송을 DEFERRED_PUSH에 맡긴다', async (time) => {
+    const { store } = memoryStore({ lastSettled: '2026-10-26' });
+    const retry = vi.fn(() => Promise.resolve());
+    await run(
+      createIntradayHandler({ store, source: fakeSource(), retry, log: () => {} }),
+      ct('2026-10-27', time),
+    );
+    expect(retry).not.toHaveBeenCalled();
   });
 
   it('재발송이 실패해도 장중 값은 저장하고 배치를 실패로 남긴다', async () => {
     const { store, saved } = memoryStore();
     const retry = vi.fn(() => Promise.reject(new Error('db down')));
     const handler = createIntradayHandler({ store, source: fakeSource(), retry, log: () => {} });
-    await expect(run(handler)).rejects.toThrow('alert retry db down');
+    await expect(run(handler, ct('2026-10-28', '09:22'))).rejects.toThrow('alert retry db down');
     expect(saved.indexes).toHaveLength(2);
   });
 

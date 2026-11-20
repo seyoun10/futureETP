@@ -1,7 +1,7 @@
 // 장중 배치 INTRADAY(D-012, D-022, D-094). 장 상태가 OPEN일 때만 돈다(정산 대기·휴장·정지 구간은 건너뜀).
 // 원자재마다 커브 월물 장중 값(intraday_snapshot) → 기준값별 잠정 지수·이격도(index_snapshot)를 저장한다.
 // 알림 판정 대상 원자재면 저장 뒤 rare 레벨 알림을 판정한다(jobs/rareAlert.ts).
-// 장 상태와 상관없이 먼저 지난 슬롯의 RETRY 알림을 다시 보낸다(D-023).
+// 장 상태와 상관없이 먼저 지난 슬롯의 RETRY 알림을 다시 보낸다(D-023). :00/:30은 앞서 돈 DEFERRED_PUSH가 맡는다.
 import { BASES, type Basis, type CommodityCode } from '@futureetp/shared';
 import {
   indexAnchor,
@@ -73,6 +73,9 @@ export const INDEX_HISTORY_ROWS = 260;
 // captured_at은 배치 슬롯(CT :00/:15/:30/:45 = UTC 15분 배수) 시각이다. 재시도해도 같은 행이 된다
 export const batchSlot = (now: Date) =>
   new Date(Math.floor(now.getTime() / INTRADAY_SLOT_MS) * INTRADAY_SLOT_MS);
+// CT :00/:30 슬롯(= UTC 30분 배수)에는 DEFERRED_PUSH가 INTRADAY보다 먼저 돌며 RETRY를 이미 재발송했다(scheduler TRIGGERS).
+// 여기서 또 보내면 그 사이 지연 발송이 실패해 RETRY가 된 기록을 같은 슬롯에서 바로 다시 보내 FAILED로 만든다(D-023 "다음 주기 1회")
+export const isDeferredPushSlot = (slot: Date) => slot.getTime() % (2 * INTRADAY_SLOT_MS) === 0;
 
 export function createIntradayHandler({
   store,
@@ -85,7 +88,7 @@ export function createIntradayHandler({
     const capturedAt = batchSlot(ctx.now);
     // 재발송이 실패해도 장중 값은 받고, 작업은 마지막에 실패로 남긴다
     let retryFailure: string | null = null;
-    if (retry) {
+    if (retry && !isDeferredPushSlot(capturedAt)) {
       try {
         await retry({ before: capturedAt, now: ctx.now });
       } catch (error) {

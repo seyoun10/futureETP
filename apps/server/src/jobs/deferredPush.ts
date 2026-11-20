@@ -1,4 +1,4 @@
-// 지연 발송 배치 DEFERRED_PUSH(product.md 6, D-026). :00/:30 CT에 장 상태와 상관없이 INTRADAY보다 먼저 돈다.
+// 지연 발송 배치 DEFERRED_PUSH(product.md 6, D-026). :00/:30 CT에 장 상태와 상관없이 INTRADAY보다 먼저 돈다. 이 슬롯의 RETRY 재발송은 여기서만 한다(INTRADAY는 건너뜀).
 // 지난 슬롯의 RETRY 재발송 → 거부 시간이 끝난 HELD 지연 발송 순서다(jobs/rareAlert.ts).
 import { batchSlot } from './intraday.ts';
 import type { AlertRetry, DeferredAlert } from './rareAlert.ts';
