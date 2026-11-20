@@ -80,6 +80,16 @@ export const LinesChart = memo(function LinesChart({
 }: LinesChartProps) {
   const { state: press } = useChartPressState({ x: 0, y: { close: 0, hi: 0, lo: 0 } });
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
+  const data = useMemo(
+    () =>
+      dates.map((_, i) => ({
+        i,
+        close: lines.map((l) => l.values[i]).find((v) => v != null) ?? envelope.lo[i],
+        hi: envelope.hi[i],
+        lo: envelope.lo[i],
+      })),
+    [dates, lines, envelope],
+  );
   const {
     transform,
     detail,
@@ -93,6 +103,7 @@ export const LinesChart = memo(function LinesChart({
   } = useChartViewport({
     press,
     periodBars,
+    data,
     onViewChange,
     onVisibleRangeChange,
     dataInsets: overlay,
@@ -101,16 +112,6 @@ export const LinesChart = memo(function LinesChart({
 
   const { setScales, boxProps } = useDetailPlacement({ detail, lines, overlay });
 
-  const data = useMemo(
-    () =>
-      dates.map((_, i) => ({
-        i,
-        close: lines.map((l) => l.values[i]).find((v) => v != null) ?? envelope.lo[i],
-        hi: envelope.hi[i],
-        lo: envelope.lo[i],
-      })),
-    [dates, lines, envelope],
-  );
   // 우측 y축 라벨 자리(가장 긴 끝값 라벨 + 여백)
   const yLabelWidth = useMemo(() => {
     const widths = widestLabels.map((l) =>

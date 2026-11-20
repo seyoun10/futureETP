@@ -107,6 +107,11 @@ export const CandleChart = memo(function CandleChart({
   const [overlay, setOverlay] = useState<OverlayInsets>({ top: 0, bottom: 0 });
   const dataInsets = overlay;
   const dates = useMemo(() => bars.map((b) => b.tradeDate), [bars]);
+  const data = useMemo(
+    () =>
+      bars.map((b, i) => ({ ...b, i, hi: envelope.hi[i] ?? b.high, lo: envelope.lo[i] ?? b.low })),
+    [bars, envelope],
+  );
   const {
     transform,
     detail,
@@ -120,17 +125,13 @@ export const CandleChart = memo(function CandleChart({
   } = useChartViewport({
     press,
     periodBars,
+    data,
     onViewChange,
     onVisibleRangeChange,
     dataInsets,
     locked,
   });
 
-  const data = useMemo(
-    () =>
-      bars.map((b, i) => ({ ...b, i, hi: envelope.hi[i] ?? b.high, lo: envelope.lo[i] ?? b.low })),
-    [bars, envelope],
-  );
   const { setScales, boxProps } = useDetailPlacement({ detail, lines, bars, overlay });
 
   const current = bars[bars.length - 1];

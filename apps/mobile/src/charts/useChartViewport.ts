@@ -51,6 +51,9 @@ type ViewportOptions = {
   onVisibleRangeChange?: (i0: number, i1: number) => void;
   // 차트 안에 겹친 정보 줄 높이. y 자동 맞춤이 이만큼 위·아래를 비워 봉·선이 글자 밑으로 들어가지 않는다
   dataInsets?: OverlayInsets;
+  // CartesianChart에 넘기는 data(참조로 비교). 바뀌면 victory가 누름 상태(matchedIndex·위치)를 리셋하므로
+  // 십자선·상세 박스도 함께 지운다. 남기면 십자선이 좌상단으로 튀고 상세 박스가 옛 순번으로 다른 봉을 보인다
+  data: readonly unknown[];
   // 과거 데이터를 받는 동안 true. 진행 중인 핀치·드래그를 취소한다. 새 터치는 차트가 pointerEvents로 막는다(D-108)
   locked?: boolean;
 };
@@ -64,6 +67,7 @@ const NO_INSETS: OverlayInsets = { top: 0, bottom: 0 };
 export function useChartViewport({
   press,
   periodBars,
+  data,
   onViewChange,
   onVisibleRangeChange,
   dataInsets = NO_INSETS,
@@ -255,6 +259,16 @@ export function useChartViewport({
   useEffect(() => {
     if (periodBars !== null) crosshairVisible.set(false);
   }, [crosshairVisible, periodBars]);
+  // 데이터가 바뀔 때(과거 봉이 앞에 붙음·자동 새로고침)도 지운다(위 data 설명)
+  const [pressData, setPressData] = useState(data);
+  if (data !== pressData) {
+    setPressData(data);
+    setCrosshairShown(false);
+    setDetail(null);
+  }
+  useEffect(() => {
+    crosshairVisible.set(false);
+  }, [crosshairVisible, data]);
 
   const pressConfig = useMemo(
     () => ({ pan: crosshairShown ? {} : { activateAfterLongPress: LONG_PRESS_MS } }),
