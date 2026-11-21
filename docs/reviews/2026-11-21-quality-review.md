@@ -61,15 +61,17 @@
 | 대상 | 점수 | 약한 곳(생존/미도달 변이) |
 |---|---|---|
 | 서버 calc | 대부분 90%+ | `rollWeight.ts` 생존 26, `curve.ts` 91.9%(237/258, 정정 아래) |
-| 서버 api | 50~100% | `curve.ts` 67%(기준일 제한·정산/스냅숏 선택·거래량 창 slice), `commodities.ts` 72%(asOf 선택), `clientIp.ts` 50%, `app.ts` 72%(DB 확인 타임아웃 clearTimeout, 인증 실패 제한 기본값), `settings.ts` 60% |
+| 서버 api | 86.2%(395/458, 재측정 아래) | 초판 50~100%. 남은 약한 곳: `settings.ts` 60%·`devices.ts` 67%(라우트 경로 등가), `params.ts` 77%(JSON 아닌 body catch, ETP id 검증), `app.ts` 81%(`HTTPException` 4xx 분기 미도달), `disparity.ts` 83%(`rule` null 분기) |
 | shared | 89% | `contracts.ts:33` prices/dates 길이 refine 미실행(50%), `push.ts` 영어 문구 단수/복수·`+0.0%` 경계, `settings.ts:36` `<`↔`<=`, `devices.ts:14` trim |
 | 앱 charts·lib | 65% | **`useChartViewport.ts` 6%(생존 96, 미도달 140)**, `chartText.ts` 0%(Skia), `lineSampling.ts` 73%(빈 입력·px≤0·hi<lo 가드), `curveLayout.ts` 80%(눈금 단계 경계·라벨 충돌 회피), `formatNumber.ts` 78% |
 
-**정정 (2026-11-21, `75f6d85`에서 Stryker 10.1.1 재측정)**: 초판의 "`calc/curve.ts:130` `basePrice > 0` 가드 제거가 생존(테스트 미고정)"은 사실과 다르다. 가드(현재 `:133`)는 보고서 기준 커밋 전부터 `curve.test.ts`의 "기준일 가격이 0 이하이면 변화율은 null이다"로 고정돼 있고, `> 0` 제거·`<=`·`>=` 변이 모두 killed다. 같은 줄에서 산 1건은 `p.basePrice !== null`→`true`인데, null이면 `p.basePrice > 0`도 거짓이라 결과가 같은 등가 변이다. `calc/curve.ts` 점수는 91.9%(237/258)이고, 남은 생존은 `:84` M2 면제·`:190` 기준일 상한·`:270` 스냅숏 표시 등이다.
+**정정 (2026-11-21, `75f6d85`에서 Stryker 10.1.1 재측정)**: 초판의 "`calc/curve.ts:130` `basePrice > 0` 가드 제거가 생존(테스트 미고정)"은 사실과 다르다. 가드(현재 `:133`)는 보고서 기준 커밋 전부터 `curve.test.ts`의 "기준일 가격이 0 이하이면 변화율은 null이다"로 고정돼 있고, `> 0` 제거·`<=`·`>=` 변이 모두 killed다. 같은 줄에서 산 1건은 `p.basePrice !== null`→`true`인데, null이면 `p.basePrice > 0`도 거짓이라 결과가 같은 등가 변이다. `calc/curve.ts` 점수는 91.9%(237/258)이고, 남은 생존은 `:84` M2 면제·`:190` 기준일 상한·`:270` 스냅숏 표시 등이다(`:190`의 등가 변이는 `8b23c1e`에서 상한 비교를 없애 사라졌다).
 
 **후속 (api 테스트 보강)**: `api/curve.ts` 66.7% → 93.0%(53/57), `clientIp.ts` 50.0% → 93.8%(15/16). 남은 생존 5건(`curve.ts:48`·`:68`의 null 검사 제거와 `<`↔`<=`, `:71` 빈 배열, `clientIp.ts:9` `?.` 제거)은 모두 등가 변이다. `settings.ts` 60%(3/5)의 생존 2건은 라우트 경로 `'/'`→`''`로, Hono에서 `/v1/settings`·`/v1/settings/` 응답이 같아 등가다(테스트 추가 없음).
 
 **후속 2 (수동 변이 확인)**: `calc/curve.ts:84`의 `i === m1Index`→`true`는 M1 앞 월물만으로 12개가 차는 경우(원본 m1=null)에 달라져 테스트를 넣었다. 같은 줄 `hasPrice(c)`→`true`(m1Index가 있으면 그 월물은 늘 값이 있음)와 `:190`의 `requested > maxBaseDate` 변이(뒤로 넘친 요청도 `findLastIndex`가 마지막 날을 고름)는 등가다. `api/commodities.ts:76` asOf 최댓값 선택(원자재 순서 양방향)과 `app.ts`의 `clearTimeout`·기본 DB 확인 시간(3초)·기본 인증 실패 한도(15분 10회)를 테스트로 고정했다. `commodities.ts:76`의 `result.asOf &&` 제거는 null 비교가 거짓이라 등가다.
+
+**후속 3 (서버 api 재측정, `8b23c1e`, Stryker 10.1.1, `src/api` 테스트만 실행)**: 전체 86.2%(killed 395, survived 53, 미도달 10). 파일별 `response.ts` 100, `chartPage.ts` 95.5, `clientIp.ts` 93.8, `curve.ts` 93.0, `contracts.ts` 89.3, `auth.ts` 88.7, `deviceId.ts` 87.5, `etps.ts` 86.4, `commodities.ts` 84.9, `disparity.ts` 82.9, `app.ts` 81.5, `market.ts` 81.5, `params.ts` 77.3, `devices.ts` 66.7, `settings.ts` 60.0, `errors.ts` 50.0. 생존의 약 절반은 오류 메시지·라우트 경로 문자열(테스트가 `code`만 확인)과 `?.` 제거 같은 등가 변이다. 테스트로 고정할 만한 곳: `app.ts:59` Hono `HTTPException`(4xx)→`VALIDATION_FAILED` 분기 미도달, `params.ts:35` JSON 아닌 body의 catch(5절 공백과 같음), `params.ts:20` 잘못된 ETP id, `disparity.ts:66`·`:88` 롤 규칙 basis의 `rule` 응답, `etps.ts:43` seriesCode 정렬, `auth.ts:21` 인증 성공 시 실패 기록 삭제·`:34` 정리 주기·`:64` 정규식 앵커, `chartPage.ts:11` `before` 없음 분기.
 
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
