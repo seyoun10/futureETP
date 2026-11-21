@@ -77,7 +77,7 @@
 
 **후속 5 (앱 재측정, `afe5930`, Stryker 10.1.1 + jest-runner, `src/charts/**/*.ts`·`src/lib/**/*.ts`)**: 전체 65.2% → **72.2%**(killed 907, timeout 31, survived 227, 미도달 135). `useChartViewport.ts` 6% → **85.4%**(E1 수정·테스트 보강 `e38405b`·`89b990c`). 그 밖에 `viewportChange.ts` 94.5, `priceLabels.ts` 94.3, `extremeTagLayout.ts` 90.7, `failedAlert.ts` 90.9, `fitTransform.ts` 84.5, `curveLayout.ts` 80.2, `useOlderPages.ts` 79.6, `formatNumber.ts` 75.0, `lineSampling.ts` 73.0, `formatAmount.ts` 62.8. 점수를 끌어내리는 `chartText.ts`(Skia)·`useGestureFps.ts`·`perfLog.ts`(측정용)·`orientation.ts`는 0~22%로, 테스트할 순수 로직이 거의 없다.
 
-**후속 6 (검증 뒤 새로 쓰거나 고친 앱 로직, 같은 도구, 따로 측정)**: 62.1%(killed 51, timeout 3, survived 30, 미도달 3). `monthGrid.ts` 78.4, `useSettings.ts` 53.1(E2 수정 경로: `:33` 대기 중 변경 병합 조건, `:49` mutation scope, `:51`·`:54` `cancelQueries`가 생존), `useMarketCalendar.ts` 50.0, `api/calendar.ts` 0(테스트 없음). 위 후속 5의 분모와 섞지 않는다.
+**후속 6 (검증 뒤 새로 쓰거나 고친 앱 로직, 같은 도구, 따로 측정)**: 62.1%(killed 51, timeout 3, survived 30, 미도달 3). `monthGrid.ts` 78.4, `useSettings.ts` 53.1(E2 수정 경로: `:33` 대기 중 변경 병합 조건, `:49` mutation scope, `:51`·`:54` `cancelQueries`가 생존), `useMarketCalendar.ts` 50.0, `api/calendar.ts` 0(테스트 없음). 위 후속 5의 분모와 섞지 않는다. 이어서 `useSettings.ts` 생존·미도달 변이를 테스트로 고정했다(첫 조회 전 변경, PATCH 직렬화, 설정 조회만 끊기, 알림 원자재 변경 시 목록만 무효화). 수동 변이 11개 중 10개 killed, 남은 `scope.id` `''`는 scope를 쓰는 mutation이 하나뿐이라 등가다.
 
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 

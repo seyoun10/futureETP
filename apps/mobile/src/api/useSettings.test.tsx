@@ -141,3 +141,96 @@ describe('설정 연속 변경(낙관적 갱신)', () => {
     expect(queryClient.getQueryData<Settings>(queryKeys.settings)?.maPeriod).toBe(50);
   });
 });
+
+describe('설정 변경과 다른 조회', () => {
+  // 신호를 남기고 끝나지 않는 조회를 시작한다
+  const startPending = (
+    queryClient: Awaited<ReturnType<typeof renderSettings>>['queryClient'],
+    queryKey: readonly unknown[],
+  ) => {
+    const box: { signal?: AbortSignal } = {};
+    void queryClient
+      .query({
+        queryKey,
+        queryFn: ({ signal }) => {
+          box.signal = signal;
+          return new Promise<never>(() => {});
+        },
+      })
+      .catch(() => {});
+    return box;
+  };
+
+  it('첫 조회가 끝나기 전에 바꾸면 값을 지어내지 않고 조회를 기다린다', async () => {
+    deferPatch();
+    const { queryClient, change } = await renderSettings();
+    queryClient.removeQueries({ queryKey: queryKeys.settings });
+    const { result } = await renderHook(() => useSettings(), {
+      wrapper: ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    await change({ maPeriod: 50 });
+    expect(result.current.data).toBeUndefined();
+  });
+
+  it('연달아 바꾸면 앞 PATCH가 끝난 뒤에 다음 PATCH를 보낸다', async () => {
+    const first = deferPatch();
+    deferPatch();
+    const { change, settle } = await renderSettings();
+    await change({ maPeriod: 50 });
+    await change({ maPeriod: 20 });
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+
+    await settle(() => first.resolve({ ...SERVER, maPeriod: 50 }));
+    expect(mockPatch).toHaveBeenCalledTimes(2);
+    expect(mockPatch).toHaveBeenLastCalledWith({ maPeriod: 20 });
+  });
+
+  it('PATCH를 보낼 때 진행 중인 설정 조회만 끊는다', async () => {
+    deferPatch();
+    const { queryClient, change, settle } = await renderSettings();
+    let settingsSignal: AbortSignal | undefined;
+    mockGet.mockImplementationOnce((signal) => {
+      settingsSignal = signal;
+      return new Promise(() => {});
+    });
+    await settle(() => void queryClient.refetchQueries({ queryKey: queryKeys.settings }));
+    const list = startPending(queryClient, queryKeys.commodities.list());
+    await change({ maPeriod: 50 });
+
+    expect(settingsSignal?.aborted).toBe(true);
+    expect(list.signal?.aborted).toBe(false);
+  });
+
+  it('PATCH가 성공한 뒤에도 설정 조회만 끊는다', async () => {
+    const first = deferPatch();
+    const { queryClient, change, settle } = await renderSettings();
+    await change({ maPeriod: 50 });
+    const list = startPending(queryClient, queryKeys.commodities.list());
+    await settle(() => first.resolve({ ...SERVER, maPeriod: 50 }));
+
+    expect(list.signal?.aborted).toBe(false);
+  });
+
+  it('알림 원자재를 바꾸면 원자재 목록만 다시 조회 대상으로 표시한다', async () => {
+    const first = deferPatch();
+    const { queryClient, change, settle } = await renderSettings();
+    queryClient.setQueryData(queryKeys.commodities.list(), []);
+    await change({ alertCommodity: 'GC' });
+    await settle(() => first.resolve({ ...SERVER, alertCommodity: 'GC' }));
+
+    expect(queryClient.getQueryState(queryKeys.commodities.list())?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(queryKeys.settings)?.isInvalidated).toBe(false);
+  });
+
+  it('알림 원자재가 아닌 값을 바꾸면 원자재 목록은 그대로 둔다', async () => {
+    const first = deferPatch();
+    const { queryClient, change, settle } = await renderSettings();
+    queryClient.setQueryData(queryKeys.commodities.list(), []);
+    await change({ maPeriod: 50 });
+    await settle(() => first.resolve({ ...SERVER, maPeriod: 50 }));
+
+    expect(queryClient.getQueryState(queryKeys.commodities.list())?.isInvalidated).toBe(false);
+  });
+});
