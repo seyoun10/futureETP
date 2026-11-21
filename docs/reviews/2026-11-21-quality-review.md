@@ -73,6 +73,8 @@
 
 **후속 3 (서버 api 재측정, `8b23c1e`, Stryker 10.1.1, `src/api` 테스트만 실행)**: 전체 86.2%(killed 395, survived 53, 미도달 10). 파일별 `response.ts` 100, `chartPage.ts` 95.5, `clientIp.ts` 93.8, `curve.ts` 93.0, `contracts.ts` 89.3, `auth.ts` 88.7, `deviceId.ts` 87.5, `etps.ts` 86.4, `commodities.ts` 84.9, `disparity.ts` 82.9, `app.ts` 81.5, `market.ts` 81.5, `params.ts` 77.3, `devices.ts` 66.7, `settings.ts` 60.0, `errors.ts` 50.0. 생존의 약 절반은 오류 메시지·라우트 경로 문자열(테스트가 `code`만 확인)과 `?.` 제거 같은 등가 변이다. 테스트로 고정할 만한 곳: `app.ts:59` Hono `HTTPException`(4xx)→`VALIDATION_FAILED` 분기 미도달, `params.ts:35` JSON 아닌 body의 catch(5절 공백과 같음), `params.ts:20` 잘못된 ETP id, `disparity.ts:66`·`:88` 롤 규칙 basis의 `rule` 응답, `etps.ts:43` seriesCode 정렬, `auth.ts:21` 인증 성공 시 실패 기록 삭제·`:34` 정리 주기·`:64` 정규식 앵커, `chartPage.ts:11` `before` 없음 분기.
 
+**후속 4 (api 테스트 보강)**: 후속 3에서 고를 만하다고 적은 곳을 테스트로 고정했고, 수동 변이 8개가 모두 killed다(`app.ts:59` 4xx·5xx 분기, `params.ts` `jsonBody` catch·`etpIdParam` 검증, `disparity.ts:66`·`:88` 잠정 봉 롤 기간, `etps.ts:43` 정렬, `auth.ts:21` 지난 항목 삭제·`:64` `^` 앵커). `chartPage.ts:11`(`before`가 없으면 `findIndex`도 -1), `auth.ts:64`의 `$` 제거(`.+`가 끝까지 먹고 헤더에 줄바꿈이 없음), `auth.ts:34` 정리 주기(`size()`로만 보이는 성능 선택)는 등가이거나 고정할 가치가 없어 두었다.
+
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
 ## 5. 테스트 공백 (리뷰어 보고 요약)

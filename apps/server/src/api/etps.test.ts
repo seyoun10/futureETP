@@ -58,15 +58,16 @@ const series = (
   delistedDate: null,
   ...fields,
 });
+// 시리즈 코드 순 정렬을 확인하도록 C를 B 앞에 둔다
 const SERIES = [
   series(ETF_ID, '261220', { listedDate: '2016-12-27' }),
+  series(ETN_ID, '530032', { seriesCode: 'C', maturityDate: '2031-03-15' }),
   series(ETN_ID, '530031', { seriesCode: 'B', listedDate: '2020-03-10' }),
   series(ETN_ID, '530030', {
     seriesCode: 'A',
     listedDate: '2016-06-01',
     delistedDate: '2026-10-20',
   }),
-  series(ETN_ID, '530032', { seriesCode: 'C', maturityDate: '2031-03-15' }),
 ];
 
 // DB 대신 메모리. 원자재 CL만 상품이 있다

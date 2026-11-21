@@ -1,3 +1,4 @@
+import { HTTPException } from 'hono/http-exception';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from './app.ts';
 import {
@@ -106,9 +107,12 @@ describe('Bearer 인증', () => {
       {},
       { Authorization: 'Bearer wrong' },
       { Authorization: TOKEN },
+      // Bearer가 헤더 맨 앞에 있어야 한다
+      { Authorization: `Token Bearer ${TOKEN}` },
     ];
-    for (const headers of cases) {
-      const res = await request('/v1/settings', headers);
+    // 실패 한도(3회)에 걸리지 않도록 케이스마다 IP를 바꾼다
+    for (const [i, headers] of cases.entries()) {
+      const res = await request('/v1/settings', headers, `203.0.113.${10 + i}`);
       expect(res.status).toBe(401);
       expect(await res.json()).toMatchObject({
         success: false,
@@ -206,6 +210,32 @@ describe('onError', () => {
       error: { code: 'INTERNAL', message: 'Internal server error' },
     });
     expect(log).toHaveBeenCalledOnce();
+    log.mockRestore();
+  });
+
+  it('Hono HTTPException은 4xx면 VALIDATION_FAILED, 5xx면 500 INTERNAL', async () => {
+    const { app, request } = setup();
+    app.get('/boom/http4xx', () => {
+      throw new HTTPException(413, { message: 'Payload too large' });
+    });
+    app.get('/boom/http5xx', () => {
+      throw new HTTPException(500, { message: 'secret detail' });
+    });
+
+    const client = await request('/boom/http4xx');
+    expect(client.status).toBe(400);
+    expect(await client.json()).toEqual({
+      success: false,
+      error: { code: 'VALIDATION_FAILED', message: 'Payload too large' },
+    });
+
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const server = await request('/boom/http5xx');
+    expect(server.status).toBe(500);
+    expect(await server.json()).toEqual({
+      success: false,
+      error: { code: 'INTERNAL', message: 'Internal server error' },
+    });
     log.mockRestore();
   });
 });

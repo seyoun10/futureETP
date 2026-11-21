@@ -41,7 +41,15 @@ const bar = (tradeDate: string, close: number) => ({
   inRollPeriod: false,
 });
 
-type Data = { rules?: Basis[]; snapshot?: StoredIndexSnapshot | null; empty?: boolean };
+// 기준값과 상관없이 CL GSCI 규칙(매월 5~9번째 영업일 롤)을 준다
+const CL_GSCI = ROLL_RULE_SEEDS.find((s) => s.commodityCode === 'CL' && s.basis === 'KR')!.params;
+
+type Data = {
+  rules?: Basis[];
+  snapshot?: StoredIndexSnapshot | null;
+  empty?: boolean;
+  barDates?: string[];
+};
 
 // DB 대신 메모리. 기준값별로 지수 수준을 다르게 두어 어느 기준값을 읽었는지 구분한다.
 function setup(path: string, data: Data = {}) {
@@ -52,12 +60,14 @@ function setup(path: string, data: Data = {}) {
     lastSettledTradeDate: () => Promise.resolve('2026-10-21'),
     priceDecimals: () => Promise.resolve(2),
     rollRule: (_code, basis) =>
-      Promise.resolve(
-        (data.rules ?? ['KR', 'US']).includes(basis) ? ROLL_RULE_SEEDS[0]!.params : null,
-      ),
+      Promise.resolve((data.rules ?? ['KR', 'US']).includes(basis) ? CL_GSCI : null),
     indexBars: (_code, basis) =>
       Promise.resolve(
-        data.empty ? [] : [bar('2026-10-20', level(basis)), bar('2026-10-21', level(basis) * 1.5)],
+        data.empty
+          ? []
+          : (data.barDates ?? ['2026-10-20', '2026-10-21']).map((d, i) =>
+              bar(d, level(basis) * (i === 0 ? 1 : 1.5)),
+            ),
       ),
     disparities: (_code, basis) =>
       Promise.resolve([{ tradeDate: '2026-10-21', ma: level(basis), disparity: 10 }]),
@@ -158,6 +168,35 @@ describe('GET /v1/commodities/:code/disparity', () => {
     expect(data.provisional).toBe(true);
     expect(data.bars.at(-1)).toMatchObject({ tradeDate: '2026-10-22', close: 111 });
     expect(data.freshness).toMatchObject({ asOf: '2026-10-22T14:45:00.000Z', delayed: true });
+  });
+
+  // 10월 1·2·5·6일 뒤의 22일은 그달 5번째 영업일이다. GSCI는 5~9번째 영업일에 롤한다
+  const ROLL_DAY = {
+    barDates: ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06'],
+    snapshot: {
+      tradeDate: '2026-10-22',
+      capturedAt: at('2026-10-22T14:45:00Z'),
+      open: 110,
+      high: 112,
+      low: 108,
+      last: 111,
+    },
+  };
+
+  it('규칙 기준값이면 잠정 봉의 롤 기간을 그 규칙으로 정한다', async () => {
+    const data = await parse(await setup(`/v1/commodities/CL/disparity?${QUERY}`, ROLL_DAY));
+
+    expect(data.bars.at(-1)).toMatchObject({ tradeDate: '2026-10-22', inRoll: true });
+  });
+
+  it('대표월물은 롤 규칙을 읽지 않아 잠정 봉이 롤 기간이 아니다', async () => {
+    const query = QUERY.replace('basis=KR', 'basis=FRONT');
+    const data = await parse(
+      await setup(`/v1/commodities/CL/disparity?${query}`, { ...ROLL_DAY, rules: ['FRONT'] }),
+    );
+
+    expect(data).toMatchObject({ basis: 'FRONT', fallback: false });
+    expect(data.bars.at(-1)).toMatchObject({ tradeDate: '2026-10-22', inRoll: false });
   });
 
   it('적재 전이면 빈 봉과 조회 시각을 준다', async () => {

@@ -13,6 +13,17 @@ describe('createAuthFailureLimiter', () => {
     expect(limiter.size()).toBe(1);
   });
 
+  it('창이 지난 IP를 확인하면 그 항목을 바로 지운다', () => {
+    let t = 0;
+    const limiter = createAuthFailureLimiter({ maxFailures: 1, windowMs: 1000 }, () => t);
+    limiter.recordFailure('203.0.113.1');
+    expect(limiter.isBlocked('203.0.113.1')).toBe(true);
+
+    t = 1000;
+    expect(limiter.isBlocked('203.0.113.1')).toBe(false);
+    expect(limiter.size()).toBe(0);
+  });
+
   it('창이 남은 항목은 지우지 않는다', () => {
     let t = 0;
     const limiter = createAuthFailureLimiter({ maxFailures: 1, windowMs: 1000 }, () => t);
