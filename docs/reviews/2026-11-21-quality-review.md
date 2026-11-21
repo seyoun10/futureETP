@@ -75,6 +75,10 @@
 
 **후속 4 (api 테스트 보강)**: 후속 3에서 고를 만하다고 적은 곳을 테스트로 고정했고, 수동 변이 8개가 모두 killed다(`app.ts:59` 4xx·5xx 분기, `params.ts` `jsonBody` catch·`etpIdParam` 검증, `disparity.ts:66`·`:88` 잠정 봉 롤 기간, `etps.ts:43` 정렬, `auth.ts:21` 지난 항목 삭제·`:64` `^` 앵커). `chartPage.ts:11`(`before`가 없으면 `findIndex`도 -1), `auth.ts:64`의 `$` 제거(`.+`가 끝까지 먹고 헤더에 줄바꿈이 없음), `auth.ts:34` 정리 주기(`size()`로만 보이는 성능 선택)는 등가이거나 고정할 가치가 없어 두었다.
 
+**후속 5 (앱 재측정, `afe5930`, Stryker 10.1.1 + jest-runner, `src/charts/**/*.ts`·`src/lib/**/*.ts`)**: 전체 65.2% → **72.2%**(killed 907, timeout 31, survived 227, 미도달 135). `useChartViewport.ts` 6% → **85.4%**(E1 수정·테스트 보강 `e38405b`·`89b990c`). 그 밖에 `viewportChange.ts` 94.5, `priceLabels.ts` 94.3, `extremeTagLayout.ts` 90.7, `failedAlert.ts` 90.9, `fitTransform.ts` 84.5, `curveLayout.ts` 80.2, `useOlderPages.ts` 79.6, `formatNumber.ts` 75.0, `lineSampling.ts` 73.0, `formatAmount.ts` 62.8. 점수를 끌어내리는 `chartText.ts`(Skia)·`useGestureFps.ts`·`perfLog.ts`(측정용)·`orientation.ts`는 0~22%로, 테스트할 순수 로직이 거의 없다.
+
+**후속 6 (검증 뒤 새로 쓰거나 고친 앱 로직, 같은 도구, 따로 측정)**: 62.1%(killed 51, timeout 3, survived 30, 미도달 3). `monthGrid.ts` 78.4, `useSettings.ts` 53.1(E2 수정 경로: `:33` 대기 중 변경 병합 조건, `:49` mutation scope, `:51`·`:54` `cancelQueries`가 생존), `useMarketCalendar.ts` 50.0, `api/calendar.ts` 0(테스트 없음). 위 후속 5의 분모와 섞지 않는다.
+
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
 ## 5. 테스트 공백 (리뷰어 보고 요약)
