@@ -91,7 +91,7 @@
   - 확인 방법: (1) `npm view victory-native version peerDependencies`로 버전과 RNGH 허용 범위 확인 (2) `npm pack victory-native@<버전>` 압축을 풀어 `src/cartesian/CartesianChart.tsx`에서 `customGestures`를 아직 `Gesture.Race`로 합치는지 확인. 그대로면 이전 불가
 
 ### 5-12. 품질 검증 남은 결함 (`docs/reviews/2026-11-21-quality-review.md` 3절, 모두 minor 이하)
-- [ ] A2 `calc/quotes.ts:76`: 직전 정산가 ≤0이면 changePct 부호 반대/Infinity. `compareCurves`처럼 `> 0`일 때만 계산(low)
+- [x] A2 `calc/quotes.ts:76`: 직전 정산가 ≤0이면 changePct 부호 반대/Infinity(low). `compareCurves`처럼 `> 0`일 때만 계산하고 아니면 null로 해결
 - [x] E3 `useSettings.ts:51`: 첫 조회 중 PATCH 실패 시 설정 query가 pending/idle로 고착(low). PATCH 실패 시 설정 재조회로 해결
 - [x] E5 `useAutoRefresh.ts:33`: 자동 새로고침 `refetch()`가 진행 중 과거 받기를 조용히 취소(low). `cancelRefetch: false`로 진행 중 조회를 두고, 끝난 뒤 다시 예약되게 해결
 - [ ] B2/D1 shared `settings.ts:36,42`: rare 레벨 중복 검사를 반올림 뒤 값으로(API 직접 호출만 도달, nit). 형제 저장소 TODO 반영 필요

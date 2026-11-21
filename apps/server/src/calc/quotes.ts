@@ -73,7 +73,8 @@ export function buildQuotes(input: QuoteInput): QuoteResult {
       contractMonth: c.contractMonth,
       price,
       change,
-      changePct: change !== null && prev ? (change / prev.settle) * 100 : null,
+      // 직전 정산가가 0 이하면(음수 정산가 등) 비율이 뜻이 없거나 부호가 뒤집혀 비운다
+      changePct: change !== null && prev && prev.settle > 0 ? (change / prev.settle) * 100 : null,
       noTrade,
       isFront: c.symbol === input.frontSymbol,
     };

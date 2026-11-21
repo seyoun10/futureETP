@@ -51,6 +51,21 @@ describe('buildQuotes', () => {
     expect(result).toMatchObject({ asOf: at('2026-10-22T23:31:00Z'), delayed: false });
   });
 
+  it.each([
+    [-10, -5, 5],
+    [0, 3, 3],
+  ])('직전 정산가가 0 이하(%d)면 등락만 두고 등락률은 비운다', (prevSettle, settle, change) => {
+    const result = buildQuotes(
+      input({
+        bars: [
+          bar('CLZ26', '2026-10-21', prevSettle, '2026-10-21T23:31:00Z'),
+          bar('CLZ26', '2026-10-22', settle, '2026-10-22T23:31:00Z'),
+        ],
+      }),
+    );
+    expect(result.quotes[0]).toMatchObject({ price: settle, change, changePct: null });
+  });
+
   it('정산 정정 시각이 있으면 그 시각을 쓴다', () => {
     const revised: QuoteBar = {
       ...bar('CLZ26', '2026-10-22', 82, '2026-10-22T23:31:00Z'),
