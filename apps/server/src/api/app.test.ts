@@ -67,6 +67,36 @@ describe('GET /v1/health', () => {
     expect(log).toHaveBeenCalledTimes(2);
     log.mockRestore();
   });
+
+  it('DB 확인이 끝나면 시간 제한 타이머를 지운다', async () => {
+    vi.useFakeTimers();
+    try {
+      expect((await setup().request('/v1/health')).status).toBe(200);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('시간 제한을 주지 않으면 3초를 기다린다', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    try {
+      const options = { ...setup(() => new Promise(() => {})).options };
+      delete options.dbCheckTimeoutMs;
+      let status: number | undefined;
+      void Promise.resolve(createApp(options).request('/v1/health')).then(
+        (res) => (status = res.status),
+      );
+      await vi.advanceTimersByTimeAsync(2999);
+      expect(status).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(status).toBe(500);
+    } finally {
+      vi.useRealTimers();
+      log.mockRestore();
+    }
+  });
 });
 
 describe('Bearer 인증', () => {
@@ -114,6 +144,24 @@ describe('인증 실패 횟수 제한', () => {
 
     advance(1000);
     expect((await request('/v1/nothing', auth)).status).toBe(404);
+  });
+
+  it('한도를 주지 않으면 15분 안에 10번 실패할 때 막는다', async () => {
+    const { options, advance } = setup();
+    delete options.authFailureLimit;
+    const app = createApp(options);
+    const request = (headers: Record<string, string> = {}) =>
+      app.request('/v1/nothing', { headers: { 'X-Forwarded-For': '203.0.113.1', ...headers } });
+
+    for (let i = 0; i < 9; i++) await request();
+    expect((await request(auth)).status).toBe(404);
+    await request();
+    expect((await request(auth)).status).toBe(429);
+
+    advance(15 * 60_000 - 1);
+    expect((await request(auth)).status).toBe(429);
+    advance(1);
+    expect((await request(auth)).status).toBe(404);
   });
 
   it('창이 지난 실패는 세지 않는다', async () => {

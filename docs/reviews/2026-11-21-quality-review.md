@@ -69,6 +69,8 @@
 
 **후속 (api 테스트 보강)**: `api/curve.ts` 66.7% → 93.0%(53/57), `clientIp.ts` 50.0% → 93.8%(15/16). 남은 생존 5건(`curve.ts:48`·`:68`의 null 검사 제거와 `<`↔`<=`, `:71` 빈 배열, `clientIp.ts:9` `?.` 제거)은 모두 등가 변이다. `settings.ts` 60%(3/5)의 생존 2건은 라우트 경로 `'/'`→`''`로, Hono에서 `/v1/settings`·`/v1/settings/` 응답이 같아 등가다(테스트 추가 없음).
 
+**후속 2 (수동 변이 확인)**: `calc/curve.ts:84`의 `i === m1Index`→`true`는 M1 앞 월물만으로 12개가 차는 경우(원본 m1=null)에 달라져 테스트를 넣었다. 같은 줄 `hasPrice(c)`→`true`(m1Index가 있으면 그 월물은 늘 값이 있음)와 `:190`의 `requested > maxBaseDate` 변이(뒤로 넘친 요청도 `findLastIndex`가 마지막 날을 고름)는 등가다. `api/commodities.ts:76` asOf 최댓값 선택(원자재 순서 양방향)과 `app.ts`의 `clearTimeout`·기본 DB 확인 시간(3초)·기본 인증 실패 한도(15분 10회)를 테스트로 고정했다. `commodities.ts:76`의 `result.asOf &&` 제거는 null 비교가 거짓이라 등가다.
+
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
 ## 5. 테스트 공백 (리뷰어 보고 요약)

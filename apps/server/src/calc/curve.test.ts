@@ -297,6 +297,15 @@ describe('selectCurve', () => {
     expect(curve.m1?.symbol).toBe(front);
   });
 
+  it('M1 앞 월물만으로 12개가 차면 M1·M2는 null이다', () => {
+    const candidates = clSeries('2026-12', Array(14).fill(5000));
+    const front = candidates[12]!.symbol;
+    const curve = selectCurve(candidates, curveDate, front);
+    expect(symbols(curve.contracts)).toEqual(symbols(candidates.slice(0, 12)));
+    expect(curve.m1).toBeNull();
+    expect(curve.m2).toBeNull();
+  });
+
   it('최종 거래일이 같으면 계약월 순으로 놓는다', () => {
     const candidates = [
       cand('CL', '2027-01', '2026-11-19', 71, 5000),

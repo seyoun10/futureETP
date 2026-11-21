@@ -239,6 +239,20 @@ describe('GET /v1/commodities', () => {
     expect(cl.find((c) => c.isFront)?.symbol).toBe('CLF27');
   });
 
+  it.each([
+    ['앞 원자재', '2026-10-23T23:50:00Z', '2026-10-23T23:35:00Z'],
+    ['뒤 원자재', '2026-10-23T23:35:00Z', '2026-10-23T23:50:00Z'],
+  ])('기준 시각은 원자재 전체에서 가장 늦은 값이다(%s가 늦을 때)', async (_, gcAt, clAt) => {
+    const res = await setup('2026-10-24T12:00:00Z', {
+      lastSettled: '2026-10-23',
+      bars: [
+        { ...bar('GCZ26', '2026-10-23', 2400), collectedAt: at(gcAt) },
+        { ...bar('CLZ26', '2026-10-23', 78), collectedAt: at(clAt) },
+      ],
+    });
+    expect((await parse(res)).freshness.asOf).toBe('2026-10-23T23:50:00.000Z');
+  });
+
   it('거래일 달력이 없으면 INTERNAL', async () => {
     const res = await setup('2026-10-22T15:00:00Z', { days: [], lastSettled: null });
     expect(res.status).toBe(500);
