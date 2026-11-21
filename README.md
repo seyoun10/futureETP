@@ -3,11 +3,32 @@
 원자재 선물 기반 ETP(ETF/ETN)에 투자할 때 필요한데 기존 시세 서비스에는 없는 정보를 보여 주는 개인용 모바일 앱입니다.
 iOS·Android, 사용자 본인 1명용(스토어 미배포)으로 1인 풀스택 개발했습니다.
 
-| 원자재 목록 | 이격도차트 | 월물차트 | 월물커브 |
-|---|---|---|---|
-| <img src="docs/images/home.png" width="160" alt="원자재 목록"> | <img src="docs/images/disparity-chart.png" width="160" alt="이격도차트"> | <img src="docs/images/contract-chart.png" width="160" alt="월물차트"> | <img src="docs/images/curve.png" width="160" alt="월물커브"> |
-| **ETP 목록** | **휴장 달력** | **설정** | **알림 설정** |
-| <img src="docs/images/etp-list.png" width="160" alt="ETP 목록"> | <img src="docs/images/calendar.png" width="160" alt="휴장 달력"> | <img src="docs/images/settings.png" width="160" alt="설정"> | <img src="docs/images/alert-settings.png" width="160" alt="알림 설정"> |
+<table>
+  <tr>
+    <th>원자재 목록</th>
+    <th>이격도차트</th>
+    <th>월물차트</th>
+    <th>월물커브</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/home.png" width="160" alt="원자재 목록"></td>
+    <td><img src="docs/images/disparity-chart.png" width="160" alt="이격도차트"></td>
+    <td><img src="docs/images/contract-chart.png" width="160" alt="월물차트"></td>
+    <td><img src="docs/images/curve.png" width="160" alt="월물커브"></td>
+  </tr>
+  <tr>
+    <th>ETP 목록</th>
+    <th>휴장 달력</th>
+    <th>설정</th>
+    <th>알림 설정</th>
+  </tr>
+  <tr>
+    <td><img src="docs/images/etp-list.png" width="160" alt="ETP 목록"></td>
+    <td><img src="docs/images/calendar.png" width="160" alt="휴장 달력"></td>
+    <td><img src="docs/images/settings.png" width="160" alt="설정"></td>
+    <td><img src="docs/images/alert-settings.png" width="160" alt="알림 설정"></td>
+  </tr>
+</table>
 
 ## 왜 만들었나
 
