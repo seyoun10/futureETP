@@ -87,7 +87,7 @@ flowchart LR
 | Server | Hono, zod, Drizzle ORM, croner (Node 타입 스트리핑으로 빌드 없이 실행) |
 | DB | PostgreSQL 18 |
 | Infra | Oracle Cloud Always Free ARM VM, Docker Compose, Caddy, Healthchecks.io, EAS Update(앱 OTA) |
-| Test/Lint | Vitest, jest-expo + React Native Testing Library, ESLint, Prettier, husky |
+| Test/Lint | Vitest, fast-check(속성 기반 테스트), jest-expo + React Native Testing Library, Stryker(변이 검사, 수시 측정), ESLint, knip, Prettier, husky |
 
 ## 개발 방식
 
@@ -103,6 +103,34 @@ flowchart LR
 | [`docs/data-model.md`](docs/data-model.md) | DB 논리 모델 (ERD) |
 | [`docs/tech-stack.md`](docs/tech-stack.md) | 기술 스택과 버전 |
 | [`docs/research/`](docs/research/) | 시세 소스 비교, 비용, ETP 롤 규칙 조사 |
+| [`docs/reviews/`](docs/reviews/) | 전체 코드 품질 검증 보고서 (리뷰·교차 검증·변이 점수) |
+
+## 품질 검증과 테스트
+
+테스트는 서버 896개, 앱 404개, shared 28개입니다. 계층마다 무엇을 막으려는지 정해 두고 검사합니다.
+
+| 계층 | 방법 | 기대 효과 |
+|---|---|---|
+| 계산(calc) | 순수 함수 단위 테스트, 커버리지 하한 lines·functions 100%·branches 90%. 롤 비중·지수 체인·이격도·장 상태·알림 판정·월물 기호 6개 모듈은 fast-check 속성 기반 테스트 | 지수·롤 수익률 계산 오류가 차트와 알림으로 새지 않습니다. 사람이 떠올리지 못한 경계값도 무작위 입력으로 불변식을 확인합니다 |
+| 서버 API·DB | 라우트 테스트와 실제 PostgreSQL 18에 붙는 DB 통합 테스트, 서버 전체 커버리지 하한 80% | 응답 봉투·에러 code·HTTP 상태 계약을 고정하고, SQL·마이그레이션 오류를 배포 전에 찾습니다 |
+| API 계약 | 앱·서버가 같은 shared zod 스키마를 쓰고, 내보낸 JSON Schema 파일이 스키마와 어긋나면 테스트가 실패 | 서버 변경이 RN·Flutter·SwiftUI·Kotlin 앱을 조용히 깨뜨리지 않습니다 |
+| 앱 | jest-expo + RNTL로 화면·hook, 차트 뷰포트(핀치·이동·십자선)와 순수 로직 테스트 | 제스처·십자선·설정 저장처럼 기기에서만 드러나던 상태 버그의 회귀를 막습니다 |
+| 정적 검사 | TypeScript strict(`noUncheckedIndexedAccess`, 서버·shared는 `exactOptionalPropertyTypes`까지), ESLint 레이어·feature 간 import 금지, knip, 마이그레이션 drift | 타입 구멍·의존 방향 위반·죽은 코드·스키마와 마이그레이션 불일치를 실행 전에 막습니다 |
+
+커밋 전에 `npm run check`가 위 검사를 모두 돌리고, push마다 CI(GitHub Actions)가 같은 검사에 arm64 서버 이미지 빌드·기동 확인, 의존성 audit, 미뤄 둔 업그레이드 조건 주간 확인을 더합니다.
+
+### 전체 코드 품질 검증 (2026-11-21)
+
+영역 5개(calc, API·DB, 배치·외부 소스, shared·계약, 모바일)를 리뷰하고, 각 발견을 다른 agent가 반박하는 쪽에서 재현해 걸러 낸 뒤, Stryker 변이 검사로 테스트 자체의 품질을 쟀습니다. 상세는 [보고서](docs/reviews/2026-11-21-quality-review.md)에 있습니다.
+
+| 지표 | 서버 | shared | 앱 |
+|---|---|---|---|
+| 라인 커버리지 (현재) | 85% | 98% | 78% |
+| 변이 점수 (검증 시점) | 90.5% (calc+api) | 89.1% | 65.2% (차트·순수 로직) |
+
+- **결함**: 확정 14건(important 2건), 반박 1건. important 2건과 영향이 큰 5건을 회귀 테스트와 함께 고쳤습니다. 휴장 전날 저녁 장중 배치 누락, 실패한 알림의 같은 슬롯 즉시 재발송, 데이터가 바뀐 뒤 십자선이 엉뚱한 봉을 가리킴, DB 유휴 연결이 끊기면 서버 프로세스 종료, 늦게 온 설정 조회가 방금 저장한 값을 덮어씀, 접근 키 재설정 뒤 푸시 재등록 누락, 월물커브 M2 판정 예외입니다.
+- **테스트 보강**: 변이 점수가 낮던 곳을 골라 테스트를 더했습니다. `api/curve.ts` 66.7% → 93.0%, `clientIp.ts` 50.0% → 93.8%이고, 남은 생존 변이는 대부분 결과가 같은 등가 변이입니다.
+- **기대 효과**: 커버리지는 코드가 실행됐는지만 보고, 변이 점수는 코드가 틀렸을 때 테스트가 잡는지를 봅니다. 커버리지로는 안 보이는 약한 테스트를 수치로 찾아 보강할 곳을 정할 수 있습니다.
 
 ## 로컬 실행
 
