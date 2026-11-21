@@ -18,6 +18,11 @@ describe('disparityQuerySchema', () => {
     ['허용되지 않는 이평선', { ma: '30' }],
     ['숫자 형식이 다른 이평선', { ma: '200.0' }],
     ['레벨 4개', { levels: '1,2,5,10' }],
+    ['공백이 낀 레벨', { levels: ' 1, 2,4 ,8,16' }],
+    ['16진수 레벨', { levels: '1,2,4,0x8,16' }],
+    ['지수 표기 레벨', { levels: '1,2,4,8,1e1' }],
+    ['빈 레벨', { levels: '1,2,,8,16' }],
+    ['반올림하면 겹치는 레벨', { levels: '1,1.00000000001,2,4,8' }],
     ['날짜가 아닌 before', { before: '2024-1-2' }],
   ])('%s는 거절한다', (_, patch) => {
     expect(disparityQuerySchema.safeParse({ ...disparity, ...patch }).success).toBe(false);

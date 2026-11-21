@@ -28,12 +28,14 @@ const timezoneSchema = z.string().refine((timeZone) => {
   }
 }, 'Invalid IANA time zone');
 
-// 소수 첫째 자리까지. 부동소수 오차(0.3 = 0.30000000000000004 등)는 허용한다.
+// 소수 첫째 자리까지. 부동소수 오차(0.3 = 0.30000000000000004 등)는 허용하고, 소수 첫째 자리로 반올림한 값을 쓴다.
+// 반올림 뒤 값으로 중복을 봐야 1과 1.00000000001이 같은 레벨로 걸린다(B2/D1).
 export const rareLevelSchema = z
   .number()
   .min(RARE_LEVEL_MIN)
   .max(RARE_LEVEL_MAX)
-  .refine((level) => Math.abs(level * 10 - Math.round(level * 10)) < 1e-9, 'At most 1 decimal');
+  .refine((level) => Math.abs(level * 10 - Math.round(level * 10)) < 1e-9, 'At most 1 decimal')
+  .transform((level) => Math.round(level * 10) / 10);
 
 // rare 레벨 5개 입력(PATCH 본문, C-a 조회 query). 오름차순으로 정렬한다.
 export const rareLevelsSchema = z

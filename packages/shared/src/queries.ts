@@ -16,8 +16,10 @@ export const disparityQuerySchema = z.object({
   // 문자열 enum으로 받아 계약에 허용 값이 드러나게 한다
   ma: z.literal(MA_PERIODS.map(String)).transform(Number).pipe(z.literal(MA_PERIODS)),
   window: z.enum(WINDOWS),
+  // 공백·16진수·지수 표기 등은 거절한다(D3). 개수·범위·자릿수는 rareLevelsSchema가 본다
   levels: z
     .string()
+    .regex(/^\d+(\.\d+)?(,\d+(\.\d+)?)*$/)
     .describe('rare 레벨 5개를 쉼표로(예: 1,2.5,5,10,20). 설정 rareLevels와 같은 규칙')
     .transform((s) => s.split(',').map(Number))
     .pipe(rareLevelsSchema),

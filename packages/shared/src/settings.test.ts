@@ -22,6 +22,13 @@ describe('settingsPatchSchema', () => {
     rejects({ rareLevels: [5, 5, 15, 20, 25] });
   });
 
+  it('rare 레벨은 소수 첫째 자리로 반올림한 뒤 중복을 본다', () => {
+    expect(settingsPatchSchema.parse({ rareLevels: [0.30000000000000004, 1, 2, 4, 8] })).toEqual({
+      rareLevels: [0.3, 1, 2, 4, 8],
+    });
+    rejects({ rareLevels: [1, 1.00000000001, 2, 4, 8] });
+  });
+
   it('거부 시간은 null 또는 0~1410의 30분 단위, 시작≠종료(자정 넘김 허용)', () => {
     expect(settingsPatchSchema.parse({ quietTime: null })).toEqual({ quietTime: null });
     expect(settingsPatchSchema.parse({ quietTime: { startMin: 1380, endMin: 420 } })).toEqual({

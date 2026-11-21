@@ -94,6 +94,6 @@
 - [x] A2 `calc/quotes.ts:76`: 직전 정산가 ≤0이면 changePct 부호 반대/Infinity(low). `compareCurves`처럼 `> 0`일 때만 계산하고 아니면 null로 해결
 - [x] E3 `useSettings.ts:51`: 첫 조회 중 PATCH 실패 시 설정 query가 pending/idle로 고착(low). PATCH 실패 시 설정 재조회로 해결
 - [x] E5 `useAutoRefresh.ts:33`: 자동 새로고침 `refetch()`가 진행 중 과거 받기를 조용히 취소(low). `cancelRefetch: false`로 진행 중 조회를 두고, 끝난 뒤 다시 예약되게 해결
-- [ ] B2/D1 shared `settings.ts:36,42`: rare 레벨 중복 검사를 반올림 뒤 값으로(API 직접 호출만 도달, nit). 형제 저장소 TODO 반영 필요
+- [x] B2/D1 shared `settings.ts:36,42`: rare 레벨 중복 검사를 반올림 뒤 값으로(API 직접 호출만 도달, nit). 레벨을 소수 첫째 자리로 반올림한 뒤 중복을 보게 해결, 형제 저장소 TODO 반영
 - [ ] B3 `db/recompute.ts:78-118`: 재계산 DELETE→INSERT 잠금(advisory lock 등) 없음, CLI·배치 겹치면 23505(nit)
-- [ ] D3 shared `queries.ts:22`: levels query가 공백·`0x8`·`1e1`을 통과. 계약 엄격성(nit). 형제 저장소 TODO 반영 필요
+- [x] D3 shared `queries.ts:22`: levels query가 공백·`0x8`·`1e1`을 통과. 계약 엄격성(nit). 십진 숫자·쉼표만 받는 정규식(계약 `pattern`)으로 해결, 형제 저장소 TODO 반영

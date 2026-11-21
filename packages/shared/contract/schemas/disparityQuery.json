@@ -30,6 +30,7 @@
     },
     "levels": {
       "type": "string",
+      "pattern": "^\\d+(\\.\\d+)?(,\\d+(\\.\\d+)?)*$",
       "description": "rare 레벨 5개를 쉼표로(예: 1,2.5,5,10,20). 설정 rareLevels와 같은 규칙"
     },
     "before": {
