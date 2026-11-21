@@ -3,9 +3,11 @@
 원자재 선물 기반 ETP(ETF/ETN)에 투자할 때 필요한데 기존 시세 서비스에는 없는 정보를 보여 주는 개인용 모바일 앱입니다.
 iOS·Android, 사용자 본인 1명용(스토어 미배포)으로 1인 풀스택 개발했습니다.
 
-| 원자재 목록 | 이격도차트 | 월물차트 | 월물커브 | ETP 목록 | 휴장 달력 |
-|---|---|---|---|---|---|
-| <img src="docs/images/home.png" width="160" alt="원자재 목록"> | <img src="docs/images/disparity-chart.png" width="160" alt="이격도차트"> | <img src="docs/images/contract-chart.png" width="160" alt="월물차트"> | <img src="docs/images/curve.png" width="160" alt="월물커브"> | <img src="docs/images/etp-list.png" width="160" alt="ETP 목록"> | <img src="docs/images/calendar.png" width="160" alt="휴장 달력"> |
+| 원자재 목록 | 이격도차트 | 월물차트 | 월물커브 |
+|---|---|---|---|
+| <img src="docs/images/home.png" width="160" alt="원자재 목록"> | <img src="docs/images/disparity-chart.png" width="160" alt="이격도차트"> | <img src="docs/images/contract-chart.png" width="160" alt="월물차트"> | <img src="docs/images/curve.png" width="160" alt="월물커브"> |
+| **ETP 목록** | **휴장 달력** | **설정** | **알림 설정** |
+| <img src="docs/images/etp-list.png" width="160" alt="ETP 목록"> | <img src="docs/images/calendar.png" width="160" alt="휴장 달력"> | <img src="docs/images/settings.png" width="160" alt="설정"> | <img src="docs/images/alert-settings.png" width="160" alt="알림 설정"> |
 
 ## 왜 만들었나
 
