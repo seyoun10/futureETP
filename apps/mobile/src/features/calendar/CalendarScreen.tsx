@@ -2,6 +2,7 @@ import { CALENDAR_MARKETS } from '@futureetp/shared';
 import type { Calendar, CalendarException } from '@futureetp/shared';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { QueryStateView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -60,11 +61,14 @@ function CalendarBody({
   todayKey: string;
 }) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const byDate = new Map<string, CalendarException[]>();
   for (const e of data.exceptions) byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
+    <ScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom }]}
+    >
       <Legend />
       {data.missing.map(({ market, year }) => (
         <Text key={`${market}-${year}`} style={styles.missing}>
@@ -252,7 +256,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl,
   },
   legend: {
     flexDirection: 'row',
