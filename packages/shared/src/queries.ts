@@ -31,3 +31,18 @@ export const contractsQuerySchema = z.object({ before: beforeSchema });
 export const curveQuerySchema = z.object({
   baseDate: z.iso.date().optional().describe('기준일. 서버가 거래일로 맞춘다(D-090)'),
 });
+
+// GET /v1/calendar. 앱은 이번 달 1일 ~ 다다음 달 말일을 보낸다
+export const CALENDAR_MAX_DAYS = 366;
+export const calendarQuerySchema = z
+  .object({
+    from: z.iso.date(),
+    to: z.iso.date().describe(`from 이후, from부터 ${CALENDAR_MAX_DAYS}일 이내`),
+  })
+  .refine(
+    ({ from, to }) => {
+      const days = (Date.parse(to) - Date.parse(from)) / 86_400_000;
+      return days >= 0 && days < CALENDAR_MAX_DAYS;
+    },
+    { message: `to must be on or after from and within ${CALENDAR_MAX_DAYS} days`, path: ['to'] },
+  );

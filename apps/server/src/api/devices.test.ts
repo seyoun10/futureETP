@@ -7,6 +7,7 @@ import {
   UNUSED_CURVE,
   UNUSED_DISPARITY,
   UNUSED_ETPS,
+  UNUSED_CALENDAR,
 } from './commodities.fixtures.ts';
 import type { DevicesStore } from './devices.ts';
 import type { SettingsStore } from './settings.ts';
@@ -36,6 +37,7 @@ function setup() {
     contracts: UNUSED_CONTRACTS,
     devices,
     etps: UNUSED_ETPS,
+    calendar: UNUSED_CALENDAR,
   });
   const request = (body: string, token = TOKEN, deviceId: string | null = ID) =>
     app.request('/v1/devices', {

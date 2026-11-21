@@ -10,6 +10,7 @@ import {
   UNUSED_CONTRACTS,
   UNUSED_DEVICES,
   UNUSED_ETPS,
+  UNUSED_CALENDAR,
 } from './commodities.fixtures.ts';
 import type { CurveStore } from './curve.ts';
 
@@ -109,6 +110,7 @@ function setup(path: string, data: Data = {}) {
     contracts: UNUSED_CONTRACTS,
     devices: UNUSED_DEVICES,
     etps: UNUSED_ETPS,
+    calendar: UNUSED_CALENDAR,
     now: () => at('2026-10-22T15:00:00Z').getTime(),
   });
   return app.request(path, { headers: { Authorization: `Bearer ${TOKEN}` } });

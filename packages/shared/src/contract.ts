@@ -2,6 +2,7 @@
 // 파일은 `packages/shared/contract/`에 커밋하고, `npm run contract:export`로 다시 만든다.
 // 커밋된 파일이 스키마와 어긋나면 `contract.test.ts`가 실패한다(npm run check).
 import { z } from 'zod';
+import { calendarSchema } from './calendar.ts';
 import { commoditiesSchema } from './commodities.ts';
 import { contractsChartSchema } from './contracts.ts';
 import { curveSchema } from './curve.ts';
@@ -11,7 +12,12 @@ import { COMMODITY_CODES } from './domain.ts';
 import { API_ERROR_CODES, errorSchema } from './envelope.ts';
 import { etpDetailSchema, etpListSchema } from './etps.ts';
 import { healthSchema } from './health.ts';
-import { contractsQuerySchema, curveQuerySchema, disparityQuerySchema } from './queries.ts';
+import {
+  calendarQuerySchema,
+  contractsQuerySchema,
+  curveQuerySchema,
+  disparityQuerySchema,
+} from './queries.ts';
 import { settingsPatchSchema, settingsSchema } from './settings.ts';
 
 // 응답 data·요청 본문·쿼리 스키마. 이름이 파일 이름(`schemas/<이름>.json`)이 된다
@@ -26,6 +32,8 @@ const SCHEMAS = {
   contractsQuery: contractsQuerySchema,
   etpList: etpListSchema,
   etpDetail: etpDetailSchema,
+  calendar: calendarSchema,
+  calendarQuery: calendarQuerySchema,
   settings: settingsSchema,
   settingsPatch: settingsPatchSchema,
   deviceRegistration: deviceRegistrationSchema,
@@ -72,6 +80,7 @@ const ENDPOINTS: readonly Endpoint[] = [
   },
   { method: 'GET', path: '/v1/commodities/{code}/etps', auth: true, data: 'etpList' },
   { method: 'GET', path: '/v1/etps/{id}', auth: true, data: 'etpDetail' },
+  { method: 'GET', path: '/v1/calendar', auth: true, query: 'calendarQuery', data: 'calendar' },
   { method: 'GET', path: '/v1/settings', auth: true, data: 'settings' },
   { method: 'PATCH', path: '/v1/settings', auth: true, body: 'settingsPatch', data: 'settings' },
   { method: 'PUT', path: '/v1/devices', auth: true, body: 'deviceRegistration', data: 'device' },

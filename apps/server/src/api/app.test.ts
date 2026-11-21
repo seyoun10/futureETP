@@ -8,6 +8,7 @@ import {
   UNUSED_CONTRACTS,
   UNUSED_DEVICES,
   UNUSED_ETPS,
+  UNUSED_CALENDAR,
 } from './commodities.fixtures.ts';
 import { ApiException } from './errors.ts';
 
@@ -29,6 +30,7 @@ function setup(checkDb: () => Promise<void> = async () => {}) {
     contracts: UNUSED_CONTRACTS,
     devices: UNUSED_DEVICES,
     etps: UNUSED_ETPS,
+    calendar: UNUSED_CALENDAR,
     dbCheckTimeoutMs: 50,
     authFailureLimit: { maxFailures: 3, windowMs: 1000 },
     now: () => time,

@@ -73,6 +73,13 @@
     },
     {
       "method": "GET",
+      "path": "/v1/calendar",
+      "auth": true,
+      "query": "schemas/calendarQuery.json",
+      "data": "schemas/calendar.json"
+    },
+    {
+      "method": "GET",
       "path": "/v1/settings",
       "auth": true,
       "data": "schemas/settings.json"

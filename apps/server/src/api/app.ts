@@ -2,6 +2,8 @@ import type { Health } from '@futureetp/shared';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { calendarRoutes } from './calendar.ts';
+import type { CalendarApiStore } from './calendar.ts';
 import { bearerAuth, createAuthFailureLimiter } from './auth.ts';
 import type { AuthFailureLimit } from './auth.ts';
 import { clientIp as defaultClientIp } from './clientIp.ts';
@@ -33,6 +35,7 @@ export type AppOptions = {
   contracts: ContractsStore;
   devices: DevicesStore;
   etps: EtpsStore;
+  calendar: CalendarApiStore;
   dbCheckTimeoutMs?: number;
   // 이미지에 넣은 배포 커밋(GIT_COMMIT, D-132). health로 지금 도는 배포본을 확인한다
   commit?: string | undefined;
@@ -103,6 +106,7 @@ export function createApp(options: AppOptions) {
   v1.route('/commodities', contractsRoutes(options.contracts, now));
   v1.route('/commodities', commodityEtpsRoutes(options.etps));
   v1.route('/etps', etpsRoutes(options.etps));
+  v1.route('/calendar', calendarRoutes(options.calendar));
 
   app.route('/v1', v1);
   return app;

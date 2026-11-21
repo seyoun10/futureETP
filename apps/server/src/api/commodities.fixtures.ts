@@ -1,4 +1,5 @@
 // 테스트 전용. 원자재 조회를 쓰지 않는 라우트 테스트의 createApp 인자
+import type { CalendarApiStore } from './calendar.ts';
 import type { CommoditiesStore } from './commodities.ts';
 import type { ContractsStore } from './contracts.ts';
 import type { CurveStore } from './curve.ts';
@@ -57,3 +58,4 @@ export const UNUSED_CONTRACTS: ContractsStore = {
 export const UNUSED_DEVICES: DevicesStore = { upsert: unused };
 
 export const UNUSED_ETPS: EtpsStore = { products: unused, product: unused, series: unused };
+export const UNUSED_CALENDAR: CalendarApiStore = { exceptions: unused, loadedYears: unused };

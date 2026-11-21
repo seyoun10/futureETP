@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import { createApp } from './api/app.ts';
 import { config } from './config.ts';
 import { db, pingDb } from './db/client.ts';
+import { createCalendarStore } from './db/calendarStore.ts';
 import { createCommoditiesStore } from './db/commoditiesStore.ts';
 import { createContractsStore } from './db/contractsStore.ts';
 import { createCurveStore } from './db/curveStore.ts';
@@ -27,6 +28,7 @@ const app = createApp({
   contracts: createContractsStore(db),
   devices: createDevicesStore(db),
   etps: createEtpsStore(db),
+  calendar: createCalendarStore(db),
   commit: config.GIT_COMMIT,
 });
 

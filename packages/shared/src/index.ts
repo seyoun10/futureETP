@@ -1,4 +1,10 @@
 export {
+  calendarExceptionSchema,
+  calendarSchema,
+  type Calendar,
+  type CalendarException,
+} from './calendar.ts';
+export {
   commoditiesSchema,
   commoditySummarySchema,
   contractQuoteSchema,
@@ -67,7 +73,13 @@ export {
   type PushText,
   type RareLevelAlert,
 } from './push.ts';
-export { contractsQuerySchema, curveQuerySchema, disparityQuerySchema } from './queries.ts';
+export {
+  CALENDAR_MAX_DAYS,
+  calendarQuerySchema,
+  contractsQuerySchema,
+  curveQuerySchema,
+  disparityQuerySchema,
+} from './queries.ts';
 export {
   DISPARITY_SETTINGS_DEFAULTS,
   QUIET_MAX_MIN,

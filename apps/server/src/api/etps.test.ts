@@ -2,6 +2,7 @@ import { etpDetailSchema, etpListSchema } from '@futureetp/shared';
 import { describe, expect, it } from 'vitest';
 import { createApp } from './app.ts';
 import {
+  UNUSED_CALENDAR,
   UNUSED_COMMODITIES,
   UNUSED_CONTRACTS,
   UNUSED_CURVE,
@@ -90,6 +91,7 @@ function setup(path: string) {
     contracts: UNUSED_CONTRACTS,
     devices: UNUSED_DEVICES,
     etps,
+    calendar: UNUSED_CALENDAR,
   });
   return app.request(path, { headers: { Authorization: `Bearer ${TOKEN}` } });
 }

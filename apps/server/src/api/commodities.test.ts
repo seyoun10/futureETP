@@ -11,6 +11,7 @@ import {
   UNUSED_CONTRACTS,
   UNUSED_DEVICES,
   UNUSED_ETPS,
+  UNUSED_CALENDAR,
 } from './commodities.fixtures.ts';
 
 const TOKEN = 'test-token-0123456789abcdef0123456789';
@@ -132,6 +133,7 @@ function setup(now: string, data: Data) {
     contracts: UNUSED_CONTRACTS,
     devices: UNUSED_DEVICES,
     etps: UNUSED_ETPS,
+    calendar: UNUSED_CALENDAR,
     now: () => at(now).getTime(),
   });
   return app.request('/v1/commodities', {
