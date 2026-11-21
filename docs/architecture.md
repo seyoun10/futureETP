@@ -192,6 +192,7 @@ type Freshness = {
 | `GET /v1/commodities/:code/contracts` | C-c | A와 같은 월물 목록의 정산가 선(공유 `dates` + 월물별 `prices` 열 배열, 상장 전 null), 오늘 잠정 값, freshness. 스키마는 shared `contracts.ts`, 조립은 `calc/contractLines.ts`(D-092) |
 | `GET /v1/commodities/:code/etps` | C-d | ETP 목록(필터·정렬은 앱에서). 매핑 전 후보(`needs_review`)·비활성 상품은 빼고, 행마다 상장 중 종목코드·순자산·평균 거래대금(없으면 null), `asOf`는 상품 수집 시각 중 가장 늦은 값. 스키마는 shared `etps.ts` |
 | `GET /v1/etps/:id` | C-d-a | ETP 상세. 목록 행 + 원자재·운용사·기초지수·총보수·운용사 URL, 상장 중 시리즈 줄(코드·만기일), 상장일(첫 시리즈, 폐지 포함). 목록 대상이 아니거나 uuid가 아니면 `NOT_FOUND` |
+| `GET /v1/calendar?from&to` | A-a | CME·KRX·NYSE 예외 일정(휴장·중간 정지·조기 마감·개장 지연, 시각은 시장 현지 HH:mm, 휴일 이름)과 행이 없는 (시장, 연도) `missing`. 범위는 366일 미만. 스키마는 shared `calendar.ts`, 원본은 `calendar_exception`(D-143) |
 | `GET /v1/settings`, `PATCH /v1/settings` | B, B-a, 앱 실행 | 헤더 기기의 이격도차트·알림 설정, 언어·시간대(푸시 문구·거부 시간용, D-120). 앱 실행 때 시간대가 바뀌었으면 PATCH(D-048). 스키마는 shared `settings.ts`, PATCH는 바꿀 필드만 보내고 전체 설정을 받는다(D-081) |
 | `PUT /v1/devices` | 앱 실행 | 헤더 기기의 푸시 토큰(없으면 null)·플랫폼·앱 버전 upsert(`X-Device-Id` 기준, 다른 기기 행의 같은 토큰은 비움, D-120). 빈 토큰이면 토큰 null로 부르고, 토큰 조회가 실패하면(Apple 가입 전 iOS 등) 부르지 않는다(설정 API가 기본값 행을 만듦). 스키마는 shared `devices.ts`(모르는 필드 거절, `appVersion`은 모르면 null) |
 

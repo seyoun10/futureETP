@@ -33,4 +33,4 @@ paths:
 
 - `npm run dev -w apps/server`(`.env` 읽음, watch), `npm run db:generate -w apps/server`, `npm run db:migrate -w apps/server`
 - 단일 테스트: `npm test -w apps/server -- src/config.test.ts -t "PORT"`
-- 작업 1회 실행 `npm run job -w apps/server -- <작업 이름> [기준 시각]`(D-060), 거래일 달력 입력 `npm run calendar:import -w apps/server -- <연도>`(`scripts/calendar/<연도>.json`, D-061), 전체 재계산 `npm run recompute -w apps/server -- [원자재 ...]`(D-070)
+- 작업 1회 실행 `npm run job -w apps/server -- <작업 이름> [기준 시각]`(D-060), 거래일·휴장 달력 입력 `npm run calendar:import -w apps/server -- <연도> [cme|krx|nyse]`(`scripts/calendar/<연도>.json`·`<시장>/<연도>.json`, D-061, D-143), 전체 재계산 `npm run recompute -w apps/server -- [원자재 ...]`(D-070)

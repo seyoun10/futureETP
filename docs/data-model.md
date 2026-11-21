@@ -19,7 +19,7 @@
 ## 영역 구분
 | 영역 | 테이블 | 갱신 주체 |
 |---|---|---|
-| 1. 시장 기준 데이터 | `commodity`, `contract`, `active_month_rule`, `trading_day` | 달력 입력 스크립트(점검은 `CALENDAR` 작업, D-047), 일일 정산 배치(월물 상장) |
+| 1. 시장 기준 데이터 | `commodity`, `contract`, `active_month_rule`, `trading_day`, `calendar_exception` | 달력 입력 스크립트(점검은 `CALENDAR` 작업, D-047), 일일 정산 배치(월물 상장) |
 | 2. 시세 원천 | `daily_bar`, `intraday_snapshot` | 일일 정산 배치, 장중 배치 |
 | 3. 계산 결과 | `roll_rule`, `roll_weight`, `index_bar`, `index_scale`, `disparity`, `disparity_distribution`, `index_snapshot` | 일일 정산 배치, 장중 배치 |
 | 4. ETP | `etp_product`, `etp_series` | ETP 목록 배치 |
@@ -73,6 +73,13 @@ erDiagram
         timestamp halt_end_at "중간 정지 후 재개(17:00 CT), 없으면 null"
         bool is_early_close
         string note "휴장·조기 마감 사유"
+    }
+    calendar_exception {
+        string market PK "CME/KRX/NYSE"
+        date date PK "평일만"
+        string kind "CLOSED/HALT/EARLY_CLOSE/LATE_OPEN"
+        string at "시장 현지 HH:mm, CLOSED는 null"
+        string note "휴일 이름(입력 원문)"
     }
     daily_bar {
         string contract_symbol PK,FK
@@ -165,6 +172,7 @@ erDiagram
 설명
 - **거래일(`trading_day`)**: 정산가가 나오는 날만 행으로 둔다. 미국 공휴일 중간 정지일은 행이 없고, 그 세션은 다음 거래일 행의 `halt_*`로 표현한다. 에너지·금속은 같은 일정이라 거래소 구분 키가 없다(`research/cme-calendar.md`).
   - 과거 행(2010-06~)은 Databento 일봉에 정산가가 있는 날짜로 만들고(모든 월물 정산가가 직전 거래일과 같은 휴장일 재전송은 제외), `pandas_market_calendars`로 1회 대조했다(Databento 공백 5거래일은 행 없음, D-088). 과거 행은 `trade_date`만 채우고 세션·정지 시각은 비운다(장중 판정에 쓰지 않음). 세션 시각은 운영 시작 이후 행에 넣는다(D-048).
+- **휴장 예외 일정(`calendar_exception`)**: 휴장 달력(A-a) 전용. 시장마다 그해 평일 예외 일정(휴장·CME 공휴일 중간 정지·조기 마감·KRX 개장 지연)을 입력 원문 이름과 함께 둔다. `trading_day`는 휴장일이 행 없음이라 이름이 남지 않아 따로 둔다. `calendar:import <연도> [cme|krx|nyse]`가 그 시장·연도 행을 통째로 바꾼다(cme는 `trading_day`와 한 트랜잭션). 행이 없는 (시장, 연도)는 미입력으로 본다(D-143).
 - **월물(`contract`)**: 금속의 비활성 월물도 행은 만들 수 있지만 `is_target=false`로 두고 목록·커브·대표월물 후보에서 뺀다. 활성 월물 달력이 바뀌면 `active_month_rule`에 새 행을 넣고 `is_target`을 다시 계산한다.
 - **롤 규칙(`roll_rule.params`)**: 일정(leg) 여러 개와 공통 설정으로 표현한다(`research/roll-rules.md`, D-013, 형태는 D-065). 이력은 두지 않는다. 규칙을 바꾸면 그 원자재·기준값의 계산 결과를 처음부터 다시 만든다(D-024).
   - 공통: 영업일 달력 `calendar`(`NYSE`/`BCOM`/`NYMEX`, `trading_day`에 NYSE만 쉰 날을 빼서 계산), 롤 영업일 순번 `rollDays`와 그날 종가 뒤 이전 월물 비중 `oldShares`(예: GSCI `[5,6,7,8,9]`, `[0.8,0.6,0.4,0.2,0]`), 재조정 `rebalance`(`null` 또는 `{months:[3,9], businessDay:1}`)

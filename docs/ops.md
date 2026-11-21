@@ -20,6 +20,7 @@
 - 되돌리기: `npm run deploy:rollback -- [커밋]`(기본 직전 배포본, VM에 남은 최근 3개만, 마이그레이션 개수가 같을 때만). VM 배포 기록은 `infra/deploys.log`(D-132)
 - 배치 결과 보기(읽기 전용): `npm run batch:result -- [작업 이름(기본 SETTLE_BACKFILL)] [기록 개수(기본 5)]` — prod `batch_run` 최근 기록과 마지막 실행 동안의 그 작업 로그 줄(재시도 포함)
 - VM 백업 내려받기: `npm run backup:pull`
+- 거래일·휴장 달력 입력(D-061, D-143): dev는 `npm run calendar:import -w apps/server -- <연도> [cme|krx|nyse]`(기본 cme, 파일은 `scripts/calendar/<연도>.json`·`scripts/calendar/<시장>/<연도>.json`). prod는 배포로 이미지에 파일을 넣은 뒤 VM `infra`에서 `docker compose run --rm --no-deps server node src/db/importCalendar.ts <연도> [cme|krx|nyse]`. D-143 첫 배포 뒤에는 2026·2027년을 세 시장 모두 한 번 넣는다(cme도 다시 넣어야 `calendar_exception`이 찬다)
 - 비밀 파일 백업(D-135): `npm run secrets:backup -- <Mac 밖 폴더>`. `~/.config/futureetp`(서명 키 포함)와 VM ssh 키를 AES-256 `futureetp-secrets-YYYYMMDD.dmg`로 묶고 열어서 SHA-256을 대조한다. 암호는 비밀번호 관리자에. 서명 키·VM 접속 정보를 바꾸면 다시 만든다
 - dev DB에 덤프 복원: `npm run dev:restore -- [덤프 파일] [--yes]`(D-045)
 - 첫 배포 뒤 빈 prod DB에 dev DB 넣기: `npm run prod:seed -- [--yes]`(D-100)
