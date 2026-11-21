@@ -1,4 +1,11 @@
-import type { CommodityCode, EtpMarket, FxHedge, MarketState } from '@futureetp/shared';
+import type {
+  CalendarExceptionKind,
+  CalendarMarket,
+  CommodityCode,
+  EtpMarket,
+  FxHedge,
+  MarketState,
+} from '@futureetp/shared';
 import type { AppErrorCode } from '@/api/AppError';
 import type { EtpSort } from '@/lib/etpSort';
 import type { ChartPeriod } from '@/charts/chartPeriods';
@@ -28,6 +35,48 @@ export const ko = {
       CLOSED: '휴장',
       SETTLEMENT_PENDING: '정산 대기',
     } satisfies Record<MarketState, string>,
+  },
+  calendar: {
+    title: '휴장 달력',
+    monthTitle: '{{year}}년 {{month}}',
+    months: {
+      jan: '1월',
+      feb: '2월',
+      mar: '3월',
+      apr: '4월',
+      may: '5월',
+      jun: '6월',
+      jul: '7월',
+      aug: '8월',
+      sep: '9월',
+      oct: '10월',
+      nov: '11월',
+      dec: '12월',
+    },
+    weekdays: {
+      sun: '일',
+      mon: '월',
+      tue: '화',
+      wed: '수',
+      thu: '목',
+      fri: '금',
+      sat: '토',
+    },
+    markets: { CME: 'CME', KRX: 'KRX', NYSE: 'NYSE' } satisfies Record<CalendarMarket, string>,
+    timeZones: { CME: 'CT', KRX: 'KST', NYSE: 'ET' } satisfies Record<CalendarMarket, string>,
+    kinds: {
+      CLOSED: '휴장',
+      HALT: '휴장 ({{time}} {{tz}} 거래 중단)',
+      EARLY_CLOSE: '조기 마감 {{time}} {{tz}}',
+      LATE_OPEN: '개장 지연 {{time}} {{tz}}',
+    } satisfies Record<CalendarExceptionKind, string>,
+    legendToday: '오늘',
+    legendClosed: '휴장',
+    legendShortened: '조기 마감·개장 지연',
+    listDate: '{{date}} ({{weekday}})',
+    none: '휴장·단축 거래 없음',
+    missing: '{{market}} {{year}}년 휴장 정보가 아직 없습니다',
+    cellDate: '{{month}} {{day}}일',
   },
   commodityList: {
     alert: '알림 대상',

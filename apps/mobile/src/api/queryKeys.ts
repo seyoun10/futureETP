@@ -13,6 +13,7 @@ export type DisparityParams = {
 export const queryKeys = {
   health: ['health'] as const,
   settings: ['settings'] as const,
+  calendar: (from: string, to: string) => ['calendar', from, to] as const,
   commodities: {
     all: ['commodities'] as const,
     list: () => [...queryKeys.commodities.all, 'list'] as const,

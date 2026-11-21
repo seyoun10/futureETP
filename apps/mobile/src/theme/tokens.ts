@@ -20,6 +20,13 @@ export const colors = {
   error: '#ef5350',
   // [⚙] 알림 꺼짐 점
   badge: '#ef5350',
+  // 휴장 달력: 오늘 테두리, 시장별 휴장 점(등락 색·차트 선과 따로 본다)
+  today: '#ffffff',
+  market: {
+    CME: '#ffa726',
+    KRX: '#4fc3f7',
+    NYSE: '#81c784',
+  },
   chart: {
     grid: '#2a2a2a',
     tick: '#9e9e9e',

@@ -6,6 +6,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useAutoRefresh } from '@/api/useAutoRefresh';
 import { AlertBell } from '@/components/AlertBell';
+import { CalendarHeaderButton } from '@/components/CalendarHeaderButton';
 import { FreshnessFooter } from '@/components/FreshnessLine';
 import { QueryStateView } from '@/components/QueryStateView';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -33,7 +34,16 @@ export function CommodityListScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="futureETP" showBack={false} right={<SettingsHeaderButton />} />
+      <ScreenHeader
+        title="futureETP"
+        showBack={false}
+        right={
+          <>
+            <CalendarHeaderButton />
+            <SettingsHeaderButton />
+          </>
+        }
+      />
       <QueryStateView query={query}>
         {(data) => (
           <>
