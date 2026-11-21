@@ -93,7 +93,7 @@ flowchart LR
 
 - 기능을 만들기 전에 기획 → 리서치 → 데이터 모델 → 기술 스택 → 아키텍처 순으로 문서를 먼저 확정했습니다.
 - 설계 결정 140여 건을 근거·대안과 함께 [`docs/decisions.md`](docs/decisions.md)(D-001~)에 기록했습니다.
-- 커밋 전 `npm run check`(타입 검사·lint·미사용 코드(knip)·마이그레이션 drift·포맷·전체 테스트와 서버·shared 커버리지 하한)를 통과해야 합니다. push마다 CI가 같은 검사와 arm64 서버 이미지 빌드·기동을 확인합니다.
+- 커밋 전 `npm run check`(타입 검사·lint·미사용 코드(knip)·마이그레이션 drift·포맷·전체 테스트와 서버·shared 커버리지 하한)를 통과해야 합니다. push 뒤 CI와 배포 흐름은 [CI/CD](#cicd)에 있습니다.
 
 | 문서 | 내용 |
 |---|---|
@@ -117,7 +117,7 @@ flowchart LR
 | 앱 | jest-expo + RNTL로 화면·hook, 차트 뷰포트(핀치·이동·십자선)와 순수 로직 테스트 | 제스처·십자선·설정 저장처럼 기기에서만 드러나던 상태 버그의 회귀를 막습니다 |
 | 정적 검사 | TypeScript strict(`noUncheckedIndexedAccess`, 서버·shared는 `exactOptionalPropertyTypes`까지), ESLint 레이어·feature 간 import 금지, knip, 마이그레이션 drift | 타입 구멍·의존 방향 위반·죽은 코드·스키마와 마이그레이션 불일치를 실행 전에 막습니다 |
 
-커밋 전에 `npm run check`가 위 검사를 모두 돌리고, push마다 CI(GitHub Actions)가 같은 검사에 arm64 서버 이미지 빌드·기동 확인, 의존성 audit, 미뤄 둔 업그레이드 조건 주간 확인을 더합니다.
+커밋 전에 `npm run check`가 위 검사를 모두 돌리고, push마다 CI가 같은 검사를 다시 돌립니다([CI/CD](#cicd)).
 
 ### 전체 코드 품질 검증 (2026-11-21)
 
@@ -131,6 +131,44 @@ flowchart LR
 - **결함**: 확정 14건(important 2건), 반박 1건. important 2건과 영향이 큰 5건을 회귀 테스트와 함께 고쳤습니다. 휴장 전날 저녁 장중 배치 누락, 실패한 알림의 같은 슬롯 즉시 재발송, 데이터가 바뀐 뒤 십자선이 엉뚱한 봉을 가리킴, DB 유휴 연결이 끊기면 서버 프로세스 종료, 늦게 온 설정 조회가 방금 저장한 값을 덮어씀, 접근 키 재설정 뒤 푸시 재등록 누락, 월물커브 M2 판정 예외입니다.
 - **테스트 보강**: 변이 점수가 낮던 곳을 골라 테스트를 더했습니다. `api/curve.ts` 66.7% → 93.0%, `clientIp.ts` 50.0% → 93.8%, 앱 `useChartViewport.ts` 6% → 85.4%이고, 남은 생존 변이는 대부분 결과가 같은 등가 변이입니다.
 - **기대 효과**: 커버리지는 코드가 실행됐는지만 보고, 변이 점수는 코드가 틀렸을 때 테스트가 잡는지를 봅니다. 커버리지로는 안 보이는 약한 테스트를 수치로 찾아 보강할 곳을 정할 수 있습니다.
+
+## CI/CD
+
+배포는 자동으로 하지 않습니다. 사용자 1명인 개인용 앱이라 배포 시점은 직접 정하고, 대신 **배포본 = push된 커밋 = CI가 통과시킨 커밋**이 되도록 배포 명령이 먼저 CI 결과를 확인합니다. VM과 기기에서 도는 코드를 저장소의 커밋 하나로 그대로 찾을 수 있습니다.
+
+```mermaid
+flowchart LR
+  Commit[로컬 커밋<br/>npm run check] --> Push[push]
+  subgraph CI[GitHub Actions · check.yml]
+    Check[check<br/>전체 검사 + PostgreSQL 18]
+    Smoke[server-image<br/>arm64 이미지 smoke]
+    Audit[audit<br/>의존성 취약점]
+  end
+  Push --> Check & Smoke & Audit
+  CI --> Guard{release-guard<br/>미커밋 없음 · origin/main · CI 성공}
+  Guard -->|npm run deploy| VM[VM 서버 배포<br/>빌드 → 덤프 → migrate → 교체]
+  VM --> Health[외부 /v1/health<br/>배포 커밋 확인]
+  Guard -->|npm run update:prod| OTA[앱 OTA<br/>EAS Update]
+  Guard -->|distribute:android| APK[Android 설치본<br/>Firebase App Distribution]
+```
+
+### CI (GitHub Actions)
+
+| job | 언제 | 무엇을 | 기대 효과 |
+|---|---|---|---|
+| `check` | push·PR | 로컬과 같은 `npm run check`를 실제 PostgreSQL 18 서비스 컨테이너에 붙여 실행 | 로컬 환경 차이나 hook을 건너뛴 커밋도 같은 기준으로 걸러집니다 |
+| `server-image` | push·PR | VM과 같은 arm64 러너에서 운영 이미지를 빌드하고, 빈 DB에 migrate 두 번, 서버를 띄워 health·인증 요청 확인 | `COPY` 누락, 빠진 런타임 의존성, 이미지 안 migrate 실패를 VM 배포 전에 찾습니다 |
+| `audit` | push·PR·매주 | 런타임 의존성의 high 이상 취약점 (`npm audit`) | 코드가 그대로여도 새로 공개된 취약점을 알 수 있습니다 |
+| `deps-watch` | 매주·수동 | 미뤄 둔 업그레이드의 조건 충족 여부 | 조건이 풀리면 실패 알림으로 다시 볼 때를 압니다 |
+
+앱 빌드는 CI에서 하지 않습니다(Android는 로컬 빌드). GitHub Actions 버전은 dependabot이 매월 PR 하나로 묶어 올립니다.
+
+### CD (배포)
+
+- **배포 전 확인(`release-guard`)**: 서버 배포·앱 OTA·Android 배포 명령이 모두 먼저 ① 추적하지 않는 파일까지 미커밋 변경 없음, ② HEAD가 `origin/main`에 있음, ③ 그 커밋의 CI 성공을 확인합니다. CI가 진행 중이면 기다리지 않고 실패하며, 대기는 `npm run ci:wait`가 맡습니다.
+- **서버(`npm run deploy`)**: 커밋된 서버 파일만 VM으로 보내고, VM에서 이미지 빌드 → `pg_dump` 덤프 → 새 이미지의 일회성 컨테이너로 migrate → 서버 교체 순으로 진행합니다. migrate가 실패하면 교체하지 않아 이전 서버가 그대로 돕니다. 끝으로 외부 도메인의 `/v1/health`가 배포한 커밋을 돌려줄 때까지 확인합니다.
+- **되돌리기**: VM에 최근 배포 이미지 3개를 커밋 태그로 남기고, `npm run deploy:rollback`이 마이그레이션 개수가 같을 때만 이전 이미지로 바꿉니다. 마이그레이션은 앞으로만 가므로 스키마가 다른 버전으로 코드만 되돌리지 않습니다. `npm run deploy:status`로 지금 도는 커밋과 아직 배포하지 않은 서버 변경을 봅니다.
+- **앱**: JS 변경은 EAS Update OTA(`npm run update:prod`)로 보냅니다. runtime version이 fingerprint 기준이라 네이티브 의존성이 바뀌면 설치된 빌드가 업데이트를 받지 못하므로 새로 빌드해 설치합니다.
 
 ## 로컬 실행
 
