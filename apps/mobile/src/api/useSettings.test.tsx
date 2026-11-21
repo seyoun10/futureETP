@@ -124,4 +124,20 @@ describe('설정 연속 변경(낙관적 갱신)', () => {
     await settle(() => second.resolve({ ...SERVER, window: 'ALL' }));
     expect(shown()).toBe(100);
   });
+
+  // 마운트 재조회처럼 PATCH 뒤에 시작된 GET이 PATCH 반영 전 값을 읽고 늦게 끝나면 새 값을 옛 값으로 덮었다
+  it('PATCH 중에 시작된 조회가 늦게 끝나도 새 값을 덮지 않는다', async () => {
+    const first = deferPatch();
+    const { queryClient, shown, change, settle } = await renderSettings();
+    await change({ maPeriod: 50 });
+
+    let resolveGet: (settings: Settings) => void = () => {};
+    mockGet.mockImplementationOnce(() => new Promise((res) => (resolveGet = res)));
+    await settle(() => void queryClient.refetchQueries({ queryKey: queryKeys.settings }));
+    await settle(() => first.resolve({ ...SERVER, maPeriod: 50 }));
+    await settle(() => resolveGet(SERVER));
+
+    expect(shown()).toBe(50);
+    expect(queryClient.getQueryData<Settings>(queryKeys.settings)?.maPeriod).toBe(50);
+  });
 });

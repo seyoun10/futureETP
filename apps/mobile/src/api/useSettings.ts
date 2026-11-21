@@ -49,7 +49,9 @@ export function useUpdateSettings() {
     scope: { id: 'settings' },
     // 진행 중인 설정 조회가 PATCH보다 늦게 끝나 옛 값으로 덮지 않게 끊는다
     onMutate: () => queryClient.cancelQueries({ queryKey: queryKeys.settings }),
-    onSuccess: (settings, patch) => {
+    // 그사이 시작된 조회(마운트 재조회 등)는 PATCH 반영 전 값을 읽었을 수 있어 끊고 응답 값을 넣는다
+    onSuccess: async (settings, patch) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.settings });
       queryClient.setQueryData(queryKeys.settings, settings);
       if ('alertCommodity' in patch)
         void queryClient.invalidateQueries({ queryKey: queryKeys.commodities.list() });
