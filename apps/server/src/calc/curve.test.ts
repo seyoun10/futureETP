@@ -217,6 +217,19 @@ describe('selectCurve', () => {
     expect(curve.m2).toBeNull();
   });
 
+  it('M1 다음 월물이 거래량은 충분한데 그날 값만 없으면 그 뒤 첫 월물을 M2로 면제한다(D-068 A1)', () => {
+    const candidates = [
+      cand('GC', '2026-12', '2026-12-29', 2418, 5000),
+      cand('GC', '2027-02', '2027-02-24', null, 3000), // 거래량 충분, 그날 값 없음
+      cand('GC', '2027-04', '2027-04-28', 2445, 40), // 미달이지만 커브의 M2
+      cand('GC', '2027-06', '2027-06-28', 2460, 2000),
+    ];
+    const curve = selectCurve(candidates, curveDate, 'GCZ26');
+    expect(symbols(curve.contracts)).toEqual(['GCZ26', 'GCJ27']);
+    expect(curve.m1?.symbol).toBe('GCZ26');
+    expect(curve.m2?.symbol).toBe('GCJ27');
+  });
+
   it('M1보다 이른 월물에 그날 값이 없으면 빼고 M1·M2는 그대로 정한다', () => {
     const candidates = [
       cand('GC', '2026-11', '2026-11-25', null, 0),

@@ -59,6 +59,8 @@ export type Curve<T extends CurveCandidate = CurveCandidate> = {
 // - 그날 만기되지 않은 대상 월물을 만기순으로 보고, 그날 값이 있는 월물만 커브에 넣는다.
 // - M1보다 만기가 이른 월물과 M1·M2는 거래량과 관계없이 넣는다. 미달 판정은 M2부터 하고,
 //   처음 미달한 월물에서 멈춘다(M2가 미달이면 M2까지). 최대 12개.
+// - M2 면제는 자리가 아니라 M1 다음으로 커브에 들어가는 첫 월물에 붙는다(D-068 A1). M1 바로 다음 월물이
+//   그날 값만 없어 빠지면 그 뒤 첫 값 있는 월물이 M2다.
 // - 미달 판정은 그날 값이 없는 월물도 한다. 값이 없는 미달 월물을 건너뛰면 그 뒤의 거래 많은 먼 월물이
 //   띄엄띄엄 들어온다(D-018 연속 구간). 거래량이 충분한데 그날 값만 없는 월물은 빼고 이어 간다.
 // - frontSymbol이 후보에 없거나 그날 값이 없으면 처음부터 거래량으로 판정하고 m1·m2는 null이다.
@@ -82,7 +84,8 @@ export function selectCurve<T extends CurveCandidate>(
       if (i === m1Index && hasPrice(c)) m1 = c;
       continue;
     }
-    const isM2 = m1Index >= 0 && i === m1Index + 1;
+    // 아직 M1 뒤에 넣은 월물이 없으면 이 월물이 M2 후보다
+    const isM2 = m1 !== null && contracts.at(-1) === m1;
     const passes = c.avgVolume >= CURVE_MIN_AVG_VOLUME;
     if (hasPrice(c) && (passes || isM2)) contracts.push(c);
     if (!passes) break;
