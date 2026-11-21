@@ -60,10 +60,14 @@
 
 | 대상 | 점수 | 약한 곳(생존/미도달 변이) |
 |---|---|---|
-| 서버 calc | 대부분 90%+ | `rollWeight.ts` 생존 26, `curve.ts:130` `basePrice > 0` 가드 제거가 생존(가드는 있으나 테스트 미고정) |
+| 서버 calc | 대부분 90%+ | `rollWeight.ts` 생존 26, `curve.ts` 91.9%(237/258, 정정 아래) |
 | 서버 api | 50~100% | `curve.ts` 67%(기준일 제한·정산/스냅숏 선택·거래량 창 slice), `commodities.ts` 72%(asOf 선택), `clientIp.ts` 50%, `app.ts` 72%(DB 확인 타임아웃 clearTimeout, 인증 실패 제한 기본값), `settings.ts` 60% |
 | shared | 89% | `contracts.ts:33` prices/dates 길이 refine 미실행(50%), `push.ts` 영어 문구 단수/복수·`+0.0%` 경계, `settings.ts:36` `<`↔`<=`, `devices.ts:14` trim |
 | 앱 charts·lib | 65% | **`useChartViewport.ts` 6%(생존 96, 미도달 140)**, `chartText.ts` 0%(Skia), `lineSampling.ts` 73%(빈 입력·px≤0·hi<lo 가드), `curveLayout.ts` 80%(눈금 단계 경계·라벨 충돌 회피), `formatNumber.ts` 78% |
+
+**정정 (2026-11-21, `75f6d85`에서 Stryker 10.1.1 재측정)**: 초판의 "`calc/curve.ts:130` `basePrice > 0` 가드 제거가 생존(테스트 미고정)"은 사실과 다르다. 가드(현재 `:133`)는 보고서 기준 커밋 전부터 `curve.test.ts`의 "기준일 가격이 0 이하이면 변화율은 null이다"로 고정돼 있고, `> 0` 제거·`<=`·`>=` 변이 모두 killed다. 같은 줄에서 산 1건은 `p.basePrice !== null`→`true`인데, null이면 `p.basePrice > 0`도 거짓이라 결과가 같은 등가 변이다. `calc/curve.ts` 점수는 91.9%(237/258)이고, 남은 생존은 `:84` M2 면제·`:190` 기준일 상한·`:270` 스냅숏 표시 등이다.
+
+**후속 (api 테스트 보강)**: `api/curve.ts` 66.7% → 93.0%(53/57), `clientIp.ts` 50.0% → 93.8%(15/16). 남은 생존 5건(`curve.ts:48`·`:68`의 null 검사 제거와 `<`↔`<=`, `:71` 빈 배열, `clientIp.ts:9` `?.` 제거)은 모두 등가 변이다. `settings.ts` 60%(3/5)의 생존 2건은 라우트 경로 `'/'`→`''`로, Hono에서 `/v1/settings`·`/v1/settings/` 응답이 같아 등가다(테스트 추가 없음).
 
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
