@@ -187,7 +187,8 @@ export function resolveBaseDate(
   const range = tradeDates.filter((d) => d >= minBaseDate && d < currentDate);
   const maxBaseDate = range.at(-1);
   if (maxBaseDate === undefined) return null;
-  const target = requested === null || requested > maxBaseDate ? maxBaseDate : requested;
+  // D-1보다 뒤인 요청은 따로 자르지 않아도 findLastIndex가 마지막 날(D-1)을 고른다
+  const target = requested ?? maxBaseDate;
   const index = Math.max(
     range.findLastIndex((d) => d <= target),
     0,
