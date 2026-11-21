@@ -36,6 +36,17 @@ describe('앱 실행 때 기기 등록', () => {
     await act(() => useDisplaySettings.setState({ language }));
   });
 
+  // 등록 전에 성공으로 표시해, 401 뒤 새 키를 저장해도 앱을 다시 켤 때까지 등록하지 않았다
+  it('등록이 실패한 뒤 새 접근 키를 저장하면 다시 등록한다', async () => {
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    mockRegister.mockRejectedValueOnce(new Error('unauthorized'));
+    await renderApp();
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(1));
+
+    await act(() => useAccessKeyStore.setState({ key: 'new-key', rejected: false }));
+    await waitFor(() => expect(mockRegister).toHaveBeenCalledTimes(2));
+  });
+
   it('접근 키가 없으면 등록하지 않는다', async () => {
     useAccessKeyStore.setState({ key: null });
     await renderApp();
