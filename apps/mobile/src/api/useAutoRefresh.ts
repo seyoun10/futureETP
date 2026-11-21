@@ -13,7 +13,7 @@ export const AUTO_REFRESH_MIN_INTERVAL_MS = 60 * 1000;
 type FreshnessQuery = Pick<
   UseQueryResult<{ freshness: Freshness }>,
   'data' | 'dataUpdatedAt' | 'errorUpdatedAt'
-> & { refetch: () => Promise<unknown> };
+> & { refetch: (options: { cancelRefetch: boolean }) => Promise<unknown> };
 
 // 화면이 보이는 동안 `nextUpdateAt` + 1분에 다시 조회한다(D-042, D-048, D-075). null이면 자동 새로고침하지 않는다.
 // 조회가 끝날 때마다(성공·실패) 다시 예약해, 새로고침이 실패해도 1분 뒤 다시 시도한다.
@@ -30,7 +30,8 @@ export function useAutoRefresh({ data, refetch, dataUpdatedAt, errorUpdatedAt }:
       );
       const timer = setTimeout(() => {
         // 백그라운드에서는 부르지 않는다. 앱 복귀 재조회는 focusManager가 맡는다.
-        if (AppState.currentState === 'active') void refetch();
+        // 진행 중인 조회(무한 조회의 과거 받기 등)를 취소하지 않는다. 그 조회가 끝나면 다시 예약된다.
+        if (AppState.currentState === 'active') void refetch({ cancelRefetch: false });
       }, runAt - Date.now());
       return () => clearTimeout(timer);
     }, [nextUpdateAt, lastFetchedAt, refetch]),

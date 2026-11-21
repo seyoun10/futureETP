@@ -61,6 +61,14 @@ describe('useAutoRefresh', () => {
     expect(refetch).toHaveBeenCalledTimes(1);
   });
 
+  it('진행 중인 조회(과거 받기 등)를 취소하지 않도록 cancelRefetch: false로 부른다', async () => {
+    const refetch = jest.fn();
+    await renderWith('2026-10-22T14:05:00Z', refetch);
+
+    await advance(6 * MINUTE);
+    expect(refetch).toHaveBeenCalledWith({ cancelRefetch: false });
+  });
+
   it('nextUpdateAt이 이미 지났으면 마지막 조회 1분 뒤에 다시 조회한다', async () => {
     const refetch = jest.fn();
     await renderWith('2026-10-22T13:00:00Z', refetch);
