@@ -22,7 +22,7 @@
     "deploy:rollback": "bash scripts/rollback.sh",
     "deploy:status": "bash scripts/deploy-status.sh",
     "distribute:android": "bash scripts/distribute-android.sh",
-    "update:prod": "bash scripts/release-guard.sh && npm run update:prod -w apps/mobile -- --message \"$(git log -1 --pretty=%s)\"",
+    "update:prod": "bash scripts/release-guard.sh && npm run update:prod -w apps/mobile -- --message \"$(git log -1 --pretty=%s -- apps/mobile packages/shared)\"",
     "backup:pull": "bash scripts/backup-pull.sh",
     "secrets:backup": "bash scripts/secrets-backup.sh",
     "batch:result": "bash scripts/batch-result.sh",

@@ -9,7 +9,7 @@
 
 ## 앱 빌드·배포
 
-- 앱 OTA(EAS Update, 마지막 커밋 제목 줄로 발행): `npm run update:prod`. `apps/mobile/package.json`의 `scripts`·의존성을 바꾸면 fingerprint(runtime version)가 바뀌어 설치된 빌드가 업데이트를 못 받으므로 새로 빌드해야 한다
+- 앱 OTA(EAS Update, `apps/mobile`·`packages/shared`를 마지막으로 바꾼 커밋의 제목 줄로 발행. 서버·docs 커밋이 뒤에 붙어도 메시지가 앱 변경을 가리킨다): `npm run update:prod`. `apps/mobile/package.json`의 `scripts`·의존성을 바꾸면 fingerprint(runtime version)가 바뀌어 설치된 빌드가 업데이트를 못 받으므로 새로 빌드해야 한다
 - Android 기기 설치(Firebase App Distribution, D-039 보충): `npm run build:android:release -w apps/mobile` → `npm run distribute:android -- [릴리스 노트]`
 - gradle을 직접 부를 때는 `APP_VARIANT=development ./gradlew ...`로 실행한다. 빠지면 패키지 ID는 `.dev`인데 내장 `app.config`가 prod라 접근 키 화면에 머문다. 확인은 `app/build/intermediates/assets/debug/mergeDebugAssets/app.config`의 `extra.variant`
 

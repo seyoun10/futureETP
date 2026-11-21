@@ -30,7 +30,7 @@ disable-model-invocation: true
 
 ## ota
 
-1. `npm run update:prod`. 마지막 커밋 제목 줄이 업데이트 메시지가 되므로, 제목이 앱 변경을 설명하는지 먼저 본다.
+1. `npm run update:prod`. `apps/mobile`·`packages/shared`를 마지막으로 바꾼 커밋의 제목 줄이 업데이트 메시지가 된다(`git log -1 --format=%s -- apps/mobile packages/shared`로 미리 본다).
 2. 출력의 runtime version과 채널(`production`)을 보고한다.
 3. 기기에서 앱을 두 번 껐다 켜야 적용된다는 점을 안내한다(첫 실행에서 내려받고 다음 실행에 적용).
 
