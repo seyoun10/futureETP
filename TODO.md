@@ -89,3 +89,11 @@
   - 2026-11-16 확인: 43.0.1도 `CartesianChart`가 `customGestures`를 legacy `Gesture.Race`로 합쳐 hook 제스처를 받지 않는다. 이전 불가라 보류(43만 올리는 건 이득 없이 재빌드 비용뿐). 다음 victory-native 릴리스에서 다시 본다
   - 자동 확인: `npm run deps:watch`가 아래 (2)를 하고, CI가 매주 돌린다(D-130)
   - 확인 방법: (1) `npm view victory-native version peerDependencies`로 버전과 RNGH 허용 범위 확인 (2) `npm pack victory-native@<버전>` 압축을 풀어 `src/cartesian/CartesianChart.tsx`에서 `customGestures`를 아직 `Gesture.Race`로 합치는지 확인. 그대로면 이전 불가
+
+### 5-12. 품질 검증 남은 결함 (`docs/reviews/2026-11-21-quality-review.md` 3절, 모두 minor 이하)
+- [ ] A2 `calc/quotes.ts:76`: 직전 정산가 ≤0이면 changePct 부호 반대/Infinity. `compareCurves`처럼 `> 0`일 때만 계산(low)
+- [ ] E3 `useSettings.ts:51`: 첫 조회 중 PATCH 실패 시 설정 query가 pending/idle로 고착(low)
+- [ ] E5 `useAutoRefresh.ts:33`: 자동 새로고침 `refetch()`가 진행 중 과거 받기를 조용히 취소(`cancelRefetch: false` 검토, low)
+- [ ] B2/D1 shared `settings.ts:36,42`: rare 레벨 중복 검사를 반올림 뒤 값으로(API 직접 호출만 도달, nit). 형제 저장소 TODO 반영 필요
+- [ ] B3 `db/recompute.ts:78-118`: 재계산 DELETE→INSERT 잠금(advisory lock 등) 없음, CLI·배치 겹치면 23505(nit)
+- [ ] D3 shared `queries.ts:22`: levels query가 공백·`0x8`·`1e1`을 통과. 계약 엄격성(nit). 형제 저장소 TODO 반영 필요
