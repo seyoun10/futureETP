@@ -79,6 +79,8 @@
 
 **후속 6 (검증 뒤 새로 쓰거나 고친 앱 로직, 같은 도구, 따로 측정)**: 62.1%(killed 51, timeout 3, survived 30, 미도달 3). `monthGrid.ts` 78.4, `useSettings.ts` 53.1(E2 수정 경로: `:33` 대기 중 변경 병합 조건, `:49` mutation scope, `:51`·`:54` `cancelQueries`가 생존), `useMarketCalendar.ts` 50.0, `api/calendar.ts` 0(테스트 없음). 위 후속 5의 분모와 섞지 않는다. 이어서 `useSettings.ts` 생존·미도달 변이를 테스트로 고정했다(첫 조회 전 변경, PATCH 직렬화, 설정 조회만 끊기, 알림 원자재 변경 시 목록만 무효화). 수동 변이 11개 중 10개 killed, 남은 `scope.id` `''`는 scope를 쓰는 mutation이 하나뿐이라 등가다.
 
+**후속 7 (E3 수정·calendar 테스트)**: E3는 PATCH 실패(`onError`) 시 설정을 무효화해 다시 조회하도록 고쳤다(재조회를 기다리지 않아 실패한 변경이 바로 빠지고 다음 PATCH도 밀리지 않음). 회귀 테스트 "첫 조회 중 보낸 PATCH가 실패하면 설정을 다시 조회한다"는 수정 전 실패를 확인했다. `api/calendar.ts`는 요청 경로·스키마·`signal` 전달을 고정하는 테스트를 넣었다.
+
 리뷰 발견과 겹치는 곳(우선순위 상향): `useChartViewport.ts`(E1), `useOlderPages.ts` 80%(E5), `settings.ts:36`(B2/D1), `clientIp.ts`(B 테스트 공백), `contracts.ts:33`(D 테스트 공백).
 
 ## 5. 테스트 공백 (리뷰어 보고 요약)

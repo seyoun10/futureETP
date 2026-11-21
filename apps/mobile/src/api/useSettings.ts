@@ -56,5 +56,11 @@ export function useUpdateSettings() {
       if ('alertCommodity' in patch)
         void queryClient.invalidateQueries({ queryKey: queryKeys.commodities.list() });
     },
+    // onMutate가 끊은 첫 조회는 다시 시작할 계기가 없어 실패하면 다시 조회한다.
+    // 응답을 못 받았을 뿐 서버에는 반영됐을 수도 있어 첫 조회가 아니어도 서버 값을 다시 맞춘다.
+    // 기다리면 조회가 끝날 때까지 실패한 변경이 화면에 남고 다음 PATCH도 밀려서 기다리지 않는다
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settings });
+    },
   });
 }

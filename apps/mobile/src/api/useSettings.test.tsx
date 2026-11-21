@@ -37,7 +37,7 @@ const deferPatch = () => {
   return { resolve: (s: Settings) => resolve(s), reject: (e: unknown) => reject(e) };
 };
 
-async function renderSettings() {
+async function renderSettings({ seeded = true } = {}) {
   const queryClient = createQueryClient();
   // 화면이 사라진 뒤 캐시 정리(gc) 타이머가 남아 jest가 끝나지 않는 것을 막는다
   const defaults = queryClient.getDefaultOptions();
@@ -45,7 +45,7 @@ async function renderSettings() {
     queries: { ...defaults.queries, gcTime: Infinity },
     mutations: { ...defaults.mutations, gcTime: Infinity },
   });
-  queryClient.setQueryData(queryKeys.settings, SERVER);
+  if (seeded) queryClient.setQueryData(queryKeys.settings, SERVER);
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
@@ -172,6 +172,19 @@ describe('설정 변경과 다른 조회', () => {
     });
     await change({ maPeriod: 50 });
     expect(result.current.data).toBeUndefined();
+  });
+
+  // PATCH가 첫 조회를 끊은 채 실패하면 다시 조회할 계기가 없어 설정이 비어 있는 채로 멈췄다(E3)
+  it('첫 조회 중 보낸 PATCH가 실패하면 설정을 다시 조회한다', async () => {
+    const first = deferPatch();
+    const { shown, change, settle } = await renderSettings({ seeded: false });
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    await change({ maPeriod: 50 });
+
+    mockGet.mockResolvedValueOnce(SERVER);
+    await settle(() => first.reject(new AppError('NETWORK')));
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(shown()).toBe(100);
   });
 
   it('연달아 바꾸면 앞 PATCH가 끝난 뒤에 다음 PATCH를 보낸다', async () => {
