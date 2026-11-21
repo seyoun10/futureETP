@@ -53,3 +53,11 @@ export const JOB_NAMES = [
   'BACKUP',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
+
+// 휴장 달력 시장(CME 원자재 선물, KRX·NYSE ETP 상장 시장)과 예외 일정 종류.
+// HALT는 CME 공휴일 중간 정지(정산 없음), LATE_OPEN은 KRX 연초·수능일 개장 지연이다.
+export const CALENDAR_MARKETS = ['CME', 'KRX', 'NYSE'] as const;
+export type CalendarMarket = (typeof CALENDAR_MARKETS)[number];
+
+export const CALENDAR_EXCEPTION_KINDS = ['CLOSED', 'HALT', 'EARLY_CLOSE', 'LATE_OPEN'] as const;
+export type CalendarExceptionKind = (typeof CALENDAR_EXCEPTION_KINDS)[number];

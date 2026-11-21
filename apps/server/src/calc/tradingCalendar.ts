@@ -1,3 +1,5 @@
+import type { CalendarExceptionKind, CalendarMarket } from '@futureetp/shared';
+
 // CME 에너지·금속 거래일 달력 생성(research/cme-calendar.md, D-061).
 // 입력은 그해 예외 일정(전일 휴장·공휴일 중간 정지·조기 마감)뿐이고, 나머지 평일은 정규 세션이다.
 // 정규 세션: 전날 17:00 ~ 당일 16:00 CT. 중간 정지일은 거래일이 아니고 그 세션은 다음 거래일에 합쳐진다.
@@ -17,6 +19,24 @@ export type CalendarInput = {
   closed: CalendarException[];
   halts: TimedException[];
   earlyCloses: TimedException[];
+};
+
+// 휴장 달력 입력. CME는 CalendarInput 그대로, KRX·NYSE는 halts 없이 쓴다. lateOpens는 KRX 개장 지연이다.
+export type MarketCalendarInput = {
+  year: number;
+  closed: CalendarException[];
+  halts?: TimedException[] | undefined;
+  earlyCloses: TimedException[];
+  lateOpens?: TimedException[] | undefined;
+};
+
+// calendar_exception 행. at은 그 시장 현지 시각 HH:mm(CLOSED는 null)
+export type CalendarExceptionRow = {
+  market: CalendarMarket;
+  date: string;
+  kind: CalendarExceptionKind;
+  at: string | null;
+  note: string;
 };
 
 export type TradingDayRow = {
@@ -88,12 +108,13 @@ const ct = (date: string, time: string) => zonedTimeToUtc(date, time, CME_TIME_Z
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function validate(input: CalendarInput): void {
+function validate(input: MarketCalendarInput): void {
   const seen = new Set<string>();
   const all = [
     ...input.closed.map((e) => ({ ...e, at: undefined })),
-    ...input.halts,
+    ...(input.halts ?? []),
     ...input.earlyCloses,
+    ...(input.lateOpens ?? []),
   ];
   for (const e of all) {
     if (!DATE.test(e.date) || addDays(e.date, 0) !== e.date) {
@@ -142,4 +163,26 @@ export function buildTradingDays(input: CalendarInput): TradingDayRow[] {
     });
   }
   return rows;
+}
+
+// 휴장 달력(calendar_exception)에 넣을 예외 일정. 날짜순이다.
+export function buildCalendarExceptions(
+  market: CalendarMarket,
+  input: MarketCalendarInput,
+): CalendarExceptionRow[] {
+  validate(input);
+  const timed = (kind: CalendarExceptionKind, list: TimedException[] | undefined) =>
+    (list ?? []).map((e) => ({ market, date: e.date, kind, at: e.at, note: e.note }));
+  return [
+    ...input.closed.map((e) => ({
+      market,
+      date: e.date,
+      kind: 'CLOSED' as const,
+      at: null,
+      note: e.note,
+    })),
+    ...timed('HALT', input.halts),
+    ...timed('EARLY_CLOSE', input.earlyCloses),
+    ...timed('LATE_OPEN', input.lateOpens),
+  ].sort((a, b) => a.date.localeCompare(b.date));
 }

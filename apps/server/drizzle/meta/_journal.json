@@ -64,6 +64,13 @@
       "when": 1794208176861,
       "tag": "0008_commodity_recompute_pending",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795227740830,
+      "tag": "0009_calendar_exception",
+      "breakpoints": true
     }
   ]
 }

@@ -104,6 +104,20 @@ export const tradingDay = pgTable('trading_day', {
   note: text(),
 });
 
+// 휴장 달력(CME·KRX·NYSE)의 예외 일정. 평일 중 휴장·중간 정지·조기 마감·개장 지연만 행으로 둔다.
+// kind는 shared CALENDAR_EXCEPTION_KINDS, at은 그 시장 현지 시각 HH:mm(CLOSED는 null)이다.
+export const calendarException = pgTable(
+  'calendar_exception',
+  {
+    market: text().notNull(),
+    date: day().notNull(),
+    kind: text().notNull(),
+    at: text(),
+    note: text().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.market, t.date] })],
+);
+
 // 2. 시세 원천
 
 export const dailyBar = pgTable(

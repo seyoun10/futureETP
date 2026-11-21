@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCalendarExceptions,
   buildTradingDays,
   zonedTimeToUtc,
   type CalendarInput,
@@ -125,5 +126,58 @@ describe('buildTradingDays', () => {
     ['잘못된 시각', { halts: [{ date: '2026-01-19', at: '1:30', note: 'x' }] }, /Invalid time/],
   ])('%s 예외는 실패한다', (_, patch, error) => {
     expect(() => buildTradingDays({ ...empty, ...patch })).toThrow(error);
+  });
+});
+
+describe('buildCalendarExceptions', () => {
+  it('CME 예외 일정을 종류별 행으로 날짜순으로 낸다', () => {
+    const rows = buildCalendarExceptions('CME', input2026);
+    expect(rows.map((r) => r.date)).toEqual([...rows.map((r) => r.date)].sort());
+    expect(rows).toContainEqual({
+      market: 'CME',
+      date: '2026-12-25',
+      kind: 'CLOSED',
+      at: null,
+      note: 'Christmas Day',
+    });
+    expect(rows).toContainEqual({
+      market: 'CME',
+      date: '2026-11-26',
+      kind: 'HALT',
+      at: '13:30',
+      note: 'Thanksgiving Day',
+    });
+    expect(rows).toContainEqual({
+      market: 'CME',
+      date: '2026-11-27',
+      kind: 'EARLY_CLOSE',
+      at: '12:45',
+      note: 'Day after Thanksgiving',
+    });
+    expect(rows).toHaveLength(8);
+  });
+
+  it('halts 없는 KRX 입력의 개장 지연을 LATE_OPEN으로 낸다', () => {
+    const rows = buildCalendarExceptions('KRX', {
+      year: 2026,
+      closed: [{ date: '2026-12-31', note: '연말 휴장' }],
+      earlyCloses: [],
+      lateOpens: [{ date: '2026-01-02', at: '10:00', note: '연초 개장' }],
+    });
+    expect(rows).toEqual([
+      { market: 'KRX', date: '2026-01-02', kind: 'LATE_OPEN', at: '10:00', note: '연초 개장' },
+      { market: 'KRX', date: '2026-12-31', kind: 'CLOSED', at: null, note: '연말 휴장' },
+    ]);
+  });
+
+  it('개장 지연과 휴장이 겹치면 실패한다', () => {
+    expect(() =>
+      buildCalendarExceptions('KRX', {
+        year: 2026,
+        closed: [{ date: '2026-01-02', note: 'x' }],
+        earlyCloses: [],
+        lateOpens: [{ date: '2026-01-02', at: '10:00', note: 'y' }],
+      }),
+    ).toThrow(/Duplicate/);
   });
 });

@@ -1,0 +1,20 @@
+{
+  "year": 2026,
+  "source": "NYSE Group 2026-2028 Holiday and Early Closings Calendar (2025-12-23 발표). 조기 마감은 13:00 ET",
+  "closed": [
+    { "date": "2026-01-01", "note": "New Year's Day" },
+    { "date": "2026-01-19", "note": "Martin Luther King, Jr. Day" },
+    { "date": "2026-02-16", "note": "Washington's Birthday" },
+    { "date": "2026-04-03", "note": "Good Friday" },
+    { "date": "2026-05-25", "note": "Memorial Day" },
+    { "date": "2026-06-19", "note": "Juneteenth National Independence Day" },
+    { "date": "2026-07-03", "note": "Independence Day (observed)" },
+    { "date": "2026-09-07", "note": "Labor Day" },
+    { "date": "2026-11-26", "note": "Thanksgiving Day" },
+    { "date": "2026-12-25", "note": "Christmas Day" }
+  ],
+  "earlyCloses": [
+    { "date": "2026-11-27", "at": "13:00", "note": "Day after Thanksgiving" },
+    { "date": "2026-12-24", "at": "13:00", "note": "Christmas Eve" }
+  ]
+}
