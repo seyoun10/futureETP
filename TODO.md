@@ -80,7 +80,6 @@
     - [x] 두 기기에서 접근 키 QR 등록 (2026-11-03)
     - [ ] 두 기기에서 운영 데이터 표시·카메라 권한 문구 확인
 
-- [ ] 휴장 달력(D-143) prod 반영: 서버 배포 → VM에서 2026·2027년 cme·krx·nyse `calendar:import`(`docs/ops.md`) → 앱 OTA → 기기에서 A [📅] 확인
 - [ ] KRX 2027년 휴장일 공식 공지(보통 12월 말) 뒤 `scripts/calendar/krx/2027.json`을 맞추고(잠정 표시 지우기, 수능일 개장 지연 추가) dev·prod 다시 import
 
 ### 5-11. 검증 강화 (D-127)

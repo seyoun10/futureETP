@@ -301,6 +301,9 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
     - 빌드(2026-11-02): R8 포함 `assembleRelease` 성공. mapping에서 `SQLAction` 상수 이름이 바뀐 것(`INSERT`→`X` 등)은 확인했지만, 앱이 쓰는 `expo-sqlite/kv-store` `Storage`는 변경 리스너를 켜지 않아 이 enum이 JS로 넘어가지 않는다. 남은 것: release APK를 기기에 설치해 표시 설정(언어·등락 색) 저장 → 앱 재시작 뒤 복원 확인
     - 2026-11-17 에뮬레이터(prod release APK `dc6ec27`): 언어 English→한국어·등락 색 US→Korean 저장 → 강제 종료 뒤 재실행에 둘 다 복원. 접근 키 저장·prod 데이터 표시·알림 권한 요청도 정상
 
+- [x] 휴장 달력(D-143) prod 반영 (2026-11-21): 서버 배포 `0eb6354`(`deploy:status`로 확인) → VM에서 2026·2027년 cme·krx·nyse `calendar:import`(예외일 2026 CME 12·KRX 19·NYSE 12, 2027 CME 11·KRX 16·NYSE 11, CME 거래일 각 251일) → OTA(iOS·Android production, 설정 화면 `업데이트 11/21 11:44`) → iPhone에서 A [📅] → 휴장 달력에 11/26 추수감사절·11/27 조기 마감·11/19 KRX 수능 개장 지연 표시 확인
+  - import 전에 달력을 한 번 열면 빈 응답이 앱에 12시간 캐시(`useMarketCalendar` `STALE_MS`)되어, import 뒤 앱을 완전히 종료하고 다시 열어야 보였다
+
 ### 5-11. 검증 강화 (D-127)
 - [x] 현재 체계 측정과 강화안 승인 (2026-11-15): typed lint는 이미 적용, 서버 calc 줄 커버리지 100%
 - [x] TS `noImplicitOverride`·`noImplicitReturns`·`noFallthroughCasesInSwitch` + lint `switch-exhaustiveness-check` (위반 0) (2026-11-15)
