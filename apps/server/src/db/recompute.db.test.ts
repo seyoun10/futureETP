@@ -120,6 +120,17 @@ describe('replaceBasisResult', () => {
     expect(await db.select().from(indexScale)).toEqual([]);
   });
 
+  it('같은 원자재·기준값을 동시에 저장해도 23505 없이 하나의 결과만 남긴다', async () => {
+    // CLI 재계산과 배치가 겹친 상황(B3). 잠금이 없으면 둘 다 빈 상태를 보고 INSERT해 고유 키가 충돌한다
+    const closesIn = [100, 200, 300, 400];
+    await Promise.all(closesIn.map((c) => replaceBasisResult(db, 'GC', 'FRONT', result(c), NOW)));
+
+    const saved = await closes('FRONT');
+    expect(saved).toHaveLength(1);
+    expect(closesIn).toContain(saved[0]);
+    expect(await db.select().from(rollWeight)).toHaveLength(1);
+  });
+
   it('Postgres 매개변수 한도를 넘는 행 수도 나눠서 저장한다', async () => {
     const start = Date.UTC(1990, 0, 1);
     const indexBars = Array.from({ length: 12_000 }, (_, i) =>

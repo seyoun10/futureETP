@@ -1,5 +1,5 @@
 // 재계산 파이프라인의 조회·저장(D-070). 계산은 calc/recompute.ts, 흐름은 jobs/recompute.ts
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Basis, CommodityCode } from '@futureetp/shared';
 import type { RecomputeInput, RecomputeResult } from '../calc/recompute.ts';
 import type { db as Db } from './client.ts';
@@ -74,7 +74,10 @@ async function insertChunked<T>(rows: readonly T[], insert: (chunk: T[]) => Prom
   for (let i = 0; i < rows.length; i += CHUNK) await insert(rows.slice(i, i + CHUNK));
 }
 
-// 원자재·기준값의 계산 결과를 통째로 바꾼다. result가 null이면 지우기만 한다(규칙 없는 기준값)
+// 원자재·기준값의 계산 결과를 통째로 바꾼다. result가 null이면 지우기만 한다(규칙 없는 기준값).
+// CLI 재계산과 배치가 같은 원자재·기준값을 동시에 바꾸면 둘 다 빈 상태에 INSERT해 23505가 나므로,
+// 트랜잭션 잠금으로 줄을 세운다. 뒤에 온 쪽은 앞쪽이 커밋한 뒤 DELETE부터 다시 보므로 마지막 결과가 남는다.
+// 잠금은 커밋·롤백 때 저절로 풀린다. 해시가 겹치면 다른 키끼리 잠깐 기다릴 뿐 결과는 같다
 export async function replaceBasisResult(
   db: typeof Db,
   commodityCode: CommodityCode,
@@ -83,6 +86,9 @@ export async function replaceBasisResult(
   now: Date,
 ): Promise<void> {
   await db.transaction(async (tx: Tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`recompute:${commodityCode}:${basis}`}))`,
+    );
     for (const table of [
       rollWeight,
       indexBar,

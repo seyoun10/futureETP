@@ -335,3 +335,11 @@ Claude가 이후 작업할 때 참고하는 문서. 기술 결정의 입력이 �
 
 ### 5-14. 다른 클라이언트 지원 (D-141)
 - [x] shared 스키마를 JSON Schema로 내보내기(`npm run contract:export`, zod 4 `z.toJSONSchema`, `packages/shared/contract/` 커밋). 커밋된 파일과 생성 결과가 어긋나거나 남은 파일이 있으면 `contract.test.ts`가 실패(check), 파일을 바꿔 실패를 확인 (2026-11-19, D-142)
+
+### 5-15. 품질 검증 남은 결함 (TODO에서는 5-12, 2026-11-21 완료) (`docs/reviews/2026-11-21-quality-review.md` 3절, 모두 minor 이하)
+- [x] A2 `calc/quotes.ts:76`: 직전 정산가 ≤0이면 changePct 부호 반대/Infinity(low). `compareCurves`처럼 `> 0`일 때만 계산하고 아니면 null로 해결
+- [x] E3 `useSettings.ts:51`: 첫 조회 중 PATCH 실패 시 설정 query가 pending/idle로 고착(low). PATCH 실패 시 설정 재조회로 해결
+- [x] E5 `useAutoRefresh.ts:33`: 자동 새로고침 `refetch()`가 진행 중 과거 받기를 조용히 취소(low). `cancelRefetch: false`로 진행 중 조회를 두고, 끝난 뒤 다시 예약되게 해결
+- [x] B2/D1 shared `settings.ts:36,42`: rare 레벨 중복 검사를 반올림 뒤 값으로(API 직접 호출만 도달, nit). 레벨을 소수 첫째 자리로 반올림한 뒤 중복을 보게 해결, 형제 저장소 TODO 반영
+- [x] B3 `db/recompute.ts`: 재계산 DELETE→INSERT를 원자재·기준값별 `pg_advisory_xact_lock`으로 직렬화(CLI·배치 겹쳐도 23505 없음)
+- [x] D3 shared `queries.ts:22`: levels query가 공백·`0x8`·`1e1`을 통과. 계약 엄격성(nit). 십진 숫자·쉼표만 받는 정규식(계약 `pattern`)으로 해결, 형제 저장소 TODO 반영
