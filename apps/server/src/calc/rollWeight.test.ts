@@ -365,13 +365,64 @@ describe('expandRollWeights: BCBCLI(여러 leg, 수량)', () => {
   it('첫날 필요한 가격이 없으면 오류를 던진다', () => {
     expect(() =>
       expandRollWeights('CL', BCBCLI, input({ CLK27: 50, CLM27: 40 } as typeof FIRST_PRICES)),
-    ).toThrow();
+    ).toThrow('2027-02-24 CLZ27 정산가가 없다');
   });
 
   it('재조정일에 다음 월물 가격이 없으면 오류를 던진다', () => {
     expect(() =>
       expandRollWeights('CL', BCBCLI, input(FIRST_PRICES, { CLM27: 48, CLZ27: 30 })),
-    ).toThrow();
+    ).toThrow('2027-03-01 CLM28 정산가가 없다');
+  });
+
+  // 4월은 월간 leg만 M27 → N27로 롤 한다(2영업일 0.5, 3영업일 0)
+  const aprilFrom = (from: string, prices: Record<string, number>) =>
+    weekdays(from, '2027-04-07').map((tradeDate) => ({
+      tradeDate,
+      prices: new Map(Object.entries(tradeDate === from ? prices : {})),
+    }));
+
+  it('롤 전 영업일에 시작하면 첫날 수량에 다음 월물 가격을 쓰지 않는다', () => {
+    // 4/1(1영업일)은 월간 leg 비중이 모두 M27이라 N27 가격이 없어도 된다
+    const d = byDate(
+      expandRollWeights('CL', BCBCLI, aprilFrom('2027-04-01', { CLM27: 40, CLM28: 50, CLZ27: 25 })),
+    );
+    // 수량 = (1/3) / 가격
+    expectWeights(
+      d.get('2027-04-01'),
+      normalized([
+        ['CLM27', 1 / 40],
+        ['CLZ27', 1 / 25],
+        ['CLM28', 1 / 50],
+      ]),
+    );
+  });
+
+  it('롤 중간 영업일에 시작하면 첫날 수량은 두 월물 가격을 비중대로 섞어 정한다', () => {
+    // 4/2(2영업일) 월간 leg 단위 가치 = 0.5×40 + 0.5×60 = 50 → 수량 1/150. M28 1/150, Z27 1/75
+    const d = byDate(
+      expandRollWeights(
+        'CL',
+        BCBCLI,
+        aprilFrom('2027-04-02', { CLM27: 40, CLN27: 60, CLM28: 50, CLZ27: 25 }),
+      ),
+    );
+    expectWeights(
+      d.get('2027-04-02'),
+      normalized([
+        ['CLM27', 0.5],
+        ['CLN27', 0.5],
+        ['CLZ27', 2],
+        ['CLM28', 1],
+      ]),
+    );
+    expectWeights(
+      d.get('2027-04-05'),
+      normalized([
+        ['CLN27', 1],
+        ['CLZ27', 2],
+        ['CLM28', 1],
+      ]),
+    );
   });
 });
 
@@ -406,6 +457,24 @@ describe('isRollPeriodDay', () => {
     );
   });
 
+  it('NYSE만 쉰 날은 쉬기 전 영업일 수가 롤 영업일이어도 롤 구간이 아니다', () => {
+    // 2018-12-03·04 두 영업일 뒤 12-05(NYSE만 휴장). 2영업일이 롤 날인 규칙
+    const early: RollRuleParams = { ...GSCI_CL, rollDays: [2, 3], oldShares: [0.5, 0] };
+    expect(isRollPeriodDay('CL', early, '2018-12-05', weekdays('2018-12-03', '2018-12-05'))).toBe(
+      false,
+    );
+    expect(isRollPeriodDay('CL', early, '2018-12-06', weekdays('2018-12-03', '2018-12-06'))).toBe(
+      true,
+    );
+  });
+
+  it('다른 달이나 T 뒤의 거래일이 섞여 와도 그 달 1일~T만 센다', () => {
+    // 2026-10-07 = 5영업일. 9월 말과 10월 8일 뒤가 섞여도 같은 답이다
+    expect(isRollPeriodDay('CL', GSCI_CL, '2026-10-07', weekdays('2026-09-21', '2026-10-20'))).toBe(
+      true,
+    );
+  });
+
   it('롤 첫날(5영업일)도 롤 구간이다', () => {
     expect(isRollPeriodDay('CL', GSCI_CL, '2026-10-07', weekdays('2026-10-01', '2026-10-07'))).toBe(
       true,
@@ -426,6 +495,10 @@ describe('isRollPeriodDay', () => {
 });
 
 describe('rollRuleParamsSchema', () => {
+  // 거부 사유 문구 목록(통과하면 빈 배열)
+  const issues = (params: unknown) =>
+    rollRuleParamsSchema.safeParse(params).error?.issues.map((i) => i.message) ?? [];
+
   it('ROLL_RULE_SEEDS의 params를 모두 통과시킨다', () => {
     for (const seed of ROLL_RULE_SEEDS) {
       expect(rollRuleParamsSchema.safeParse(seed.params).success).toBe(true);
@@ -438,20 +511,45 @@ describe('rollRuleParamsSchema', () => {
     expect(rollRuleParamsSchema.safeParse(bad).success).toBe(false);
   });
 
+  it.each(['A', 'S', 'F+2', 'FF', 'f', ''])('보유 월물 %j 형식은 거부한다', (bad) => {
+    const legs = [{ weight: 1, hold: [bad, ...GC_HOLD.slice(1)] }];
+    expect(rollRuleParamsSchema.safeParse({ ...GSCI_GC, legs }).success).toBe(false);
+  });
+
   it('rollDays와 oldShares 길이가 다르면 거부한다', () => {
     // 길이 말고는 다른 조건을 모두 지키는 값이다
     const bad = { ...GSCI_GC, rollDays: [5, 6], oldShares: [0] };
-    expect(rollRuleParamsSchema.safeParse(bad).success).toBe(false);
+    expect(issues(bad)).toEqual(['롤 영업일과 비중 개수가 다르다']);
   });
 
   it.each([
-    ['이전 월물 비중이 늘어나면', { rollDays: [5, 6, 7], oldShares: [0.5, 0.7, 0] }],
-    ['롤 영업일이 같으면', { rollDays: [5, 5, 7], oldShares: [0.5, 0.2, 0] }],
-    ['롤 영업일이 줄어들면', { rollDays: [5, 7, 6], oldShares: [0.5, 0.2, 0] }],
-    ['마지막 비중이 0이 아니면', { rollDays: [5, 6], oldShares: [0.5, 0.2] }],
-    ['재조정일이 첫 롤 영업일보다 앞이 아니면', { rebalance: { months: [3], businessDay: 5 } }],
-  ])('%s 거부한다', (_, over) => {
-    expect(rollRuleParamsSchema.safeParse({ ...GSCI_GC, ...over }).success).toBe(false);
+    [
+      '이전 월물 비중이 늘어나면',
+      { rollDays: [5, 6, 7], oldShares: [0.5, 0.7, 0] },
+      '이전 월물 비중은 줄어들기만 한다',
+    ],
+    [
+      '롤 영업일이 같으면',
+      { rollDays: [5, 5, 7], oldShares: [0.5, 0.2, 0] },
+      '롤 영업일은 오름차순이다',
+    ],
+    [
+      '롤 영업일이 줄어들면',
+      { rollDays: [5, 7, 6], oldShares: [0.5, 0.2, 0] },
+      '롤 영업일은 오름차순이다',
+    ],
+    [
+      '마지막 비중이 0이 아니면',
+      { rollDays: [5, 6], oldShares: [0.5, 0.2] },
+      '마지막 롤 영업일에 이전 월물 비중은 0이다',
+    ],
+    [
+      '재조정일이 첫 롤 영업일보다 앞이 아니면',
+      { rebalance: { months: [3], businessDay: 5 } },
+      '재조정일은 첫 롤 영업일보다 앞이다',
+    ],
+  ])('%s 거부한다', (_, over, message) => {
+    expect(issues({ ...GSCI_GC, ...over })).toEqual([message]);
   });
 
   it('이전 월물 비중이 며칠 그대로인 것은 허용한다', () => {
