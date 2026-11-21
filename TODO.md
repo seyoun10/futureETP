@@ -81,6 +81,7 @@
     - [ ] 두 기기에서 운영 데이터 표시·카메라 권한 문구 확인
 
 - [ ] KRX 2027년 휴장일 공식 공지(보통 12월 말) 뒤 `scripts/calendar/krx/2027.json`을 맞추고(잠정 표시 지우기, 수능일 개장 지연 추가) dev·prod 다시 import
+  - 2027 KRX가 `missing`인 동안 앱은 달력을 5분만 캐시하므로, import 뒤 화면 재진입·앱 복귀로 반영된다(재시작 불필요). 반영 확인만 한다
 
 ### 5-11. 검증 강화 (D-127)
 - [ ] (후속) victory-native가 Gesture Handler hook API를 받으면 `useChartViewport` 제스처 이전, 예외 주석 삭제 (D-128)
